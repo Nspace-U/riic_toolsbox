@@ -6,6 +6,8 @@ import ScheduleCalculatorPage from '@/pages/ScheduleCalculatorPage.vue'
 import ScheduleReferencePage from '@/pages/ScheduleReferencePage.vue'
 import SettingsPage from '@/pages/SettingsPage.vue'
 import SimulatorPage from '@/pages/SimulatorPage.vue'
+import AvatarGeneratorPage from '@/pages/AvatarGeneratorPage.vue'
+import ToolboxPage from '@/pages/ToolboxPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -43,6 +45,18 @@ const router = createRouter({
       name: 'operator-skills',
       component: OperatorSkillsPage,
       meta: { title: '基建技能一览' },
+    },
+    {
+      path: '/toolbox',
+      name: 'toolbox',
+      component: ToolboxPage,
+      meta: { title: '工具箱' },
+    },
+    {
+      path: '/toolbox/avatar',
+      name: 'toolbox-avatar',
+      component: AvatarGeneratorPage,
+      meta: { title: '头像生成器' },
     },
     {
       path: '/settings',

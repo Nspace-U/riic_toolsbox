@@ -6,16 +6,25 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
+  PictureOutlined,
+  ToolOutlined,
   SettingOutlined,
   TableOutlined,
 } from '@ant-design/icons-vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
 import { useDataSource } from './composables/useDataSource'
 
 interface NavigationItem {
+  key: string
+  label: string
+  icon: Component
+  children?: NavigationChildItem[]
+}
+
+interface NavigationChildItem {
   key: string
   label: string
   icon: Component
@@ -27,6 +36,12 @@ const navigationItems: NavigationItem[] = [
   { key: '/schedule-reference', label: '排班表参考', icon: BookOutlined },
   { key: '/basic-calculator', label: '基础计算器', icon: CalculatorOutlined },
   { key: '/operator-skills', label: '基建技能一览', icon: BookOutlined },
+  {
+    key: '/toolbox',
+    label: '工具箱',
+    icon: ToolOutlined,
+    children: [{ key: '/toolbox/avatar', label: '头像生成器', icon: PictureOutlined }],
+  },
   { key: '/settings', label: '通用设置', icon: SettingOutlined },
 ]
 
@@ -37,11 +52,29 @@ const { selectedDataSourceLabel } = useDataSource()
 const siderCollapsed = ref(false)
 const isMobile = ref(false)
 const mobileMenuOpen = ref(false)
+const openNavigationKeys = ref<string[]>([])
 
 const currentPath = computed(() => route.path)
-const currentPageTitle = computed(() => {
-  return navigationItems.find((item) => item.key === currentPath.value)?.label ?? '基建工具箱'
+const currentPageTitle = computed(() => findNavigationLabel(currentPath.value) ?? '基建工具箱')
+
+const selectedNavigationKey = computed(() => {
+  return currentPath.value
 })
+
+function findNavigationLabel(path: string): string | undefined {
+  for (const item of navigationItems) {
+    if (item.key === path) {
+      return item.label
+    }
+
+    const child = item.children?.find((navigationChild) => navigationChild.key === path)
+    if (child) {
+      return child.label
+    }
+  }
+
+  return undefined
+}
 
 function handleMenuClick(info: { key: string | number }): void {
   mobileMenuOpen.value = false
@@ -67,6 +100,18 @@ function handleHeaderNavigation(): void {
 
   toggleSider()
 }
+
+function handleNavigationOpenChange(keys: string[]): void {
+  openNavigationKeys.value = keys
+}
+
+function handleRouteChange(path: string): void {
+  if (path === '/toolbox' || path.startsWith('/toolbox/')) {
+    openNavigationKeys.value = ['/toolbox']
+  }
+}
+
+watch(currentPath, handleRouteChange, { immediate: true })
 </script>
 
 <template>
@@ -87,18 +132,34 @@ function handleHeaderNavigation(): void {
       </div>
 
       <a-menu
-        :selected-keys="[currentPath]"
+        :open-keys="isMobile ? [] : openNavigationKeys"
+        :selected-keys="[selectedNavigationKey]"
         class="app-menu"
         mode="inline"
         theme="dark"
         @click="handleMenuClick"
+        @open-change="handleNavigationOpenChange"
       >
-        <a-menu-item v-for="item in navigationItems" :key="item.key">
-          <template #icon>
-            <component :is="item.icon" />
-          </template>
-          <span>{{ item.label }}</span>
-        </a-menu-item>
+        <template v-for="item in navigationItems" :key="item.key">
+          <a-sub-menu v-if="item.children" :key="item.key">
+            <template #icon>
+              <component :is="item.icon" />
+            </template>
+            <template #title>{{ item.label }}</template>
+            <a-menu-item v-for="child in item.children" :key="child.key">
+              <template #icon>
+                <component :is="child.icon" />
+              </template>
+              <span>{{ child.label }}</span>
+            </a-menu-item>
+          </a-sub-menu>
+          <a-menu-item v-else :key="item.key">
+            <template #icon>
+              <component :is="item.icon" />
+            </template>
+            <span>{{ item.label }}</span>
+          </a-menu-item>
+        </template>
       </a-menu>
 
       <div v-if="!siderCollapsed" class="sider-footer">基建效率工具</div>
@@ -155,18 +216,34 @@ function handleHeaderNavigation(): void {
       </div>
     </div>
     <a-menu
-      :selected-keys="[currentPath]"
+      :open-keys="openNavigationKeys"
+      :selected-keys="[selectedNavigationKey]"
       class="app-menu app-menu--drawer"
       mode="inline"
       theme="dark"
       @click="handleMenuClick"
+      @open-change="handleNavigationOpenChange"
     >
-      <a-menu-item v-for="item in navigationItems" :key="item.key">
-        <template #icon>
-          <component :is="item.icon" />
-        </template>
-        <span>{{ item.label }}</span>
-      </a-menu-item>
+      <template v-for="item in navigationItems" :key="item.key">
+        <a-sub-menu v-if="item.children" :key="item.key">
+          <template #icon>
+            <component :is="item.icon" />
+          </template>
+          <template #title>{{ item.label }}</template>
+          <a-menu-item v-for="child in item.children" :key="child.key">
+            <template #icon>
+              <component :is="child.icon" />
+            </template>
+            <span>{{ child.label }}</span>
+          </a-menu-item>
+        </a-sub-menu>
+        <a-menu-item v-else :key="item.key">
+          <template #icon>
+            <component :is="item.icon" />
+          </template>
+          <span>{{ item.label }}</span>
+        </a-menu-item>
+      </template>
     </a-menu>
   </a-drawer>
 </template>
