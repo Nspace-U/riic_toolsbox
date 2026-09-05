@@ -50,6 +50,19 @@ const selectedOperator = computed<Operator | undefined>(() => {
   return operators.value.find((operator) => operator.id === selectedOperatorId.value)
 })
 
+const availableAvatarStages = computed<EliteOption[]>(() => {
+  const operator = selectedOperator.value
+  if (!operator) {
+    return []
+  }
+
+  return AVATAR_STAGES.filter((option) => Boolean(getOperatorAvatarFile(operator, option.value)))
+})
+
+const selectedEliteOption = computed<EliteOption | undefined>(() => {
+  return AVATAR_STAGES.find((option) => option.value === selectedEliteLevel.value)
+})
+
 const selectedAvatarFile = computed(() => {
   const operator = selectedOperator.value
   return operator ? getOperatorAvatarFile(operator, selectedEliteLevel.value) : ''
@@ -60,9 +73,9 @@ const previewDescription = computed(() => {
     return '读取数据后选择干员'
   }
   if (!selectedAvatarFile.value) {
-    return `${selectedOperator.value.name}暂无${AVATAR_STAGES[selectedEliteLevel.value]?.label ?? ''}头像资源`
+    return `${selectedOperator.value.name}暂无${selectedEliteOption.value?.label ?? ''}头像资源`
   }
-  return `${selectedOperator.value.name} · ${AVATAR_STAGES[selectedEliteLevel.value]?.label ?? ''}`
+  return `${selectedOperator.value.name} · ${selectedEliteOption.value?.label ?? ''}`
 })
 
 function updateSelectedOperator(value: Operator[]): void {
@@ -86,6 +99,13 @@ function handleReload(): void {
 function rarityLabel(operator: Operator): string {
   return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
 }
+
+watch(availableAvatarStages, (stages) => {
+  const firstStage = stages[0]
+  if (firstStage && !stages.some((stage) => stage.value === selectedEliteLevel.value)) {
+    selectedEliteLevel.value = firstStage.value
+  }
+}, { immediate: true })
 
 let generationRequestId = 0
 
@@ -129,7 +149,7 @@ function handleDownload(): void {
     return
   }
 
-  const eliteLabel = AVATAR_STAGES[selectedEliteLevel.value]?.label.replace(/\s/g, '') ?? `精${selectedEliteLevel.value}`
+  const eliteLabel = selectedEliteOption.value?.label.replace(/\s/g, '') ?? `精${selectedEliteLevel.value}`
   const moodLabel = moodScattered.value ? '-心情涣散' : ''
   const link = document.createElement('a')
   link.href = generatedImageUrl.value
@@ -199,10 +219,13 @@ onBeforeUnmount(() => {
 
             <a-form-item label="精英化等级">
               <a-radio-group v-model:value="selectedEliteLevel" button-style="solid" option-type="button">
-                <a-radio-button v-for="option in AVATAR_STAGES" :key="option.value" :value="option.value">
+                <a-radio-button v-for="option in availableAvatarStages" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </a-radio-button>
               </a-radio-group>
+              <a-typography-text v-if="selectedOperator && availableAvatarStages.length === 0" type="secondary">
+                当前干员没有可用头像资源
+              </a-typography-text>
             </a-form-item>
 
             <a-divider orientation="left">头像信息</a-divider>

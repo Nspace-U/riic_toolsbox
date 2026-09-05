@@ -50,10 +50,17 @@ a {
 }
 
 .app-layout {
+  align-items: flex-start;
   min-height: 100vh;
 }
 
 .app-sider {
+  position: sticky;
+  inset-block-start: 0;
+  align-self: flex-start;
+  z-index: 10;
+  height: 100vh;
+  max-height: 100vh;
   overflow: hidden;
   background: #1d292d !important;
 }
@@ -61,6 +68,8 @@ a {
 .app-sider .ant-layout-sider-children {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
 }
 
 .sider-brand,
