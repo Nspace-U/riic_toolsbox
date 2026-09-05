@@ -5,7 +5,7 @@ export interface TorappuCharacter {
   rarity?: string
   profession?: string
   subProfessionId?: string
-  phases?: unknown[]
+  phaseCount?: number
 }
 
 export interface TorappuCondition {
@@ -134,7 +134,7 @@ function buildAvatars(
   character: TorappuCharacter,
   missingAvatars: Set<string>,
 ): Operator['avatars'] {
-  const phaseCount = character.phases?.length ?? 0
+  const phaseCount = character.phaseCount ?? 0
   const elite0 = avatarFileName(operatorId, 0)
   const elite1 = avatarFileName(operatorId, 1)
   const elite2 = avatarFileName(operatorId, 2)

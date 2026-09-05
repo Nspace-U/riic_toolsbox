@@ -17,7 +17,7 @@ npm run dev
 npm run sync:torappu
 ```
 
-脚本会读取 Torappu 最新的已完成版本，写入 `public/assets/gamedata/latest` 和 `public/assets/raw`，并在 `torappu-meta.json` 中记录版本号与 revision。现有 CSV、术语文件和旧资源目录会保留，作为兼容数据。
+脚本会读取 Torappu 最新的已完成版本，裁剪为应用实际使用的字段后写入 `public/assets/gamedata/latest`，并将原始头像和技能图标写入 `public/assets/raw`，同时在 `torappu-meta.json` 中记录版本号与 revision。现有 CSV、术语文件和旧资源目录会保留，作为兼容数据。
 
 ## 构建检查
 

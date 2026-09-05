@@ -78,9 +78,68 @@ async function runPool(items, concurrency, worker) {
   await Promise.all(Array.from({ length: concurrency }, runWorker))
 }
 
+// Keep the local snapshot limited to fields consumed by the app and asset sync.
+function selectCharacterTable(characterTable, operatorIds) {
+  return Object.fromEntries(
+    operatorIds.map((operatorId) => {
+      const character = characterTable[operatorId]
+      return [operatorId, {
+        name: character.name,
+        rarity: character.rarity,
+        profession: character.profession,
+        subProfessionId: character.subProfessionId,
+        phaseCount: Array.isArray(character.phases) ? character.phases.length : 0,
+      }]
+    }),
+  )
+}
+
+function selectBuildingData(buildingData, operatorIds) {
+  const chars = Object.fromEntries(
+    operatorIds.map((operatorId) => {
+      const character = buildingData.chars[operatorId]
+      return [operatorId, {
+        buffChar: (character.buffChar ?? []).map((slotData) => ({
+          buffData: (slotData.buffData ?? []).map((buffData) => ({
+            buffId: buffData.buffId,
+            ...(buffData.cond
+              ? {
+                  cond: {
+                    phase: buffData.cond.phase,
+                    level: buffData.cond.level,
+                  },
+                }
+              : {}),
+          })),
+        })),
+      }]
+    }),
+  )
+  const buffIds = new Set(
+    Object.values(chars).flatMap((character) =>
+      character.buffChar.flatMap((slotData) =>
+        slotData.buffData.map((buffData) => buffData.buffId).filter(Boolean),
+      ),
+    ),
+  )
+  const buffs = Object.fromEntries(
+    [...buffIds].map((buffId) => {
+      const buff = buildingData.buffs[buffId]
+      return [buffId, {
+        buffName: buff.buffName,
+        skillIcon: buff.skillIcon,
+        roomType: buff.roomType,
+        description: buff.description,
+      }]
+    }),
+  )
+
+  return { chars, buffs }
+}
+
 function avatarNames(operatorId, character) {
   const names = [`${operatorId}.png`]
-  const phaseCount = Array.isArray(character?.phases) ? character.phases.length : 0
+  const phaseCount = character?.phaseCount ?? 0
   if (phaseCount >= 2) {
     names.push(`${operatorId}_1+.png`)
   }
@@ -99,17 +158,24 @@ async function main() {
     throw new Error('Torappu 没有可用的已完成版本')
   }
 
-  const data = {}
+  const rawData = {}
   for (const dataFile of DATA_FILES) {
-    data[dataFile.name] = await fetchJson(`${TORAPPU_URL}/${dataFile.path}`, `Torappu ${dataFile.name}`)
+    rawData[dataFile.name] = await fetchJson(`${TORAPPU_URL}/${dataFile.path}`, `Torappu ${dataFile.name}`)
+  }
+
+  const operatorIds = Object.keys(rawData.building_data.chars ?? {}).filter(
+    (operatorId) => operatorId.startsWith('char_') && rawData.character_table[operatorId]?.name,
+  )
+  const data = {
+    character_table: selectCharacterTable(rawData.character_table, operatorIds),
+    building_data: selectBuildingData(rawData.building_data, operatorIds),
+  }
+  for (const dataFile of DATA_FILES) {
     await writeJson(dataFile.path, data[dataFile.name])
   }
 
   const characterTable = data.character_table
   const buildingData = data.building_data
-  const operatorIds = Object.keys(buildingData.chars ?? {}).filter(
-    (operatorId) => operatorId.startsWith('char_') && characterTable[operatorId]?.name,
-  )
   const skillIcons = new Set(
     Object.values(buildingData.buffs ?? {})
       .map((buff) => buff.skillIcon)
