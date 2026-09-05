@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 
 export const DATA_SOURCE_OPTIONS = [
+  { label: 'Torappu', value: 'torappu' },
   { label: 'PRTS WIKI', value: 'prts' },
   { label: 'yuanyan3060/ArknightsGameResource', value: 'yuanyan3060' },
 ] as const
@@ -8,7 +9,7 @@ export const DATA_SOURCE_OPTIONS = [
 export type DataSourceId = (typeof DATA_SOURCE_OPTIONS)[number]['value']
 
 const DATA_SOURCE_STORAGE_KEY = 'riic-tools:data-source'
-const DEFAULT_DATA_SOURCE: DataSourceId = 'prts'
+const DEFAULT_DATA_SOURCE: DataSourceId = 'torappu'
 const selectedDataSource = ref<DataSourceId>(readStoredDataSource())
 
 const selectedDataSourceLabel = computed(() => {

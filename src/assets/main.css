@@ -309,6 +309,7 @@ a {
 .operator-data-summary-copy {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   min-width: 0;
   gap: 8px;
 }
@@ -316,6 +317,15 @@ a {
 .operator-data-summary-copy .anticon {
   color: #2f605c;
   font-size: 16px;
+}
+
+.operator-data-version {
+  display: inline-block;
+  max-width: 100%;
+  margin-inline-start: 8px;
+  color: #879294;
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .operator-data-error {

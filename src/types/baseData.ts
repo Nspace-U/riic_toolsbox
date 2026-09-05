@@ -35,3 +35,19 @@ export interface BaseSkillTerm {
 }
 
 export type BaseSkillTerms = Record<string, BaseSkillTerm>
+
+export interface BaseDataMetadata {
+  versionId: number
+  source: string
+  sourceUrl: string
+  clientVersion: string
+  resVersion: string
+  syncedAt: string
+  missingAvatars?: string[]
+}
+
+export interface BaseData {
+  operators: Operator[]
+  terms: BaseSkillTerms
+  metadata?: BaseDataMetadata
+}

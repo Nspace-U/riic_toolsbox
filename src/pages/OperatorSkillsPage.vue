@@ -31,7 +31,7 @@ const AVATAR_STAGES: { key: keyof OperatorAvatars; label: string }[] = [
 
 type FacilitySelection = string | { value?: string | number }
 
-const { operators, terms, loading, errorMessage, ready, reload } = useBaseData()
+const { operators, terms, metadata, loading, errorMessage, ready, reload } = useBaseData()
 
 const searchText = ref('')
 const selectedFacilities = ref<FacilitySelection[]>([])
@@ -46,7 +46,10 @@ function assetUrl(path: string): string {
 }
 
 function imageUrl(directory: string, fileName: string): string {
-  return assetUrl(`${directory}/${encodeURIComponent(fileName)}`)
+  const encodedFileName = encodeURIComponent(fileName)
+    .replace(/%2B/g, '+')
+    .replace(/%26/g, '&')
+  return assetUrl(`${directory}/${encodedFileName}`)
 }
 
 function facilityValue(selection: FacilitySelection): string {
@@ -130,7 +133,10 @@ function handleReload(): void {
       <div class="operator-data-summary-copy">
         <DatabaseOutlined />
         <span v-if="loading">正在读取数据...</span>
-        <span v-else-if="ready">已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 · {{ Object.keys(terms).length }} 条术语</span>
+        <span v-else-if="ready">
+          已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 · {{ Object.keys(terms).length }} 条术语
+          <span v-if="metadata" class="operator-data-version">Torappu {{ metadata.clientVersion }} · {{ metadata.resVersion }}</span>
+        </span>
         <span v-else>等待读取数据</span>
       </div>
       <a-button :loading="loading" type="text" @click="handleReload">
@@ -189,7 +195,7 @@ function handleReload(): void {
                 <img
                   v-if="operator.avatars[stage.key]"
                   :alt="`${operator.name} ${stage.label}头像`"
-                  :src="imageUrl('assets/operator-avatars', operator.avatars[stage.key])"
+                  :src="imageUrl('assets/raw/char_avatar', operator.avatars[stage.key])"
                   loading="lazy"
                 />
                 <div v-else class="operator-avatar-placeholder">暂无</div>
@@ -213,7 +219,7 @@ function handleReload(): void {
                 <img
                   v-if="skill.iconFile"
                   :alt="`${skill.name}图标`"
-                  :src="imageUrl('assets/base-skill-icons', skill.iconFile)"
+                  :src="imageUrl('assets/raw/build_skill_icon', skill.iconFile)"
                   loading="lazy"
                 />
                 <span v-else>{{ skill.name.slice(0, 1) || '?' }}</span>
