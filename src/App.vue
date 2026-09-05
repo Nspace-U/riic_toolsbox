@@ -165,7 +165,13 @@ watch(currentPath, handleRouteChange, { immediate: true })
       <div v-if="!siderCollapsed" class="sider-footer">基建效率工具</div>
     </a-layout-sider>
 
-    <a-layout>
+    <a-layout
+      :class="{
+        'app-main-layout--collapsed': siderCollapsed,
+        'app-main-layout--mobile': isMobile,
+      }"
+      class="app-main-layout"
+    >
       <a-layout-header class="app-header">
         <div class="header-left">
           <a-button
