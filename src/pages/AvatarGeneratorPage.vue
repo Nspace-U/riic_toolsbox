@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  CheckOutlined,
   DownloadOutlined,
   PictureOutlined,
   ReloadOutlined,
@@ -12,6 +11,11 @@ import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import type { EliteLevel, Operator, OperatorAvatars } from '@/types/baseData'
 import { generateOperatorAvatar } from '@/utils/generateOperatorAvatar'
+import {
+  getEliteIconUrl,
+  getProfessionIconUrl,
+  getRarityIconUrl,
+} from '@/utils/operatorAvatarAssets'
 
 interface EliteOption {
   value: EliteLevel
@@ -72,10 +76,6 @@ const selectedAvatarUrl = computed(() => {
   return imageUrl(avatarDirectory.value, selectedAvatarFile.value)
 })
 
-const canGenerate = computed(() => {
-  return ready.value && Boolean(selectedOperator.value && selectedAvatarFile.value) && !generating.value
-})
-
 const previewDescription = computed(() => {
   if (!selectedOperator.value) {
     return '读取数据后选择干员'
@@ -119,12 +119,15 @@ function rarityLabel(operator: Operator): string {
   return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
 }
 
+let generationRequestId = 0
+
 async function handleGenerate(): Promise<void> {
   const operator = selectedOperator.value
   if (!operator || !selectedAvatarUrl.value) {
     return
   }
 
+  const requestId = ++generationRequestId
   generating.value = true
   generationError.value = ''
   clearGeneratedImage()
@@ -132,20 +135,25 @@ async function handleGenerate(): Promise<void> {
   try {
     const imageBlob = await generateOperatorAvatar({
       imageUrl: selectedAvatarUrl.value,
-      operatorName: operator.name,
-      rarity: operator.rarity,
-      profession: operator.profession,
-      eliteLevel: selectedEliteLevel.value,
+      professionIconUrl: getProfessionIconUrl(operator.profession),
+      eliteIconUrl: getEliteIconUrl(selectedEliteLevel.value),
+      rarityIconUrl: operator.rarity > 0 ? getRarityIconUrl(operator.rarity) : undefined,
       showRarity: showRarity.value,
       showEliteLevel: showEliteLevel.value,
       showProfession: showProfession.value,
       moodScattered: moodScattered.value,
     })
-    generatedImageUrl.value = URL.createObjectURL(imageBlob)
+    if (requestId === generationRequestId) {
+      generatedImageUrl.value = URL.createObjectURL(imageBlob)
+    }
   } catch (error: unknown) {
-    generationError.value = error instanceof Error ? error.message : '头像生成失败'
+    if (requestId === generationRequestId) {
+      generationError.value = error instanceof Error ? error.message : '头像生成失败'
+    }
   } finally {
-    generating.value = false
+    if (requestId === generationRequestId) {
+      generating.value = false
+    }
   }
 }
 
@@ -167,8 +175,9 @@ watch(
   [selectedOperatorId, selectedEliteLevel, showRarity, showEliteLevel, showProfession, moodScattered, selectedDataSource],
   () => {
     generationError.value = ''
-    clearGeneratedImage()
+    void handleGenerate()
   },
+  { immediate: true },
 )
 onBeforeUnmount(clearGeneratedImage)
 </script>
@@ -231,14 +240,7 @@ onBeforeUnmount(clearGeneratedImage)
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
               <a-checkbox v-model:checked="showEliteLevel">显示精英化等级</a-checkbox>
               <a-checkbox v-model:checked="showProfession">显示职业</a-checkbox>
-            </div>
-
-            <div class="avatar-mood-option">
-              <div>
-                <strong>心情涣散</strong>
-                <span>生成图片时降低饱和度并添加状态标记</span>
-              </div>
-              <a-switch v-model:checked="moodScattered" />
+              <a-checkbox v-model:checked="moodScattered">心情涣散</a-checkbox>
             </div>
 
             <a-alert
@@ -260,20 +262,13 @@ onBeforeUnmount(clearGeneratedImage)
               type="error"
             />
 
-            <a-button
-              :disabled="!canGenerate"
-              :loading="generating"
-              block
-              class="avatar-generate-button"
-              size="large"
-              type="primary"
-              @click="handleGenerate"
-            >
-              <template #icon>
-                <CheckOutlined />
-              </template>
-              生成头像
-            </a-button>
+            <a-alert
+              v-if="generating"
+              class="avatar-generator-warning"
+              message="正在更新头像预览..."
+              show-icon
+              type="info"
+            />
           </a-form>
         </a-card>
 

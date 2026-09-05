@@ -320,39 +320,8 @@ a {
   gap: 12px;
 }
 
-.avatar-mood-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-block-start: 22px;
-  padding-block: 16px;
-  border-block: 1px solid #edf0ef;
-}
-
-.avatar-mood-option > div {
-  display: grid;
-  gap: 4px;
-}
-
-.avatar-mood-option strong {
-  color: #253238;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.avatar-mood-option span {
-  color: #879294;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
 .avatar-generator-warning {
   margin-block-start: 16px;
-}
-
-.avatar-generate-button {
-  margin-block-start: 22px;
 }
 
 .avatar-preview-stage {
@@ -366,8 +335,10 @@ a {
 
 .avatar-generated-image {
   display: block;
-  width: min(100%, 420px);
-  aspect-ratio: 1;
+  width: auto;
+  max-width: 100%;
+  max-height: 100%;
+  height: auto;
   object-fit: contain;
   box-shadow: 0 12px 28px rgba(36, 52, 57, 0.16);
 }
