@@ -5,11 +5,13 @@ import {
   ReloadOutlined,
   SearchOutlined,
 } from '@ant-design/icons-vue'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import { useBaseData } from '@/composables/useBaseData'
+import { useDataSource } from '@/composables/useDataSource'
 import type { Operator, OperatorAvatars, OperatorSkill } from '@/types/baseData'
+import { generateOperatorAvatarUrl } from '@/utils/operatorAvatar'
 
 const FACILITIES = [
   '控制中枢',
@@ -23,19 +25,18 @@ const FACILITIES = [
   '宿舍',
 ]
 
-const AVATAR_STAGES: { key: keyof OperatorAvatars; label: string }[] = [
-  { key: 'elite0', label: '精0' },
-  { key: 'elite1', label: '精1' },
-  { key: 'elite2', label: '精2' },
-]
+const AVATAR_STAGE = { key: 'elite0' as keyof OperatorAvatars, label: '精0' }
 
 type FacilitySelection = string | { value?: string | number }
 
 const { operators, terms, metadata, loading, errorMessage, ready, reload } = useBaseData()
+const { selectedDataSource } = useDataSource()
 
 const searchText = ref('')
 const selectedFacilities = ref<FacilitySelection[]>([])
 const showReplaced = ref(true)
+const generatedAvatarUrls = ref<Record<string, string>>({})
+const avatarGenerationError = ref('')
 
 const facilityOptions = FACILITIES.map((facility) => ({ label: facility, value: facility }))
 
@@ -115,6 +116,65 @@ function rarityLabel(operator: Operator): string {
 function handleReload(): void {
   void reload()
 }
+
+function revokeGeneratedAvatarUrls(urls: Record<string, string>): void {
+  Object.values(urls).forEach((url) => URL.revokeObjectURL(url))
+}
+
+let avatarGenerationRequestId = 0
+
+async function generateSkillAvatars(operatorList: Operator[]): Promise<void> {
+  const requestId = ++avatarGenerationRequestId
+  const dataSource = selectedDataSource.value
+  avatarGenerationError.value = ''
+  const transientUrls: string[] = []
+  const generatedEntries = await Promise.all(operatorList.map(async (operator) => {
+    try {
+      const url = await generateOperatorAvatarUrl(operator, dataSource, {
+        eliteLevel: 0,
+        showRarity: true,
+        showEliteLevel: true,
+        showProfession: true,
+        moodScattered: false,
+      })
+      if (url) {
+        transientUrls.push(url)
+      }
+      return [operator.id, url] as const
+    } catch {
+      return [operator.id, undefined] as const
+    }
+  }))
+
+  if (requestId !== avatarGenerationRequestId) {
+    transientUrls.forEach((url) => URL.revokeObjectURL(url))
+    return
+  }
+
+  const nextUrls: Record<string, string> = {}
+  generatedEntries.forEach(([operatorId, url]) => {
+    if (url) {
+      nextUrls[operatorId] = url
+    }
+  })
+  revokeGeneratedAvatarUrls(generatedAvatarUrls.value)
+  generatedAvatarUrls.value = nextUrls
+  if (Object.keys(nextUrls).length < operatorList.length && operatorList.length > 0) {
+    avatarGenerationError.value = '部分干员头像生成失败，请检查头像资源是否可用'
+  }
+}
+
+watch(
+  [filteredOperators, selectedDataSource],
+  ([operatorList]) => {
+    void generateSkillAvatars(operatorList)
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  avatarGenerationRequestId += 1
+  revokeGeneratedAvatarUrls(generatedAvatarUrls.value)
+})
 </script>
 
 <template>
@@ -155,6 +215,14 @@ function handleReload(): void {
       type="error"
     />
 
+    <a-alert
+      v-if="avatarGenerationError"
+      :message="avatarGenerationError"
+      class="operator-data-error"
+      show-icon
+      type="warning"
+    />
+
     <a-card :bordered="false" class="operator-filter-panel">
       <div class="operator-filter-grid">
         <a-input
@@ -191,15 +259,15 @@ function handleReload(): void {
         >
           <div class="operator-profile">
             <div class="operator-avatar-grid">
-              <div v-for="stage in AVATAR_STAGES" :key="stage.key" class="operator-avatar-cell">
+              <div class="operator-avatar-cell">
                 <img
-                  v-if="operator.avatars[stage.key]"
-                  :alt="`${operator.name} ${stage.label}头像`"
-                  :src="imageUrl('assets/raw/char_avatar', operator.avatars[stage.key])"
+                  v-if="generatedAvatarUrls[operator.id]"
+                  :alt="`${operator.name} ${AVATAR_STAGE.label}头像`"
+                  :src="generatedAvatarUrls[operator.id]"
                   loading="lazy"
                 />
-                <div v-else class="operator-avatar-placeholder">暂无</div>
-                <span>{{ stage.label }}</span>
+                <div v-else class="operator-avatar-placeholder">{{ operator.avatars.elite0 ? '生成中' : '暂无' }}</div>
+                <span>{{ AVATAR_STAGE.label }}</span>
               </div>
             </div>
             <div class="operator-profile-copy">

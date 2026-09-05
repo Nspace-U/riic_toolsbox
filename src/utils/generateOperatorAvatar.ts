@@ -1,5 +1,3 @@
-import type { EliteLevel } from '@/types/baseData'
-
 export interface OperatorAvatarGenerationOptions {
   imageUrl: string
   professionIconUrl?: string
@@ -11,15 +9,27 @@ export interface OperatorAvatarGenerationOptions {
   moodScattered: boolean
 }
 
+const imageCache = new Map<string, Promise<HTMLImageElement>>()
+
 function loadImage(imageUrl: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
+  const cachedImage = imageCache.get(imageUrl)
+  if (cachedImage) {
+    return cachedImage
+  }
+
+  const imagePromise = new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
     image.crossOrigin = 'anonymous'
     image.decoding = 'async'
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('头像图片读取失败，请检查当前阶段是否有对应资源'))
+    image.onerror = () => {
+      imageCache.delete(imageUrl)
+      reject(new Error('头像图片读取失败，请检查当前阶段是否有对应资源'))
+    }
     image.src = imageUrl
   })
+  imageCache.set(imageUrl, imagePromise)
+  return imagePromise
 }
 
 function loadOptionalImage(imageUrl: string | undefined): Promise<HTMLImageElement | undefined> {
@@ -92,9 +102,7 @@ export async function generateOperatorAvatar(
     throw new Error('当前浏览器不支持头像图片生成')
   }
 
-  context.save()
-  context.drawImage(image, 0, 0, image.naturalWidth, image.naturalHeight)
-  context.restore()
+  context.drawImage(image, 0, 0)
 
   if (options.moodScattered) {
     context.fillStyle = 'rgba(255, 0, 0, 0.5)'

@@ -514,7 +514,7 @@ a {
 
 .operator-avatar-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
 }
 
@@ -529,7 +529,8 @@ a {
 .operator-avatar-cell img,
 .operator-avatar-placeholder {
   display: block;
-  width: 100%;
+  width: 180px;
+  max-width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
   border: 1px solid #dce4e2;

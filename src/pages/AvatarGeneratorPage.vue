@@ -9,13 +9,11 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
-import type { EliteLevel, Operator, OperatorAvatars } from '@/types/baseData'
-import { generateOperatorAvatar } from '@/utils/generateOperatorAvatar'
+import type { EliteLevel, Operator } from '@/types/baseData'
 import {
-  getEliteIconUrl,
-  getProfessionIconUrl,
-  getRarityIconUrl,
-} from '@/utils/operatorAvatarAssets'
+  generateOperatorAvatarUrl,
+  getOperatorAvatarFile,
+} from '@/utils/operatorAvatar'
 
 interface EliteOption {
   value: EliteLevel
@@ -27,12 +25,6 @@ const AVATAR_STAGES: EliteOption[] = [
   { value: 1, label: '精英 1' },
   { value: 2, label: '精英 2' },
 ]
-
-const AVATAR_KEYS: Record<EliteLevel, keyof OperatorAvatars> = {
-  0: 'elite0',
-  1: 'elite1',
-  2: 'elite2',
-}
 
 const { operators, loading, errorMessage, ready, reload } = useBaseData()
 const { selectedDataSource } = useDataSource()
@@ -60,20 +52,7 @@ const selectedOperator = computed<Operator | undefined>(() => {
 
 const selectedAvatarFile = computed(() => {
   const operator = selectedOperator.value
-  return operator?.avatars[AVATAR_KEYS[selectedEliteLevel.value]] ?? ''
-})
-
-const avatarDirectory = computed(() => {
-  return selectedDataSource.value === 'torappu'
-    ? 'assets/raw/char_avatar'
-    : 'assets/operator-avatars'
-})
-
-const selectedAvatarUrl = computed(() => {
-  if (!selectedAvatarFile.value) {
-    return ''
-  }
-  return imageUrl(avatarDirectory.value, selectedAvatarFile.value)
+  return operator ? getOperatorAvatarFile(operator, selectedEliteLevel.value) : ''
 })
 
 const previewDescription = computed(() => {
@@ -85,17 +64,6 @@ const previewDescription = computed(() => {
   }
   return `${selectedOperator.value.name} · ${AVATAR_STAGES[selectedEliteLevel.value]?.label ?? ''}`
 })
-
-function assetUrl(path: string): string {
-  return `${import.meta.env.BASE_URL}${path}`
-}
-
-function imageUrl(directory: string, fileName: string): string {
-  const encodedFileName = encodeURIComponent(fileName)
-    .replace(/%2B/g, '+')
-    .replace(/%26/g, '&')
-  return assetUrl(`${directory}/${encodedFileName}`)
-}
 
 function updateSelectedOperator(value: Operator[]): void {
   if (!value.some((operator) => operator.id === selectedOperatorId.value)) {
@@ -123,7 +91,7 @@ let generationRequestId = 0
 
 async function handleGenerate(): Promise<void> {
   const operator = selectedOperator.value
-  if (!operator || !selectedAvatarUrl.value) {
+  if (!operator || !selectedAvatarFile.value) {
     return
   }
 
@@ -133,18 +101,17 @@ async function handleGenerate(): Promise<void> {
   clearGeneratedImage()
 
   try {
-    const imageBlob = await generateOperatorAvatar({
-      imageUrl: selectedAvatarUrl.value,
-      professionIconUrl: getProfessionIconUrl(operator.profession),
-      eliteIconUrl: getEliteIconUrl(selectedEliteLevel.value),
-      rarityIconUrl: operator.rarity > 0 ? getRarityIconUrl(operator.rarity) : undefined,
+    const generatedUrl = await generateOperatorAvatarUrl(operator, selectedDataSource.value, {
+      eliteLevel: selectedEliteLevel.value,
       showRarity: showRarity.value,
       showEliteLevel: showEliteLevel.value,
       showProfession: showProfession.value,
       moodScattered: moodScattered.value,
     })
     if (requestId === generationRequestId) {
-      generatedImageUrl.value = URL.createObjectURL(imageBlob)
+      generatedImageUrl.value = generatedUrl ?? ''
+    } else if (generatedUrl) {
+      URL.revokeObjectURL(generatedUrl)
     }
   } catch (error: unknown) {
     if (requestId === generationRequestId) {
@@ -179,7 +146,10 @@ watch(
   },
   { immediate: true },
 )
-onBeforeUnmount(clearGeneratedImage)
+onBeforeUnmount(() => {
+  generationRequestId += 1
+  clearGeneratedImage()
+})
 </script>
 
 <template>

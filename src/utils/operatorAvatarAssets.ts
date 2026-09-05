@@ -28,7 +28,8 @@ export function getEliteIconUrl(eliteLevel: number): string {
 }
 
 export function getRarityIconUrl(rarity: number): string {
-  return `${TORAPPU_ASSET_BASE_URL}/rarity_icon/rarity_yellow_${rarity}.png`
+  const rarityIndex = Math.max(0, rarity - 1)
+  return `${TORAPPU_ASSET_BASE_URL}/rarity_icon/rarity_yellow_${rarityIndex}.png`
 }
 
 export function getProfessionIconUrl(profession: string): string | undefined {
