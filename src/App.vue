@@ -56,6 +56,9 @@ const openNavigationKeys = ref<string[]>([])
 
 const currentPath = computed(() => route.path)
 const currentPageTitle = computed(() => findNavigationLabel(currentPath.value) ?? '基建工具箱')
+const mainLayoutStyle = computed(() => ({
+  marginInlineStart: siderCollapsed.value || isMobile.value ? '0' : '200px',
+}))
 
 const selectedNavigationKey = computed(() => {
   return currentPath.value
@@ -115,11 +118,19 @@ watch(currentPath, handleRouteChange, { immediate: true })
 </script>
 
 <template>
-  <a-layout class="app-layout">
+  <a-layout class="app-layout" has-sider>
     <a-layout-sider
       v-model:collapsed="siderCollapsed"
       :breakpoint="'lg'"
       :collapsed-width="0"
+      :style="{
+        overflow: 'auto',
+        height: '100vh',
+        position: 'fixed',
+        insetBlockStart: 0,
+        insetInlineStart: 0,
+        insetBlockEnd: 0,
+      }"
       :trigger="null"
       class="app-sider"
       @breakpoint="handleBreakpoint"
@@ -165,13 +176,7 @@ watch(currentPath, handleRouteChange, { immediate: true })
       <div v-if="!siderCollapsed" class="sider-footer">基建效率工具</div>
     </a-layout-sider>
 
-    <a-layout
-      :class="{
-        'app-main-layout--collapsed': siderCollapsed,
-        'app-main-layout--mobile': isMobile,
-      }"
-      class="app-main-layout"
-    >
+    <a-layout :style="mainLayoutStyle" class="app-main-layout">
       <a-layout-header class="app-header">
         <div class="header-left">
           <a-button

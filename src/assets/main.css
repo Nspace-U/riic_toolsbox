@@ -50,18 +50,11 @@ a {
 }
 
 .app-layout {
-  align-items: flex-start;
   min-height: 100vh;
 }
 
 .app-layout .app-sider {
-  position: fixed;
-  inset-block-start: 0;
-  inset-inline-start: 0;
   z-index: 10;
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
   background: #1d292d !important;
 }
 
@@ -73,15 +66,7 @@ a {
 }
 
 .app-main-layout {
-  width: calc(100% - 200px);
   min-width: 0;
-  margin-inline-start: 200px;
-}
-
-.app-main-layout--collapsed,
-.app-main-layout--mobile {
-  width: 100%;
-  margin-inline-start: 0;
 }
 
 .sider-brand,
