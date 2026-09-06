@@ -520,7 +520,7 @@ a {
 
 .operator-list {
   display: grid;
-  gap: 14px;
+  gap: 10px;
 }
 
 .operator-card {
@@ -531,9 +531,9 @@ a {
 
 .operator-card .ant-card-body {
   display: grid;
-  grid-template-columns: 112px minmax(190px, 240px) minmax(0, 1fr);
-  gap: 28px;
-  padding: 22px;
+  grid-template-columns: 112px minmax(0, 150px) minmax(0, 1fr);
+  gap: 20px;
+  padding: 16px;
 }
 
 .operator-avatar-column {
@@ -569,7 +569,7 @@ a {
   align-self: center;
   display: grid;
   align-content: start;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -608,7 +608,7 @@ a {
 
 .operator-terms {
   display: grid;
-  gap: 5px;
+  gap: 3px;
   color: #647275;
   font-size: 12px;
   line-height: 1.6;
@@ -629,22 +629,22 @@ a {
   grid-column: 3;
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
 .operator-skill-row {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
-  padding-block-end: 12px;
+  padding-block-end: 8px;
   border-block-end: 1px solid #edf0ef;
 }
 
 .operator-skill-row--replaced {
-  margin-inline: -10px;
-  padding: 10px;
+  margin-inline: -8px;
+  padding: 8px;
   border: 1px solid #ead8bd;
   border-radius: 4px;
   background: #fff9ef;
@@ -667,7 +667,7 @@ a {
   width: auto;
   height: auto;
   max-width: none;
-  filter: drop-shadow(0 3px 5px rgba(38, 45, 44, 0.42));
+  filter: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.5));
 }
 
 .operator-skill-copy {
@@ -677,13 +677,13 @@ a {
 .operator-skill-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-block-end: 6px;
+  gap: 4px;
+  margin-block-end: 4px;
 }
 
 .operator-skill-copy h4 {
   margin: 0;
-  margin-block-end: 5px;
+  margin-block-end: 3px;
   color: #253238;
   font-size: 15px;
   font-weight: 650;
@@ -694,7 +694,7 @@ a {
   display: inline;
   color: #4e5d60;
   font-size: 13px;
-  line-height: 1.75;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
@@ -852,8 +852,8 @@ a {
 
   .operator-card .ant-card-body {
     grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-    padding: 16px;
+    gap: 14px;
+    padding: 14px;
   }
 
   .operator-avatar-column {
@@ -882,6 +882,6 @@ a {
 
   .operator-skill-row {
     grid-template-columns: max-content minmax(0, 1fr);
-    gap: 10px;
+    gap: 8px;
   }
 }
