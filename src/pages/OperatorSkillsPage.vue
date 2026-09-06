@@ -451,7 +451,6 @@ onBeforeUnmount(() => {
               </div>
               <div class="operator-skill-copy">
                 <div class="operator-skill-meta">
-                  <a-tag>槽位 {{ skill.slot || '?' }}</a-tag>
                   <a-tag color="cyan"><SearchHighlight :query="searchText" :text="skill.unlockCondition || '未注明解锁条件'" /></a-tag>
                   <a-tag v-if="skill.facility" color="green"><SearchHighlight :query="searchText" :text="skill.facility" /></a-tag>
                   <a-tag v-if="isReplaced(skill)" color="orange">已被替换</a-tag>
