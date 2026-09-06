@@ -91,6 +91,11 @@ function termKeys(text: string): string[] {
 
 function operatorTermEntries(operator: Operator): Array<[string, BaseSkillTerm]> {
   const keys = new Set(operator.skills.flatMap((skill) => termKeys(skill.description)))
+  Object.entries(terms.value).forEach(([key, term]) => {
+    if (term.members.includes(operator.name)) {
+      keys.add(key)
+    }
+  })
   return [...keys]
     .map((key) => [key, terms.value[key]] as const)
     .filter((entry): entry is [string, BaseSkillTerm] => Boolean(entry[1]))

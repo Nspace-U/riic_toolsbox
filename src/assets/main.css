@@ -537,6 +537,7 @@ a {
 }
 
 .operator-avatar-column {
+  grid-column: 1;
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -563,6 +564,7 @@ a {
 }
 
 .operator-profile-copy {
+  grid-column: 2;
   display: grid;
   align-content: start;
   gap: 7px;
@@ -663,6 +665,7 @@ a {
   width: auto;
   height: auto;
   max-width: none;
+  border-radius: 50%;
   box-shadow: 0 3px 10px rgba(38, 45, 44, 0.28);
 }
 

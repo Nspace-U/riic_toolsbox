@@ -102,22 +102,28 @@ function conditionLabel(condition: TorappuCondition | undefined): string {
 
 function normalizeDescription(description: string | undefined, terms: BaseSkillTerms): string {
   const normalizedDescription = (description ?? '').replace(/<<(?=[$@])/g, '')
-  const withColors = normalizedDescription.replace(
+  const withTermColors = normalizedDescription.replace(
+    /<\$([^>]+)><@([^>]+)>([\s\S]*?)<\/><\/>/g,
+    (_match: string, termTag: string, colorTag: string, text: string) => {
+      const color = DESCRIPTION_COLORS[colorTag] ?? '#0098DC'
+      const content = `[C=${color}]${text}[/C]`
+      return terms[termTag] ? `[T=${termTag}]${content}[/T]` : content
+    },
+  )
+  const withTerms = withTermColors.replace(
+    /<\$([^>]+)>([\s\S]*?)<\/>/g,
+    (_match: string, termTag: string, text: string) => (
+      terms[termTag] ? `[T=${termTag}]${text}[/T]` : text
+    ),
+  )
+  const withColors = withTerms.replace(
     /<@([^>]+)>([\s\S]*?)<\/>/g,
     (_match: string, tag: string, text: string) => {
       const color = DESCRIPTION_COLORS[tag] ?? '#0098DC'
       return `[C=${color}]${text}[/C]`
     },
   )
-  return withColors.replace(
-    /<\$([^>]+)>([\s\S]*?)<\/>/g,
-    (_match: string, tag: string, text: string) => {
-      const content = terms[tag]
-        ? `[T=${tag}][C=#00B0FF]${text}[/C][/T]`
-        : `[C=#00B0FF]${text}[/C]`
-      return content
-    },
-  )
+  return withColors
 }
 
 function avatarFileName(operatorId: string, eliteLevel: number): string {
