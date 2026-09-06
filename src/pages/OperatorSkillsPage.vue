@@ -3,18 +3,18 @@ import {
   BookOutlined,
   DatabaseOutlined,
   DownOutlined,
-  ReloadOutlined,
   SearchOutlined,
+  ReloadOutlined,
   UpOutlined,
 } from '@ant-design/icons-vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import type { BaseSkillTerm, Operator, OperatorAvatars, OperatorSkill } from '@/types/baseData'
-import { generateOperatorAvatarUrl } from '@/utils/operatorAvatar'
+import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
 const FACILITIES = [
   '控制中枢',
@@ -39,8 +39,6 @@ const selectedFacilities = ref<string[]>([])
 const showReplaced = ref(false)
 const sortMode = ref<SortMode>('implementationDate')
 const expandedOperatorIds = ref(new Set<string>())
-const generatedAvatarUrls = ref<Record<string, string>>({})
-const avatarGenerationError = ref('')
 
 const facilityOptions = FACILITIES.map((facility) => ({ label: facility, value: facility }))
 const sortOptions = [
@@ -59,6 +57,11 @@ function imageUrl(directory: string, fileName: string): string {
     .replace(/%2B/g, '+')
     .replace(/%26/g, '&')
   return assetUrl(`${directory}/${encodedFileName}`)
+}
+
+function operatorAvatarUrl(operator: Operator): string | undefined {
+  const avatarFile = getOperatorAvatarFile(operator, 0)
+  return avatarFile ? getOperatorAvatarSourceUrl(selectedDataSource.value, avatarFile) : undefined
 }
 
 function isReplaced(skill: OperatorSkill): boolean {
@@ -247,62 +250,7 @@ function revokeGeneratedAvatarUrls(urls: Record<string, string>): void {
   Object.values(urls).forEach((url) => URL.revokeObjectURL(url))
 }
 
-let avatarGenerationRequestId = 0
-
-async function generateSkillAvatars(operatorList: Operator[]): Promise<void> {
-  const requestId = ++avatarGenerationRequestId
-  const dataSource = selectedDataSource.value
-  avatarGenerationError.value = ''
-  const transientUrls: string[] = []
-  const generatedEntries = await Promise.all(operatorList.map(async (operator) => {
-    try {
-      const url = await generateOperatorAvatarUrl(operator, dataSource, {
-        eliteLevel: 0,
-        showRarity: false,
-        showEliteLevel: false,
-        showProfession: false,
-        moodScattered: false,
-      })
-      if (url) {
-        transientUrls.push(url)
-      }
-      return [operator.id, url] as const
-    } catch {
-      return [operator.id, undefined] as const
-    }
-  }))
-
-  if (requestId !== avatarGenerationRequestId) {
-    transientUrls.forEach((url) => URL.revokeObjectURL(url))
-    return
-  }
-
-  const nextUrls: Record<string, string> = {}
-  generatedEntries.forEach(([operatorId, url]) => {
-    if (url) {
-      nextUrls[operatorId] = url
-    }
-  })
-  revokeGeneratedAvatarUrls(generatedAvatarUrls.value)
-  generatedAvatarUrls.value = nextUrls
-  if (Object.keys(nextUrls).length < operatorList.length && operatorList.length > 0) {
-    avatarGenerationError.value = '部分干员头像生成失败，请检查头像资源是否可用'
-  }
-}
-
 watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
-
-watch(
-  [filteredOperators, selectedDataSource],
-  ([operatorList]) => {
-    void generateSkillAvatars(operatorList)
-  },
-  { immediate: true },
-)
-onBeforeUnmount(() => {
-  avatarGenerationRequestId += 1
-  revokeGeneratedAvatarUrls(generatedAvatarUrls.value)
-})
 </script>
 
 <template>
@@ -341,14 +289,6 @@ onBeforeUnmount(() => {
       class="operator-data-error"
       show-icon
       type="error"
-    />
-
-    <a-alert
-      v-if="avatarGenerationError"
-      :message="avatarGenerationError"
-      class="operator-data-error"
-      show-icon
-      type="warning"
     />
 
     <a-card :bordered="false" class="operator-filter-panel">
@@ -399,12 +339,12 @@ onBeforeUnmount(() => {
         >
           <div class="operator-avatar-column">
             <img
-              v-if="generatedAvatarUrls[operator.id]"
+              v-if="operatorAvatarUrl(operator)"
               :alt="`${operator.name}头像`"
-              :src="generatedAvatarUrls[operator.id]"
+              :src="operatorAvatarUrl(operator)"
               loading="lazy"
             />
-            <div v-else class="operator-avatar-placeholder">{{ operator.avatars[AVATAR_KEY] ? '生成中' : '暂无' }}</div>
+            <div v-else class="operator-avatar-placeholder">暂无</div>
           </div>
 
           <div class="operator-profile-copy">
@@ -453,7 +393,7 @@ onBeforeUnmount(() => {
                 <div class="operator-skill-meta">
                   <a-tag color="cyan"><SearchHighlight :query="searchText" :text="skill.unlockCondition || '未注明解锁条件'" /></a-tag>
                   <a-tag v-if="skill.facility" color="green"><SearchHighlight :query="searchText" :text="skill.facility" /></a-tag>
-                  <a-tag v-if="isReplaced(skill)" color="orange">已被替换</a-tag>
+                  <a-tag v-if="isReplaced(skill)" color="orange">被替换</a-tag>
                 </div>
                 <h4><SearchHighlight :query="searchText" :text="skill.name || '未命名技能'" /></h4>
                 <RichTextDescription
