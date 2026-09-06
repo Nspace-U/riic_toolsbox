@@ -5,7 +5,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_286_cast3": {
     "name": "Castle-3",
@@ -13,7 +14,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "无畏者"
   },
   "char_009_12fce": {
     "name": "12F",
@@ -21,7 +23,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "扩散术师"
   },
   "char_500_noirc": {
     "name": "黑角",
@@ -29,7 +32,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_501_durin": {
     "name": "杜林",
@@ -37,7 +41,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "中坚术师"
   },
   "char_502_nblade": {
     "name": "夜刀",
@@ -45,7 +50,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_503_rang": {
     "name": "巡林者",
@@ -53,7 +59,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 1,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_120_hibisc": {
     "name": "芙蓉",
@@ -61,7 +68,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_121_lava": {
     "name": "炎熔",
@@ -69,7 +77,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "扩散术师"
   },
   "char_122_beagle": {
     "name": "米格鲁",
@@ -77,7 +86,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_123_fang": {
     "name": "芬",
@@ -85,7 +95,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_124_kroos": {
     "name": "克洛丝",
@@ -93,7 +104,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_192_falco": {
     "name": "翎羽",
@@ -101,7 +113,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "冲锋手"
   },
   "char_208_melan": {
     "name": "玫兰莎",
@@ -109,7 +122,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "无畏者"
   },
   "char_209_ardign": {
     "name": "卡缇",
@@ -117,7 +131,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_210_stward": {
     "name": "史都华德",
@@ -125,7 +140,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "中坚术师"
   },
   "char_211_adnach": {
     "name": "安德切尔",
@@ -133,7 +149,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_212_ansel": {
     "name": "安赛尔",
@@ -141,7 +158,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_240_wyvern": {
     "name": "香草",
@@ -149,7 +167,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_278_orchid": {
     "name": "梓兰",
@@ -157,7 +176,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 2,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "凝滞师"
   },
   "char_282_catap": {
     "name": "空爆",
@@ -165,7 +185,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 2,
-    "implementationDate": "2019-05-23 10:00"
+    "implementationDate": "2019-05-23 10:00",
+    "branch": "炮手"
   },
   "char_283_midn": {
     "name": "月见夜",
@@ -173,7 +194,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 2,
-    "implementationDate": "2019-05-30 10:00"
+    "implementationDate": "2019-05-30 10:00",
+    "branch": "领主"
   },
   "char_281_popka": {
     "name": "泡普卡",
@@ -181,7 +203,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 2,
-    "implementationDate": "2019-07-09 16:00"
+    "implementationDate": "2019-07-09 16:00",
+    "branch": "强攻手"
   },
   "char_284_spot": {
     "name": "斑点",
@@ -189,7 +212,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 2,
-    "implementationDate": "2019-07-09 16:00"
+    "implementationDate": "2019-07-09 16:00",
+    "branch": "守护者"
   },
   "char_109_fmout": {
     "name": "远山",
@@ -197,7 +221,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "扩散术师"
   },
   "char_110_deepcl": {
     "name": "深海色",
@@ -205,7 +230,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "召唤师"
   },
   "char_117_myrrh": {
     "name": "末药",
@@ -213,7 +239,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_118_yuki": {
     "name": "白雪",
@@ -221,7 +248,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "炮手"
   },
   "char_126_shotst": {
     "name": "流星",
@@ -229,7 +257,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_127_estell": {
     "name": "艾丝黛尔",
@@ -237,7 +266,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "强攻手"
   },
   "char_130_doberm": {
     "name": "杜宾",
@@ -245,7 +275,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "教官"
   },
   "char_137_brownb": {
     "name": "猎蜂",
@@ -253,7 +284,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2019-05-30 10:00"
+    "implementationDate": "2019-05-30 10:00",
+    "branch": "斗士"
   },
   "char_141_nights": {
     "name": "夜烟",
@@ -261,7 +293,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "中坚术师"
   },
   "char_149_scave": {
     "name": "清道夫",
@@ -269,7 +302,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_150_snakek": {
     "name": "蛇屠箱",
@@ -277,7 +311,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_181_flower": {
     "name": "调香师",
@@ -285,7 +320,8 @@
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "群愈师"
   },
   "char_183_skgoat": {
     "name": "地灵",
@@ -293,7 +329,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "凝滞师"
   },
   "char_185_frncat": {
     "name": "慕斯",
@@ -301,7 +338,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "术战者"
   },
   "char_187_ccheal": {
     "name": "嘉维尔",
@@ -309,7 +347,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_193_frostl": {
     "name": "霜叶",
@@ -317,7 +356,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "领主"
   },
   "char_196_sunbr": {
     "name": "古米",
@@ -325,7 +365,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "守护者"
   },
   "char_198_blackd": {
     "name": "讯使",
@@ -333,7 +374,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_199_yak": {
     "name": "角峰",
@@ -341,7 +383,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_235_jesica": {
     "name": "杰西卡",
@@ -349,7 +392,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_236_rope": {
     "name": "暗索",
@@ -357,7 +401,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "钩索师"
   },
   "char_237_gravel": {
     "name": "砾",
@@ -365,7 +410,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "处决者"
   },
   "char_277_sqrrel": {
     "name": "阿消",
@@ -373,7 +419,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "推击手"
   },
   "char_289_gyuki": {
     "name": "缠丸",
@@ -381,7 +428,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "无畏者"
   },
   "char_290_vigna": {
     "name": "红豆",
@@ -389,7 +437,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "冲锋手"
   },
   "char_253_greyy": {
     "name": "格雷伊",
@@ -397,7 +446,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2019-07-09 16:00"
+    "implementationDate": "2019-07-09 16:00",
+    "branch": "扩散术师"
   },
   "char_002_amiya": {
     "name": "阿米娅",
@@ -405,7 +455,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "中坚术师"
   },
   "char_101_sora": {
     "name": "空",
@@ -413,7 +464,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "吟游者"
   },
   "char_102_texas": {
     "name": "德克萨斯",
@@ -421,7 +473,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_106_franka": {
     "name": "芙兰卡",
@@ -429,7 +482,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "无畏者"
   },
   "char_107_liskam": {
     "name": "雷蛇",
@@ -437,7 +491,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "哨戒铁卫"
   },
   "char_108_silent": {
     "name": "赫默",
@@ -445,7 +500,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_115_headbr": {
     "name": "凛冬",
@@ -453,7 +509,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_128_plosis": {
     "name": "白面鸮",
@@ -461,7 +518,8 @@
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "群愈师"
   },
   "char_129_bluep": {
     "name": "蓝毒",
@@ -469,7 +527,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_140_whitew": {
     "name": "拉普兰德",
@@ -477,7 +536,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "领主"
   },
   "char_143_ghost": {
     "name": "幽灵鲨",
@@ -485,7 +545,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "强攻手"
   },
   "char_144_red": {
     "name": "红",
@@ -493,7 +554,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "处决者"
   },
   "char_145_prove": {
     "name": "普罗旺斯",
@@ -501,7 +563,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "重射手"
   },
   "char_148_nearl": {
     "name": "临光",
@@ -509,7 +572,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "守护者"
   },
   "char_155_tiger": {
     "name": "因陀罗",
@@ -517,7 +581,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "斗士"
   },
   "char_158_milu": {
     "name": "守林人",
@@ -525,7 +590,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "神射手"
   },
   "char_163_hpsts": {
     "name": "火神",
@@ -533,7 +599,8 @@
     "profession": "TANK",
     "subProfessionId": "unyield",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "不屈者"
   },
   "char_164_nightm": {
     "name": "夜魔",
@@ -541,7 +608,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2019-05-30 10:00"
+    "implementationDate": "2019-05-30 10:00",
+    "branch": "中坚术师"
   },
   "char_166_skfire": {
     "name": "天火",
@@ -549,7 +617,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "扩散术师"
   },
   "char_171_bldsk": {
     "name": "华法琳",
@@ -557,7 +626,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_173_slchan": {
     "name": "崖心",
@@ -565,7 +635,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "钩索师"
   },
   "char_174_slbell": {
     "name": "初雪",
@@ -573,7 +644,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "削弱者"
   },
   "char_195_glassb": {
     "name": "真理",
@@ -581,7 +653,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "凝滞师"
   },
   "char_201_moeshd": {
     "name": "可颂",
@@ -589,7 +662,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_204_platnm": {
     "name": "白金",
@@ -597,7 +671,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_215_mantic": {
     "name": "狮蝎",
@@ -605,7 +680,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "伏击客"
   },
   "char_219_meteo": {
     "name": "陨星",
@@ -613,7 +689,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "炮手"
   },
   "char_220_grani": {
     "name": "格拉尼",
@@ -621,7 +698,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2019-05-30 10:00"
+    "implementationDate": "2019-05-30 10:00",
+    "branch": "冲锋手"
   },
   "char_230_savage": {
     "name": "暴行",
@@ -629,7 +707,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "强攻手"
   },
   "char_241_panda": {
     "name": "食铁兽",
@@ -637,7 +716,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "推击手"
   },
   "char_242_otter": {
     "name": "梅尔",
@@ -645,7 +725,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "召唤师"
   },
   "char_010_chen": {
     "name": "陈",
@@ -653,7 +734,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2019-07-09 16:00"
+    "implementationDate": "2019-07-09 16:00",
+    "branch": "剑豪"
   },
   "char_308_swire": {
     "name": "诗怀雅",
@@ -661,7 +743,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2019-07-09 16:00"
+    "implementationDate": "2019-07-09 16:00",
+    "branch": "教官"
   },
   "char_103_angel": {
     "name": "能天使",
@@ -669,7 +752,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "速射手"
   },
   "char_112_siege": {
     "name": "推进之王",
@@ -677,7 +761,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "尖兵"
   },
   "char_134_ifrit": {
     "name": "伊芙利特",
@@ -685,7 +770,8 @@
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "轰击术师"
   },
   "char_136_hsguma": {
     "name": "星熊",
@@ -693,7 +779,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "铁卫"
   },
   "char_147_shining": {
     "name": "闪灵",
@@ -701,7 +788,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "医师"
   },
   "char_172_svrash": {
     "name": "银灰",
@@ -709,7 +797,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "领主"
   },
   "char_179_cgbird": {
     "name": "夜莺",
@@ -717,7 +806,8 @@
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "群愈师"
   },
   "char_180_amgoat": {
     "name": "艾雅法拉",
@@ -725,7 +815,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "中坚术师"
   },
   "char_202_demkni": {
     "name": "塞雷娅",
@@ -733,7 +824,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "守护者"
   },
   "char_263_skadi": {
     "name": "斯卡蒂",
@@ -741,7 +833,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2019-05-30 10:00"
+    "implementationDate": "2019-05-30 10:00",
+    "branch": "无畏者"
   },
   "char_291_aglina": {
     "name": "安洁莉娜",
@@ -749,7 +842,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2019-04-30 10:00"
+    "implementationDate": "2019-04-30 10:00",
+    "branch": "凝滞师"
   },
   "char_340_shwaz": {
     "name": "黑",
@@ -757,7 +851,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2019-08-27 16:00"
+    "implementationDate": "2019-08-27 16:00",
+    "branch": "重射手"
   },
   "char_348_ceylon": {
     "name": "锡兰",
@@ -765,7 +860,8 @@
     "profession": "MEDIC",
     "subProfessionId": "healer",
     "phaseCount": 3,
-    "implementationDate": "2019-08-27 16:00"
+    "implementationDate": "2019-08-27 16:00",
+    "branch": "疗养师"
   },
   "char_326_glacus": {
     "name": "格劳克斯",
@@ -773,7 +869,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2019-08-27 16:00"
+    "implementationDate": "2019-08-27 16:00",
+    "branch": "凝滞师"
   },
   "char_298_susuro": {
     "name": "苏苏洛",
@@ -781,7 +878,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2019-08-27 16:00"
+    "implementationDate": "2019-08-27 16:00",
+    "branch": "医师"
   },
   "char_188_helage": {
     "name": "赫拉格",
@@ -789,7 +887,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "musha",
     "phaseCount": 3,
-    "implementationDate": "2019-09-10 16:00"
+    "implementationDate": "2019-09-10 16:00",
+    "branch": "武者"
   },
   "char_151_myrtle": {
     "name": "桃金娘",
@@ -797,7 +896,8 @@
     "profession": "PIONEER",
     "subProfessionId": "bearer",
     "phaseCount": 3,
-    "implementationDate": "2019-09-10 16:00"
+    "implementationDate": "2019-09-10 16:00",
+    "branch": "执旗手"
   },
   "char_274_astesi": {
     "name": "星极",
@@ -805,7 +905,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2019-09-10 16:00"
+    "implementationDate": "2019-09-10 16:00",
+    "branch": "术战者"
   },
   "char_260_durnar": {
     "name": "坚雷",
@@ -813,7 +914,8 @@
     "profession": "TANK",
     "subProfessionId": "artsprotector",
     "phaseCount": 3,
-    "implementationDate": "2019-10-01 04:00"
+    "implementationDate": "2019-10-01 04:00",
+    "branch": "驭法铁卫"
   },
   "char_248_mgllan": {
     "name": "麦哲伦",
@@ -821,7 +923,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2019-10-15 16:00"
+    "implementationDate": "2019-10-15 16:00",
+    "branch": "召唤师"
   },
   "char_131_flameb": {
     "name": "炎客",
@@ -829,7 +932,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2019-10-15 16:00"
+    "implementationDate": "2019-10-15 16:00",
+    "branch": "无畏者"
   },
   "char_279_excu": {
     "name": "送葬人",
@@ -837,7 +941,8 @@
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
     "phaseCount": 3,
-    "implementationDate": "2019-10-15 16:00"
+    "implementationDate": "2019-10-15 16:00",
+    "branch": "散射手"
   },
   "char_190_clour": {
     "name": "红云",
@@ -845,7 +950,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-10-15 16:00"
+    "implementationDate": "2019-10-15 16:00",
+    "branch": "速射手"
   },
   "char_275_breeze": {
     "name": "微风",
@@ -853,7 +959,8 @@
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
     "phaseCount": 3,
-    "implementationDate": "2019-11-01 04:00"
+    "implementationDate": "2019-11-01 04:00",
+    "branch": "群愈师"
   },
   "char_355_ethan": {
     "name": "伊桑",
@@ -861,7 +968,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2019-11-01 04:00"
+    "implementationDate": "2019-11-01 04:00",
+    "branch": "伏击客"
   },
   "char_213_mostma": {
     "name": "莫斯提马",
@@ -869,7 +977,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2019-11-19 16:00"
+    "implementationDate": "2019-11-19 16:00",
+    "branch": "扩散术师"
   },
   "char_325_bison": {
     "name": "拜松",
@@ -877,7 +986,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2019-11-19 16:00"
+    "implementationDate": "2019-11-19 16:00",
+    "branch": "铁卫"
   },
   "char_243_waaifu": {
     "name": "槐琥",
@@ -885,7 +995,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2019-11-19 16:00"
+    "implementationDate": "2019-11-19 16:00",
+    "branch": "处决者"
   },
   "char_133_mm": {
     "name": "梅",
@@ -893,7 +1004,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-11-19 16:00"
+    "implementationDate": "2019-11-19 16:00",
+    "branch": "速射手"
   },
   "char_261_sddrag": {
     "name": "苇草",
@@ -901,7 +1013,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2019-12-10 16:00"
+    "implementationDate": "2019-12-10 16:00",
+    "branch": "冲锋手"
   },
   "char_356_broca": {
     "name": "布洛卡",
@@ -909,7 +1022,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2019-12-10 16:00"
+    "implementationDate": "2019-12-10 16:00",
+    "branch": "强攻手"
   },
   "char_017_huang": {
     "name": "煌",
@@ -917,7 +1031,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2019-12-24 16:00"
+    "implementationDate": "2019-12-24 16:00",
+    "branch": "强攻手"
   },
   "char_367_swllow": {
     "name": "灰喉",
@@ -925,7 +1040,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2019-12-24 16:00"
+    "implementationDate": "2019-12-24 16:00",
+    "branch": "速射手"
   },
   "char_302_glaze": {
     "name": "安比尔",
@@ -933,7 +1049,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2019-12-24 16:00"
+    "implementationDate": "2019-12-24 16:00",
+    "branch": "神射手"
   },
   "char_2014_nian": {
     "name": "年",
@@ -941,7 +1058,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2020-01-16 16:00"
+    "implementationDate": "2020-01-16 16:00",
+    "branch": "铁卫"
   },
   "char_225_haak": {
     "name": "阿",
@@ -949,7 +1067,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "geek",
     "phaseCount": 3,
-    "implementationDate": "2020-01-16 16:00"
+    "implementationDate": "2020-01-16 16:00",
+    "branch": "怪杰"
   },
   "char_226_hmau": {
     "name": "吽",
@@ -957,7 +1076,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2020-01-16 16:00"
+    "implementationDate": "2020-01-16 16:00",
+    "branch": "守护者"
   },
   "char_383_snsant": {
     "name": "雪雉",
@@ -965,7 +1085,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
     "phaseCount": 3,
-    "implementationDate": "2020-01-09 04:00"
+    "implementationDate": "2020-01-09 04:00",
+    "branch": "钩索师"
   },
   "char_222_bpipe": {
     "name": "风笛",
@@ -973,7 +1094,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2020-03-17 16:00"
+    "implementationDate": "2020-03-17 16:00",
+    "branch": "冲锋手"
   },
   "char_379_sesa": {
     "name": "慑砂",
@@ -981,7 +1103,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2020-03-17 16:00"
+    "implementationDate": "2020-03-17 16:00",
+    "branch": "炮手"
   },
   "char_337_utage": {
     "name": "宴",
@@ -989,7 +1112,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "musha",
     "phaseCount": 3,
-    "implementationDate": "2020-03-17 16:00"
+    "implementationDate": "2020-03-17 16:00",
+    "branch": "武者"
   },
   "char_252_bibeak": {
     "name": "柏喙",
@@ -997,7 +1121,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2020-03-17 16:00"
+    "implementationDate": "2020-03-17 16:00",
+    "branch": "剑豪"
   },
   "char_385_finlpp": {
     "name": "清流",
@@ -1005,7 +1130,8 @@
     "profession": "MEDIC",
     "subProfessionId": "healer",
     "phaseCount": 3,
-    "implementationDate": "2020-03-03 04:00"
+    "implementationDate": "2020-03-03 04:00",
+    "branch": "疗养师"
   },
   "char_2013_cerber": {
     "name": "刻俄柏",
@@ -1013,7 +1139,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2020-02-25 16:00"
+    "implementationDate": "2020-02-25 16:00",
+    "branch": "中坚术师"
   },
   "char_306_leizi": {
     "name": "惊蛰",
@@ -1021,7 +1148,8 @@
     "profession": "CASTER",
     "subProfessionId": "chain",
     "phaseCount": 3,
-    "implementationDate": "2020-02-25 16:00"
+    "implementationDate": "2020-02-25 16:00",
+    "branch": "链术师"
   },
   "char_159_peacok": {
     "name": "断罪者",
@@ -1029,7 +1157,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2020-04-01 16:00"
+    "implementationDate": "2020-04-01 16:00",
+    "branch": "无畏者"
   },
   "char_250_phatom": {
     "name": "傀影",
@@ -1037,7 +1166,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2020-04-21 16:00"
+    "implementationDate": "2020-04-21 16:00",
+    "branch": "处决者"
   },
   "char_254_vodfox": {
     "name": "巫恋",
@@ -1045,7 +1175,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
     "phaseCount": 3,
-    "implementationDate": "2020-04-21 16:00"
+    "implementationDate": "2020-04-21 16:00",
+    "branch": "削弱者"
   },
   "char_301_cutter": {
     "name": "刻刀",
@@ -1053,7 +1184,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2020-04-21 16:00"
+    "implementationDate": "2020-04-21 16:00",
+    "branch": "剑豪"
   },
   "char_333_sidero": {
     "name": "铸铁",
@@ -1061,7 +1193,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2020-04-21 16:00"
+    "implementationDate": "2020-04-21 16:00",
+    "branch": "术战者"
   },
   "char_113_cqbw": {
     "name": "W",
@@ -1069,7 +1202,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2020-05-01 16:00"
+    "implementationDate": "2020-05-01 16:00",
+    "branch": "炮手"
   },
   "char_400_weedy": {
     "name": "温蒂",
@@ -1077,7 +1211,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
     "phaseCount": 3,
-    "implementationDate": "2020-05-01 16:00"
+    "implementationDate": "2020-05-01 16:00",
+    "branch": "推击手"
   },
   "char_401_elysm": {
     "name": "极境",
@@ -1085,7 +1220,8 @@
     "profession": "PIONEER",
     "subProfessionId": "bearer",
     "phaseCount": 3,
-    "implementationDate": "2020-05-01 16:00"
+    "implementationDate": "2020-05-01 16:00",
+    "branch": "执旗手"
   },
   "char_376_therex": {
     "name": "THRM-EX",
@@ -1093,7 +1229,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 1,
-    "implementationDate": "2020-05-01 16:00"
+    "implementationDate": "2020-05-01 16:00",
+    "branch": "处决者"
   },
   "char_343_tknogi": {
     "name": "月禾",
@@ -1101,7 +1238,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2020-06-02 16:00"
+    "implementationDate": "2020-06-02 16:00",
+    "branch": "护佑者"
   },
   "char_378_asbest": {
     "name": "石棉",
@@ -1109,7 +1247,8 @@
     "profession": "TANK",
     "subProfessionId": "artsprotector",
     "phaseCount": 3,
-    "implementationDate": "2020-06-02 16:00"
+    "implementationDate": "2020-06-02 16:00",
+    "branch": "驭法铁卫"
   },
   "char_197_poca": {
     "name": "早露",
@@ -1117,7 +1256,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2020-06-18 16:00"
+    "implementationDate": "2020-06-18 16:00",
+    "branch": "攻城手"
   },
   "char_405_absin": {
     "name": "苦艾",
@@ -1125,7 +1265,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2020-06-18 16:00"
+    "implementationDate": "2020-06-18 16:00",
+    "branch": "中坚术师"
   },
   "char_373_lionhd": {
     "name": "莱恩哈特",
@@ -1133,7 +1274,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2020-06-18 16:00"
+    "implementationDate": "2020-06-18 16:00",
+    "branch": "扩散术师"
   },
   "char_258_podego": {
     "name": "波登可",
@@ -1141,7 +1283,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2020-06-18 16:00"
+    "implementationDate": "2020-06-18 16:00",
+    "branch": "凝滞师"
   },
   "char_358_lisa": {
     "name": "铃兰",
@@ -1149,7 +1292,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2020-07-09 16:00"
+    "implementationDate": "2020-07-09 16:00",
+    "branch": "凝滞师"
   },
   "char_294_ayer": {
     "name": "断崖",
@@ -1157,7 +1301,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2020-07-09 16:00"
+    "implementationDate": "2020-07-09 16:00",
+    "branch": "领主"
   },
   "char_345_folnic": {
     "name": "亚叶",
@@ -1165,7 +1310,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2020-07-09 16:00"
+    "implementationDate": "2020-07-09 16:00",
+    "branch": "医师"
   },
   "char_328_cammou": {
     "name": "卡达",
@@ -1173,7 +1319,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2020-07-09 16:00"
+    "implementationDate": "2020-07-09 16:00",
+    "branch": "驭械术师"
   },
   "char_336_folivo": {
     "name": "稀音",
@@ -1181,7 +1328,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2020-07-28 16:00"
+    "implementationDate": "2020-07-28 16:00",
+    "branch": "召唤师"
   },
   "char_344_beewax": {
     "name": "蜜蜡",
@@ -1189,7 +1337,8 @@
     "profession": "CASTER",
     "subProfessionId": "phalanx",
     "phaseCount": 3,
-    "implementationDate": "2020-07-28 16:00"
+    "implementationDate": "2020-07-28 16:00",
+    "branch": "阵法术师"
   },
   "char_349_chiave": {
     "name": "贾维",
@@ -1197,7 +1346,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2020-07-28 16:00"
+    "implementationDate": "2020-07-28 16:00",
+    "branch": "尖兵"
   },
   "char_293_thorns": {
     "name": "棘刺",
@@ -1205,7 +1355,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2020-08-11 16:00"
+    "implementationDate": "2020-08-11 16:00",
+    "branch": "领主"
   },
   "char_218_cuttle": {
     "name": "安哲拉",
@@ -1213,7 +1364,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2020-08-11 16:00"
+    "implementationDate": "2020-08-11 16:00",
+    "branch": "神射手"
   },
   "char_272_strong": {
     "name": "孑",
@@ -1221,7 +1373,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
     "phaseCount": 3,
-    "implementationDate": "2020-08-11 16:00"
+    "implementationDate": "2020-08-11 16:00",
+    "branch": "行商"
   },
   "char_416_zumama": {
     "name": "森蚺",
@@ -1229,7 +1382,8 @@
     "profession": "TANK",
     "subProfessionId": "duelist",
     "phaseCount": 3,
-    "implementationDate": "2020-08-25 16:00"
+    "implementationDate": "2020-08-25 16:00",
+    "branch": "决战者"
   },
   "char_411_tomimi": {
     "name": "特米米",
@@ -1237,7 +1391,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2020-08-25 16:00"
+    "implementationDate": "2020-08-25 16:00",
+    "branch": "中坚术师"
   },
   "char_415_flint": {
     "name": "燧石",
@@ -1245,7 +1400,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2020-08-25 16:00"
+    "implementationDate": "2020-08-25 16:00",
+    "branch": "斗士"
   },
   "char_366_acdrop": {
     "name": "酸糖",
@@ -1253,7 +1409,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2020-08-25 16:00"
+    "implementationDate": "2020-08-25 16:00",
+    "branch": "重射手"
   },
   "char_350_surtr": {
     "name": "史尔特尔",
@@ -1261,7 +1418,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2020-09-24 16:00"
+    "implementationDate": "2020-09-24 16:00",
+    "branch": "术战者"
   },
   "char_365_aprl": {
     "name": "四月",
@@ -1269,7 +1427,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2020-09-24 16:00"
+    "implementationDate": "2020-09-24 16:00",
+    "branch": "速射手"
   },
   "char_271_spikes": {
     "name": "芳汀",
@@ -1277,7 +1436,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2020-09-24 16:00"
+    "implementationDate": "2020-09-24 16:00",
+    "branch": "领主"
   },
   "char_388_mint": {
     "name": "薄绿",
@@ -1285,7 +1445,8 @@
     "profession": "CASTER",
     "subProfessionId": "phalanx",
     "phaseCount": 3,
-    "implementationDate": "2020-09-24 16:00"
+    "implementationDate": "2020-09-24 16:00",
+    "branch": "阵法术师"
   },
   "char_423_blemsh": {
     "name": "瑕光",
@@ -1293,7 +1454,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2020-10-15 16:00"
+    "implementationDate": "2020-10-15 16:00",
+    "branch": "守护者"
   },
   "char_346_aosta": {
     "name": "奥斯塔",
@@ -1301,7 +1463,8 @@
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
     "phaseCount": 3,
-    "implementationDate": "2020-10-15 16:00"
+    "implementationDate": "2020-10-15 16:00",
+    "branch": "散射手"
   },
   "char_381_bubble": {
     "name": "泡泡",
@@ -1309,7 +1472,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2020-10-15 16:00"
+    "implementationDate": "2020-10-15 16:00",
+    "branch": "铁卫"
   },
   "char_265_sophia": {
     "name": "鞭刃",
@@ -1317,7 +1481,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2020-10-15 16:00"
+    "implementationDate": "2020-10-15 16:00",
+    "branch": "教官"
   },
   "char_391_rosmon": {
     "name": "迷迭香",
@@ -1325,7 +1490,8 @@
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
     "phaseCount": 3,
-    "implementationDate": "2020-11-01 16:00"
+    "implementationDate": "2020-11-01 16:00",
+    "branch": "投掷手"
   },
   "char_311_mudrok": {
     "name": "泥岩",
@@ -1333,7 +1499,8 @@
     "profession": "TANK",
     "subProfessionId": "unyield",
     "phaseCount": 3,
-    "implementationDate": "2020-11-01 16:00"
+    "implementationDate": "2020-11-01 16:00",
+    "branch": "不屈者"
   },
   "char_436_whispr": {
     "name": "絮雨",
@@ -1341,7 +1508,8 @@
     "profession": "MEDIC",
     "subProfessionId": "healer",
     "phaseCount": 3,
-    "implementationDate": "2020-11-01 16:00"
+    "implementationDate": "2020-11-01 16:00",
+    "branch": "疗养师"
   },
   "char_347_jaksel": {
     "name": "杰克",
@@ -1349,7 +1517,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2020-11-01 16:00"
+    "implementationDate": "2020-11-01 16:00",
+    "branch": "斗士"
   },
   "char_264_f12yin": {
     "name": "山",
@@ -1357,7 +1526,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2020-12-17 16:00"
+    "implementationDate": "2020-12-17 16:00",
+    "branch": "斗士"
   },
   "char_214_kafka": {
     "name": "卡夫卡",
@@ -1365,7 +1535,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2020-12-17 16:00"
+    "implementationDate": "2020-12-17 16:00",
+    "branch": "处决者"
   },
   "char_451_robin": {
     "name": "罗宾",
@@ -1373,7 +1544,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2020-12-17 16:00"
+    "implementationDate": "2020-12-17 16:00",
+    "branch": "陷阱师"
   },
   "char_440_pinecn": {
     "name": "松果",
@@ -1381,7 +1553,8 @@
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
     "phaseCount": 3,
-    "implementationDate": "2020-12-17 16:00"
+    "implementationDate": "2020-12-17 16:00",
+    "branch": "散射手"
   },
   "char_332_archet": {
     "name": "空弦",
@@ -1389,7 +1562,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2021-01-05 16:00"
+    "implementationDate": "2021-01-05 16:00",
+    "branch": "速射手"
   },
   "char_338_iris": {
     "name": "爱丽丝",
@@ -1397,7 +1571,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2021-01-05 16:00"
+    "implementationDate": "2021-01-05 16:00",
+    "branch": "秘术师"
   },
   "char_452_bstalk": {
     "name": "豆苗",
@@ -1405,7 +1580,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2021-01-05 16:00"
+    "implementationDate": "2021-01-05 16:00",
+    "branch": "战术家"
   },
   "char_2015_dusk": {
     "name": "夕",
@@ -1413,7 +1589,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2021-02-05 16:00"
+    "implementationDate": "2021-02-05 16:00",
+    "branch": "扩散术师"
   },
   "char_362_saga": {
     "name": "嵯峨",
@@ -1421,7 +1598,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2021-02-05 16:00"
+    "implementationDate": "2021-02-05 16:00",
+    "branch": "尖兵"
   },
   "char_455_nothin": {
     "name": "乌有",
@@ -1429,7 +1607,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
     "phaseCount": 3,
-    "implementationDate": "2021-02-05 16:00"
+    "implementationDate": "2021-02-05 16:00",
+    "branch": "行商"
   },
   "char_1011_lava2": {
     "name": "炎狱炎熔",
@@ -1437,7 +1616,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2021-02-05 16:00"
+    "implementationDate": "2021-02-05 16:00",
+    "branch": "扩散术师"
   },
   "char_402_tuye": {
     "name": "图耶",
@@ -1445,7 +1625,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2021-01-19 16:00"
+    "implementationDate": "2021-01-19 16:00",
+    "branch": "医师"
   },
   "char_456_ash": {
     "name": "灰烬",
@@ -1453,7 +1634,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2021-03-09 16:00"
+    "implementationDate": "2021-03-09 16:00",
+    "branch": "速射手"
   },
   "char_457_blitz": {
     "name": "闪击",
@@ -1461,7 +1643,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2021-03-09 16:00"
+    "implementationDate": "2021-03-09 16:00",
+    "branch": "哨戒铁卫"
   },
   "char_458_rfrost": {
     "name": "霜华",
@@ -1469,7 +1652,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2021-03-09 16:00"
+    "implementationDate": "2021-03-09 16:00",
+    "branch": "陷阱师"
   },
   "char_459_tachak": {
     "name": "战车",
@@ -1477,7 +1661,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2021-03-09 16:00"
+    "implementationDate": "2021-03-09 16:00",
+    "branch": "剑豪"
   },
   "char_472_pasngr": {
     "name": "异客",
@@ -1485,7 +1670,8 @@
     "profession": "CASTER",
     "subProfessionId": "chain",
     "phaseCount": 3,
-    "implementationDate": "2021-04-15 16:00"
+    "implementationDate": "2021-04-15 16:00",
+    "branch": "链术师"
   },
   "char_363_toddi": {
     "name": "熔泉",
@@ -1493,7 +1679,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2021-04-15 16:00"
+    "implementationDate": "2021-04-15 16:00",
+    "branch": "攻城手"
   },
   "char_304_zebra": {
     "name": "暴雨",
@@ -1501,7 +1688,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 3,
-    "implementationDate": "2021-04-15 16:00"
+    "implementationDate": "2021-04-15 16:00",
+    "branch": "铁卫"
   },
   "char_1012_skadi2": {
     "name": "浊心斯卡蒂",
@@ -1509,7 +1697,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 3,
-    "implementationDate": "2021-05-01 16:00"
+    "implementationDate": "2021-05-01 16:00",
+    "branch": "吟游者"
   },
   "char_003_kalts": {
     "name": "凯尔希",
@@ -1517,7 +1706,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2021-05-01 16:00"
+    "implementationDate": "2021-05-01 16:00",
+    "branch": "医师"
   },
   "char_474_glady": {
     "name": "歌蕾蒂娅",
@@ -1525,7 +1715,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
     "phaseCount": 3,
-    "implementationDate": "2021-05-01 16:00"
+    "implementationDate": "2021-05-01 16:00",
+    "branch": "钩索师"
   },
   "char_475_akafyu": {
     "name": "赤冬",
@@ -1533,7 +1724,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "musha",
     "phaseCount": 3,
-    "implementationDate": "2021-05-01 16:00"
+    "implementationDate": "2021-05-01 16:00",
+    "branch": "武者"
   },
   "char_426_billro": {
     "name": "卡涅利安",
@@ -1541,7 +1733,8 @@
     "profession": "CASTER",
     "subProfessionId": "phalanx",
     "phaseCount": 3,
-    "implementationDate": "2021-06-01 16:00"
+    "implementationDate": "2021-06-01 16:00",
+    "branch": "阵法术师"
   },
   "char_478_kirara": {
     "name": "绮良",
@@ -1549,7 +1742,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2021-06-01 16:00"
+    "implementationDate": "2021-06-01 16:00",
+    "branch": "伏击客"
   },
   "char_369_bena": {
     "name": "贝娜",
@@ -1557,7 +1751,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2021-06-01 16:00"
+    "implementationDate": "2021-06-01 16:00",
+    "branch": "傀儡师"
   },
   "char_469_indigo": {
     "name": "深靛",
@@ -1565,7 +1760,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2021-06-01 16:00"
+    "implementationDate": "2021-06-01 16:00",
+    "branch": "秘术师"
   },
   "char_485_pallas": {
     "name": "帕拉斯",
@@ -1573,7 +1769,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2021-07-02 16:00"
+    "implementationDate": "2021-07-02 16:00",
+    "branch": "教官"
   },
   "char_1013_chen2": {
     "name": "假日威龙陈",
@@ -1581,7 +1778,8 @@
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
     "phaseCount": 3,
-    "implementationDate": "2021-08-03 16:00"
+    "implementationDate": "2021-08-03 16:00",
+    "branch": "散射手"
   },
   "char_437_mizuki": {
     "name": "水月",
@@ -1589,7 +1787,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2021-08-03 16:00"
+    "implementationDate": "2021-08-03 16:00",
+    "branch": "伏击客"
   },
   "char_421_crow": {
     "name": "羽毛笔",
@@ -1597,7 +1796,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
     "phaseCount": 3,
-    "implementationDate": "2021-08-03 16:00"
+    "implementationDate": "2021-08-03 16:00",
+    "branch": "收割者"
   },
   "char_486_takila": {
     "name": "龙舌兰",
@@ -1605,7 +1805,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "librator",
     "phaseCount": 3,
-    "implementationDate": "2021-08-03 16:00"
+    "implementationDate": "2021-08-03 16:00",
+    "branch": "解放者"
   },
   "char_479_sleach": {
     "name": "琴柳",
@@ -1613,7 +1814,8 @@
     "profession": "PIONEER",
     "subProfessionId": "bearer",
     "phaseCount": 3,
-    "implementationDate": "2021-09-17 16:00"
+    "implementationDate": "2021-09-17 16:00",
+    "branch": "执旗手"
   },
   "char_484_robrta": {
     "name": "罗比菈塔",
@@ -1621,7 +1823,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2021-09-17 16:00"
+    "implementationDate": "2021-09-17 16:00",
+    "branch": "工匠"
   },
   "char_473_mberry": {
     "name": "桑葚",
@@ -1629,7 +1832,8 @@
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
     "phaseCount": 3,
-    "implementationDate": "2021-09-17 16:00"
+    "implementationDate": "2021-09-17 16:00",
+    "branch": "行医"
   },
   "char_430_fartth": {
     "name": "远牙",
@@ -1637,7 +1841,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2021-10-15 16:00"
+    "implementationDate": "2021-10-15 16:00",
+    "branch": "神射手"
   },
   "char_431_ashlok": {
     "name": "灰毫",
@@ -1645,7 +1850,8 @@
     "profession": "TANK",
     "subProfessionId": "fortress",
     "phaseCount": 3,
-    "implementationDate": "2021-10-15 16:00"
+    "implementationDate": "2021-10-15 16:00",
+    "branch": "要塞"
   },
   "char_1014_nearl2": {
     "name": "耀骑士临光",
@@ -1653,7 +1859,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "无畏者"
   },
   "char_420_flamtl": {
     "name": "焰尾",
@@ -1661,7 +1868,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "尖兵"
   },
   "char_496_wildmn": {
     "name": "野鬃",
@@ -1669,7 +1877,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "冲锋手"
   },
   "char_4000_jnight": {
     "name": "正义骑士号",
@@ -1677,7 +1886,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 1,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "速射手"
   },
   "char_449_glider": {
     "name": "蜜莓",
@@ -1685,7 +1895,8 @@
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "行医"
   },
   "char_4004_pudd": {
     "name": "布丁",
@@ -1693,7 +1904,8 @@
     "profession": "CASTER",
     "subProfessionId": "chain",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "链术师"
   },
   "char_489_serum": {
     "name": "蚀清",
@@ -1701,7 +1913,8 @@
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
     "phaseCount": 3,
-    "implementationDate": "2021-11-01 16:00"
+    "implementationDate": "2021-11-01 16:00",
+    "branch": "轰击术师"
   },
   "char_206_gnosis": {
     "name": "灵知",
@@ -1709,7 +1922,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
     "phaseCount": 3,
-    "implementationDate": "2021-12-21 16:00"
+    "implementationDate": "2021-12-21 16:00",
+    "branch": "削弱者"
   },
   "char_422_aurora": {
     "name": "极光",
@@ -1717,7 +1931,8 @@
     "profession": "TANK",
     "subProfessionId": "duelist",
     "phaseCount": 3,
-    "implementationDate": "2021-12-21 16:00"
+    "implementationDate": "2021-12-21 16:00",
+    "branch": "决战者"
   },
   "char_4013_kjera": {
     "name": "耶拉",
@@ -1725,7 +1940,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2021-12-21 16:00"
+    "implementationDate": "2021-12-21 16:00",
+    "branch": "驭械术师"
   },
   "char_4019_ncdeer": {
     "name": "九色鹿",
@@ -1733,7 +1949,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2022-01-10 16:00"
+    "implementationDate": "2022-01-10 16:00",
+    "branch": "护佑者"
   },
   "char_4025_aprot2": {
     "name": "暮落",
@@ -1741,7 +1958,8 @@
     "profession": "TANK",
     "subProfessionId": "artsprotector",
     "phaseCount": 3,
-    "implementationDate": "2022-1-5 16:00"
+    "implementationDate": "2022-1-5 16:00",
+    "branch": "驭法铁卫"
   },
   "char_2023_ling": {
     "name": "令",
@@ -1749,7 +1967,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2022-01-25 16:00"
+    "implementationDate": "2022-01-25 16:00",
+    "branch": "召唤师"
   },
   "char_322_lmlee": {
     "name": "老鲤",
@@ -1757,7 +1976,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
     "phaseCount": 3,
-    "implementationDate": "2022-01-25 16:00"
+    "implementationDate": "2022-01-25 16:00",
+    "branch": "行商"
   },
   "char_1021_kroos2": {
     "name": "寒芒克洛丝",
@@ -1765,7 +1985,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2022-01-25 16:00"
+    "implementationDate": "2022-01-25 16:00",
+    "branch": "速射手"
   },
   "char_476_blkngt": {
     "name": "夜半",
@@ -1773,7 +1994,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2022-01-25 16:00"
+    "implementationDate": "2022-01-25 16:00",
+    "branch": "战术家"
   },
   "char_377_gdglow": {
     "name": "澄闪",
@@ -1781,7 +2003,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2022-02-15 16:00"
+    "implementationDate": "2022-02-15 16:00",
+    "branch": "驭械术师"
   },
   "char_492_quercu": {
     "name": "夏栎",
@@ -1789,7 +2012,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2022-02-15 16:00"
+    "implementationDate": "2022-02-15 16:00",
+    "branch": "护佑者"
   },
   "char_300_phenxi": {
     "name": "菲亚梅塔",
@@ -1797,7 +2021,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2022-03-15 16:00"
+    "implementationDate": "2022-03-15 16:00",
+    "branch": "炮手"
   },
   "char_4036_forcer": {
     "name": "见行者",
@@ -1805,7 +2030,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
     "phaseCount": 3,
-    "implementationDate": "2022-03-15 16:00"
+    "implementationDate": "2022-03-15 16:00",
+    "branch": "推击手"
   },
   "char_4016_kazema": {
     "name": "风丸",
@@ -1813,7 +2039,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2022-03-15 16:00"
+    "implementationDate": "2022-03-15 16:00",
+    "branch": "傀儡师"
   },
   "char_4039_horn": {
     "name": "号角",
@@ -1821,7 +2048,8 @@
     "profession": "TANK",
     "subProfessionId": "fortress",
     "phaseCount": 3,
-    "implementationDate": "2022-04-14 16:00"
+    "implementationDate": "2022-04-14 16:00",
+    "branch": "要塞"
   },
   "char_4040_rockr": {
     "name": "洛洛",
@@ -1829,7 +2057,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2022-04-14 16:00"
+    "implementationDate": "2022-04-14 16:00",
+    "branch": "驭械术师"
   },
   "char_4045_heidi": {
     "name": "海蒂",
@@ -1837,7 +2066,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 3,
-    "implementationDate": "2022-04-14 16:00"
+    "implementationDate": "2022-04-14 16:00",
+    "branch": "吟游者"
   },
   "char_4041_chnut": {
     "name": "褐果",
@@ -1845,7 +2075,8 @@
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
     "phaseCount": 3,
-    "implementationDate": "2022-04-14 16:00"
+    "implementationDate": "2022-04-14 16:00",
+    "branch": "行医"
   },
   "char_1023_ghost2": {
     "name": "归溟幽灵鲨",
@@ -1853,7 +2084,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2022-05-01 16:00"
+    "implementationDate": "2022-05-01 16:00",
+    "branch": "傀儡师"
   },
   "char_4009_irene": {
     "name": "艾丽妮",
@@ -1861,7 +2093,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2022-05-01 16:00"
+    "implementationDate": "2022-05-01 16:00",
+    "branch": "剑豪"
   },
   "char_4042_lumen": {
     "name": "流明",
@@ -1869,7 +2102,8 @@
     "profession": "MEDIC",
     "subProfessionId": "healer",
     "phaseCount": 3,
-    "implementationDate": "2022-05-01 16:00"
+    "implementationDate": "2022-05-01 16:00",
+    "branch": "疗养师"
   },
   "char_433_windft": {
     "name": "掠风",
@@ -1877,7 +2111,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2022-05-01 16:00"
+    "implementationDate": "2022-05-01 16:00",
+    "branch": "工匠"
   },
   "char_4043_erato": {
     "name": "埃拉托",
@@ -1885,7 +2120,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2022-05-19 16:00"
+    "implementationDate": "2022-05-19 16:00",
+    "branch": "攻城手"
   },
   "char_4046_ebnhlz": {
     "name": "黑键",
@@ -1893,7 +2129,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2022-06-09 16:00"
+    "implementationDate": "2022-06-09 16:00",
+    "branch": "秘术师"
   },
   "char_1024_hbisc2": {
     "name": "濯尘芙蓉",
@@ -1901,7 +2138,8 @@
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
     "phaseCount": 3,
-    "implementationDate": "2022-06-09 16:00"
+    "implementationDate": "2022-06-09 16:00",
+    "branch": "咒愈师"
   },
   "char_4047_pianst": {
     "name": "车尔尼",
@@ -1909,7 +2147,8 @@
     "profession": "TANK",
     "subProfessionId": "artsprotector",
     "phaseCount": 3,
-    "implementationDate": "2022-06-09 16:00"
+    "implementationDate": "2022-06-09 16:00",
+    "branch": "驭法铁卫"
   },
   "char_4048_doroth": {
     "name": "多萝西",
@@ -1917,7 +2156,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2022-07-05 16:00"
+    "implementationDate": "2022-07-05 16:00",
+    "branch": "陷阱师"
   },
   "char_1027_greyy2": {
     "name": "承曦格雷伊",
@@ -1925,7 +2165,8 @@
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
     "phaseCount": 3,
-    "implementationDate": "2022-07-05 16:00"
+    "implementationDate": "2022-07-05 16:00",
+    "branch": "投掷手"
   },
   "char_135_halo": {
     "name": "星源",
@@ -1933,7 +2174,8 @@
     "profession": "CASTER",
     "subProfessionId": "chain",
     "phaseCount": 3,
-    "implementationDate": "2022-07-05 16:00"
+    "implementationDate": "2022-07-05 16:00",
+    "branch": "链术师"
   },
   "char_1026_gvial2": {
     "name": "百炼嘉维尔",
@@ -1941,7 +2183,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2022-08-11 16:00"
+    "implementationDate": "2022-08-11 16:00",
+    "branch": "强攻手"
   },
   "char_4055_bgsnow": {
     "name": "鸿雪",
@@ -1949,7 +2192,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2022-08-11 16:00"
+    "implementationDate": "2022-08-11 16:00",
+    "branch": "重射手"
   },
   "char_497_ctable": {
     "name": "晓歌",
@@ -1957,7 +2201,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2022-08-11 16:00"
+    "implementationDate": "2022-08-11 16:00",
+    "branch": "情报官"
   },
   "char_4054_malist": {
     "name": "至简",
@@ -1965,7 +2210,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2022-08-11 16:00"
+    "implementationDate": "2022-08-11 16:00",
+    "branch": "驭械术师"
   },
   "char_4064_mlynar": {
     "name": "玛恩纳",
@@ -1973,7 +2219,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "librator",
     "phaseCount": 3,
-    "implementationDate": "2022-09-08 16:00"
+    "implementationDate": "2022-09-08 16:00",
+    "branch": "解放者"
   },
   "char_4032_provs": {
     "name": "但书",
@@ -1981,7 +2228,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2022-09-08 16:00"
+    "implementationDate": "2022-09-08 16:00",
+    "branch": "凝滞师"
   },
   "char_4066_highmo": {
     "name": "海沫",
@@ -1989,7 +2237,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
     "phaseCount": 3,
-    "implementationDate": "2022-09-27 16:00"
+    "implementationDate": "2022-09-27 16:00",
+    "branch": "收割者"
   },
   "char_4067_lolxh": {
     "name": "罗小黑",
@@ -1997,7 +2246,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2022-09-15 16:00"
+    "implementationDate": "2022-09-15 16:00",
+    "branch": "领主"
   },
   "char_4072_ironmn": {
     "name": "白铁",
@@ -2005,7 +2255,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2022-10-11 16:00"
+    "implementationDate": "2022-10-11 16:00",
+    "branch": "工匠"
   },
   "char_4071_peper": {
     "name": "明椒",
@@ -2013,7 +2264,8 @@
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
     "phaseCount": 3,
-    "implementationDate": "2022-10-11 16:00"
+    "implementationDate": "2022-10-11 16:00",
+    "branch": "链愈师"
   },
   "char_157_dagda": {
     "name": "达格达",
@@ -2021,7 +2273,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2022-10-11 16:00"
+    "implementationDate": "2022-10-11 16:00",
+    "branch": "斗士"
   },
   "char_4062_totter": {
     "name": "铅踝",
@@ -2029,7 +2282,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2022-10-11 16:00"
+    "implementationDate": "2022-10-11 16:00",
+    "branch": "攻城手"
   },
   "char_1028_texas2": {
     "name": "缄默德克萨斯",
@@ -2037,7 +2291,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "处决者"
   },
   "char_4065_judge": {
     "name": "斥罪",
@@ -2045,7 +2300,8 @@
     "profession": "TANK",
     "subProfessionId": "unyield",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "不屈者"
   },
   "char_4014_lunacu": {
     "name": "子月",
@@ -2053,7 +2309,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "神射手"
   },
   "char_427_vigil": {
     "name": "伺夜",
@@ -2061,7 +2318,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "战术家"
   },
   "char_466_qanik": {
     "name": "雪绒",
@@ -2069,7 +2327,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "中坚术师"
   },
   "char_4063_quartz": {
     "name": "石英",
@@ -2077,7 +2336,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
     "phaseCount": 3,
-    "implementationDate": "2022-11-01 16:00"
+    "implementationDate": "2022-11-01 16:00",
+    "branch": "重剑手"
   },
   "char_4017_puzzle": {
     "name": "谜图",
@@ -2085,7 +2345,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2022-12-15 16:00"
+    "implementationDate": "2022-12-15 16:00",
+    "branch": "情报官"
   },
   "char_297_hamoni": {
     "name": "和弦",
@@ -2093,7 +2354,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2022-12-15 16:00"
+    "implementationDate": "2022-12-15 16:00",
+    "branch": "秘术师"
   },
   "char_1020_reed2": {
     "name": "焰影苇草",
@@ -2101,7 +2363,8 @@
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
     "phaseCount": 3,
-    "implementationDate": "2022-12-15 16:00"
+    "implementationDate": "2022-12-15 16:00",
+    "branch": "咒愈师"
   },
   "char_2024_chyue": {
     "name": "重岳",
@@ -2109,7 +2372,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2023-01-17 16:00"
+    "implementationDate": "2023-01-17 16:00",
+    "branch": "斗士"
   },
   "char_4080_lin": {
     "name": "林",
@@ -2117,7 +2381,8 @@
     "profession": "CASTER",
     "subProfessionId": "phalanx",
     "phaseCount": 3,
-    "implementationDate": "2023-01-17 16:00"
+    "implementationDate": "2023-01-17 16:00",
+    "branch": "阵法术师"
   },
   "char_493_firwhl": {
     "name": "火哨",
@@ -2125,7 +2390,8 @@
     "profession": "TANK",
     "subProfessionId": "fortress",
     "phaseCount": 3,
-    "implementationDate": "2023-01-17 16:00"
+    "implementationDate": "2023-01-17 16:00",
+    "branch": "要塞"
   },
   "char_4078_bdhkgt": {
     "name": "截云",
@@ -2133,7 +2399,8 @@
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
     "phaseCount": 3,
-    "implementationDate": "2023-01-17 16:00"
+    "implementationDate": "2023-01-17 16:00",
+    "branch": "炮手"
   },
   "char_4082_qiubai": {
     "name": "仇白",
@@ -2141,7 +2408,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2023-02-14 16:00"
+    "implementationDate": "2023-02-14 16:00",
+    "branch": "领主"
   },
   "char_4083_chimes": {
     "name": "铎铃",
@@ -2149,7 +2417,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
     "phaseCount": 3,
-    "implementationDate": "2023-02-14 16:00"
+    "implementationDate": "2023-02-14 16:00",
+    "branch": "重剑手"
   },
   "char_1029_yato2": {
     "name": "麒麟R夜刀",
@@ -2157,7 +2426,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2023-03-07 16:00"
+    "implementationDate": "2023-03-07 16:00",
+    "branch": "处决者"
   },
   "char_1030_noirc2": {
     "name": "火龙S黑角",
@@ -2165,7 +2435,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "musha",
     "phaseCount": 3,
-    "implementationDate": "2023-03-07 16:00"
+    "implementationDate": "2023-03-07 16:00",
+    "branch": "武者"
   },
   "char_4077_palico": {
     "name": "泰拉大陆调查团",
@@ -2173,7 +2444,8 @@
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
     "phaseCount": 1,
-    "implementationDate": "2023-03-07 16:00"
+    "implementationDate": "2023-03-07 16:00",
+    "branch": "投掷手"
   },
   "char_4091_ulika": {
     "name": "U-Official",
@@ -2181,7 +2453,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 1,
-    "implementationDate": "2023-04-01 16:00"
+    "implementationDate": "2023-04-01 16:00",
+    "branch": "吟游者"
   },
   "char_4087_ines": {
     "name": "伊内丝",
@@ -2189,7 +2462,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2023-04-06 16:00"
+    "implementationDate": "2023-04-06 16:00",
+    "branch": "情报官"
   },
   "char_464_cement": {
     "name": "洋灰",
@@ -2197,7 +2471,8 @@
     "profession": "TANK",
     "subProfessionId": "duelist",
     "phaseCount": 3,
-    "implementationDate": "2023-04-06 16:00"
+    "implementationDate": "2023-04-06 16:00",
+    "branch": "决战者"
   },
   "char_154_morgan": {
     "name": "摩根",
@@ -2205,7 +2480,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2023-04-06 16:00"
+    "implementationDate": "2023-04-06 16:00",
+    "branch": "无畏者"
   },
   "char_491_humus": {
     "name": "休谟斯",
@@ -2213,7 +2489,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
     "phaseCount": 3,
-    "implementationDate": "2023-04-06 16:00"
+    "implementationDate": "2023-04-06 16:00",
+    "branch": "收割者"
   },
   "char_249_mlyss": {
     "name": "缪尔赛思",
@@ -2221,7 +2498,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2023-05-01 16:00"
+    "implementationDate": "2023-05-01 16:00",
+    "branch": "战术家"
   },
   "char_4027_heyak": {
     "name": "霍尔海雅",
@@ -2229,7 +2507,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2023-05-01 16:00"
+    "implementationDate": "2023-05-01 16:00",
+    "branch": "中坚术师"
   },
   "char_1031_slent2": {
     "name": "淬羽赫默",
@@ -2237,7 +2516,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2023-05-01 16:00"
+    "implementationDate": "2023-05-01 16:00",
+    "branch": "护佑者"
   },
   "char_4006_melnte": {
     "name": "玫拉",
@@ -2245,7 +2525,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2023-05-01 16:00"
+    "implementationDate": "2023-05-01 16:00",
+    "branch": "重射手"
   },
   "char_4093_frston": {
     "name": "Friston-3",
@@ -2253,7 +2534,8 @@
     "profession": "TANK",
     "subProfessionId": "protector",
     "phaseCount": 1,
-    "implementationDate": "2023-05-22 16:00"
+    "implementationDate": "2023-05-22 16:00",
+    "branch": "铁卫"
   },
   "char_1032_excu2": {
     "name": "圣约送葬人",
@@ -2261,7 +2543,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
     "phaseCount": 3,
-    "implementationDate": "2023-06-08 16:00"
+    "implementationDate": "2023-06-08 16:00",
+    "branch": "收割者"
   },
   "char_4015_spuria": {
     "name": "空构",
@@ -2269,7 +2552,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "geek",
     "phaseCount": 3,
-    "implementationDate": "2023-06-08 16:00"
+    "implementationDate": "2023-06-08 16:00",
+    "branch": "怪杰"
   },
   "char_498_inside": {
     "name": "隐现",
@@ -2277,7 +2561,8 @@
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
     "phaseCount": 3,
-    "implementationDate": "2023-06-08 16:00"
+    "implementationDate": "2023-06-08 16:00",
+    "branch": "速射手"
   },
   "char_2012_typhon": {
     "name": "提丰",
@@ -2285,7 +2570,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2023-07-06 16:00"
+    "implementationDate": "2023-07-06 16:00",
+    "branch": "攻城手"
   },
   "char_341_sntlla": {
     "name": "寒檀",
@@ -2293,7 +2579,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2023-07-06 16:00"
+    "implementationDate": "2023-07-06 16:00",
+    "branch": "扩散术师"
   },
   "char_4102_threye": {
     "name": "凛视",
@@ -2301,7 +2588,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 3,
-    "implementationDate": "2023-07-13 16:00"
+    "implementationDate": "2023-07-13 16:00",
+    "branch": "巫役"
   },
   "char_4106_bryota": {
     "name": "苍苔",
@@ -2309,7 +2597,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2023-08-01 16:00"
+    "implementationDate": "2023-08-01 16:00",
+    "branch": "教官"
   },
   "char_1033_swire2": {
     "name": "琳琅诗怀雅",
@@ -2317,7 +2606,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
     "phaseCount": 3,
-    "implementationDate": "2023-08-01 16:00"
+    "implementationDate": "2023-08-01 16:00",
+    "branch": "行商"
   },
   "char_488_buildr": {
     "name": "青枳",
@@ -2325,7 +2615,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2023-08-01 16:00"
+    "implementationDate": "2023-08-01 16:00",
+    "branch": "尖兵"
   },
   "char_1016_agoat2": {
     "name": "纯烬艾雅法拉",
@@ -2333,7 +2624,8 @@
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
     "phaseCount": 3,
-    "implementationDate": "2023-08-01 16:00"
+    "implementationDate": "2023-08-01 16:00",
+    "branch": "行医"
   },
   "char_1034_jesca2": {
     "name": "涤火杰西卡",
@@ -2341,7 +2633,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2023-09-05 16:00"
+    "implementationDate": "2023-09-05 16:00",
+    "branch": "哨戒铁卫"
   },
   "char_4105_almond": {
     "name": "杏仁",
@@ -2349,7 +2642,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
     "phaseCount": 3,
-    "implementationDate": "2023-09-05 16:00"
+    "implementationDate": "2023-09-05 16:00",
+    "branch": "钩索师"
   },
   "char_4104_coldst": {
     "name": "冰酿",
@@ -2357,7 +2651,8 @@
     "profession": "SNIPER",
     "subProfessionId": "hunter",
     "phaseCount": 3,
-    "implementationDate": "2023-09-05 16:00"
+    "implementationDate": "2023-09-05 16:00",
+    "branch": "猎手"
   },
   "char_4088_hodrer": {
     "name": "赫德雷",
@@ -2365,7 +2660,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
     "phaseCount": 3,
-    "implementationDate": "2023-10-08 16:00"
+    "implementationDate": "2023-10-08 16:00",
+    "branch": "重剑手"
   },
   "char_4110_delphn": {
     "name": "戴菲恩",
@@ -2373,7 +2669,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2023-10-08 16:00"
+    "implementationDate": "2023-10-08 16:00",
+    "branch": "秘术师"
   },
   "char_494_vendla": {
     "name": "刺玫",
@@ -2381,7 +2678,8 @@
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
     "phaseCount": 3,
-    "implementationDate": "2023-10-08 16:00"
+    "implementationDate": "2023-10-08 16:00",
+    "branch": "咒愈师"
   },
   "char_4107_vrdant": {
     "name": "维荻",
@@ -2389,7 +2687,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2023-10-08 16:00"
+    "implementationDate": "2023-10-08 16:00",
+    "branch": "傀儡师"
   },
   "char_245_cello": {
     "name": "塑心",
@@ -2397,7 +2696,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "巫役"
   },
   "char_4098_vvana": {
     "name": "薇薇安娜",
@@ -2405,7 +2705,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "术战者"
   },
   "char_4011_lessng": {
     "name": "止颂",
@@ -2413,7 +2714,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "无畏者"
   },
   "char_499_kaitou": {
     "name": "折光",
@@ -2421,7 +2723,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "本源术师"
   },
   "char_4109_baslin": {
     "name": "深律",
@@ -2429,7 +2732,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "守护者"
   },
   "char_4100_caper": {
     "name": "跃跃",
@@ -2437,7 +2741,8 @@
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
     "phaseCount": 3,
-    "implementationDate": "2023-11-01 16:00"
+    "implementationDate": "2023-11-01 16:00",
+    "branch": "回环射手"
   },
   "char_4116_blkkgt": {
     "name": "锏",
@@ -2445,7 +2750,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 3,
-    "implementationDate": "2023-12-05 16:00"
+    "implementationDate": "2023-12-05 16:00",
+    "branch": "剑豪"
   },
   "char_194_leto": {
     "name": "烈夏",
@@ -2453,7 +2759,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2023-12-05 16:00"
+    "implementationDate": "2023-12-05 16:00",
+    "branch": "领主"
   },
   "char_4114_harold": {
     "name": "哈洛德",
@@ -2461,7 +2768,8 @@
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
     "phaseCount": 3,
-    "implementationDate": "2023-12-05 16:00"
+    "implementationDate": "2023-12-05 16:00",
+    "branch": "行医"
   },
   "char_4117_ray": {
     "name": "莱伊",
@@ -2469,7 +2777,8 @@
     "profession": "SNIPER",
     "subProfessionId": "hunter",
     "phaseCount": 3,
-    "implementationDate": "2024-01-09 16:00"
+    "implementationDate": "2024-01-09 16:00",
+    "branch": "猎手"
   },
   "char_4081_warmy": {
     "name": "温米",
@@ -2477,7 +2786,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2024-01-09 16:00"
+    "implementationDate": "2024-01-09 16:00",
+    "branch": "本源术师"
   },
   "char_2025_shu": {
     "name": "黍",
@@ -2485,7 +2795,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2024-02-01 16:00"
+    "implementationDate": "2024-02-01 16:00",
+    "branch": "守护者"
   },
   "char_4121_zuole": {
     "name": "左乐",
@@ -2493,7 +2804,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "musha",
     "phaseCount": 3,
-    "implementationDate": "2024-02-01 16:00"
+    "implementationDate": "2024-02-01 16:00",
+    "branch": "武者"
   },
   "char_4122_grabds": {
     "name": "小满",
@@ -2501,7 +2813,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2024-02-01 16:00"
+    "implementationDate": "2024-02-01 16:00",
+    "branch": "凝滞师"
   },
   "char_4119_wanqin": {
     "name": "万顷",
@@ -2509,7 +2822,8 @@
     "profession": "PIONEER",
     "subProfessionId": "bearer",
     "phaseCount": 3,
-    "implementationDate": "2024-02-01 16:00"
+    "implementationDate": "2024-02-01 16:00",
+    "branch": "执旗手"
   },
   "char_4023_rfalcn": {
     "name": "红隼",
@@ -2517,7 +2831,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2024-02-03 11:00"
+    "implementationDate": "2024-02-03 11:00",
+    "branch": "尖兵"
   },
   "char_4123_ela": {
     "name": "艾拉",
@@ -2525,7 +2840,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2024-03-07 16:00"
+    "implementationDate": "2024-03-07 16:00",
+    "branch": "陷阱师"
   },
   "char_4124_iana": {
     "name": "双月",
@@ -2533,7 +2849,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2024-03-07 16:00"
+    "implementationDate": "2024-03-07 16:00",
+    "branch": "傀儡师"
   },
   "char_4125_rdoc": {
     "name": "医生",
@@ -2541,7 +2858,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
     "phaseCount": 3,
-    "implementationDate": "2024-03-07 16:00"
+    "implementationDate": "2024-03-07 16:00",
+    "branch": "教官"
   },
   "char_4126_fuze": {
     "name": "导火索",
@@ -2549,7 +2867,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2024-03-07 16:00"
+    "implementationDate": "2024-03-07 16:00",
+    "branch": "强攻手"
   },
   "char_4132_ascln": {
     "name": "阿斯卡纶",
@@ -2557,7 +2876,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2024-04-11 16:00"
+    "implementationDate": "2024-04-11 16:00",
+    "branch": "伏击客"
   },
   "char_446_aroma": {
     "name": "阿罗玛",
@@ -2565,7 +2885,8 @@
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
     "phaseCount": 3,
-    "implementationDate": "2024-04-11 16:00"
+    "implementationDate": "2024-04-11 16:00",
+    "branch": "轰击术师"
   },
   "char_4131_odda": {
     "name": "奥达",
@@ -2573,7 +2894,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
     "phaseCount": 3,
-    "implementationDate": "2024-04-11 16:00"
+    "implementationDate": "2024-04-11 16:00",
+    "branch": "撼地者"
   },
   "char_4130_luton": {
     "name": "露托",
@@ -2581,7 +2903,8 @@
     "profession": "TANK",
     "subProfessionId": "unyield",
     "phaseCount": 3,
-    "implementationDate": "2024-04-11 16:00"
+    "implementationDate": "2024-04-11 16:00",
+    "branch": "不屈者"
   },
   "char_1035_wisdel": {
     "name": "维什戴尔",
@@ -2589,7 +2912,8 @@
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
     "phaseCount": 3,
-    "implementationDate": "2024-05-01 16:00"
+    "implementationDate": "2024-05-01 16:00",
+    "branch": "投掷手"
   },
   "char_4133_logos": {
     "name": "逻各斯",
@@ -2597,7 +2921,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 3,
-    "implementationDate": "2024-05-01 16:00"
+    "implementationDate": "2024-05-01 16:00",
+    "branch": "中坚术师"
   },
   "char_4134_cetsyr": {
     "name": "魔王",
@@ -2605,7 +2930,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 3,
-    "implementationDate": "2024-05-01 16:00"
+    "implementationDate": "2024-05-01 16:00",
+    "branch": "吟游者"
   },
   "char_1036_fang2": {
     "name": "历阵锐枪芬",
@@ -2613,7 +2939,8 @@
     "profession": "PIONEER",
     "subProfessionId": "charger",
     "phaseCount": 3,
-    "implementationDate": "2024-05-01 16:00"
+    "implementationDate": "2024-05-01 16:00",
+    "branch": "冲锋手"
   },
   "char_4136_phonor": {
     "name": "PhonoR-0",
@@ -2621,7 +2948,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 1,
-    "implementationDate": "2024-05-01 16:00"
+    "implementationDate": "2024-05-01 16:00",
+    "branch": "巫役"
   },
   "char_4079_haini": {
     "name": "海霓",
@@ -2629,7 +2957,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
     "phaseCount": 3,
-    "implementationDate": "2024-06-05 16:00"
+    "implementationDate": "2024-06-05 16:00",
+    "branch": "削弱者"
   },
   "char_4137_udflow": {
     "name": "深巡",
@@ -2637,7 +2966,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2024-06-05 16:00"
+    "implementationDate": "2024-06-05 16:00",
+    "branch": "哨戒铁卫"
   },
   "char_4145_ulpia": {
     "name": "乌尔比安",
@@ -2645,7 +2975,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
     "phaseCount": 3,
-    "implementationDate": "2024-06-05 16:00"
+    "implementationDate": "2024-06-05 16:00",
+    "branch": "重剑手"
   },
   "char_4146_nymph": {
     "name": "妮芙",
@@ -2653,7 +2984,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2024-07-09 16:00"
+    "implementationDate": "2024-07-09 16:00",
+    "branch": "本源术师"
   },
   "char_4151_tinman": {
     "name": "锡人",
@@ -2661,7 +2993,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "alchemist",
     "phaseCount": 3,
-    "implementationDate": "2024-07-16 16:00"
+    "implementationDate": "2024-07-16 16:00",
+    "branch": "炼金师"
   },
   "char_4147_mitm": {
     "name": "渡桥",
@@ -2669,7 +3002,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2024-07-09 16:00"
+    "implementationDate": "2024-07-09 16:00",
+    "branch": "战术家"
   },
   "char_4058_pepe": {
     "name": "佩佩",
@@ -2677,7 +3011,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
     "phaseCount": 3,
-    "implementationDate": "2024-08-01 16:00"
+    "implementationDate": "2024-08-01 16:00",
+    "branch": "撼地者"
   },
   "char_4138_narant": {
     "name": "娜仁图亚",
@@ -2685,7 +3020,8 @@
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
     "phaseCount": 3,
-    "implementationDate": "2024-08-01 16:00"
+    "implementationDate": "2024-08-01 16:00",
+    "branch": "回环射手"
   },
   "char_4140_lasher": {
     "name": "衡沙",
@@ -2693,7 +3029,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2024-08-01 16:00"
+    "implementationDate": "2024-08-01 16:00",
+    "branch": "召唤师"
   },
   "char_4139_papyrs": {
     "name": "莎草",
@@ -2701,7 +3038,8 @@
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
     "phaseCount": 3,
-    "implementationDate": "2024-08-01 16:00"
+    "implementationDate": "2024-08-01 16:00",
+    "branch": "链愈师"
   },
   "char_4141_marcil": {
     "name": "玛露西尔",
@@ -2709,7 +3047,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2024-09-02 16:00"
+    "implementationDate": "2024-09-02 16:00",
+    "branch": "扩散术师"
   },
   "char_4143_sensi": {
     "name": "森西",
@@ -2717,7 +3056,8 @@
     "profession": "TANK",
     "subProfessionId": "guardian",
     "phaseCount": 3,
-    "implementationDate": "2024-09-02 16:00"
+    "implementationDate": "2024-09-02 16:00",
+    "branch": "守护者"
   },
   "char_4144_chilc": {
     "name": "齐尔查克",
@@ -2725,7 +3065,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2024-09-02 16:00"
+    "implementationDate": "2024-09-02 16:00",
+    "branch": "情报官"
   },
   "char_4142_laios": {
     "name": "莱欧斯",
@@ -2733,7 +3074,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
     "phaseCount": 3,
-    "implementationDate": "2024-09-02 16:00"
+    "implementationDate": "2024-09-02 16:00",
+    "branch": "无畏者"
   },
   "char_1019_siege2": {
     "name": "维娜·维多利亚",
@@ -2741,7 +3083,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2024-10-09 16:00"
+    "implementationDate": "2024-10-09 16:00",
+    "branch": "术战者"
   },
   "char_487_bobb": {
     "name": "波卜",
@@ -2749,7 +3092,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 3,
-    "implementationDate": "2024-10-09 16:00"
+    "implementationDate": "2024-10-09 16:00",
+    "branch": "巫役"
   },
   "char_4162_cathy": {
     "name": "凯瑟琳",
@@ -2757,7 +3101,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2024-10-09 16:00"
+    "implementationDate": "2024-10-09 16:00",
+    "branch": "工匠"
   },
   "char_1038_whitw2": {
     "name": "荒芜拉普兰德",
@@ -2765,7 +3110,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "驭械术师"
   },
   "char_1502_crosly": {
     "name": "弑君者",
@@ -2773,7 +3119,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "executor",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "处决者"
   },
   "char_4026_vulpis": {
     "name": "忍冬",
@@ -2781,7 +3128,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "尖兵"
   },
   "char_4148_philae": {
     "name": "菲莱",
@@ -2789,7 +3137,8 @@
     "profession": "TANK",
     "subProfessionId": "primprotector",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "本源铁卫"
   },
   "char_4155_talr": {
     "name": "裁度",
@@ -2797,7 +3146,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "行商"
   },
   "char_4165_ctrail": {
     "name": "云迹",
@@ -2805,7 +3155,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
     "phaseCount": 3,
-    "implementationDate": "2024-11-01 16:00"
+    "implementationDate": "2024-11-01 16:00",
+    "branch": "巡空者"
   },
   "char_1039_thorn2": {
     "name": "引星棘刺",
@@ -2813,7 +3164,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "alchemist",
     "phaseCount": 3,
-    "implementationDate": "2024-12-05 16:00"
+    "implementationDate": "2024-12-05 16:00",
+    "branch": "炼金师"
   },
   "char_4164_tecno": {
     "name": "特克诺",
@@ -2821,7 +3173,8 @@
     "profession": "CASTER",
     "subProfessionId": "soulcaster",
     "phaseCount": 3,
-    "implementationDate": "2024-12-05 16:00"
+    "implementationDate": "2024-12-05 16:00",
+    "branch": "塑灵术师"
   },
   "char_4163_rosesa": {
     "name": "瑰盐",
@@ -2829,7 +3182,8 @@
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
     "phaseCount": 3,
-    "implementationDate": "2024-12-05 16:00"
+    "implementationDate": "2024-12-05 16:00",
+    "branch": "群愈师"
   },
   "char_2026_yu": {
     "name": "余",
@@ -2837,7 +3191,8 @@
     "profession": "TANK",
     "subProfessionId": "primprotector",
     "phaseCount": 3,
-    "implementationDate": "2025-01-22 16:00"
+    "implementationDate": "2025-01-22 16:00",
+    "branch": "本源铁卫"
   },
   "char_1040_blaze2": {
     "name": "烛煌",
@@ -2845,7 +3200,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2025-01-22 16:00"
+    "implementationDate": "2025-01-22 16:00",
+    "branch": "本源术师"
   },
   "char_4052_surfer": {
     "name": "寻澜",
@@ -2853,7 +3209,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2025-01-22 16:00"
+    "implementationDate": "2025-01-22 16:00",
+    "branch": "情报官"
   },
   "char_4172_xingzh": {
     "name": "行箸",
@@ -2861,7 +3218,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2025-01-22 16:00"
+    "implementationDate": "2025-01-22 16:00",
+    "branch": "护佑者"
   },
   "char_4010_etlchi": {
     "name": "隐德来希",
@@ -2869,7 +3227,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
     "phaseCount": 3,
-    "implementationDate": "2025-02-14 16:00"
+    "implementationDate": "2025-02-14 16:00",
+    "branch": "收割者"
   },
   "char_4173_nowell": {
     "name": "诺威尔",
@@ -2877,7 +3236,8 @@
     "profession": "MEDIC",
     "subProfessionId": "healer",
     "phaseCount": 3,
-    "implementationDate": "2025-02-14 16:00"
+    "implementationDate": "2025-02-14 16:00",
+    "branch": "疗养师"
   },
   "char_450_necras": {
     "name": "死芒",
@@ -2885,7 +3245,8 @@
     "profession": "CASTER",
     "subProfessionId": "soulcaster",
     "phaseCount": 3,
-    "implementationDate": "2025-03-07 16:00"
+    "implementationDate": "2025-03-07 16:00",
+    "branch": "塑灵术师"
   },
   "char_4171_wulfen": {
     "name": "钼铅",
@@ -2893,7 +3254,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2025-03-07 16:00"
+    "implementationDate": "2025-03-07 16:00",
+    "branch": "陷阱师"
   },
   "char_4177_brigid": {
     "name": "水灯心",
@@ -2901,7 +3263,8 @@
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
     "phaseCount": 3,
-    "implementationDate": "2025-03-07 16:00"
+    "implementationDate": "2025-03-07 16:00",
+    "branch": "回环射手"
   },
   "char_4179_monstr": {
     "name": "Mon3tr",
@@ -2909,7 +3272,8 @@
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
     "phaseCount": 3,
-    "implementationDate": "2025-04-07 16:00"
+    "implementationDate": "2025-04-07 16:00",
+    "branch": "链愈师"
   },
   "char_4178_alanna": {
     "name": "阿兰娜",
@@ -2917,7 +3281,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2025-04-07 16:00"
+    "implementationDate": "2025-04-07 16:00",
+    "branch": "工匠"
   },
   "char_445_wscoot": {
     "name": "骋风",
@@ -2925,7 +3290,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "librator",
     "phaseCount": 3,
-    "implementationDate": "2025-04-07 16:00"
+    "implementationDate": "2025-04-07 16:00",
+    "branch": "解放者"
   },
   "char_1041_angel2": {
     "name": "新约能天使",
@@ -2933,7 +3299,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "geek",
     "phaseCount": 3,
-    "implementationDate": "2025-05-01 16:00"
+    "implementationDate": "2025-05-01 16:00",
+    "branch": "怪杰"
   },
   "char_4193_lemuen": {
     "name": "蕾缪安",
@@ -2941,7 +3308,8 @@
     "profession": "SNIPER",
     "subProfessionId": "longrange",
     "phaseCount": 3,
-    "implementationDate": "2025-05-01 16:00"
+    "implementationDate": "2025-05-01 16:00",
+    "branch": "神射手"
   },
   "char_4194_rmixer": {
     "name": "信仰搅拌机",
@@ -2949,7 +3317,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2025-05-01 16:00"
+    "implementationDate": "2025-05-01 16:00",
+    "branch": "哨戒铁卫"
   },
   "char_4187_graceb": {
     "name": "聆音",
@@ -2957,7 +3326,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "primguard",
     "phaseCount": 3,
-    "implementationDate": "2025-05-01 16:00"
+    "implementationDate": "2025-05-01 16:00",
+    "branch": "本源近卫"
   },
   "char_4188_confes": {
     "name": "CONFESS-47",
@@ -2965,7 +3335,8 @@
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
     "phaseCount": 1,
-    "implementationDate": "2025-05-01 16:00"
+    "implementationDate": "2025-05-01 16:00",
+    "branch": "尖兵"
   },
   "char_1042_phatm2": {
     "name": "酒神",
@@ -2973,7 +3344,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 3,
-    "implementationDate": "2025-06-05 16:00"
+    "implementationDate": "2025-06-05 16:00",
+    "branch": "巫役"
   },
   "char_4191_tippi": {
     "name": "蒂比",
@@ -2981,7 +3353,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
     "phaseCount": 3,
-    "implementationDate": "2025-06-05 16:00"
+    "implementationDate": "2025-06-05 16:00",
+    "branch": "巡空者"
   },
   "char_4198_christ": {
     "name": "Miss.Christine",
@@ -2989,7 +3362,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2025-06-05 16:00"
+    "implementationDate": "2025-06-05 16:00",
+    "branch": "本源术师"
   },
   "char_4195_radian": {
     "name": "电弧",
@@ -2997,7 +3371,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
     "phaseCount": 3,
-    "implementationDate": "2025-07-15 16:00"
+    "implementationDate": "2025-07-15 16:00",
+    "branch": "召唤师"
   },
   "char_4196_reckpr": {
     "name": "录武官",
@@ -3005,7 +3380,8 @@
     "profession": "MEDIC",
     "subProfessionId": "physician",
     "phaseCount": 3,
-    "implementationDate": "2025-07-08 16:00"
+    "implementationDate": "2025-07-08 16:00",
+    "branch": "医师"
   },
   "char_1043_leizi2": {
     "name": "司霆惊蛰",
@@ -3013,7 +3389,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "librator",
     "phaseCount": 3,
-    "implementationDate": "2025-07-08 16:00"
+    "implementationDate": "2025-07-08 16:00",
+    "branch": "解放者"
   },
   "char_1044_hsgma2": {
     "name": "斩业星熊",
@@ -3021,7 +3398,8 @@
     "profession": "TANK",
     "subProfessionId": "artsprotector",
     "phaseCount": 3,
-    "implementationDate": "2025-08-02 16:00"
+    "implementationDate": "2025-08-02 16:00",
+    "branch": "驭法铁卫"
   },
   "char_4202_haruka": {
     "name": "遥",
@@ -3029,7 +3407,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2025-08-02 16:00"
+    "implementationDate": "2025-08-02 16:00",
+    "branch": "护佑者"
   },
   "char_4203_kichi": {
     "name": "吉星",
@@ -3037,7 +3416,8 @@
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
     "phaseCount": 3,
-    "implementationDate": "2025-08-02 16:00"
+    "implementationDate": "2025-08-02 16:00",
+    "branch": "散射手"
   },
   "char_4199_makiri": {
     "name": "松桐",
@@ -3045,7 +3425,8 @@
     "profession": "PIONEER",
     "subProfessionId": "counsellor",
     "phaseCount": 3,
-    "implementationDate": "2025-08-02 16:00"
+    "implementationDate": "2025-08-02 16:00",
+    "branch": "策士"
   },
   "char_4182_oblvns": {
     "name": "丰川祥子",
@@ -3053,7 +3434,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "lord",
     "phaseCount": 3,
-    "implementationDate": "2025-09-04 16:00"
+    "implementationDate": "2025-09-04 16:00",
+    "branch": "领主"
   },
   "char_4183_mortis": {
     "name": "若叶睦",
@@ -3061,7 +3443,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2025-09-04 16:00"
+    "implementationDate": "2025-09-04 16:00",
+    "branch": "傀儡师"
   },
   "char_4185_amoris": {
     "name": "祐天寺若麦",
@@ -3069,7 +3452,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
     "phaseCount": 3,
-    "implementationDate": "2025-09-04 16:00"
+    "implementationDate": "2025-09-04 16:00",
+    "branch": "撼地者"
   },
   "char_4184_dolris": {
     "name": "三角初华",
@@ -3077,7 +3461,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "bard",
     "phaseCount": 3,
-    "implementationDate": "2025-09-04 16:00"
+    "implementationDate": "2025-09-04 16:00",
+    "branch": "吟游者"
   },
   "char_4186_tmoris": {
     "name": "八幡海铃",
@@ -3085,7 +3470,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
     "phaseCount": 3,
-    "implementationDate": "2025-09-04 16:00"
+    "implementationDate": "2025-09-04 16:00",
+    "branch": "伏击客"
   },
   "char_4204_mantra": {
     "name": "真言",
@@ -3093,7 +3479,8 @@
     "profession": "CASTER",
     "subProfessionId": "primcaster",
     "phaseCount": 3,
-    "implementationDate": "2025-10-09 12:00"
+    "implementationDate": "2025-10-09 12:00",
+    "branch": "本源术师"
   },
   "char_4207_branch": {
     "name": "折桠",
@@ -3101,7 +3488,8 @@
     "profession": "TANK",
     "subProfessionId": "unyield",
     "phaseCount": 3,
-    "implementationDate": "2025-10-09 12:00"
+    "implementationDate": "2025-10-09 12:00",
+    "branch": "不屈者"
   },
   "char_4208_wintim": {
     "name": "冬时",
@@ -3109,7 +3497,8 @@
     "profession": "PIONEER",
     "subProfessionId": "agent",
     "phaseCount": 3,
-    "implementationDate": "2025-10-09 12:00"
+    "implementationDate": "2025-10-09 12:00",
+    "branch": "情报官"
   },
   "char_394_hadiya": {
     "name": "哈蒂娅",
@@ -3117,7 +3506,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "mercenary",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "佣兵"
   },
   "char_1046_sbell2": {
     "name": "圣聆初雪",
@@ -3125,7 +3515,8 @@
     "profession": "CASTER",
     "subProfessionId": "phalanx",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "阵法术师"
   },
   "char_1047_halo2": {
     "name": "溯光星源",
@@ -3133,7 +3524,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "slower",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "凝滞师"
   },
   "char_4051_akkord": {
     "name": "协律",
@@ -3141,7 +3533,8 @@
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "轰击术师"
   },
   "char_4211_snhunt": {
     "name": "雪猎",
@@ -3149,7 +3542,8 @@
     "profession": "SNIPER",
     "subProfessionId": "hunter",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "猎手"
   },
   "char_1045_svash2": {
     "name": "凛御银灰",
@@ -3157,7 +3551,8 @@
     "profession": "PIONEER",
     "subProfessionId": "counsellor",
     "phaseCount": 3,
-    "implementationDate": "2025-11-01 12:00"
+    "implementationDate": "2025-11-01 12:00",
+    "branch": "策士"
   },
   "char_4212_nasti": {
     "name": "娜斯提",
@@ -3165,7 +3560,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
     "phaseCount": 3,
-    "implementationDate": "2025-12-05 12:00"
+    "implementationDate": "2025-12-05 12:00",
+    "branch": "工匠"
   },
   "char_4214_cairn": {
     "name": "响石",
@@ -3173,7 +3569,8 @@
     "profession": "TANK",
     "subProfessionId": "primprotector",
     "phaseCount": 3,
-    "implementationDate": "2025-12-05 12:00"
+    "implementationDate": "2025-12-05 12:00",
+    "branch": "本源铁卫"
   },
   "char_4213_skybx": {
     "name": "天空盒",
@@ -3181,7 +3578,8 @@
     "profession": "SNIPER",
     "subProfessionId": "skybreaker",
     "phaseCount": 3,
-    "implementationDate": "2025-12-05 12:00"
+    "implementationDate": "2025-12-05 12:00",
+    "branch": "裂空炮手"
   },
   "char_4056_titi": {
     "name": "缇缇",
@@ -3189,7 +3587,8 @@
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
     "phaseCount": 3,
-    "implementationDate": "2026-01-09 12:00"
+    "implementationDate": "2026-01-09 12:00",
+    "branch": "咒愈师"
   },
   "char_1022_flwr2": {
     "name": "撷英调香师",
@@ -3197,7 +3596,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
     "phaseCount": 3,
-    "implementationDate": "2026-01-09 12:00"
+    "implementationDate": "2026-01-09 12:00",
+    "branch": "护佑者"
   },
   "char_4166_varkis": {
     "name": "摆渡人",
@@ -3205,7 +3605,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
     "phaseCount": 3,
-    "implementationDate": "2026-01-09 12:00"
+    "implementationDate": "2026-01-09 12:00",
+    "branch": "强攻手"
   },
   "char_2027_wang": {
     "name": "望",
@@ -3213,7 +3614,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "traper",
     "phaseCount": 3,
-    "implementationDate": "2026-02-10 12:00"
+    "implementationDate": "2026-02-10 12:00",
+    "branch": "陷阱师"
   },
   "char_1050_chen3": {
     "name": "赤刃明霄陈",
@@ -3221,7 +3623,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
     "phaseCount": 3,
-    "implementationDate": "2026-02-10 12:00"
+    "implementationDate": "2026-02-10 12:00",
+    "branch": "术战者"
   },
   "char_4222_taraxa": {
     "name": "风絮",
@@ -3229,7 +3632,8 @@
     "profession": "MEDIC",
     "subProfessionId": "watchman",
     "phaseCount": 3,
-    "implementationDate": "2026-02-10 12:00"
+    "implementationDate": "2026-02-10 12:00",
+    "branch": "守望者"
   },
   "char_4221_ju": {
     "name": "矩",
@@ -3237,7 +3641,8 @@
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
     "phaseCount": 3,
-    "implementationDate": "2026-02-10 12:00"
+    "implementationDate": "2026-02-10 12:00",
+    "branch": "攻城手"
   },
   "char_4037_demetr": {
     "name": "贝洛内",
@@ -3245,7 +3650,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
     "phaseCount": 3,
-    "implementationDate": "2026-03-10 12:00"
+    "implementationDate": "2026-03-10 12:00",
+    "branch": "斗士"
   },
   "char_4031_liesel": {
     "name": "复奏",
@@ -3253,7 +3659,8 @@
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
     "phaseCount": 3,
-    "implementationDate": "2026-03-10 12:00"
+    "implementationDate": "2026-03-10 12:00",
+    "branch": "扩散术师"
   },
   "char_4224_turdus": {
     "name": "乌啾",
@@ -3261,7 +3668,8 @@
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
     "phaseCount": 3,
-    "implementationDate": "2026-04-07 12:00"
+    "implementationDate": "2026-04-07 12:00",
+    "branch": "链愈师"
   },
   "char_4223_botany": {
     "name": "伯塔尼",
@@ -3269,7 +3677,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
     "phaseCount": 3,
-    "implementationDate": "2026-04-07 12:00"
+    "implementationDate": "2026-04-07 12:00",
+    "branch": "巫役"
   },
   "char_1051_headb2": {
     "name": "怒潮凛冬",
@@ -3277,7 +3686,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
     "phaseCount": 3,
-    "implementationDate": "2026-04-07 12:00"
+    "implementationDate": "2026-04-07 12:00",
+    "branch": "撼地者"
   },
   "char_4228_closur": {
     "name": "可露希尔",
@@ -3285,7 +3695,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 3,
-    "implementationDate": "2026-05-01 12:00"
+    "implementationDate": "2026-05-01 12:00",
+    "branch": "战术家"
   },
   "char_1052_kalts2": {
     "name": "凯尔希·思衡托",
@@ -3293,7 +3704,8 @@
     "profession": "MEDIC",
     "subProfessionId": "watchman",
     "phaseCount": 3,
-    "implementationDate": "2026-05-01 12:00"
+    "implementationDate": "2026-05-01 12:00",
+    "branch": "守望者"
   },
   "char_4226_veen": {
     "name": "维伊",
@@ -3301,7 +3713,8 @@
     "profession": "CASTER",
     "subProfessionId": "mystic",
     "phaseCount": 3,
-    "implementationDate": "2026-05-01 12:00"
+    "implementationDate": "2026-05-01 12:00",
+    "branch": "秘术师"
   },
   "char_4225_tanya": {
     "name": "裂响",
@@ -3309,7 +3722,8 @@
     "profession": "TANK",
     "subProfessionId": "primprotector",
     "phaseCount": 3,
-    "implementationDate": "2026-05-01 12:00"
+    "implementationDate": "2026-05-01 12:00",
+    "branch": "本源铁卫"
   },
   "char_4227_gallus": {
     "name": "GALLUS²",
@@ -3317,7 +3731,8 @@
     "profession": "CASTER",
     "subProfessionId": "corecaster",
     "phaseCount": 1,
-    "implementationDate": "2026-05-01 12:00"
+    "implementationDate": "2026-05-01 12:00",
+    "branch": "中坚术师"
   },
   "char_1048_orchd2": {
     "name": "焰狐龙梓兰",
@@ -3325,7 +3740,8 @@
     "profession": "SNIPER",
     "subProfessionId": "closerange",
     "phaseCount": 3,
-    "implementationDate": "2026-06-01 12:00"
+    "implementationDate": "2026-06-01 12:00",
+    "branch": "重射手"
   },
   "char_1049_catap2": {
     "name": "雷狼龙S空爆",
@@ -3333,7 +3749,8 @@
     "profession": "WARRIOR",
     "subProfessionId": "mercenary",
     "phaseCount": 3,
-    "implementationDate": "2026-06-01 12:00"
+    "implementationDate": "2026-06-01 12:00",
+    "branch": "佣兵"
   },
   "char_4215_buddy": {
     "name": "罗德岛隐秘队",
@@ -3341,7 +3758,8 @@
     "profession": "PIONEER",
     "subProfessionId": "tactician",
     "phaseCount": 1,
-    "implementationDate": "2026-06-01 12:00"
+    "implementationDate": "2026-06-01 12:00",
+    "branch": "战术家"
   },
   "char_4229_aphris": {
     "name": "谬因",
@@ -3349,7 +3767,8 @@
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
     "phaseCount": 3,
-    "implementationDate": "2026-07-10 12:00"
+    "implementationDate": "2026-07-10 12:00",
+    "branch": "轰击术师"
   },
   "char_4234_pedro": {
     "name": "佩德洛",
@@ -3357,7 +3776,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "supportiveranger",
     "phaseCount": 3,
-    "implementationDate": "2026-07-10 12:00"
+    "implementationDate": "2026-07-10 12:00",
+    "branch": "游击手"
   },
   "char_4230_mcnist": {
     "name": "机械师",
@@ -3365,7 +3785,8 @@
     "profession": "TANK",
     "subProfessionId": "shotprotector",
     "phaseCount": 3,
-    "implementationDate": "2026-07-17 16:00"
+    "implementationDate": "2026-07-17 16:00",
+    "branch": "哨戒铁卫"
   },
   "char_1015_aglna2": {
     "name": "予愿安洁莉娜",
@@ -3373,7 +3794,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
     "phaseCount": 3,
-    "implementationDate": "2026-08-01 12:00"
+    "implementationDate": "2026-08-01 12:00",
+    "branch": "巡空者"
   },
   "char_4235_thumpy": {
     "name": "珊比",
@@ -3381,7 +3803,8 @@
     "profession": "TANK",
     "subProfessionId": "primprotector",
     "phaseCount": 3,
-    "implementationDate": "2026-08-01 12:00"
+    "implementationDate": "2026-08-01 12:00",
+    "branch": "本源铁卫"
   },
   "char_4237_jcinta": {
     "name": "嘉辛塔",
@@ -3389,7 +3812,8 @@
     "profession": "PIONEER",
     "subProfessionId": "bearer",
     "phaseCount": 3,
-    "implementationDate": "2026-08-01 12:00"
+    "implementationDate": "2026-08-01 12:00",
+    "branch": "执旗手"
   },
   "char_4236_tmslot": {
     "name": "时隙",
@@ -3397,7 +3821,8 @@
     "profession": "CASTER",
     "subProfessionId": "funnel",
     "phaseCount": 3,
-    "implementationDate": "2026-08-01 12:00"
+    "implementationDate": "2026-08-01 12:00",
+    "branch": "驭械术师"
   },
   "char_4217_makoto": {
     "name": "结城理",
@@ -3405,7 +3830,8 @@
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
     "phaseCount": 3,
-    "implementationDate": "2026-09-04 12:00"
+    "implementationDate": "2026-09-04 12:00",
+    "branch": "傀儡师"
   },
   "char_4219_yukari": {
     "name": "岳羽由加莉",
@@ -3413,7 +3839,8 @@
     "profession": "SUPPORT",
     "subProfessionId": "supportiveranger",
     "phaseCount": 3,
-    "implementationDate": "2026-09-04 12:00"
+    "implementationDate": "2026-09-04 12:00",
+    "branch": "游击手"
   },
   "char_4218_aigis": {
     "name": "埃癸斯",
@@ -3421,7 +3848,8 @@
     "profession": "SNIPER",
     "subProfessionId": "skybreaker",
     "phaseCount": 3,
-    "implementationDate": "2026-09-04 12:00"
+    "implementationDate": "2026-09-04 12:00",
+    "branch": "裂空炮手"
   },
   "char_4220_kormr": {
     "name": "虎狼丸",
@@ -3429,6 +3857,7 @@
     "profession": "WARRIOR",
     "subProfessionId": "sword",
     "phaseCount": 1,
-    "implementationDate": "2026-09-04 12:00"
+    "implementationDate": "2026-09-04 12:00",
+    "branch": "剑豪"
   }
 }

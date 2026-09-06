@@ -3,6 +3,7 @@ import type { BaseDataMetadata, BaseSkillTerms, Operator, OperatorSkill } from '
 export interface TorappuCharacter {
   name?: string
   implementationDate?: string
+  branch?: string
   rarity?: string
   profession?: string
   subProfessionId?: string
@@ -246,7 +247,7 @@ export function parseTorappuData(
       name: character.name,
       implementationDate: character.implementationDate,
       profession: professionLabel(character.profession),
-      branch: legacyOperator?.branch ?? character.subProfessionId ?? '',
+      branch: character.branch ?? legacyOperator?.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
       skills: buildSkills(buildingCharacter, buffs, terms),

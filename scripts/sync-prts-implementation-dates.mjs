@@ -63,6 +63,11 @@ function parseImplementationDate(content) {
   return value || undefined
 }
 
+function parseBranch(content) {
+  const value = templateValue(content, '分支')
+  return value || undefined
+}
+
 function parseOperatorId(content) {
   return templateValue(content, '干员id')
 }
@@ -94,10 +99,14 @@ async function main() {
       const content = await fetchOperatorWikitext(character.name)
       const pageOperatorId = parseOperatorId(content)
       const implementationDate = parseImplementationDate(content)
+      const branch = parseBranch(content)
       if (!content || pageOperatorId !== operatorId || !implementationDate) {
         failures.push(`${character.name}（${operatorId}）`)
       } else {
         nextCharacterTable[operatorId].implementationDate = implementationDate
+      }
+      if (content && pageOperatorId === operatorId && branch) {
+        nextCharacterTable[operatorId].branch = branch
       }
     } catch {
       failures.push(`${character.name}（${operatorId}）`)

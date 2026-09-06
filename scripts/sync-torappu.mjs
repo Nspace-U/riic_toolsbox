@@ -84,6 +84,7 @@ function selectCharacterTable(characterTable, operatorIds, previousCharacterTabl
     operatorIds.map((operatorId) => {
       const character = characterTable[operatorId]
       const implementationDate = previousCharacterTable[operatorId]?.implementationDate
+      const branch = previousCharacterTable[operatorId]?.branch
       return [operatorId, {
         name: character.name,
         rarity: character.rarity,
@@ -91,6 +92,7 @@ function selectCharacterTable(characterTable, operatorIds, previousCharacterTabl
         subProfessionId: character.subProfessionId,
         phaseCount: Array.isArray(character.phases) ? character.phases.length : 0,
         ...(implementationDate ? { implementationDate } : {}),
+        ...(branch ? { branch } : {}),
       }]
     }),
   )
