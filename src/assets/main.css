@@ -665,8 +665,7 @@ a {
   width: auto;
   height: auto;
   max-width: none;
-  border-radius: 50%;
-  box-shadow: 0 3px 10px rgba(38, 45, 44, 0.28);
+  filter: drop-shadow(0 3px 5px rgba(38, 45, 44, 0.42));
 }
 
 .operator-skill-copy {
