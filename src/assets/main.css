@@ -473,6 +473,31 @@ a {
   gap: 12px;
 }
 
+.operator-filter-section {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin-block-start: 16px;
+}
+
+.operator-filter-label {
+  padding-block-start: 5px;
+  color: #647275;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.facility-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.facility-filter-options .ant-btn {
+  margin: 0;
+}
+
 .operator-filter-footer {
   display: flex;
   align-items: center;
@@ -506,36 +531,22 @@ a {
 
 .operator-card .ant-card-body {
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(190px, 240px) minmax(0, 1fr);
   gap: 28px;
   padding: 22px;
 }
 
-.operator-profile {
-  grid-column: 1;
-  display: grid;
-  align-content: start;
-  gap: 16px;
+.operator-avatar-column {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
 }
 
-.operator-avatar-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-}
-
-.operator-avatar-cell {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  color: #879294;
-  font-size: 11px;
-}
-
-.operator-avatar-cell img,
+.operator-avatar-column img,
 .operator-avatar-placeholder {
   display: block;
-  width: 180px;
+  width: 112px;
   max-width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
@@ -591,8 +602,27 @@ a {
   font-size: 12px;
 }
 
+.operator-terms {
+  display: grid;
+  gap: 5px;
+  color: #647275;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.operator-terms-label {
+  color: #879294;
+  font-size: 11px;
+}
+
+.operator-terms-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
 .operator-skills-list {
-  grid-column: 2;
+  grid-column: 3;
   display: grid;
   align-content: start;
   gap: 12px;
@@ -601,11 +631,19 @@ a {
 
 .operator-skill-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
   padding-block-end: 12px;
   border-block-end: 1px solid #edf0ef;
+}
+
+.operator-skill-row--replaced {
+  margin-inline: -10px;
+  padding: 10px;
+  border: 1px solid #ead8bd;
+  border-radius: 4px;
+  background: #fff9ef;
 }
 
 .operator-skill-row:last-child {
@@ -613,23 +651,19 @@ a {
   border-block-end: 0;
 }
 
-.skill-icon-frame {
+.skill-icon {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  overflow: hidden;
-  border: 1px solid #dce4e2;
-  border-radius: 4px;
-  background: #eef1f0;
   color: #82908f;
   font-size: 18px;
 }
 
-.skill-icon-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.skill-icon img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: none;
+  box-shadow: 0 3px 10px rgba(38, 45, 44, 0.28);
 }
 
 .operator-skill-copy {
@@ -652,18 +686,6 @@ a {
   line-height: 1.4;
 }
 
-.skill-replacement {
-  margin-block-end: 5px;
-  color: #879294;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.skill-replacement span {
-  margin-inline-end: 6px;
-  color: #a1acab;
-}
-
 .rich-description {
   display: inline;
   color: #4e5d60;
@@ -673,8 +695,17 @@ a {
 }
 
 .term-text {
+  color: #16756d;
   border-block-end: 1px dashed currentColor;
   cursor: help;
+}
+
+.search-highlight {
+  margin: 0;
+  padding: 0 2px;
+  border-radius: 2px;
+  background: #ffe49a;
+  color: inherit;
 }
 
 .term-tooltip-title {
@@ -682,15 +713,15 @@ a {
   font-weight: 650;
 }
 
-.term-tooltip-definition,
-.term-tooltip-members {
+.term-tooltip-definition {
   max-width: 360px;
   white-space: pre-wrap;
 }
 
-.term-tooltip-members {
-  margin-block-start: 6px;
-  color: #d7e8e5;
+.operator-hidden-skills-button {
+  justify-self: start;
+  padding-inline: 0;
+  color: #2f7068;
 }
 
 .operator-empty {
@@ -821,24 +852,32 @@ a {
     padding: 16px;
   }
 
-  .operator-profile {
-    grid-column: auto;
-    grid-template-columns: 144px minmax(0, 1fr);
-    align-items: start;
-    gap: 14px;
+  .operator-avatar-column {
+    justify-content: flex-start;
   }
 
+  .operator-profile-copy,
   .operator-skills-list {
     grid-column: auto;
   }
 
-  .operator-skill-row {
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 10px;
+  .operator-avatar-column img,
+  .operator-avatar-placeholder {
+    width: 144px;
   }
 
-  .skill-icon-frame {
-    width: 44px;
-    height: 44px;
+  .operator-filter-section {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+  }
+
+  .operator-filter-label {
+    padding-block-start: 0;
+  }
+
+  .operator-skill-row {
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 10px;
   }
 }

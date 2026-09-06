@@ -2,6 +2,7 @@ import type { BaseDataMetadata, BaseSkillTerms, Operator, OperatorSkill } from '
 
 export interface TorappuCharacter {
   name?: string
+  implementationDate?: string
   rarity?: string
   profession?: string
   subProfessionId?: string
@@ -237,6 +238,7 @@ export function parseTorappuData(
     operators.push({
       id: operatorId,
       name: character.name,
+      implementationDate: character.implementationDate,
       profession: professionLabel(character.profession),
       branch: legacyOperator?.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),
@@ -245,5 +247,5 @@ export function parseTorappuData(
     })
   }
 
-  return operators.sort((left, right) => left.id.localeCompare(right.id))
+  return operators
 }

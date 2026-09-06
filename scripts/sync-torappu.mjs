@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir, writeFile } from 'node:fs/promises'
+import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -79,19 +79,30 @@ async function runPool(items, concurrency, worker) {
 }
 
 // Keep the local snapshot limited to fields consumed by the app and asset sync.
-function selectCharacterTable(characterTable, operatorIds) {
+function selectCharacterTable(characterTable, operatorIds, previousCharacterTable = {}) {
   return Object.fromEntries(
     operatorIds.map((operatorId) => {
       const character = characterTable[operatorId]
+      const implementationDate = previousCharacterTable[operatorId]?.implementationDate
       return [operatorId, {
         name: character.name,
         rarity: character.rarity,
         profession: character.profession,
         subProfessionId: character.subProfessionId,
         phaseCount: Array.isArray(character.phases) ? character.phases.length : 0,
+        ...(implementationDate ? { implementationDate } : {}),
       }]
     }),
   )
+}
+
+async function readExistingCharacterTable() {
+  try {
+    const filePath = resolve(publicAssetsRoot, 'gamedata/latest/excel/character_table.json')
+    return JSON.parse(await readFile(filePath, 'utf8'))
+  } catch {
+    return {}
+  }
 }
 
 function selectBuildingData(buildingData, operatorIds) {
@@ -163,11 +174,13 @@ async function main() {
     rawData[dataFile.name] = await fetchJson(`${TORAPPU_URL}/${dataFile.path}`, `Torappu ${dataFile.name}`)
   }
 
+  const previousCharacterTable = await readExistingCharacterTable()
+
   const operatorIds = Object.keys(rawData.building_data.chars ?? {}).filter(
     (operatorId) => operatorId.startsWith('char_') && rawData.character_table[operatorId]?.name,
   )
   const data = {
-    character_table: selectCharacterTable(rawData.character_table, operatorIds),
+    character_table: selectCharacterTable(rawData.character_table, operatorIds, previousCharacterTable),
     building_data: selectBuildingData(rawData.building_data, operatorIds),
   }
   for (const dataFile of DATA_FILES) {

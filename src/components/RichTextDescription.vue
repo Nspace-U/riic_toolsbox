@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+import SearchHighlight from '@/components/SearchHighlight.vue'
 import type { BaseSkillTerm } from '@/types/baseData'
 
 interface RichTextPart {
@@ -10,6 +11,7 @@ interface RichTextPart {
 }
 
 const props = defineProps<{
+  highlightQuery?: string
   text: string
   terms: Record<string, BaseSkillTerm>
 }>()
@@ -69,13 +71,14 @@ const parts = computed(() => parseParts(props.text))
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
           <div v-if="part.term.definition" class="term-tooltip-definition">{{ part.term.definition }}</div>
-          <div v-if="part.term.members.length" class="term-tooltip-members">
-            包含：{{ part.term.members.join('、') }}
-          </div>
         </template>
-        <span :style="{ color: part.color }" class="term-text">{{ part.text }}</span>
+        <span :style="{ color: part.color }" class="term-text">
+          <SearchHighlight :query="highlightQuery ?? ''" :text="part.text" />
+        </span>
       </a-tooltip>
-      <span v-else :style="{ color: part.color }">{{ part.text }}</span>
+      <span v-else :style="{ color: part.color }">
+        <SearchHighlight :query="highlightQuery ?? ''" :text="part.text" />
+      </span>
     </template>
   </span>
 </template>

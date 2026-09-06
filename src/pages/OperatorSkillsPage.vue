@@ -2,15 +2,18 @@
 import {
   BookOutlined,
   DatabaseOutlined,
+  DownOutlined,
   ReloadOutlined,
   SearchOutlined,
+  UpOutlined,
 } from '@ant-design/icons-vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import RichTextDescription from '@/components/RichTextDescription.vue'
+import SearchHighlight from '@/components/SearchHighlight.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
-import type { Operator, OperatorAvatars, OperatorSkill } from '@/types/baseData'
+import type { BaseSkillTerm, Operator, OperatorAvatars, OperatorSkill } from '@/types/baseData'
 import { generateOperatorAvatarUrl } from '@/utils/operatorAvatar'
 
 const FACILITIES = [
@@ -25,20 +28,25 @@ const FACILITIES = [
   '宿舍',
 ]
 
-const AVATAR_STAGE = { key: 'elite0' as keyof OperatorAvatars, label: '精0' }
-
-type FacilitySelection = string | { value?: string | number }
+const AVATAR_KEY: keyof OperatorAvatars = 'elite0'
+type SortMode = 'implementationDate' | 'name'
 
 const { operators, terms, metadata, loading, errorMessage, ready, reload } = useBaseData()
 const { selectedDataSource } = useDataSource()
 
 const searchText = ref('')
-const selectedFacilities = ref<FacilitySelection[]>([])
-const showReplaced = ref(true)
+const selectedFacilities = ref<string[]>([])
+const showReplaced = ref(false)
+const sortMode = ref<SortMode>('implementationDate')
+const expandedOperatorIds = ref(new Set<string>())
 const generatedAvatarUrls = ref<Record<string, string>>({})
 const avatarGenerationError = ref('')
 
 const facilityOptions = FACILITIES.map((facility) => ({ label: facility, value: facility }))
+const sortOptions = [
+  { label: '实装时间倒序', value: 'implementationDate' },
+  { label: '名称正序', value: 'name' },
+]
 
 const normalizedSearchText = computed(() => searchText.value.trim().toLocaleLowerCase())
 
@@ -53,10 +61,6 @@ function imageUrl(directory: string, fileName: string): string {
   return assetUrl(`${directory}/${encodedFileName}`)
 }
 
-function facilityValue(selection: FacilitySelection): string {
-  return typeof selection === 'string' ? selection : String(selection.value ?? '')
-}
-
 function isReplaced(skill: OperatorSkill): boolean {
   return skill.replacement.includes('被「')
 }
@@ -65,8 +69,7 @@ function isVisibleSkill(skill: OperatorSkill): boolean {
   if (!showReplaced.value && isReplaced(skill)) {
     return false
   }
-  return selectedFacilities.value.length === 0
-    || selectedFacilities.value.some((selection) => facilityValue(selection) === skill.facility)
+  return selectedFacilities.value.length === 0 || selectedFacilities.value.includes(skill.facility)
 }
 
 function skillSearchText(skill: OperatorSkill): string {
@@ -76,33 +79,147 @@ function skillSearchText(skill: OperatorSkill): string {
     skill.unlockCondition,
     skill.replacement,
     skill.description.replace(/\[(?:\/?(?:C|T)(?:=[^\]]+)?)\]/g, ''),
+    ...termKeys(skill.description).flatMap((key) => [key, terms.value[key]?.name ?? '']),
   ]
     .join(' ')
     .toLocaleLowerCase()
 }
 
-function matchesSearch(operator: Operator): boolean {
-  const query = normalizedSearchText.value
-  if (!query) {
-    return true
-  }
+function termKeys(text: string): string[] {
+  return [...text.matchAll(/\[T=([^\]]+)\][\s\S]*?\[\/T\]/g)].map((match) => match[1] ?? '')
+}
 
-  return operator.name.toLocaleLowerCase().includes(query)
-    || operator.id.toLocaleLowerCase().includes(query)
-    || operator.profession.toLocaleLowerCase().includes(query)
-    || operator.skills.some((skill) => skillSearchText(skill).includes(query))
+function operatorTermEntries(operator: Operator): Array<[string, BaseSkillTerm]> {
+  const keys = new Set(operator.skills.flatMap((skill) => termKeys(skill.description)))
+  return [...keys]
+    .map((key) => [key, terms.value[key]] as const)
+    .filter((entry): entry is [string, BaseSkillTerm] => Boolean(entry[1]))
+}
+
+function operatorSearchText(operator: Operator): string {
+  return [
+    operator.name,
+    operator.id,
+    operator.profession,
+    operator.branch,
+    ...operatorTermEntries(operator).flatMap(([key, term]) => [key, term.name]),
+  ]
+    .join(' ')
+    .toLocaleLowerCase()
+}
+
+function matchesOperatorFields(operator: Operator): boolean {
+  const query = normalizedSearchText.value
+  return Boolean(query) && operatorSearchText(operator).includes(query)
+}
+
+function matchesSkill(skill: OperatorSkill): boolean {
+  const query = normalizedSearchText.value
+  return !query || skillSearchText(skill).includes(query)
 }
 
 function visibleSkills(operator: Operator): OperatorSkill[] {
-  return operator.skills.filter((skill) => isVisibleSkill(skill))
+  const skills = operator.skills.filter((skill) => isVisibleSkill(skill))
+  if (!normalizedSearchText.value || matchesOperatorFields(operator)) {
+    return skills
+  }
+  return skills.filter((skill) => matchesSkill(skill))
+}
+
+function displayedSkills(operator: Operator): OperatorSkill[] {
+  return expandedOperatorIds.value.has(operator.id) ? operator.skills : visibleSkills(operator)
+}
+
+function hiddenSkillCount(operator: Operator): number {
+  return operator.skills.length - visibleSkills(operator).length
+}
+
+function isExpanded(operator: Operator): boolean {
+  return expandedOperatorIds.value.has(operator.id)
+}
+
+function toggleExpanded(operator: Operator): void {
+  const nextIds = new Set(expandedOperatorIds.value)
+  if (nextIds.has(operator.id)) {
+    nextIds.delete(operator.id)
+  } else {
+    nextIds.add(operator.id)
+  }
+  expandedOperatorIds.value = nextIds
+}
+
+function clearExpandedOperators(): void {
+  if (expandedOperatorIds.value.size > 0) {
+    expandedOperatorIds.value = new Set()
+  }
+}
+
+function toggleFacility(facility: string): void {
+  const nextFacilities = new Set(selectedFacilities.value)
+  if (nextFacilities.has(facility)) {
+    nextFacilities.delete(facility)
+  } else {
+    nextFacilities.add(facility)
+  }
+  selectedFacilities.value = [...nextFacilities]
+}
+
+function selectAllFacilities(): void {
+  selectedFacilities.value = []
+}
+
+function isAllFacilitiesSelected(): boolean {
+  return selectedFacilities.value.length === 0
+}
+
+function implementationTimestamp(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined
+  }
+  const match = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{2}:\d{2}))?$/)
+  if (!match) {
+    return undefined
+  }
+  const [, year, month, day, time] = match
+  const normalizedValue = `${year}-${month?.padStart(2, '0')}-${day?.padStart(2, '0')}${time ? `T${time}` : ''}`
+  const timestamp = Date.parse(normalizedValue)
+  return Number.isNaN(timestamp) ? undefined : timestamp
+}
+
+function sortOperators(operatorList: Operator[]): Operator[] {
+  return operatorList
+    .map((operator, index) => ({ operator, index }))
+    .sort((left, right) => {
+      if (sortMode.value === 'name') {
+        return left.operator.name.localeCompare(right.operator.name, 'zh-CN') || left.index - right.index
+      }
+
+      const leftTimestamp = implementationTimestamp(left.operator.implementationDate)
+      const rightTimestamp = implementationTimestamp(right.operator.implementationDate)
+      if (leftTimestamp === undefined || rightTimestamp === undefined) {
+        if (leftTimestamp === undefined && rightTimestamp === undefined) {
+          return left.index - right.index
+        }
+        return leftTimestamp === undefined ? -1 : 1
+      }
+      return rightTimestamp - leftTimestamp || left.index - right.index
+    })
+    .map(({ operator }) => operator)
 }
 
 const filteredOperators = computed<Operator[]>(() => {
-  return operators.value.filter((operator) => matchesSearch(operator) && visibleSkills(operator).length > 0)
+  return sortOperators(
+    operators.value.filter((operator) => {
+      const searchMatches = !normalizedSearchText.value
+        || matchesOperatorFields(operator)
+        || operator.skills.some((skill) => matchesSkill(skill))
+      return searchMatches && displayedSkills(operator).length > 0
+    }),
+  )
 })
 
 const visibleSkillCount = computed(() => {
-  return filteredOperators.value.reduce((count, operator) => count + visibleSkills(operator).length, 0)
+  return filteredOperators.value.reduce((count, operator) => count + displayedSkills(operator).length, 0)
 })
 
 const totalSkillCount = computed(() => {
@@ -111,6 +228,10 @@ const totalSkillCount = computed(() => {
 
 function rarityLabel(operator: Operator): string {
   return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
+}
+
+function termsForOperator(operator: Operator): Array<[string, BaseSkillTerm]> {
+  return operatorTermEntries(operator)
 }
 
 function handleReload(): void {
@@ -132,9 +253,9 @@ async function generateSkillAvatars(operatorList: Operator[]): Promise<void> {
     try {
       const url = await generateOperatorAvatarUrl(operator, dataSource, {
         eliteLevel: 0,
-        showRarity: true,
-        showEliteLevel: true,
-        showProfession: true,
+        showRarity: false,
+        showEliteLevel: false,
+        showProfession: false,
         moodScattered: false,
       })
       if (url) {
@@ -163,6 +284,8 @@ async function generateSkillAvatars(operatorList: Operator[]): Promise<void> {
     avatarGenerationError.value = '部分干员头像生成失败，请检查头像资源是否可用'
   }
 }
+
+watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
 
 watch(
   [filteredOperators, selectedDataSource],
@@ -234,14 +357,26 @@ onBeforeUnmount(() => {
             <SearchOutlined />
           </template>
         </a-input>
-        <a-select
-          v-model:value="selectedFacilities"
-          :options="facilityOptions"
-          allow-clear
-          mode="multiple"
-          placeholder="按设施筛选"
-          :max-tag-count="'responsive'"
-        />
+        <a-select v-model:value="sortMode" :options="sortOptions" aria-label="干员排序" />
+      </div>
+      <div class="operator-filter-section">
+        <span class="operator-filter-label">设施</span>
+        <div class="facility-filter-options">
+          <a-button
+            :type="isAllFacilitiesSelected() ? 'primary' : 'default'"
+            @click="selectAllFacilities"
+          >
+            全部设施
+          </a-button>
+          <a-button
+            v-for="facility in facilityOptions"
+            :key="facility.value"
+            :type="selectedFacilities.includes(facility.value) ? 'primary' : 'default'"
+            @click="toggleFacility(facility.value)"
+          >
+            {{ facility.label }}
+          </a-button>
+        </div>
       </div>
       <div class="operator-filter-footer">
         <a-checkbox v-model:checked="showReplaced">显示已被替换的技能</a-checkbox>
@@ -257,33 +392,50 @@ onBeforeUnmount(() => {
           :bordered="false"
           class="operator-card"
         >
-          <div class="operator-profile">
-            <div class="operator-avatar-grid">
-              <div class="operator-avatar-cell">
-                <img
-                  v-if="generatedAvatarUrls[operator.id]"
-                  :alt="`${operator.name} ${AVATAR_STAGE.label}头像`"
-                  :src="generatedAvatarUrls[operator.id]"
-                  loading="lazy"
-                />
-                <div v-else class="operator-avatar-placeholder">{{ operator.avatars.elite0 ? '生成中' : '暂无' }}</div>
-                <span>{{ AVATAR_STAGE.label }}</span>
-              </div>
+          <div class="operator-avatar-column">
+            <img
+              v-if="generatedAvatarUrls[operator.id]"
+              :alt="`${operator.name}头像`"
+              :src="generatedAvatarUrls[operator.id]"
+              loading="lazy"
+            />
+            <div v-else class="operator-avatar-placeholder">{{ operator.avatars[AVATAR_KEY] ? '生成中' : '暂无' }}</div>
+          </div>
+
+          <div class="operator-profile-copy">
+            <h3><SearchHighlight :query="searchText" :text="operator.name" /></h3>
+            <span class="operator-id"><SearchHighlight :query="searchText" :text="operator.id" /></span>
+            <div class="operator-tags">
+              <a-tag color="gold"><SearchHighlight :query="searchText" :text="rarityLabel(operator)" /></a-tag>
+              <a-tag color="blue"><SearchHighlight :query="searchText" :text="operator.profession || '未知职业'" /></a-tag>
+              <a-tag v-if="operator.branch"><SearchHighlight :query="searchText" :text="operator.branch" /></a-tag>
             </div>
-            <div class="operator-profile-copy">
-              <h3>{{ operator.name }}</h3>
-              <span class="operator-id">{{ operator.id }}</span>
-              <div class="operator-tags">
-                <a-tag color="gold">{{ rarityLabel(operator) }}</a-tag>
-                <a-tag color="blue">{{ operator.profession || '未知职业' }}</a-tag>
-              </div>
-              <span v-if="operator.branch" class="operator-branch">{{ operator.branch }}</span>
+            <div v-if="termsForOperator(operator).length" class="operator-terms">
+              <span class="operator-terms-label">所属术语</span>
+              <span class="operator-terms-list">
+                <a-tooltip
+                  v-for="([termKey, term]) in termsForOperator(operator)"
+                  :key="termKey"
+                  placement="topLeft"
+                >
+                  <template #title>
+                    <div class="term-tooltip-title">术语：{{ term.name }}</div>
+                    <div v-if="term.definition" class="term-tooltip-definition">{{ term.definition }}</div>
+                  </template>
+                  <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
+                </a-tooltip>
+              </span>
             </div>
           </div>
 
           <div class="operator-skills-list">
-            <article v-for="skill in visibleSkills(operator)" :key="`${skill.slot}-${skill.name}-${skill.unlockCondition}`" class="operator-skill-row">
-              <div class="skill-icon-frame">
+            <article
+              v-for="skill in displayedSkills(operator)"
+              :key="`${skill.slot}-${skill.name}-${skill.unlockCondition}`"
+              :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
+              class="operator-skill-row"
+            >
+              <div class="skill-icon">
                 <img
                   v-if="skill.iconFile"
                   :alt="`${skill.name}图标`"
@@ -295,22 +447,31 @@ onBeforeUnmount(() => {
               <div class="operator-skill-copy">
                 <div class="operator-skill-meta">
                   <a-tag>槽位 {{ skill.slot || '?' }}</a-tag>
-                  <a-tag color="cyan">{{ skill.unlockCondition || '未注明解锁条件' }}</a-tag>
-                  <a-tag v-if="skill.facility" color="green">{{ skill.facility }}</a-tag>
+                  <a-tag color="cyan"><SearchHighlight :query="searchText" :text="skill.unlockCondition || '未注明解锁条件'" /></a-tag>
+                  <a-tag v-if="skill.facility" color="green"><SearchHighlight :query="searchText" :text="skill.facility" /></a-tag>
                   <a-tag v-if="isReplaced(skill)" color="orange">已被替换</a-tag>
                 </div>
-                <h4>{{ skill.name || '未命名技能' }}</h4>
-                <div v-if="skill.replacement" class="skill-replacement">
-                  <span>替换关系</span>
-                  {{ skill.replacement }}
-                </div>
+                <h4><SearchHighlight :query="searchText" :text="skill.name || '未命名技能'" /></h4>
                 <RichTextDescription
                   v-if="skill.description"
+                  :highlight-query="searchText"
                   :terms="terms"
                   :text="skill.description"
                 />
               </div>
             </article>
+            <a-button
+              v-if="hiddenSkillCount(operator) > 0 || isExpanded(operator)"
+              class="operator-hidden-skills-button"
+              type="text"
+              @click="toggleExpanded(operator)"
+            >
+              <template #icon>
+                <UpOutlined v-if="isExpanded(operator)" />
+                <DownOutlined v-else />
+              </template>
+              {{ isExpanded(operator) ? '折叠隐藏技能' : '展开隐藏技能' }}
+            </a-button>
           </div>
         </a-card>
       </div>
