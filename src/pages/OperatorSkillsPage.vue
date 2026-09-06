@@ -7,13 +7,14 @@ import {
   ReloadOutlined,
   UpOutlined,
 } from '@ant-design/icons-vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import RichTextDescription from '@/components/RichTextDescription.vue'
+import LazyImage from '@/components/LazyImage.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
-import type { BaseSkillTerm, Operator, OperatorAvatars, OperatorSkill } from '@/types/baseData'
+import type { BaseSkillTerm, Operator, OperatorSkill } from '@/types/baseData'
 import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
 const FACILITIES = [
@@ -28,8 +29,25 @@ const FACILITIES = [
   '宿舍',
 ]
 
-const AVATAR_KEY: keyof OperatorAvatars = 'elite0'
-type SortMode = 'implementationDate' | 'name'
+type SortMode = 'implementationOrder' | 'name'
+type OperatorDisplayRow = {
+  operator: Operator
+  skills: OperatorSkill[]
+  terms: Array<[string, BaseSkillTerm]>
+  implementationOrder: number | undefined
+}
+type PreparedSkill = {
+  skill: OperatorSkill
+  replaced: boolean
+  searchText: string
+}
+type PreparedOperator = {
+  operator: Operator
+  skills: PreparedSkill[]
+  terms: Array<[string, BaseSkillTerm]>
+  searchText: string
+  implementationOrder: number | undefined
+}
 
 const { operators, terms, metadata, loading, errorMessage, ready, reload } = useBaseData()
 const { selectedDataSource } = useDataSource()
@@ -37,12 +55,13 @@ const { selectedDataSource } = useDataSource()
 const searchText = ref('')
 const selectedFacilities = ref<string[]>([])
 const showReplaced = ref(false)
-const sortMode = ref<SortMode>('implementationDate')
+const sortMode = ref<SortMode>('implementationOrder')
 const expandedOperatorIds = ref(new Set<string>())
+let filterUpdateTimer: number | undefined
 
 const facilityOptions = FACILITIES.map((facility) => ({ label: facility, value: facility }))
 const sortOptions = [
-  { label: '实装时间倒序', value: 'implementationDate' },
+  { label: '实装倒序', value: 'implementationOrder' },
   { label: '名称正序', value: 'name' },
 ]
 
@@ -68,78 +87,8 @@ function isReplaced(skill: OperatorSkill): boolean {
   return skill.replacement.includes('被「')
 }
 
-function isVisibleSkill(skill: OperatorSkill): boolean {
-  if (!showReplaced.value && isReplaced(skill)) {
-    return false
-  }
-  return selectedFacilities.value.length === 0 || selectedFacilities.value.includes(skill.facility)
-}
-
-function skillSearchText(skill: OperatorSkill): string {
-  return [
-    skill.name,
-    skill.facility,
-    skill.unlockCondition,
-    skill.replacement,
-    skill.description.replace(/\[(?:\/?(?:C|T)(?:=[^\]]+)?)\]/g, ''),
-    ...termKeys(skill.description).flatMap((key) => [key, terms.value[key]?.name ?? '']),
-  ]
-    .join(' ')
-    .toLocaleLowerCase()
-}
-
 function termKeys(text: string): string[] {
   return [...text.matchAll(/\[T=([^\]]+)\][\s\S]*?\[\/T\]/g)].map((match) => match[1] ?? '')
-}
-
-function operatorTermEntries(operator: Operator): Array<[string, BaseSkillTerm]> {
-  const keys = new Set(operator.skills.flatMap((skill) => termKeys(skill.description)))
-  Object.entries(terms.value).forEach(([key, term]) => {
-    if (term.members.includes(operator.name)) {
-      keys.add(key)
-    }
-  })
-  return [...keys]
-    .map((key) => [key, terms.value[key]] as const)
-    .filter((entry): entry is [string, BaseSkillTerm] => Boolean(entry[1]))
-}
-
-function operatorSearchText(operator: Operator): string {
-  return [
-    operator.name,
-    operator.id,
-    operator.profession,
-    operator.branch,
-    ...operatorTermEntries(operator).flatMap(([key, term]) => [key, term.name]),
-  ]
-    .join(' ')
-    .toLocaleLowerCase()
-}
-
-function matchesOperatorFields(operator: Operator): boolean {
-  const query = normalizedSearchText.value
-  return Boolean(query) && operatorSearchText(operator).includes(query)
-}
-
-function matchesSkill(skill: OperatorSkill): boolean {
-  const query = normalizedSearchText.value
-  return !query || skillSearchText(skill).includes(query)
-}
-
-function visibleSkills(operator: Operator): OperatorSkill[] {
-  const skills = operator.skills.filter((skill) => isVisibleSkill(skill))
-  if (!normalizedSearchText.value || matchesOperatorFields(operator)) {
-    return skills
-  }
-  return skills.filter((skill) => matchesSkill(skill))
-}
-
-function displayedSkills(operator: Operator): OperatorSkill[] {
-  return expandedOperatorIds.value.has(operator.id) ? operator.skills : visibleSkills(operator)
-}
-
-function hiddenSkillCount(operator: Operator): number {
-  return operator.skills.length - visibleSkills(operator).length
 }
 
 function isExpanded(operator: Operator): boolean {
@@ -180,55 +129,124 @@ function isAllFacilitiesSelected(): boolean {
   return selectedFacilities.value.length === 0
 }
 
-function implementationTimestamp(value: string | undefined): number | undefined {
-  if (!value) {
-    return undefined
-  }
-  const match = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{2}:\d{2}))?$/)
-  if (!match) {
-    return undefined
-  }
-  const [, year, month, day, time] = match
-  const normalizedValue = `${year}-${month?.padStart(2, '0')}-${day?.padStart(2, '0')}${time ? `T${time}` : ''}`
-  const timestamp = Date.parse(normalizedValue)
-  return Number.isNaN(timestamp) ? undefined : timestamp
-}
-
-function sortOperators(operatorList: Operator[]): Operator[] {
-  return operatorList
-    .map((operator, index) => ({ operator, index }))
+function sortOperatorRows(operatorRows: OperatorDisplayRow[]): OperatorDisplayRow[] {
+  return operatorRows
+    .map((row, index) => ({ row, index }))
     .sort((left, right) => {
       if (sortMode.value === 'name') {
-        return left.operator.name.localeCompare(right.operator.name, 'zh-CN') || left.index - right.index
+        return left.row.operator.name.localeCompare(right.row.operator.name, 'zh-CN') || left.index - right.index
       }
 
-      const leftTimestamp = implementationTimestamp(left.operator.implementationDate)
-      const rightTimestamp = implementationTimestamp(right.operator.implementationDate)
-      if (leftTimestamp === undefined || rightTimestamp === undefined) {
-        if (leftTimestamp === undefined && rightTimestamp === undefined) {
+      const leftOrder = left.row.implementationOrder
+      const rightOrder = right.row.implementationOrder
+      if (leftOrder === undefined || rightOrder === undefined) {
+        if (leftOrder === undefined && rightOrder === undefined) {
           return left.index - right.index
         }
-        return leftTimestamp === undefined ? -1 : 1
+        return leftOrder === undefined ? 1 : -1
       }
-      return rightTimestamp - leftTimestamp || left.index - right.index
+      return rightOrder - leftOrder || left.index - right.index
     })
-    .map(({ operator }) => operator)
+    .map(({ row }) => row)
 }
 
-const filteredOperators = computed<Operator[]>(() => {
-  return sortOperators(
-    operators.value.filter((operator) => {
-      const searchMatches = !normalizedSearchText.value
-        || matchesOperatorFields(operator)
-        || operator.skills.some((skill) => matchesSkill(skill))
-      return searchMatches && displayedSkills(operator).length > 0
-    }),
-  )
+const preparedOperators = computed<PreparedOperator[]>(() => {
+  const termEntriesByMember = new Map<string, Array<[string, BaseSkillTerm]>>()
+  Object.entries(terms.value).forEach(([key, term]) => {
+    term.members.forEach((member) => {
+      const entries = termEntriesByMember.get(member) ?? []
+      entries.push([key, term])
+      termEntriesByMember.set(member, entries)
+    })
+  })
+
+  return operators.value.map((operator) => {
+    const keys = new Set(operator.skills.flatMap((skill) => termKeys(skill.description)))
+    const termsForOperator = [...keys]
+      .map((key) => [key, terms.value[key]] as const)
+      .filter((entry): entry is [string, BaseSkillTerm] => Boolean(entry[1]))
+    ;(termEntriesByMember.get(operator.name) ?? []).forEach(([key, term]) => {
+      if (!termsForOperator.some(([existingKey]) => existingKey === key)) {
+        termsForOperator.push([key, term])
+      }
+    })
+
+    const skills = operator.skills.map((skill) => ({
+      skill,
+      replaced: isReplaced(skill),
+      searchText: [
+        skill.name,
+        skill.facility,
+        skill.unlockCondition,
+        skill.replacement,
+        skill.description.replace(/\[(?:\/?(?:C|T)(?:=[^\]]+)?)\]/g, ''),
+        ...termKeys(skill.description).flatMap((key) => [key, terms.value[key]?.name ?? '']),
+      ].join(' ').toLocaleLowerCase(),
+    }))
+
+    return {
+      operator,
+      skills,
+      terms: termsForOperator,
+      searchText: [
+        operator.name,
+        operator.id,
+        operator.profession,
+        operator.branch,
+        ...termsForOperator.flatMap(([key, term]) => [key, term.name]),
+      ].join(' ').toLocaleLowerCase(),
+      implementationOrder: operator.implementationOrder,
+    }
+  })
 })
 
-const visibleSkillCount = computed(() => {
-  return filteredOperators.value.reduce((count, operator) => count + displayedSkills(operator).length, 0)
-})
+function buildFilteredOperatorRows(): OperatorDisplayRow[] {
+  const query = normalizedSearchText.value
+  const selected = new Set(selectedFacilities.value)
+  const rows: OperatorDisplayRow[] = []
+
+  preparedOperators.value.forEach((prepared) => {
+    const facilitySkills = prepared.skills.filter(({ skill, replaced }) => {
+      return (showReplaced.value || !replaced) && (!selected.size || selected.has(skill.facility))
+    })
+    if (facilitySkills.length === 0) {
+      return
+    }
+
+    const matchesOperator = !query || prepared.searchText.includes(query)
+    const matchedSkills = matchesOperator || !query
+      ? facilitySkills
+      : facilitySkills.filter(({ searchText }) => searchText.includes(query))
+    if (matchedSkills.length === 0) {
+      return
+    }
+
+    rows.push({
+      operator: prepared.operator,
+      skills: isExpanded(prepared.operator) ? prepared.operator.skills : matchedSkills.map(({ skill }) => skill),
+      terms: prepared.terms,
+      implementationOrder: prepared.implementationOrder,
+    })
+  })
+
+  return sortOperatorRows(rows)
+}
+
+const filteredOperatorRows = ref<OperatorDisplayRow[]>([])
+
+function updateFilteredOperatorRows(): void {
+  filterUpdateTimer = undefined
+  filteredOperatorRows.value = buildFilteredOperatorRows()
+}
+
+function scheduleFilteredOperatorUpdate(): void {
+  if (filterUpdateTimer !== undefined) {
+    window.clearTimeout(filterUpdateTimer)
+  }
+  filterUpdateTimer = window.setTimeout(updateFilteredOperatorRows, 0)
+}
+
+const visibleSkillCount = computed(() => filteredOperatorRows.value.reduce((count, row) => count + row.skills.length, 0))
 
 const totalSkillCount = computed(() => {
   return operators.value.reduce((count, operator) => count + operator.skills.length, 0)
@@ -238,19 +256,21 @@ function rarityLabel(operator: Operator): string {
   return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
 }
 
-function termsForOperator(operator: Operator): Array<[string, BaseSkillTerm]> {
-  return operatorTermEntries(operator)
-}
-
 function handleReload(): void {
   void reload()
 }
 
-function revokeGeneratedAvatarUrls(urls: Record<string, string>): void {
-  Object.values(urls).forEach((url) => URL.revokeObjectURL(url))
-}
+watch([searchText, selectedFacilities, showReplaced, sortMode], () => {
+  clearExpandedOperators()
+  scheduleFilteredOperatorUpdate()
+})
+watch([operators, terms, expandedOperatorIds], scheduleFilteredOperatorUpdate, { immediate: true })
 
-watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
+onBeforeUnmount(() => {
+  if (filterUpdateTimer !== undefined) {
+    window.clearTimeout(filterUpdateTimer)
+  }
+})
 </script>
 
 <template>
@@ -325,41 +345,40 @@ watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
       </div>
       <div class="operator-filter-footer">
         <a-checkbox v-model:checked="showReplaced">显示已被替换的技能</a-checkbox>
-        <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperators.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
+        <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperatorRows.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
       </div>
     </a-card>
 
     <a-spin :spinning="loading" class="operator-data-spin" tip="读取数据中...">
-      <div v-if="ready && filteredOperators.length" class="operator-list">
+      <div v-if="ready && filteredOperatorRows.length" class="operator-list">
         <a-card
-          v-for="operator in filteredOperators"
-          :key="operator.id"
+          v-for="row in filteredOperatorRows"
+          :key="row.operator.id"
           :bordered="false"
           class="operator-card"
         >
           <div class="operator-avatar-column">
-            <img
-              v-if="operatorAvatarUrl(operator)"
-              :alt="`${operator.name}头像`"
-              :src="operatorAvatarUrl(operator)"
-              loading="lazy"
+            <LazyImage
+              v-if="operatorAvatarUrl(row.operator)"
+              :alt="`${row.operator.name}头像`"
+              :src="operatorAvatarUrl(row.operator) || ''"
             />
             <div v-else class="operator-avatar-placeholder">暂无</div>
           </div>
 
           <div class="operator-profile-copy">
-            <h3><SearchHighlight :query="searchText" :text="operator.name" /></h3>
-            <span class="operator-id"><SearchHighlight :query="searchText" :text="operator.id" /></span>
+            <h3><SearchHighlight :query="searchText" :text="row.operator.name" /></h3>
+            <span class="operator-id"><SearchHighlight :query="searchText" :text="row.operator.id" /></span>
             <div class="operator-tags">
-              <a-tag color="gold"><SearchHighlight :query="searchText" :text="rarityLabel(operator)" /></a-tag>
-              <a-tag color="blue"><SearchHighlight :query="searchText" :text="operator.profession || '未知职业'" /></a-tag>
-              <a-tag v-if="operator.branch"><SearchHighlight :query="searchText" :text="operator.branch" /></a-tag>
+              <a-tag color="gold"><SearchHighlight :query="searchText" :text="rarityLabel(row.operator)" /></a-tag>
+              <a-tag color="blue"><SearchHighlight :query="searchText" :text="row.operator.profession || '未知职业'" /></a-tag>
+              <a-tag v-if="row.operator.branch"><SearchHighlight :query="searchText" :text="row.operator.branch" /></a-tag>
             </div>
-            <div v-if="termsForOperator(operator).length" class="operator-terms">
+            <div v-if="row.terms.length" class="operator-terms">
               <span class="operator-terms-label">所属术语</span>
               <span class="operator-terms-list">
                 <a-tooltip
-                  v-for="([termKey, term]) in termsForOperator(operator)"
+                  v-for="([termKey, term]) in row.terms"
                   :key="termKey"
                   placement="topLeft"
                 >
@@ -375,17 +394,16 @@ watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
 
           <div class="operator-skills-list">
             <article
-              v-for="skill in displayedSkills(operator)"
+              v-for="skill in row.skills"
               :key="`${skill.slot}-${skill.name}-${skill.unlockCondition}`"
               :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
               class="operator-skill-row"
             >
               <div class="skill-icon">
-                <img
+                <LazyImage
                   v-if="skill.iconFile"
                   :alt="`${skill.name}图标`"
                   :src="imageUrl('assets/raw/build_skill_icon', skill.iconFile)"
-                  loading="lazy"
                 />
                 <span v-else>{{ skill.name.slice(0, 1) || '?' }}</span>
               </div>
@@ -405,16 +423,16 @@ watch([searchText, selectedFacilities, showReplaced], clearExpandedOperators)
               </div>
             </article>
             <a-button
-              v-if="hiddenSkillCount(operator) > 0 || isExpanded(operator)"
+              v-if="row.operator.skills.length > row.skills.length || isExpanded(row.operator)"
               class="operator-hidden-skills-button"
               type="text"
-              @click="toggleExpanded(operator)"
+              @click="toggleExpanded(row.operator)"
             >
               <template #icon>
-                <UpOutlined v-if="isExpanded(operator)" />
+                <UpOutlined v-if="isExpanded(row.operator)" />
                 <DownOutlined v-else />
               </template>
-              {{ isExpanded(operator) ? '折叠隐藏技能' : '展开隐藏技能' }}
+              {{ isExpanded(row.operator) ? '折叠隐藏技能' : '展开隐藏技能' }}
             </a-button>
           </div>
         </a-card>

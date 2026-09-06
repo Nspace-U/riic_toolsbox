@@ -60,7 +60,7 @@ async function fetchLegacyData(): Promise<BaseData> {
 }
 
 async function fetchTorappuData(): Promise<BaseData> {
-  const [characterTable, buildingData, termData, legacyCsv, metadata] = await Promise.all([
+  const [characterTable, buildingData, termData, metadata] = await Promise.all([
     fetchJson<TorappuCharacterTable>(
       'assets/gamedata/latest/excel/character_table.json',
       'Torappu 干员数据',
@@ -70,12 +70,6 @@ async function fetchTorappuData(): Promise<BaseData> {
       'Torappu 基建数据',
     ),
     fetchJson<BaseSkillTerms>('assets/project/base-skill-terms.json', '基建术语数据'),
-    fetch(assetUrl('assets/operator-base-skills.csv')).then((response) => {
-      if (!response.ok) {
-        throw new Error(`兼容字段读取失败（HTTP ${response.status}）`)
-      }
-      return response.text()
-    }),
     fetchJson<BaseDataMetadata>('assets/gamedata/latest/torappu-meta.json', 'Torappu 版本信息'),
   ])
 
@@ -83,7 +77,6 @@ async function fetchTorappuData(): Promise<BaseData> {
     operators: parseTorappuData(
       characterTable,
       buildingData,
-      parseOperatorCsv(legacyCsv),
       termData,
       metadata,
     ),

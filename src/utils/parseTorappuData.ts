@@ -3,6 +3,7 @@ import type { BaseDataMetadata, BaseSkillTerms, Operator, OperatorSkill } from '
 export interface TorappuCharacter {
   name?: string
   implementationDate?: string
+  implementationOrder?: number
   branch?: string
   rarity?: string
   profession?: string
@@ -222,13 +223,11 @@ function buildSkills(
 export function parseTorappuData(
   characterTable: TorappuCharacterTable,
   buildingData: TorappuBuildingData,
-  legacyOperators: Operator[],
   terms: BaseSkillTerms,
   metadata: BaseDataMetadata,
 ): Operator[] {
   const buildingCharacters = buildingData.chars ?? {}
   const buffs = buildingData.buffs ?? {}
-  const legacyById = new Map(legacyOperators.map((operator) => [operator.id, operator]))
   const missingAvatars = new Set(metadata.missingAvatars ?? [])
   const operators: Operator[] = []
 
@@ -241,13 +240,13 @@ export function parseTorappuData(
       continue
     }
 
-    const legacyOperator = legacyById.get(operatorId)
     operators.push({
       id: operatorId,
       name: character.name,
       implementationDate: character.implementationDate,
+      implementationOrder: character.implementationOrder,
       profession: professionLabel(character.profession),
-      branch: character.branch ?? legacyOperator?.branch ?? character.subProfessionId ?? '',
+      branch: character.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
       skills: buildSkills(buildingCharacter, buffs, terms),

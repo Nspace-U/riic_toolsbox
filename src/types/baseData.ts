@@ -22,6 +22,7 @@ export interface Operator {
   id: string
   name: string
   implementationDate?: string
+  implementationOrder?: number
   profession: string
   branch: string
   rarity: number
