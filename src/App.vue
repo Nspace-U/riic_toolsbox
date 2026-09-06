@@ -56,8 +56,9 @@ const openNavigationKeys = ref<string[]>([])
 
 const currentPath = computed(() => route.path)
 const currentPageTitle = computed(() => findNavigationLabel(currentPath.value) ?? '基建工具箱')
+const mainLayoutOffset = computed(() => siderCollapsed.value || isMobile.value ? '0' : '200px')
 const mainLayoutStyle = computed(() => ({
-  marginInlineStart: siderCollapsed.value || isMobile.value ? '0' : '200px',
+  marginInlineStart: mainLayoutOffset.value,
 }))
 
 const selectedNavigationKey = computed(() => {
@@ -177,7 +178,7 @@ watch(currentPath, handleRouteChange, { immediate: true })
     </a-layout-sider>
 
     <a-layout :style="mainLayoutStyle" class="app-main-layout">
-      <a-layout-header class="app-header">
+      <a-layout-header :style="{ insetInlineStart: mainLayoutOffset }" class="app-header">
         <div class="header-left">
           <a-button
             class="header-nav-button"

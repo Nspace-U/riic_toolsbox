@@ -151,6 +151,11 @@ a {
 }
 
 .app-header {
+  position: fixed;
+  z-index: 9;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  inset-inline-start: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -211,8 +216,9 @@ a {
 }
 
 .app-content {
-  min-height: calc(100vh - 72px);
+  min-height: 100vh;
   padding: 32px;
+  padding-block-start: 104px;
   background: #f4f6f7;
 }
 
@@ -790,8 +796,9 @@ a {
   }
 
   .app-content {
-    min-height: calc(100vh - 64px);
+    min-height: 100vh;
     padding: 20px 16px;
+    padding-block-start: 84px;
   }
 
   .header-source {
