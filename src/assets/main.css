@@ -536,6 +536,11 @@ a {
   padding: 16px;
 }
 
+.operator-card .ant-card-body::before,
+.operator-card .ant-card-body::after {
+  display: none;
+}
+
 .operator-avatar-column {
   grid-column: 1;
   align-self: center;
