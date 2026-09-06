@@ -1,6 +1,7 @@
 # 明日方舟基建工具箱
 
 > 该项目是将明日方舟基建项目从 HTML + CSS + JS 用 Vue + TypeScript + AntDesignVue 进行的重构
+> 基建项目路径 D:\Game\明日方舟\基建
 
 ## 目录
 
