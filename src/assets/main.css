@@ -466,7 +466,7 @@ a {
 .operator-filter-panel {
   position: sticky;
   z-index: 5;
-  top: 16px;
+  inset-block-start: 80px;
   margin-block-end: 20px;
   border: 1px solid #e3e8e7;
   border-radius: 6px;
@@ -851,7 +851,7 @@ a {
   }
 
   .operator-filter-panel {
-    top: 8px;
+    inset-block-start: 72px;
   }
 
   .operator-filter-grid {
