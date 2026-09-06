@@ -95,6 +95,10 @@ function isExpanded(operator: Operator): boolean {
   return expandedOperatorIds.value.has(operator.id)
 }
 
+function isSkillVisible(row: OperatorDisplayRow, skill: OperatorSkill): boolean {
+  return isExpanded(row.operator) || row.skills.includes(skill)
+}
+
 function toggleExpanded(operator: Operator): void {
   const nextIds = new Set(expandedOperatorIds.value)
   if (nextIds.has(operator.id)) {
@@ -223,7 +227,7 @@ function buildFilteredOperatorRows(): OperatorDisplayRow[] {
 
     rows.push({
       operator: prepared.operator,
-      skills: isExpanded(prepared.operator) ? prepared.operator.skills : matchedSkills.map(({ skill }) => skill),
+      skills: matchedSkills.map(({ skill }) => skill),
       terms: prepared.terms,
       implementationOrder: prepared.implementationOrder,
     })
@@ -264,7 +268,7 @@ watch([searchText, selectedFacilities, showReplaced, sortMode], () => {
   clearExpandedOperators()
   scheduleFilteredOperatorUpdate()
 })
-watch([operators, terms, expandedOperatorIds], scheduleFilteredOperatorUpdate, { immediate: true })
+watch([operators, terms], scheduleFilteredOperatorUpdate, { immediate: true })
 
 onBeforeUnmount(() => {
   if (filterUpdateTimer !== undefined) {
@@ -354,6 +358,7 @@ onBeforeUnmount(() => {
         <a-card
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
+          v-memo="[row, isExpanded(row.operator)]"
           :bordered="false"
           class="operator-card"
         >
@@ -394,8 +399,9 @@ onBeforeUnmount(() => {
 
           <div class="operator-skills-list">
             <article
-              v-for="skill in row.skills"
+              v-for="skill in row.operator.skills"
               :key="`${skill.slot}-${skill.name}-${skill.unlockCondition}`"
+              v-show="isSkillVisible(row, skill)"
               :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
               class="operator-skill-row"
             >
