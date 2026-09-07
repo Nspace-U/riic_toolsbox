@@ -4,6 +4,11 @@ import { useDataSource, type DataSourceId } from '@/composables/useDataSource'
 import type { BaseData, BaseDataMetadata, BaseSkillTerms, Operator } from '@/types/baseData'
 import { parseOperatorCsv } from '@/utils/parseOperatorCsv'
 import {
+  clearBaseDataAssetCache,
+  preloadBaseDataAssets,
+  type AssetPreloadResult,
+} from '@/utils/preloadBaseDataAssets'
+import {
   parseTorappuData,
   type TorappuBuildingData,
   type TorappuCharacterTable,
@@ -14,6 +19,9 @@ interface UseBaseDataResult {
   terms: Readonly<typeof terms>
   metadata: Readonly<typeof metadata>
   loading: Readonly<typeof loading>
+  assetsLoading: Readonly<typeof assetsLoading>
+  assetsReady: Readonly<typeof assetsReady>
+  assetPreloadResult: Readonly<typeof assetPreloadResult>
   errorMessage: Readonly<typeof errorMessage>
   ready: Readonly<typeof ready>
   reload: () => Promise<void>
@@ -24,11 +32,15 @@ const operators = ref<Operator[]>([])
 const terms = ref<BaseSkillTerms>({})
 const metadata = ref<BaseDataMetadata>()
 const loading = ref(false)
+const assetsLoading = ref(false)
+const assetsReady = ref(false)
+const assetPreloadResult = ref<AssetPreloadResult>()
 const errorMessage = ref('')
 const ready = ref(false)
 let loadingPromise: Promise<void> | null = null
 let loadedSourceId = ''
 let sourceWatchRegistered = false
+let assetPreloadVersion = 0
 
 function assetUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`
@@ -96,6 +108,39 @@ async function fetchBaseData(sourceId: DataSourceId): Promise<BaseData> {
   return data
 }
 
+function resetAssetState(): void {
+  assetPreloadVersion += 1
+  assetsLoading.value = false
+  assetsReady.value = false
+  assetPreloadResult.value = undefined
+}
+
+function startAssetPreload(sourceId: DataSourceId, data: BaseData): void {
+  const requestVersion = ++assetPreloadVersion
+  assetsLoading.value = true
+  assetsReady.value = false
+  assetPreloadResult.value = undefined
+
+  void preloadBaseDataAssets(sourceId, data)
+    .then((result) => {
+      if (requestVersion !== assetPreloadVersion || useDataSource().selectedDataSource.value !== sourceId) {
+        return
+      }
+
+      assetPreloadResult.value = result
+      assetsLoading.value = false
+      assetsReady.value = true
+    })
+    .catch(() => {
+      if (requestVersion !== assetPreloadVersion || useDataSource().selectedDataSource.value !== sourceId) {
+        return
+      }
+
+      assetsLoading.value = false
+      assetsReady.value = true
+    })
+}
+
 async function load(): Promise<void> {
   if (loadingPromise) {
     return loadingPromise
@@ -116,6 +161,7 @@ async function load(): Promise<void> {
       metadata.value = data.metadata
       loadedSourceId = sourceId
       ready.value = true
+      startAssetPreload(sourceId, data)
     })
     .catch((error: unknown) => {
       operators.value = []
@@ -136,9 +182,22 @@ async function load(): Promise<void> {
   return loadingPromise
 }
 
-function reload(): Promise<void> {
-  dataCache.delete(useDataSource().selectedDataSource.value)
-  return load()
+async function reload(): Promise<void> {
+  const sourceId = useDataSource().selectedDataSource.value
+  const currentLoadingPromise = loadingPromise
+  if (currentLoadingPromise) {
+    await currentLoadingPromise
+  }
+
+  if (useDataSource().selectedDataSource.value !== sourceId) {
+    await load()
+    return
+  }
+
+  dataCache.delete(sourceId)
+  clearBaseDataAssetCache(sourceId)
+  resetAssetState()
+  await load()
 }
 
 const result: UseBaseDataResult = {
@@ -146,6 +205,9 @@ const result: UseBaseDataResult = {
   terms,
   metadata,
   loading,
+  assetsLoading,
+  assetsReady,
+  assetPreloadResult,
   errorMessage,
   ready,
   reload,
@@ -157,6 +219,7 @@ export function useBaseData(): UseBaseDataResult {
     sourceWatchRegistered = true
     watch(selectedDataSource, () => {
       ready.value = false
+      resetAssetState()
       void load()
     })
   }

@@ -15,6 +15,7 @@ import { computed, ref, watch } from 'vue'
 import type { Component } from 'vue'
 import { RouterView, useRoute, useRouter } from 'vue-router'
 
+import { useBaseData } from './composables/useBaseData'
 import { useDataSource } from './composables/useDataSource'
 
 interface NavigationItem {
@@ -48,6 +49,7 @@ const navigationItems: NavigationItem[] = [
 const route = useRoute()
 const router = useRouter()
 const { selectedDataSourceLabel } = useDataSource()
+useBaseData()
 
 const siderCollapsed = ref(false)
 const isMobile = ref(false)

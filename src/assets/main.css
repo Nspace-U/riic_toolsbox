@@ -352,7 +352,6 @@ a {
   max-height: 100%;
   height: auto;
   object-fit: contain;
-  box-shadow: 0 12px 28px rgba(36, 52, 57, 0.16);
 }
 
 .avatar-preview-empty {

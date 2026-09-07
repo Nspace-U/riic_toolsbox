@@ -10,7 +10,6 @@ import {
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import RichTextDescription from '@/components/RichTextDescription.vue'
-import LazyImage from '@/components/LazyImage.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
@@ -35,6 +34,7 @@ type OperatorDisplayRow = {
   skills: OperatorSkill[]
   terms: Array<[string, BaseSkillTerm]>
   implementationOrder: number | undefined
+  searchMatchedHiddenSkill: boolean
 }
 type PreparedSkill = {
   skill: OperatorSkill
@@ -49,7 +49,18 @@ type PreparedOperator = {
   implementationOrder: number | undefined
 }
 
-const { operators, terms, metadata, loading, errorMessage, ready, reload } = useBaseData()
+const {
+  operators,
+  terms,
+  metadata,
+  loading,
+  assetsLoading,
+  assetsReady,
+  assetPreloadResult,
+  errorMessage,
+  ready,
+  reload,
+} = useBaseData()
 const { selectedDataSource } = useDataSource()
 
 const searchText = ref('')
@@ -225,11 +236,17 @@ function buildFilteredOperatorRows(): OperatorDisplayRow[] {
       return
     }
 
+    const visibleSkills = new Set(matchedSkills.map(({ skill }) => skill))
+    const searchMatchedHiddenSkill = Boolean(query) && prepared.skills.some(({ skill, searchText }) => {
+      return !visibleSkills.has(skill) && searchText.includes(query)
+    })
+
     rows.push({
       operator: prepared.operator,
       skills: matchedSkills.map(({ skill }) => skill),
       terms: prepared.terms,
       implementationOrder: prepared.implementationOrder,
+      searchMatchedHiddenSkill,
     })
   })
 
@@ -240,7 +257,16 @@ const filteredOperatorRows = ref<OperatorDisplayRow[]>([])
 
 function updateFilteredOperatorRows(): void {
   filterUpdateTimer = undefined
-  filteredOperatorRows.value = buildFilteredOperatorRows()
+  const rows = buildFilteredOperatorRows()
+  filteredOperatorRows.value = rows
+
+  if (normalizedSearchText.value) {
+    expandedOperatorIds.value = new Set(
+      rows
+        .filter((row) => row.searchMatchedHiddenSkill)
+        .map((row) => row.operator.id),
+    )
+  }
 }
 
 function scheduleFilteredOperatorUpdate(): void {
@@ -293,9 +319,13 @@ onBeforeUnmount(() => {
       <div class="operator-data-summary-copy">
         <DatabaseOutlined />
         <span v-if="loading">正在读取数据...</span>
+        <span v-else-if="assetsLoading">正在后台准备图片...</span>
         <span v-else-if="ready">
           已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 · {{ Object.keys(terms).length }} 条术语
           <span v-if="metadata" class="operator-data-version">Torappu {{ metadata.clientVersion }} · {{ metadata.resVersion }}</span>
+          <span v-if="assetPreloadResult?.failed" class="operator-data-version">
+            {{ assetPreloadResult.failed }} 张图片读取失败
+          </span>
         </span>
         <span v-else>等待读取数据</span>
       </div>
@@ -353,8 +383,8 @@ onBeforeUnmount(() => {
       </div>
     </a-card>
 
-    <a-spin :spinning="loading" class="operator-data-spin" tip="读取数据中...">
-      <div v-if="ready && filteredOperatorRows.length" class="operator-list">
+    <a-spin :spinning="loading || assetsLoading" class="operator-data-spin" tip="正在准备干员资料...">
+      <div v-if="ready && assetsReady && filteredOperatorRows.length" class="operator-list">
         <a-card
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
@@ -363,10 +393,11 @@ onBeforeUnmount(() => {
           class="operator-card"
         >
           <div class="operator-avatar-column">
-            <LazyImage
+            <img
               v-if="operatorAvatarUrl(row.operator)"
               :alt="`${row.operator.name}头像`"
               :src="operatorAvatarUrl(row.operator) || ''"
+              decoding="async"
             />
             <div v-else class="operator-avatar-placeholder">暂无</div>
           </div>
@@ -406,10 +437,11 @@ onBeforeUnmount(() => {
               class="operator-skill-row"
             >
               <div class="skill-icon">
-                <LazyImage
+                <img
                   v-if="skill.iconFile"
                   :alt="`${skill.name}图标`"
                   :src="imageUrl('assets/raw/build_skill_icon', skill.iconFile)"
+                  decoding="async"
                 />
                 <span v-else>{{ skill.name.slice(0, 1) || '?' }}</span>
               </div>
@@ -443,7 +475,7 @@ onBeforeUnmount(() => {
           </div>
         </a-card>
       </div>
-      <a-empty v-else-if="ready" class="operator-empty" description="没有符合当前筛选条件的技能" />
+      <a-empty v-else-if="ready && assetsReady" class="operator-empty" description="没有符合当前筛选条件的技能" />
     </a-spin>
   </div>
 </template>

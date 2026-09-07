@@ -255,13 +255,6 @@ onBeforeUnmount(() => {
               type="error"
             />
 
-            <a-alert
-              v-if="generating"
-              class="avatar-generator-warning"
-              message="正在更新头像预览..."
-              show-icon
-              type="info"
-            />
           </a-form>
         </a-card>
 
