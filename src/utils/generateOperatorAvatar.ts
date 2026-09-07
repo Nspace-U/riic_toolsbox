@@ -86,7 +86,7 @@ function drawOperatorName(
   nameHeight: number,
 ): void {
   const maxTextWidth = Math.max(1, width - 24)
-  let fontSize = Math.max(12, Math.round(nameHeight * 0.42))
+  let fontSize = Math.max(12, Math.round(nameHeight * 0.5))
   context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
   while (fontSize > 12 && context.measureText(operatorName).width > maxTextWidth) {
     fontSize -= 1
@@ -116,7 +116,7 @@ export async function generateOperatorAvatar(
   const image = await loadImage(options.imageUrl)
   const overlayImages = await loadOverlayImages(options)
   const nameHeight = options.showName && options.operatorName
-    ? Math.max(48, Math.round(image.naturalWidth * 0.18))
+    ? Math.max(36, Math.round(image.naturalWidth * 0.14))
     : 0
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
