@@ -92,6 +92,11 @@ a {
   background: #1d292d;
 }
 
+.app-drawer .ant-drawer-content,
+.app-drawer .ant-drawer-body {
+  background: #1d292d;
+}
+
 .brand-copy {
   display: grid;
   min-width: 0;
@@ -649,7 +654,7 @@ a {
   gap: 10px;
   min-width: 0;
   padding-block-end: 8px;
-  border-block-end: 2px solid #aebbb8;
+  border-block-end: 1px solid #aebbb8;
 }
 
 .operator-skill-row--replaced {

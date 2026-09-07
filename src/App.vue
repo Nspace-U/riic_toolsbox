@@ -218,6 +218,7 @@ watch(currentPath, handleRouteChange, { immediate: true })
     :body-style="{ padding: 0 }"
     :closable="false"
     :open="mobileMenuOpen"
+    root-class-name="app-drawer"
     :title="null"
     placement="left"
     width="240"
