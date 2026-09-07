@@ -5,13 +5,14 @@ import { computed } from 'vue'
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import type { DataSourceId } from '@/composables/useDataSource'
-import type { Operator, OperatorSkill, SkillTermReference } from '@/types/baseData'
+import type { Operator, OperatorSkill, SkillTerm, SkillTermReference } from '@/types/baseData'
 import { getOperatorTerms } from '@/utils/operatorSkill'
 import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
 const props = withDefaults(defineProps<{
   dataSource: DataSourceId
   operator: Operator
+  terms: Record<string, SkillTerm>
   skills?: OperatorSkill[]
   visibleSkills?: OperatorSkill[]
   operatorTerms?: SkillTermReference[]
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<{
   showExpandButton?: boolean
   showOperatorId?: boolean
   showTerms?: boolean
+  showTermDefinitions?: boolean
   searchText?: string
 }>(), {
   skills: undefined,
@@ -27,6 +29,7 @@ const props = withDefaults(defineProps<{
   showExpandButton: false,
   showOperatorId: true,
   showTerms: true,
+  showTermDefinitions: true,
   searchText: '',
 })
 
@@ -60,6 +63,10 @@ function rarityLabel(operator: Operator): string {
 
 function skillKey(skill: OperatorSkill): string {
   return `${skill.slot}-${skill.name}-${skill.unlockCondition}`
+}
+
+function termDefinition(term: SkillTermReference): string | undefined {
+  return props.terms[term.key]?.definition
 }
 
 const allSkills = computed(() => props.skills ?? props.operator.skills)
@@ -107,6 +114,7 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           >
             <template #title>
               <div class="term-tooltip-title">术语：{{ term.name }}</div>
+              <div v-if="showTermDefinitions && termDefinition(term)" class="term-tooltip-definition">{{ termDefinition(term) }}</div>
             </template>
             <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
           </a-tooltip>
@@ -141,6 +149,7 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           <RichTextDescription
             v-if="skill.description"
             :highlight-query="searchText"
+            :terms="terms"
             :text="skill.description"
           />
         </div>
@@ -157,6 +166,21 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         </template>
         {{ expanded ? '折叠隐藏技能' : '展开隐藏技能' }}
       </a-button>
+    </div>
+
+    <div
+      v-if="showTerms && showTermDefinitions && termsForOperator.some((term) => termDefinition(term))"
+      class="operator-term-definitions"
+    >
+      <div
+        v-for="term in termsForOperator"
+        :key="`${term.key}-definition`"
+        v-show="termDefinition(term)"
+        class="operator-term-definition"
+      >
+        <span class="operator-term-definition-name">{{ term.name }}：</span>
+        <span class="operator-term-definition-text">{{ termDefinition(term) }}</span>
+      </div>
     </div>
 
   </a-card>

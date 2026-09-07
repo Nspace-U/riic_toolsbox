@@ -43,6 +43,16 @@ export interface TorappuBuildingData {
   buffs?: Record<string, TorappuBuff>
 }
 
+export interface TorappuTermDescription {
+  termId?: string
+  termName?: string
+  description?: string
+}
+
+export interface TorappuGamedataConst {
+  termDescriptionDict?: Record<string, TorappuTermDescription>
+}
+
 interface TorappuSkillRecord extends OperatorSkill {
   phase: number
   level: number

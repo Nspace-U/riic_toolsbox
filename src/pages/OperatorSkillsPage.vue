@@ -48,6 +48,7 @@ type PreparedOperator = {
 
 const {
   operators,
+  terms,
   metadata,
   loading,
   assetsLoading,
@@ -64,6 +65,7 @@ const selectedFacilities = ref<string[]>([])
 const showReplaced = ref(false)
 const showOperatorId = ref(true)
 const showTerms = ref(true)
+const showTermDefinitions = ref(true)
 const sortMode = ref<SortMode>('implementationOrder')
 const expandedOperatorIds = ref(new Set<string>())
 let filterUpdateTimer: number | undefined
@@ -345,6 +347,7 @@ onBeforeUnmount(() => {
         <a-checkbox v-model:checked="showReplaced">展开已被替换的技能</a-checkbox>
         <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
         <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
+        <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
         <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperatorRows.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
       </div>
     </a-card>
@@ -354,13 +357,15 @@ onBeforeUnmount(() => {
         <OperatorSkillCard
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
-          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms]"
+          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms, showTermDefinitions]"
           :data-source="selectedDataSource"
           :operator="row.operator"
           :operator-terms="row.terms"
           :show-operator-id="showOperatorId"
+          :show-term-definitions="showTermDefinitions"
           :show-terms="showTerms"
           :skills="row.operator.skills"
+          :terms="terms"
           :visible-skills="row.skills"
           :expanded="isExpanded(row.operator)"
           show-expand-button

@@ -16,6 +16,10 @@ const DATA_FILES = [
     name: 'building_data',
     path: 'gamedata/latest/excel/building_data.json',
   },
+  {
+    name: 'gamedata_const',
+    path: 'gamedata/latest/excel/gamedata_const.json',
+  },
 ]
 
 async function fetchResponse(url, label) {
@@ -190,6 +194,7 @@ async function main() {
       previousCharacterTable,
     ),
     building_data: selectBuildingData(rawData.building_data, operatorIds),
+    gamedata_const: rawData.gamedata_const,
   }
   for (const dataFile of DATA_FILES) {
     await writeJson(dataFile.path, data[dataFile.name])
@@ -238,6 +243,7 @@ async function main() {
     paths: {
       characterTable: 'gamedata/latest/excel/character_table.json',
       buildingData: 'gamedata/latest/excel/building_data.json',
+      gamedataConst: 'gamedata/latest/excel/gamedata_const.json',
       avatars: 'raw/char_avatar',
       skillIcons: 'raw/build_skill_icon',
     },

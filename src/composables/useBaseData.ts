@@ -1,7 +1,7 @@
 import { ref, watch } from 'vue'
 
 import { useDataSource, type DataSourceId } from '@/composables/useDataSource'
-import type { BaseData, BaseDataMetadata, Operator } from '@/types/baseData'
+import type { BaseData, BaseDataMetadata, BaseSkillTerms, Operator } from '@/types/baseData'
 import { parseOperatorCsv } from '@/utils/parseOperatorCsv'
 import {
   clearBaseDataAssetCache,
@@ -12,10 +12,12 @@ import {
   parseTorappuData,
   type TorappuBuildingData,
   type TorappuCharacterTable,
+  type TorappuGamedataConst,
 } from '@/utils/parseTorappuData'
 
 interface UseBaseDataResult {
   operators: Readonly<typeof operators>
+  terms: Readonly<typeof terms>
   metadata: Readonly<typeof metadata>
   loading: Readonly<typeof loading>
   assetsLoading: Readonly<typeof assetsLoading>
@@ -28,6 +30,7 @@ interface UseBaseDataResult {
 
 const dataCache = new Map<string, BaseData>()
 const operators = ref<Operator[]>([])
+const terms = ref<BaseSkillTerms>({})
 const metadata = ref<BaseDataMetadata>()
 const loading = ref(false)
 const assetsLoading = ref(false)
@@ -62,11 +65,12 @@ async function fetchLegacyData(): Promise<BaseData> {
 
   return {
     operators: parseOperatorCsv(operatorCsv),
+    terms: {},
   }
 }
 
 async function fetchTorappuData(): Promise<BaseData> {
-  const [characterTable, buildingData, metadata] = await Promise.all([
+  const [characterTable, buildingData, gamedataConst, metadata] = await Promise.all([
     fetchJson<TorappuCharacterTable>(
       'assets/gamedata/latest/excel/character_table.json',
       'Torappu 干员数据',
@@ -75,14 +79,26 @@ async function fetchTorappuData(): Promise<BaseData> {
       'assets/gamedata/latest/excel/building_data.json',
       'Torappu 基建数据',
     ),
+    fetchJson<TorappuGamedataConst>(
+      'assets/gamedata/latest/excel/gamedata_const.json',
+      'Torappu 常量数据',
+    ),
     fetchJson<BaseDataMetadata>('assets/gamedata/latest/torappu-meta.json', 'Torappu 版本信息'),
   ])
+  const terms: BaseSkillTerms = Object.fromEntries(
+    Object.entries(gamedataConst.termDescriptionDict ?? {}).map(([key, term]) => [key, {
+      name: term.termName ?? key,
+      ...(term.description ? { definition: term.description } : {}),
+    }]),
+  )
+
   return {
     operators: parseTorappuData(
       characterTable,
       buildingData,
       metadata,
     ),
+    terms,
     metadata,
   }
 }
@@ -147,6 +163,7 @@ async function load(): Promise<void> {
       }
 
       operators.value = data.operators
+      terms.value = data.terms
       metadata.value = data.metadata
       loadedSourceId = sourceId
       ready.value = true
@@ -154,6 +171,7 @@ async function load(): Promise<void> {
     })
     .catch((error: unknown) => {
       operators.value = []
+      terms.value = {}
       metadata.value = undefined
       ready.value = false
       errorMessage.value = error instanceof Error ? error.message : '数据读取失败'
@@ -190,6 +208,7 @@ async function reload(): Promise<void> {
 
 const result: UseBaseDataResult = {
   operators,
+  terms,
   metadata,
   loading,
   assetsLoading,

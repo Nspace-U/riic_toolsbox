@@ -36,6 +36,14 @@ export interface SkillTermReference {
   name: string
 }
 
+export interface SkillTerm {
+  name: string
+  definition?: string
+  members?: string[]
+}
+
+export type BaseSkillTerms = Record<string, SkillTerm>
+
 export interface BaseDataMetadata {
   versionId: number
   source: string
@@ -48,5 +56,6 @@ export interface BaseDataMetadata {
 
 export interface BaseData {
   operators: Operator[]
+  terms: BaseSkillTerms
   metadata?: BaseDataMetadata
 }

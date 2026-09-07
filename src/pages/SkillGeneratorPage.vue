@@ -8,12 +8,13 @@ import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import type { Operator, OperatorSkill } from '@/types/baseData'
 
-const { operators, loading, ready, reload } = useBaseData()
+const { operators, terms, loading, ready, reload } = useBaseData()
 const { selectedDataSource } = useDataSource()
 
 const selectedOperatorId = ref('')
 const showOperatorId = ref(true)
 const showTerms = ref(true)
+const showTermDefinitions = ref(true)
 const generating = ref(false)
 const generationError = ref('')
 const generatedImageUrl = ref('')
@@ -185,7 +186,7 @@ async function handleCopyImage(): Promise<void> {
 
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
-  [operators, selectedOperatorId, showOperatorId, showTerms, selectedDataSource],
+  [operators, selectedOperatorId, showOperatorId, showTerms, showTermDefinitions, selectedDataSource],
   () => {
     generationError.value = ''
     copyError.value = ''
@@ -249,6 +250,7 @@ onBeforeUnmount(() => {
             <div class="skill-generator-checkboxes">
               <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
               <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
+              <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
             </div>
 
             <a-alert
@@ -306,8 +308,10 @@ onBeforeUnmount(() => {
         :data-source="selectedDataSource"
         :operator="selectedOperator"
         :show-operator-id="showOperatorId"
+        :show-term-definitions="showTermDefinitions"
         :show-terms="showTerms"
         :skills="visibleSkills"
+        :terms="terms"
       />
     </div>
   </div>

@@ -2,12 +2,12 @@
 import { computed } from 'vue'
 
 import SearchHighlight from '@/components/SearchHighlight.vue'
-import type { SkillTermReference } from '@/types/baseData'
+import type { SkillTerm, SkillTermReference } from '@/types/baseData'
 
 interface RichTextPart {
   text: string
   color?: string
-  term?: SkillTermReference
+  term?: SkillTerm
 }
 
 const DESCRIPTION_COLORS: Record<string, string> = {
@@ -20,6 +20,7 @@ const DESCRIPTION_COLORS: Record<string, string> = {
 const props = defineProps<{
   highlightQuery?: string
   text: string
+  terms: Record<string, SkillTerm>
 }>()
 
 const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
@@ -27,7 +28,7 @@ const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
 function parseParts(
   text: string,
   color?: string,
-  term?: SkillTermReference,
+  term?: SkillTerm,
   cursor = 0,
   closingTag?: string,
 ): { parts: RichTextPart[]; cursor: number } {
@@ -60,15 +61,13 @@ function parseParts(
     const nextColor = tagType === '@'
       ? (DESCRIPTION_COLORS[attribute] ?? attribute)
       : color
-    const nextTerm = tagType === '$' && !DESCRIPTION_COLORS[attribute]
-      ? { key: attribute, name: '' }
-      : term
+    const nextTerm = tagType === '$' ? props.terms[attribute] : term
     const nextClosingTag = '</>'
     const child = parseParts(text, nextColor, nextTerm, tagStart + tag.length, nextClosingTag)
-    if (tagType === '$' && nextTerm && !DESCRIPTION_COLORS[attribute]) {
+    if (tagType === '$' && !nextTerm && !DESCRIPTION_COLORS[attribute]) {
       const name = child.parts.map((part) => part.text).join('').trim()
       child.parts.forEach((part) => {
-        part.term = { key: attribute, name }
+        part.term = { name }
       })
     }
     parts.push(...child.parts)
@@ -87,6 +86,7 @@ const parts = computed(() => parseParts(props.text).parts)
       <a-tooltip v-if="part.term" placement="topLeft">
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
+          <div v-if="part.term.definition" class="term-tooltip-definition">{{ part.term.definition }}</div>
         </template>
         <span :style="{ color: part.color }" class="term-text">
           <SearchHighlight :query="highlightQuery ?? ''" :text="part.text" />
