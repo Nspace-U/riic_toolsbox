@@ -785,7 +785,7 @@ a {
 }
 
 .operator-term-definition-text {
-  display: block;
+  display: inline;
 }
 
 .operator-skills-list {
