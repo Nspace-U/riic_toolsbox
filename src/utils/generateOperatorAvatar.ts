@@ -12,6 +12,7 @@ export interface OperatorAvatarGenerationOptions {
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>()
+const LONGEST_OPERATOR_NAME = '泰拉大陆调查团'
 
 function loadImage(imageUrl: string): Promise<HTMLImageElement> {
   const cachedImage = imageCache.get(imageUrl)
@@ -88,7 +89,7 @@ function drawOperatorName(
   const maxTextWidth = Math.max(1, width - 24)
   let fontSize = Math.max(12, Math.round(nameHeight * 0.5))
   context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
-  while (fontSize > 12 && context.measureText(operatorName).width > maxTextWidth) {
+  while (fontSize > 12 && context.measureText(LONGEST_OPERATOR_NAME).width > maxTextWidth) {
     fontSize -= 1
     context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
   }
