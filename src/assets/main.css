@@ -780,6 +780,7 @@ a {
 @media (max-width: 991px) {
   .app-content {
     padding: 24px;
+    padding-block-start: 96px;
   }
 
   .avatar-generator-layout {
@@ -792,6 +793,12 @@ a {
 }
 
 @media (max-width: 600px) {
+  html,
+  body,
+  #app {
+    min-width: 0;
+  }
+
   .app-header {
     height: 64px;
     padding-inline: 16px;

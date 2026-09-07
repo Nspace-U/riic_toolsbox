@@ -3,6 +3,7 @@ import {
   BookOutlined,
   CalculatorOutlined,
   ClusterOutlined,
+  FileTextOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
@@ -41,7 +42,10 @@ const navigationItems: NavigationItem[] = [
     key: '/toolbox',
     label: '工具箱',
     icon: ToolOutlined,
-    children: [{ key: '/toolbox/avatar', label: '头像生成器', icon: PictureOutlined }],
+    children: [
+      { key: '/toolbox/avatar', label: '头像生成器', icon: PictureOutlined },
+      { key: '/toolbox/maa-schedule', label: 'Maa 排班表接口', icon: FileTextOutlined },
+    ],
   },
   { key: '/settings', label: '通用设置', icon: SettingOutlined },
 ]
