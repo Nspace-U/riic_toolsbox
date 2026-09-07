@@ -532,8 +532,6 @@ a {
   border: 1px solid #e3e8e7;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
-  content-visibility: auto;
-  contain-intrinsic-size: 195px;
 }
 
 .operator-card .ant-card-body {
