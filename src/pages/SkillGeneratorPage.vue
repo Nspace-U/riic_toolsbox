@@ -64,6 +64,11 @@ async function svgToPng(source: HTMLDivElement): Promise<string> {
   const svgUrl = await toSvg(source, {
     cacheBust: true,
     skipFonts: true,
+    style: {
+      inset: 'auto',
+      position: 'static',
+      width: '900px',
+    },
   })
 
   return new Promise((resolve, reject) => {
