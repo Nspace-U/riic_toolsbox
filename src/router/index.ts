@@ -8,6 +8,7 @@ import SettingsPage from '@/pages/SettingsPage.vue'
 import SimulatorPage from '@/pages/SimulatorPage.vue'
 import AvatarGeneratorPage from '@/pages/AvatarGeneratorPage.vue'
 import MaaSchedulePage from '@/pages/MaaSchedulePage.vue'
+import SkillGeneratorPage from '@/pages/SkillGeneratorPage.vue'
 import ToolboxPage from '@/pages/ToolboxPage.vue'
 
 const router = createRouter({
@@ -58,6 +59,12 @@ const router = createRouter({
       name: 'toolbox-avatar',
       component: AvatarGeneratorPage,
       meta: { title: '头像生成器' },
+    },
+    {
+      path: '/toolbox/skill',
+      name: 'toolbox-skill',
+      component: SkillGeneratorPage,
+      meta: { title: '技能生成器' },
     },
     {
       path: '/toolbox/maa-schedule',

@@ -2,19 +2,16 @@
 import {
   BookOutlined,
   DatabaseOutlined,
-  DownOutlined,
   SearchOutlined,
   ReloadOutlined,
-  UpOutlined,
 } from '@ant-design/icons-vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
-import RichTextDescription from '@/components/RichTextDescription.vue'
-import SearchHighlight from '@/components/SearchHighlight.vue'
+import OperatorSkillCard from '@/components/OperatorSkillCard.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import type { BaseSkillTerm, Operator, OperatorSkill } from '@/types/baseData'
-import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
+import { getOperatorSkillTermKeys, getOperatorTerms } from '@/utils/operatorSkill'
 
 const FACILITIES = [
   '控制中枢',
@@ -66,6 +63,8 @@ const { selectedDataSource } = useDataSource()
 const searchText = ref('')
 const selectedFacilities = ref<string[]>([])
 const showReplaced = ref(false)
+const showOperatorId = ref(true)
+const showTerms = ref(true)
 const sortMode = ref<SortMode>('implementationOrder')
 const expandedOperatorIds = ref(new Set<string>())
 let filterUpdateTimer: number | undefined
@@ -78,36 +77,12 @@ const sortOptions = [
 
 const normalizedSearchText = computed(() => searchText.value.trim().toLocaleLowerCase())
 
-function assetUrl(path: string): string {
-  return `${import.meta.env.BASE_URL}${path}`
-}
-
-function imageUrl(directory: string, fileName: string): string {
-  const encodedFileName = encodeURIComponent(fileName)
-    .replace(/%2B/g, '+')
-    .replace(/%26/g, '&')
-  return assetUrl(`${directory}/${encodedFileName}`)
-}
-
-function operatorAvatarUrl(operator: Operator): string | undefined {
-  const avatarFile = getOperatorAvatarFile(operator, 0)
-  return avatarFile ? getOperatorAvatarSourceUrl(selectedDataSource.value, avatarFile) : undefined
-}
-
 function isReplaced(skill: OperatorSkill): boolean {
   return skill.replacement.includes('被「')
 }
 
-function termKeys(text: string): string[] {
-  return [...text.matchAll(/\[T=([^\]]+)\][\s\S]*?\[\/T\]/g)].map((match) => match[1] ?? '')
-}
-
 function isExpanded(operator: Operator): boolean {
   return expandedOperatorIds.value.has(operator.id)
-}
-
-function isSkillVisible(row: OperatorDisplayRow, skill: OperatorSkill): boolean {
-  return isExpanded(row.operator) || row.skills.includes(skill)
 }
 
 function toggleExpanded(operator: Operator): void {
@@ -166,25 +141,8 @@ function sortOperatorRows(operatorRows: OperatorDisplayRow[]): OperatorDisplayRo
 }
 
 const preparedOperators = computed<PreparedOperator[]>(() => {
-  const termEntriesByMember = new Map<string, Array<[string, BaseSkillTerm]>>()
-  Object.entries(terms.value).forEach(([key, term]) => {
-    term.members.forEach((member) => {
-      const entries = termEntriesByMember.get(member) ?? []
-      entries.push([key, term])
-      termEntriesByMember.set(member, entries)
-    })
-  })
-
   return operators.value.map((operator) => {
-    const keys = new Set(operator.skills.flatMap((skill) => termKeys(skill.description)))
-    const termsForOperator = [...keys]
-      .map((key) => [key, terms.value[key]] as const)
-      .filter((entry): entry is [string, BaseSkillTerm] => Boolean(entry[1]))
-    ;(termEntriesByMember.get(operator.name) ?? []).forEach(([key, term]) => {
-      if (!termsForOperator.some(([existingKey]) => existingKey === key)) {
-        termsForOperator.push([key, term])
-      }
-    })
+    const termsForOperator = getOperatorTerms(operator, terms.value)
 
     const skills = operator.skills.map((skill) => ({
       skill,
@@ -195,7 +153,7 @@ const preparedOperators = computed<PreparedOperator[]>(() => {
         skill.unlockCondition,
         skill.replacement,
         skill.description.replace(/\[(?:\/?(?:C|T)(?:=[^\]]+)?)\]/g, ''),
-        ...termKeys(skill.description).flatMap((key) => [key, terms.value[key]?.name ?? '']),
+        ...getOperatorSkillTermKeys([skill]).flatMap((key) => [key, terms.value[key]?.name ?? '']),
       ].join(' ').toLocaleLowerCase(),
     }))
 
@@ -281,10 +239,6 @@ const visibleSkillCount = computed(() => filteredOperatorRows.value.reduce((coun
 const totalSkillCount = computed(() => {
   return operators.value.reduce((count, operator) => count + operator.skills.length, 0)
 })
-
-function rarityLabel(operator: Operator): string {
-  return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
-}
 
 function handleReload(): void {
   void reload()
@@ -378,102 +332,33 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <div class="operator-filter-footer">
-        <a-checkbox v-model:checked="showReplaced">显示已被替换的技能</a-checkbox>
+        <a-checkbox v-model:checked="showReplaced">展开已被替换的技能</a-checkbox>
+        <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
+        <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
         <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperatorRows.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
       </div>
     </a-card>
 
     <a-spin :spinning="loading || assetsLoading" class="operator-data-spin" tip="正在准备干员资料...">
       <div v-if="ready && assetsReady && filteredOperatorRows.length" class="operator-list">
-        <a-card
+        <OperatorSkillCard
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
-          v-memo="[row, isExpanded(row.operator)]"
-          :bordered="false"
+          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms]"
+          :data-source="selectedDataSource"
+          :operator="row.operator"
+          :operator-terms="row.terms"
+          :show-operator-id="showOperatorId"
+          :show-terms="showTerms"
+          :skills="row.operator.skills"
+          :terms="terms"
+          :visible-skills="row.skills"
+          :expanded="isExpanded(row.operator)"
+          show-expand-button
           class="operator-card"
+          @toggle-expanded="toggleExpanded(row.operator)"
         >
-          <div class="operator-avatar-column">
-            <img
-              v-if="operatorAvatarUrl(row.operator)"
-              :alt="`${row.operator.name}头像`"
-              :src="operatorAvatarUrl(row.operator) || ''"
-              decoding="async"
-            />
-            <div v-else class="operator-avatar-placeholder">暂无</div>
-          </div>
-
-          <div class="operator-profile-copy">
-            <h3><SearchHighlight :query="searchText" :text="row.operator.name" /></h3>
-            <span class="operator-id"><SearchHighlight :query="searchText" :text="row.operator.id" /></span>
-            <div class="operator-tags">
-              <a-tag color="gold"><SearchHighlight :query="searchText" :text="rarityLabel(row.operator)" /></a-tag>
-              <a-tag color="blue"><SearchHighlight :query="searchText" :text="row.operator.profession || '未知职业'" /></a-tag>
-              <a-tag v-if="row.operator.branch"><SearchHighlight :query="searchText" :text="row.operator.branch" /></a-tag>
-            </div>
-            <div v-if="row.terms.length" class="operator-terms">
-              <span class="operator-terms-label">所属术语</span>
-              <span class="operator-terms-list">
-                <a-tooltip
-                  v-for="([termKey, term]) in row.terms"
-                  :key="termKey"
-                  placement="topLeft"
-                >
-                  <template #title>
-                    <div class="term-tooltip-title">术语：{{ term.name }}</div>
-                    <div v-if="term.definition" class="term-tooltip-definition">{{ term.definition }}</div>
-                  </template>
-                  <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
-                </a-tooltip>
-              </span>
-            </div>
-          </div>
-
-          <div class="operator-skills-list">
-            <article
-              v-for="skill in row.operator.skills"
-              :key="`${skill.slot}-${skill.name}-${skill.unlockCondition}`"
-              v-show="isSkillVisible(row, skill)"
-              :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
-              class="operator-skill-row"
-            >
-              <div class="skill-icon">
-                <img
-                  v-if="skill.iconFile"
-                  :alt="`${skill.name}图标`"
-                  :src="imageUrl('assets/raw/build_skill_icon', skill.iconFile)"
-                  decoding="async"
-                />
-                <span v-else>{{ skill.name.slice(0, 1) || '?' }}</span>
-              </div>
-              <div class="operator-skill-copy">
-                <div class="operator-skill-meta">
-                  <a-tag color="cyan"><SearchHighlight :query="searchText" :text="skill.unlockCondition || '未注明解锁条件'" /></a-tag>
-                  <a-tag v-if="skill.facility" color="green"><SearchHighlight :query="searchText" :text="skill.facility" /></a-tag>
-                  <a-tag v-if="isReplaced(skill)" color="orange">被替换</a-tag>
-                </div>
-                <h4><SearchHighlight :query="searchText" :text="skill.name || '未命名技能'" /></h4>
-                <RichTextDescription
-                  v-if="skill.description"
-                  :highlight-query="searchText"
-                  :terms="terms"
-                  :text="skill.description"
-                />
-              </div>
-            </article>
-            <a-button
-              v-if="row.operator.skills.length > row.skills.length || isExpanded(row.operator)"
-              class="operator-hidden-skills-button"
-              type="text"
-              @click="toggleExpanded(row.operator)"
-            >
-              <template #icon>
-                <UpOutlined v-if="isExpanded(row.operator)" />
-                <DownOutlined v-else />
-              </template>
-              {{ isExpanded(row.operator) ? '折叠隐藏技能' : '展开隐藏技能' }}
-            </a-button>
-          </div>
-        </a-card>
+        </OperatorSkillCard>
       </div>
       <a-empty v-else-if="ready && assetsReady" class="operator-empty" description="没有符合当前筛选条件的技能" />
     </a-spin>

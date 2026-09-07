@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { FileTextOutlined, PictureOutlined, ToolOutlined } from '@ant-design/icons-vue'
+import { BookOutlined, FileTextOutlined, PictureOutlined, ToolOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 function openAvatarGenerator(): void {
   void router.push('/toolbox/avatar')
+}
+
+function openSkillGenerator(): void {
+  void router.push('/toolbox/skill')
 }
 
 function openMaaSchedule(): void {
@@ -31,7 +35,7 @@ function openMaaSchedule(): void {
           <span class="section-kicker">AVAILABLE TOOLS</span>
           <h3 id="available-tools-title">可用工具</h3>
         </div>
-        <span class="section-count">02 项</span>
+        <span class="section-count">03 项</span>
       </div>
 
       <div class="toolbox-grid">
@@ -53,12 +57,30 @@ function openMaaSchedule(): void {
           <div class="tool-card-index" aria-hidden="true">01</div>
         </a-card>
 
+        <a-card :bordered="false" class="tool-card" @click="openSkillGenerator">
+          <div class="tool-card-icon tool-card-icon--skill" aria-hidden="true">
+            <BookOutlined />
+          </div>
+          <div class="tool-card-content">
+            <div class="tool-card-meta">SKILL · 02</div>
+            <h4>技能生成器</h4>
+            <p>选择干员并生成与基建技能一览一致的技能信息图片。</p>
+            <a-button type="primary" @click.stop="openSkillGenerator">
+              <template #icon>
+                <BookOutlined />
+              </template>
+              打开工具
+            </a-button>
+          </div>
+          <div class="tool-card-index" aria-hidden="true">02</div>
+        </a-card>
+
         <a-card :bordered="false" class="tool-card" @click="openMaaSchedule">
           <div class="tool-card-icon tool-card-icon--maa" aria-hidden="true">
             <FileTextOutlined />
           </div>
           <div class="tool-card-content">
-            <div class="tool-card-meta">PROTOCOL · 02</div>
+            <div class="tool-card-meta">PROTOCOL · 03</div>
             <h4>Maa 排班表接口</h4>
             <p>查看、编辑和导入导出 Maa 排班表 JSON，保留布局与干员状态信息。</p>
             <a-button type="primary" @click.stop="openMaaSchedule">
@@ -68,7 +90,7 @@ function openMaaSchedule(): void {
               打开接口
             </a-button>
           </div>
-          <div class="tool-card-index" aria-hidden="true">02</div>
+          <div class="tool-card-index" aria-hidden="true">03</div>
         </a-card>
       </div>
     </section>

@@ -8,6 +8,7 @@ import {
   MenuOutlined,
   MenuUnfoldOutlined,
   PictureOutlined,
+  ReadOutlined,
   ToolOutlined,
   SettingOutlined,
   TableOutlined,
@@ -44,6 +45,7 @@ const navigationItems: NavigationItem[] = [
     icon: ToolOutlined,
     children: [
       { key: '/toolbox/avatar', label: '头像生成器', icon: PictureOutlined },
+      { key: '/toolbox/skill', label: '技能生成器', icon: ReadOutlined },
       { key: '/toolbox/maa-schedule', label: 'Maa 排班表接口', icon: FileTextOutlined },
     ],
   },
