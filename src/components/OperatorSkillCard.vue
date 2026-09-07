@@ -20,6 +20,7 @@ const props = withDefaults(defineProps<{
   showExpandButton?: boolean
   showOperatorId?: boolean
   showTerms?: boolean
+  showTermDefinitions?: boolean
   searchText?: string
 }>(), {
   skills: undefined,
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<{
   showExpandButton: false,
   showOperatorId: true,
   showTerms: true,
+  showTermDefinitions: true,
   searchText: '',
 })
 
@@ -98,22 +100,6 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         <a-tag color="blue"><SearchHighlight :query="searchText" :text="operator.profession || '未知职业'" /></a-tag>
         <a-tag v-if="operator.branch"><SearchHighlight :query="searchText" :text="operator.branch" /></a-tag>
       </div>
-      <div v-if="showTerms && termsForOperator.length" class="operator-terms">
-        <span class="operator-terms-label">所属术语</span>
-        <span class="operator-terms-list">
-          <a-tooltip
-            v-for="([termKey, term]) in termsForOperator"
-            :key="termKey"
-            placement="topLeft"
-          >
-            <template #title>
-              <div class="term-tooltip-title">术语：{{ term.name }}</div>
-              <div v-if="term.definition" class="term-tooltip-definition">{{ term.definition }}</div>
-            </template>
-            <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
-          </a-tooltip>
-        </span>
-      </div>
     </div>
 
     <div class="operator-skills-list">
@@ -160,6 +146,33 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         </template>
         {{ expanded ? '折叠隐藏技能' : '展开隐藏技能' }}
       </a-button>
+    </div>
+
+    <div v-if="showTerms && termsForOperator.length" class="operator-terms">
+      <span class="operator-terms-label">所属术语</span>
+      <span class="operator-terms-list">
+        <a-tooltip
+          v-for="([termKey, term]) in termsForOperator"
+          :key="termKey"
+          placement="topLeft"
+        >
+          <template #title>
+            <div class="term-tooltip-title">术语：{{ term.name }}</div>
+            <div v-if="showTermDefinitions && term.definition" class="term-tooltip-definition">{{ term.definition }}</div>
+          </template>
+          <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
+        </a-tooltip>
+      </span>
+      <div v-if="showTermDefinitions" class="operator-term-definitions">
+        <div
+          v-for="([termKey, term]) in termsForOperator"
+          :key="`${termKey}-definition`"
+          v-show="term.definition"
+          class="operator-term-definition"
+        >
+          <span>{{ term.definition }}</span>
+        </div>
+      </div>
     </div>
   </a-card>
 </template>

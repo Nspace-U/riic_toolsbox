@@ -746,6 +746,7 @@ a {
 
 .operator-terms {
   display: grid;
+  grid-column: 1 / -1;
   gap: 3px;
   color: #647275;
   font-size: 12px;
@@ -761,6 +762,22 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
+}
+
+.operator-term-definitions {
+  display: grid;
+  gap: 6px;
+  margin-block-start: 2px;
+  padding-block-start: 5px;
+  border-block-start: 1px solid #edf0ef;
+}
+
+.operator-term-definition {
+  display: grid;
+  gap: 2px;
+  color: #748184;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .operator-skills-list {
