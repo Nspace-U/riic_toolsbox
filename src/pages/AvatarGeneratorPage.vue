@@ -93,7 +93,6 @@ function clearGeneratedImage(): void {
 }
 
 function handleReload(): void {
-  clearGeneratedImage()
   void reload()
 }
 
@@ -119,7 +118,6 @@ async function handleGenerate(): Promise<void> {
   const requestId = ++generationRequestId
   generating.value = true
   generationError.value = ''
-  clearGeneratedImage()
 
   try {
     const generatedUrl = await generateOperatorAvatarUrl(operator, selectedDataSource.value, {
@@ -131,7 +129,11 @@ async function handleGenerate(): Promise<void> {
       moodScattered: moodScattered.value,
     })
     if (requestId === generationRequestId) {
+      const previousImageUrl = generatedImageUrl.value
       generatedImageUrl.value = generatedUrl ?? ''
+      if (previousImageUrl && previousImageUrl !== generatedImageUrl.value) {
+        URL.revokeObjectURL(previousImageUrl)
+      }
     } else if (generatedUrl) {
       URL.revokeObjectURL(generatedUrl)
     }
