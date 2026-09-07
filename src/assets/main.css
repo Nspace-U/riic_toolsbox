@@ -773,8 +773,7 @@ a {
 }
 
 .operator-term-definition {
-  display: grid;
-  gap: 2px;
+  display: block;
   color: #748184;
   line-height: 1.5;
   overflow-wrap: anywhere;
