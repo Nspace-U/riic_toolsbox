@@ -78,6 +78,19 @@ function levelRange(type: MaaRoomKey): { min: number; max: number } {
     : { min: 1, max: 3 }
 }
 
+export function roomSlotCount(type: MaaRoomKey, level: number): number {
+  if (type === 'control' || type === 'trading' || type === 'manufacture') {
+    return level
+  }
+  if (type === 'power' || type === 'hire' || type === 'processing') {
+    return 1
+  }
+  if (type === 'meeting' || type === 'training') {
+    return 2
+  }
+  return 5
+}
+
 function validateLayout(layout: unknown): MaaLayoutEntry[] {
   if (!Array.isArray(layout)) {
     fail('layout', '必须是数组')
@@ -122,6 +135,19 @@ function validateOperators(room: MaaRoomAssignment, path: string): string[] {
     fail(`${path}.operators`, '同一房间中不能重复出现同名干员')
   }
   return names
+}
+
+function validateRoomCapacity(
+  room: MaaRoomAssignment,
+  type: MaaRoomKey,
+  level: number,
+  path: string,
+): void {
+  const names = room.operators ?? []
+  const capacity = roomSlotCount(type, level)
+  if (names.length > capacity) {
+    fail(`${path}.operators`, `超过该设施 ${capacity} 个槽位上限`)
+  }
 }
 
 function validateOperatorStates(room: MaaRoomAssignment, names: string[], path: string): void {
@@ -181,19 +207,30 @@ function validatePlan(plan: unknown, index: number, layout: MaaLayoutEntry[] | u
   }
 
   const rooms = plan.rooms
+  const operatorsInPlan = new Map<string, string>()
   MAA_ROOM_KEYS.forEach((type) => {
     const rawRooms = rooms[type]
     if (rawRooms !== undefined && !Array.isArray(rawRooms)) {
       fail(`${path}.rooms.${type}`, '必须是数组')
     }
     const roomList = Array.isArray(rawRooms) ? rawRooms : []
-    if (layout) {
-      const expected = layout.filter((entry) => entry.type === type).length
-      if (roomList.length !== expected) {
-        fail(`${path}.rooms.${type}`, `设施数量为 ${roomList.length}，但 layout 要求 ${expected} 个`)
+    roomList.forEach((room, roomIndex) => {
+      const validatedRoom = validateRoom(room, type, roomIndex, index)
+      const roomPath = `${path}.rooms.${type}[${roomIndex}]`
+      if (layout) {
+        const layoutEntry = layout.filter((entry) => entry.type === type)[roomIndex]
+        if (layoutEntry) {
+          validateRoomCapacity(validatedRoom, type, layoutEntry.level, roomPath)
+        }
       }
-    }
-    roomList.forEach((room, roomIndex) => validateRoom(room, type, roomIndex, index))
+      ;(validatedRoom.operators ?? []).forEach((operator) => {
+        const previousRoom = operatorsInPlan.get(operator)
+        if (previousRoom) {
+          fail(`${path}.rooms.${type}[${roomIndex}].operators`, `干员“${operator}”已在 ${previousRoom} 中配置，同一队列不能重复`)
+        }
+        operatorsInPlan.set(operator, roomPath)
+      })
+    })
   })
   return plan as MaaPlan
 }
@@ -265,6 +302,25 @@ function completeInferredRooms(plans: MaaPlan[], layout: MaaLayoutEntry[]): MaaP
         return
       }
       const existing = Array.isArray(rooms[type]) ? [...rooms[type]] : []
+      if (type === 'power' && existing.length === 1) {
+        const mergedRoom = existing[0]
+        if (isRecord(mergedRoom) && Array.isArray(mergedRoom.operators) && mergedRoom.operators.length > 1) {
+          const typedRoom = mergedRoom as MaaRoomAssignment
+          const operators = typedRoom.operators ?? []
+          const operatorStates = typedRoom.operatorStates
+          const roomMeta = { ...typedRoom }
+          delete roomMeta.operators
+          delete roomMeta.operatorStates
+          rooms[type] = operators.map((operator) => ({
+            ...roomMeta,
+            operators: [operator],
+            ...(operatorStates?.[operator]
+              ? { operatorStates: { [operator]: operatorStates[operator] } }
+              : {}),
+          }))
+          return
+        }
+      }
       while (existing.length < expected) {
         existing.push({ skip: true })
       }
@@ -318,6 +374,7 @@ export function parseMaaScheduleText(text: string): ParsedMaaSchedule {
     fail('layout', '无法从 plans 推断出设施布局')
   }
   const resolvedPlans = hasLayout ? plans : completeInferredRooms(plans, resolvedLayout)
+  resolvedPlans.forEach((plan, index) => validatePlan(plan, index, resolvedLayout))
   const { plans: _plans, layout: _layout, ...rest } = root
   const document: MaaScheduleDocument = {
     ...rest,
