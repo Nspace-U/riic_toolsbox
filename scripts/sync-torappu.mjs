@@ -101,6 +101,7 @@ function selectCharacterTable(
         rarity: character.rarity,
         profession: character.profession,
         subProfessionId: character.subProfessionId,
+        isSpChar: character.isSpChar === true,
         phaseCount: Array.isArray(character.phases) ? character.phases.length : 0,
         buffChar: (buildingCharacter?.buffChar ?? []).map((slotData) => ({
           buffData: (slotData.buffData ?? []).map((buffData) => ({

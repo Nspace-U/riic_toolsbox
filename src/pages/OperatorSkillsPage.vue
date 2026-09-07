@@ -246,9 +246,7 @@ const totalSkillCount = computed(() => {
 
 const totalTermCount = computed(() => {
   return new Set(
-    operators.value.flatMap((operator) => operator.skills.flatMap((skill) => (
-      skill.termReferences.map((reference) => reference.key)
-    ))),
+    operators.value.flatMap((operator) => getOperatorTerms(operator).map((reference) => reference.key)),
   ).size
 })
 

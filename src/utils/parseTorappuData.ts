@@ -9,6 +9,7 @@ export interface TorappuCharacter {
   name?: string
   implementationDate?: string
   implementationOrder?: number
+  isSpChar?: boolean
   branch?: string
   rarity?: string
   profession?: string
@@ -244,6 +245,7 @@ export function parseTorappuData(
       name: character.name,
       implementationDate: character.implementationDate,
       implementationOrder: character.implementationOrder,
+      isSpChar: character.isSpChar === true,
       profession: professionLabel(character.profession),
       branch: character.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),

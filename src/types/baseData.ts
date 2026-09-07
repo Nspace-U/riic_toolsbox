@@ -24,6 +24,7 @@ export interface Operator {
   name: string
   implementationDate?: string
   implementationOrder?: number
+  isSpChar?: boolean
   profession: string
   branch: string
   rarity: number

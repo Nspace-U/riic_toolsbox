@@ -4,6 +4,7 @@
     "rarity": "TIER_1",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -38,6 +39,7 @@
     "rarity": "TIER_1",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -72,6 +74,7 @@
     "rarity": "TIER_2",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -106,6 +109,7 @@
     "rarity": "TIER_2",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -140,6 +144,7 @@
     "rarity": "TIER_2",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -173,6 +178,7 @@
     "rarity": "TIER_2",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -207,6 +213,7 @@
     "rarity": "TIER_2",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -241,6 +248,7 @@
     "rarity": "TIER_3",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -275,6 +283,7 @@
     "rarity": "TIER_3",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -309,6 +318,7 @@
     "rarity": "TIER_3",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -343,6 +353,7 @@
     "rarity": "TIER_3",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -377,6 +388,7 @@
     "rarity": "TIER_3",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -411,6 +423,7 @@
     "rarity": "TIER_3",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -445,6 +458,7 @@
     "rarity": "TIER_3",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -479,6 +493,7 @@
     "rarity": "TIER_3",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -513,6 +528,7 @@
     "rarity": "TIER_3",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -547,6 +563,7 @@
     "rarity": "TIER_3",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -581,6 +598,7 @@
     "rarity": "TIER_3",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -615,6 +633,7 @@
     "rarity": "TIER_3",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -649,6 +668,7 @@
     "rarity": "TIER_3",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -683,6 +703,7 @@
     "rarity": "TIER_3",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -717,6 +738,7 @@
     "rarity": "TIER_3",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -751,6 +773,7 @@
     "rarity": "TIER_3",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -785,6 +808,7 @@
     "rarity": "TIER_3",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 2,
     "buffChar": [
       {
@@ -819,6 +843,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -853,6 +878,7 @@
     "rarity": "TIER_4",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -887,6 +913,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -921,6 +948,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -955,6 +983,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -989,6 +1018,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1023,6 +1053,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1057,6 +1088,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1091,6 +1123,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1125,6 +1158,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1159,6 +1193,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1193,6 +1228,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1227,6 +1263,7 @@
     "rarity": "TIER_4",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1268,6 +1305,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1302,6 +1340,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1336,6 +1375,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1370,6 +1410,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1404,6 +1445,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1438,6 +1480,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1472,6 +1515,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1506,6 +1550,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1540,6 +1585,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1574,6 +1620,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1608,6 +1655,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1642,6 +1690,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1676,6 +1725,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1710,6 +1760,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1744,6 +1795,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1778,6 +1830,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1812,6 +1865,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1860,6 +1914,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1893,6 +1948,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1926,6 +1982,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1959,6 +2016,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -1992,6 +2050,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2025,6 +2084,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2058,6 +2118,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2091,6 +2152,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2125,6 +2187,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2158,6 +2221,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2192,6 +2256,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2225,6 +2290,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2258,6 +2324,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "unyield",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2291,6 +2358,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2325,6 +2393,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2358,6 +2427,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2391,6 +2461,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2425,6 +2496,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2459,6 +2531,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2493,6 +2566,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2526,6 +2600,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2559,6 +2634,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2592,6 +2668,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2625,6 +2702,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2658,6 +2736,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2692,6 +2771,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2725,6 +2805,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2759,6 +2840,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2793,6 +2875,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2827,6 +2910,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2860,6 +2944,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2893,6 +2978,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2926,6 +3012,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2959,6 +3046,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -2992,6 +3080,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3025,6 +3114,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3058,6 +3148,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3092,6 +3183,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3125,6 +3217,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3158,6 +3251,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3191,6 +3285,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3225,6 +3320,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "healer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3259,6 +3355,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3292,6 +3389,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3326,6 +3424,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "musha",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3374,6 +3473,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "bearer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3408,6 +3508,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3441,6 +3542,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "artsprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3475,6 +3577,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3509,6 +3612,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3542,6 +3646,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3576,6 +3681,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3610,6 +3716,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3643,6 +3750,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3677,6 +3785,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3710,6 +3819,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3743,6 +3853,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3777,6 +3888,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3811,6 +3923,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3845,6 +3958,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3878,6 +3992,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3912,6 +4027,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3946,6 +4062,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -3980,6 +4097,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4014,6 +4132,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "geek",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4048,6 +4167,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4082,6 +4202,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4115,6 +4236,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4149,6 +4271,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4183,6 +4306,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "musha",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4217,6 +4341,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4250,6 +4375,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "healer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4284,6 +4410,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4318,6 +4445,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "chain",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4351,6 +4479,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4385,6 +4514,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4418,6 +4548,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4452,6 +4583,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4486,6 +4618,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4519,6 +4652,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4560,6 +4694,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4593,6 +4728,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "bearer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4627,6 +4763,7 @@
     "rarity": "TIER_1",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -4661,6 +4798,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4694,6 +4832,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "artsprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4728,6 +4867,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4762,6 +4902,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4796,6 +4937,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4830,6 +4972,7 @@
     "rarity": "TIER_4",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4871,6 +5014,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4904,6 +5048,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4937,6 +5082,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -4971,6 +5117,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5005,6 +5152,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5039,6 +5187,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "phalanx",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5072,6 +5221,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5106,6 +5256,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5140,6 +5291,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5173,6 +5325,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5207,6 +5360,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "duelist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5248,6 +5402,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5282,6 +5437,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5315,6 +5471,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5349,6 +5506,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5382,6 +5540,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5423,6 +5582,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5464,6 +5624,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "phalanx",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5505,6 +5666,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5539,6 +5701,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5573,6 +5736,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5607,6 +5771,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5641,6 +5806,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5682,6 +5848,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "unyield",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5716,6 +5883,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "healer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5750,6 +5918,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5784,6 +5953,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5818,6 +5988,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5851,6 +6022,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5884,6 +6056,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5918,6 +6091,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5951,6 +6125,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -5985,6 +6160,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6019,6 +6195,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6053,6 +6230,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6086,6 +6264,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6120,6 +6299,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6154,6 +6334,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6187,6 +6368,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6221,6 +6403,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6255,6 +6438,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6289,6 +6473,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6323,6 +6508,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "chain",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6364,6 +6550,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6398,6 +6585,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6439,6 +6627,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6480,6 +6669,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6514,6 +6704,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6555,6 +6746,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "musha",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6588,6 +6780,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "phalanx",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6621,6 +6814,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6654,6 +6848,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6688,6 +6883,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6729,6 +6925,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6763,6 +6960,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6804,6 +7002,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6838,6 +7037,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6872,6 +7072,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "librator",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6905,6 +7106,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "bearer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6939,6 +7141,7 @@
     "rarity": "TIER_4",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -6973,6 +7176,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7014,6 +7218,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7055,6 +7260,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "fortress",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7088,6 +7294,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7121,6 +7328,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7155,6 +7363,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7188,6 +7397,7 @@
     "rarity": "TIER_1",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -7222,6 +7432,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7263,6 +7474,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "chain",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7297,6 +7509,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7338,6 +7551,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7372,6 +7586,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "duelist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7405,6 +7620,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7446,6 +7662,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7480,6 +7697,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "artsprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7513,6 +7731,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7547,6 +7766,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7581,6 +7801,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7615,6 +7836,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7648,6 +7870,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7681,6 +7904,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7715,6 +7939,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7749,6 +7974,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "pusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7782,6 +8008,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7816,6 +8043,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "fortress",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7850,6 +8078,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7884,6 +8113,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7925,6 +8155,7 @@
     "rarity": "TIER_4",
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -7959,6 +8190,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8000,6 +8232,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8034,6 +8267,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "healer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8067,6 +8301,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8101,6 +8336,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8134,6 +8370,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8175,6 +8412,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8209,6 +8447,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "artsprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8243,6 +8482,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8277,6 +8517,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8311,6 +8552,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "chain",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8344,6 +8586,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8385,6 +8628,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8419,6 +8663,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8452,6 +8697,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8493,6 +8739,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "librator",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8527,6 +8774,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8568,6 +8816,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8602,6 +8851,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8636,6 +8886,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8670,6 +8921,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8711,6 +8963,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8744,6 +8997,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8778,6 +9032,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8811,6 +9066,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "unyield",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8845,6 +9101,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8879,6 +9136,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8913,6 +9171,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8946,6 +9205,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -8980,6 +9240,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9014,6 +9275,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9048,6 +9310,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9089,6 +9352,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9123,6 +9387,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "phalanx",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9157,6 +9422,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "fortress",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9191,6 +9457,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "aoesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9232,6 +9499,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9265,6 +9533,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9298,6 +9567,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9332,6 +9602,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "musha",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9366,6 +9637,7 @@
     "rarity": "TIER_1",
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -9400,6 +9672,7 @@
     "rarity": "TIER_1",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -9434,6 +9707,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9468,6 +9742,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "duelist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9502,6 +9777,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9536,6 +9812,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9570,6 +9847,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9604,6 +9882,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9645,6 +9924,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9679,6 +9959,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9712,6 +9993,7 @@
     "rarity": "TIER_1",
     "profession": "TANK",
     "subProfessionId": "protector",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -9746,6 +10028,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9787,6 +10070,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "geek",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9828,6 +10112,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "fastshot",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9862,6 +10147,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9896,6 +10182,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9930,6 +10217,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9963,6 +10251,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -9997,6 +10286,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10031,6 +10321,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10065,6 +10356,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10106,6 +10398,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10140,6 +10433,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "hookmaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10174,6 +10468,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "hunter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10208,6 +10503,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10241,6 +10537,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10275,6 +10572,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10308,6 +10606,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10342,6 +10641,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10376,6 +10676,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10410,6 +10711,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10451,6 +10753,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10484,6 +10787,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10525,6 +10829,7 @@
     "rarity": "TIER_4",
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10559,6 +10864,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10600,6 +10906,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10634,6 +10941,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "wandermedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10668,6 +10976,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "hunter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10709,6 +11018,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10750,6 +11060,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10784,6 +11095,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "musha",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10818,6 +11130,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10852,6 +11165,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "bearer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10886,6 +11200,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10920,6 +11235,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10954,6 +11270,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -10988,6 +11305,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "instructor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11022,6 +11340,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11056,6 +11375,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11090,6 +11410,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11124,6 +11445,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11165,6 +11487,7 @@
     "rarity": "TIER_4",
     "profession": "TANK",
     "subProfessionId": "unyield",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11199,6 +11522,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "bombarder",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11240,6 +11564,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11274,6 +11599,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11315,6 +11641,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "charger",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11349,6 +11676,7 @@
     "rarity": "TIER_1",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -11383,6 +11711,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "underminer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11416,6 +11745,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11449,6 +11779,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "crusher",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11483,6 +11814,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11524,6 +11856,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "alchemist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11557,6 +11890,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11591,6 +11925,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11625,6 +11960,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11659,6 +11995,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11692,6 +12029,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11725,6 +12063,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11766,6 +12105,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "guardian",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11800,6 +12140,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11834,6 +12175,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "fearless",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11868,6 +12210,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11901,6 +12244,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11935,6 +12279,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -11976,6 +12321,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12010,6 +12356,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "executor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12044,6 +12391,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12085,6 +12433,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "primprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12119,6 +12468,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "merchant",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12152,6 +12502,7 @@
     "rarity": "TIER_4",
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12186,6 +12537,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "alchemist",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12220,6 +12572,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "soulcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12254,6 +12607,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "ringhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12288,6 +12642,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "primprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12322,6 +12677,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12356,6 +12712,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12389,6 +12746,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12430,6 +12788,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "reaper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12463,6 +12822,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "healer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12497,6 +12857,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "soulcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12538,6 +12899,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12572,6 +12934,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "loopshooter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12605,6 +12968,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12639,6 +13003,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12680,6 +13045,7 @@
     "rarity": "TIER_4",
     "profession": "WARRIOR",
     "subProfessionId": "librator",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12714,6 +13080,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "geek",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12755,6 +13122,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "longrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12788,6 +13156,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12829,6 +13198,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "primguard",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12863,6 +13233,7 @@
     "rarity": "TIER_1",
     "profession": "PIONEER",
     "subProfessionId": "pioneer",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -12897,6 +13268,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12930,6 +13302,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12964,6 +13337,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -12998,6 +13372,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "summoner",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13032,6 +13407,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "physician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13066,6 +13442,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "librator",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13100,6 +13477,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "artsprotector",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13134,6 +13512,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13168,6 +13547,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "reaperrange",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13201,6 +13581,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "counsellor",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13235,6 +13616,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "lord",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13276,6 +13658,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13310,6 +13693,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13344,6 +13728,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "bard",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13378,6 +13763,7 @@
     "rarity": "TIER_5",
     "profession": "SPECIAL",
     "subProfessionId": "stalker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13412,6 +13798,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "primcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13445,6 +13832,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "unyield",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13479,6 +13867,7 @@
     "rarity": "TIER_4",
     "profession": "PIONEER",
     "subProfessionId": "agent",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13512,6 +13901,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "mercenary",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13545,6 +13935,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "phalanx",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13578,6 +13969,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "slower",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13612,6 +14004,7 @@
     "rarity": "TIER_4",
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13653,6 +14046,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "hunter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13686,6 +14080,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "counsellor",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13727,6 +14122,7 @@
     "rarity": "TIER_6",
     "profession": "SUPPORT",
     "subProfessionId": "craftsman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13761,6 +14157,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "primprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13802,6 +14199,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "skybreaker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13836,6 +14234,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "incantationmedic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13877,6 +14276,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "blessing",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13911,6 +14311,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "centurion",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13944,6 +14345,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "traper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -13978,6 +14380,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "artsfghter",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14012,6 +14415,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "watchman",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14046,6 +14450,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "siegesniper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14079,6 +14484,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "fighter",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14120,6 +14526,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "splashcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14153,6 +14560,7 @@
     "rarity": "TIER_5",
     "profession": "MEDIC",
     "subProfessionId": "chainhealer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14186,6 +14594,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "ritualist",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14220,6 +14629,7 @@
     "rarity": "TIER_6",
     "profession": "WARRIOR",
     "subProfessionId": "hammer",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14261,6 +14671,7 @@
     "rarity": "TIER_6",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14295,6 +14706,7 @@
     "rarity": "TIER_6",
     "profession": "MEDIC",
     "subProfessionId": "watchman",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14336,6 +14748,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "mystic",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14377,6 +14790,7 @@
     "rarity": "TIER_5",
     "profession": "TANK",
     "subProfessionId": "primprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14411,6 +14825,7 @@
     "rarity": "TIER_1",
     "profession": "CASTER",
     "subProfessionId": "corecaster",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -14445,6 +14860,7 @@
     "rarity": "TIER_6",
     "profession": "SNIPER",
     "subProfessionId": "closerange",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14479,6 +14895,7 @@
     "rarity": "TIER_5",
     "profession": "WARRIOR",
     "subProfessionId": "mercenary",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14520,6 +14937,7 @@
     "rarity": "TIER_1",
     "profession": "PIONEER",
     "subProfessionId": "tactician",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
@@ -14554,6 +14972,7 @@
     "rarity": "TIER_6",
     "profession": "CASTER",
     "subProfessionId": "blastcaster",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14588,6 +15007,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "supportiveranger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14621,6 +15041,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "shotprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14655,6 +15076,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "skywalker",
+    "isSpChar": true,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14689,6 +15111,7 @@
     "rarity": "TIER_6",
     "profession": "TANK",
     "subProfessionId": "primprotector",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14723,6 +15146,7 @@
     "rarity": "TIER_5",
     "profession": "PIONEER",
     "subProfessionId": "bearer",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14757,6 +15181,7 @@
     "rarity": "TIER_5",
     "profession": "CASTER",
     "subProfessionId": "funnel",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14791,6 +15216,7 @@
     "rarity": "TIER_6",
     "profession": "SPECIAL",
     "subProfessionId": "dollkeeper",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14825,6 +15251,7 @@
     "rarity": "TIER_5",
     "profession": "SUPPORT",
     "subProfessionId": "supportiveranger",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14859,6 +15286,7 @@
     "rarity": "TIER_5",
     "profession": "SNIPER",
     "subProfessionId": "skybreaker",
+    "isSpChar": false,
     "phaseCount": 3,
     "buffChar": [
       {
@@ -14893,6 +15321,7 @@
     "rarity": "TIER_1",
     "profession": "WARRIOR",
     "subProfessionId": "sword",
+    "isSpChar": false,
     "phaseCount": 1,
     "buffChar": [
       {
