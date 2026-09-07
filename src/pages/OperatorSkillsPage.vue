@@ -336,7 +336,7 @@ onBeforeUnmount(() => {
         <a-checkbox v-model:checked="showReplaced">展开已被替换的技能</a-checkbox>
         <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
         <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
-        <a-checkbox v-model:checked="showTermDefinitions">显示术语描述</a-checkbox>
+        <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
         <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperatorRows.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
       </div>
     </a-card>

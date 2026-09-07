@@ -250,7 +250,7 @@ onBeforeUnmount(() => {
             <div class="skill-generator-checkboxes">
               <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
               <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
-              <a-checkbox v-model:checked="showTermDefinitions">显示术语描述</a-checkbox>
+              <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
             </div>
 
             <a-alert
