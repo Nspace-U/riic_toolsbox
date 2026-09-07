@@ -746,7 +746,6 @@ a {
 
 .operator-terms {
   display: grid;
-  grid-column: 1 / -1;
   gap: 3px;
   color: #647275;
   font-size: 12px;
@@ -765,19 +764,28 @@ a {
 }
 
 .operator-term-definitions {
+  grid-column: 1 / -1;
   display: grid;
   gap: 6px;
   margin-block-start: 2px;
   padding-block-start: 5px;
-  border-block-start: 1px solid #edf0ef;
+  border-block-start: 1px solid #aebbb8;
 }
 
 .operator-term-definition {
-  display: grid;
-  gap: 2px;
+  display: block;
   color: #748184;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+
+.operator-term-definition-name {
+  color: #647275;
+  font-weight: 600;
+}
+
+.operator-term-definition-text {
+  display: block;
 }
 
 .operator-skills-list {
