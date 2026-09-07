@@ -85,9 +85,6 @@ function drawOperatorName(
   avatarHeight: number,
   nameHeight: number,
 ): void {
-  context.fillStyle = '#253238'
-  context.fillRect(0, avatarHeight, width, nameHeight)
-
   const maxTextWidth = Math.max(1, width - 24)
   let fontSize = Math.max(12, Math.round(nameHeight * 0.42))
   context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
