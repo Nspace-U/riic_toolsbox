@@ -17,7 +17,7 @@ npm run dev
 npm run sync:torappu
 ```
 
-脚本会读取 Torappu 最新的已完成版本，裁剪为应用实际使用的字段后写入 `public/assets/gamedata/latest`，并将原始头像和技能图标写入 `public/assets/raw`，同时在 `torappu-meta.json` 中记录版本号与 revision。现有 CSV、术语文件和旧资源目录会保留，作为兼容数据。
+脚本会读取 Torappu 最新的已完成版本，按原始数据层级将每个干员的 `buffChar` 写入 `public/assets/gamedata/latest/excel/character_table.json`，将共享的 `buffs` 写入 `public/assets/gamedata/latest/excel/building_data.json`，并将原始头像和技能图标写入 `public/assets/raw`，同时在 `torappu-meta.json` 中记录版本号与 revision。应用运行时通过 `buffId` 关联干员的 `buffChar` 和共享 `buffs`；术语名称直接从基建技能描述标签提取，不生成独立术语文件。
 
 ## 同步 PRTS WIKI 实装顺序
 

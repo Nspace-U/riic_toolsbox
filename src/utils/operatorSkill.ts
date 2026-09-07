@@ -1,28 +1,20 @@
-import type { BaseSkillTerm, BaseSkillTerms, Operator, OperatorSkill } from '@/types/baseData'
+import type {
+  Operator,
+  OperatorSkill,
+  SkillTermReference,
+} from '@/types/baseData'
 
 export function getOperatorSkillTermKeys(skills: OperatorSkill[]): string[] {
-  return [...new Set(skills.flatMap((skill) => {
-    return [...skill.description.matchAll(/\[T=([^\]]+)\][\s\S]*?\[\/T\]/g)].map((match) => match[1] ?? '')
-  }))]
+  return [...new Set(skills.flatMap((skill) => skill.termReferences.map((reference) => reference.key)))]
 }
 
 export function getOperatorTerms(
   operator: Operator,
-  terms: BaseSkillTerms,
-): Array<[string, BaseSkillTerm]> {
-  const termEntries = new Map<string, BaseSkillTerm>()
-  getOperatorSkillTermKeys(operator.skills).forEach((key) => {
-    const term = terms[key]
-    if (term) {
-      termEntries.set(key, term)
-    }
+): SkillTermReference[] {
+  const termEntries = new Map<string, SkillTermReference>()
+  operator.skills.flatMap((skill) => skill.termReferences).forEach((reference) => {
+    termEntries.set(reference.key, reference)
   })
 
-  Object.entries(terms).forEach(([key, term]) => {
-    if (term.members.includes(operator.name) && !termEntries.has(key)) {
-      termEntries.set(key, term)
-    }
-  })
-
-  return [...termEntries.entries()]
+  return [...termEntries.values()]
 }

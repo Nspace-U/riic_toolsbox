@@ -5,22 +5,20 @@ import { computed } from 'vue'
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import type { DataSourceId } from '@/composables/useDataSource'
-import type { BaseSkillTerm, Operator, OperatorSkill } from '@/types/baseData'
+import type { Operator, OperatorSkill, SkillTermReference } from '@/types/baseData'
 import { getOperatorTerms } from '@/utils/operatorSkill'
 import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
 const props = withDefaults(defineProps<{
   dataSource: DataSourceId
   operator: Operator
-  terms: Record<string, BaseSkillTerm>
   skills?: OperatorSkill[]
   visibleSkills?: OperatorSkill[]
-  operatorTerms?: Array<[string, BaseSkillTerm]>
+  operatorTerms?: SkillTermReference[]
   expanded?: boolean
   showExpandButton?: boolean
   showOperatorId?: boolean
   showTerms?: boolean
-  showTermDefinitions?: boolean
   searchText?: string
 }>(), {
   skills: undefined,
@@ -29,7 +27,6 @@ const props = withDefaults(defineProps<{
   showExpandButton: false,
   showOperatorId: true,
   showTerms: true,
-  showTermDefinitions: true,
   searchText: '',
 })
 
@@ -67,12 +64,12 @@ function skillKey(skill: OperatorSkill): string {
 
 const allSkills = computed(() => props.skills ?? props.operator.skills)
 const visibleSkillKeys = computed(() => new Set((props.visibleSkills ?? allSkills.value).map(skillKey)))
-const termsForOperator = computed<Array<[string, BaseSkillTerm]>>(() => {
+const termsForOperator = computed<SkillTermReference[]>(() => {
   if (props.operatorTerms) {
     return props.operatorTerms
   }
 
-  return getOperatorTerms(props.operator, props.terms)
+  return getOperatorTerms(props.operator)
 })
 
 function isSkillVisible(skill: OperatorSkill): boolean {
@@ -104,13 +101,12 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         <span class="operator-terms-label">所属术语</span>
         <span class="operator-terms-list">
           <a-tooltip
-            v-for="([termKey, term]) in termsForOperator"
-            :key="termKey"
+            v-for="term in termsForOperator"
+            :key="term.key"
             placement="topLeft"
           >
             <template #title>
               <div class="term-tooltip-title">术语：{{ term.name }}</div>
-              <div v-if="showTermDefinitions && term.definition" class="term-tooltip-definition">{{ term.definition }}</div>
             </template>
             <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
           </a-tooltip>
@@ -145,7 +141,6 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           <RichTextDescription
             v-if="skill.description"
             :highlight-query="searchText"
-            :terms="terms"
             :text="skill.description"
           />
         </div>
@@ -162,21 +157,6 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         </template>
         {{ expanded ? '折叠隐藏技能' : '展开隐藏技能' }}
       </a-button>
-    </div>
-
-    <div
-      v-if="showTerms && showTermDefinitions && termsForOperator.length"
-      class="operator-term-definitions"
-    >
-      <div
-        v-for="([termKey, term]) in termsForOperator"
-        :key="`${termKey}-definition`"
-        v-show="term.definition"
-        class="operator-term-definition"
-      >
-        <span class="operator-term-definition-name">{{ term.name }}：</span>
-        <span class="operator-term-definition-text">{{ term.definition }}</span>
-      </div>
     </div>
 
   </a-card>

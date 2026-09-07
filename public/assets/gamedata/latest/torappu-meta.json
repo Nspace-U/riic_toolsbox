@@ -422,7 +422,6 @@
     "characterTable": "gamedata/latest/excel/character_table.json",
     "buildingData": "gamedata/latest/excel/building_data.json",
     "avatars": "raw/char_avatar",
-    "skillIcons": "raw/build_skill_icon",
-    "terms": "project/base-skill-terms.json"
+    "skillIcons": "raw/build_skill_icon"
   }
 }

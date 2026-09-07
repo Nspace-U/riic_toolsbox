@@ -1,4 +1,9 @@
-import type { BaseDataMetadata, BaseSkillTerms, Operator, OperatorSkill } from '@/types/baseData'
+import type {
+  BaseDataMetadata,
+  Operator,
+  OperatorSkill,
+  SkillTermReference,
+} from '@/types/baseData'
 
 export interface TorappuCharacter {
   name?: string
@@ -9,6 +14,7 @@ export interface TorappuCharacter {
   profession?: string
   subProfessionId?: string
   phaseCount?: number
+  buffChar?: Array<{ buffData?: TorappuBuffData[] }>
 }
 
 export interface TorappuCondition {
@@ -19,11 +25,6 @@ export interface TorappuCondition {
 export interface TorappuBuffData {
   buffId?: string
   cond?: TorappuCondition
-}
-
-export interface TorappuBuildingCharacter {
-  charId?: string
-  buffChar?: Array<{ buffData?: TorappuBuffData[] }>
 }
 
 export interface TorappuBuff {
@@ -39,7 +40,6 @@ export interface TorappuCharacterTable {
 }
 
 export interface TorappuBuildingData {
-  chars?: Record<string, TorappuBuildingCharacter>
   buffs?: Record<string, TorappuBuff>
 }
 
@@ -102,30 +102,22 @@ function conditionLabel(condition: TorappuCondition | undefined): string {
   return level === 1 ? `精英${phase}` : `${level}级`
 }
 
-function normalizeDescription(description: string | undefined, terms: BaseSkillTerms): string {
-  const normalizedDescription = (description ?? '').replace(/<<(?=[$@])/g, '')
-  const withTermColors = normalizedDescription.replace(
-    /<\$([^>]+)><@([^>]+)>([\s\S]*?)<\/><\/>/g,
-    (_match: string, termTag: string, colorTag: string, text: string) => {
-      const color = DESCRIPTION_COLORS[colorTag] ?? '#0098DC'
-      const content = `[C=${color}]${text}[/C]`
-      return terms[termTag] ? `[T=${termTag}]${content}[/T]` : content
-    },
-  )
-  const withTerms = withTermColors.replace(
-    /<\$([^>]+)>([\s\S]*?)<\/>/g,
-    (_match: string, termTag: string, text: string) => (
-      terms[termTag] ? `[T=${termTag}]${text}[/T]` : text
-    ),
-  )
-  const withColors = withTerms.replace(
-    /<@([^>]+)>([\s\S]*?)<\/>/g,
-    (_match: string, tag: string, text: string) => {
-      const color = DESCRIPTION_COLORS[tag] ?? '#0098DC'
-      return `[C=${color}]${text}[/C]`
-    },
-  )
-  return withColors
+function stripDescriptionTags(value: string): string {
+  return value
+    .replace(/<@[^>]+>/g, '')
+    .replace(/<\/>/g, '')
+}
+
+function extractTermReferences(description: string | undefined): SkillTermReference[] {
+  const references = new Map<string, SkillTermReference>()
+  for (const match of (description ?? '').matchAll(/<\$([^>]+)>([\s\S]*?)<\/>/g)) {
+    const key = match[1]?.trim()
+    const name = stripDescriptionTags(match[2] ?? '').trim()
+    if (key && name && !Object.hasOwn(DESCRIPTION_COLORS, key) && !references.has(key)) {
+      references.set(key, { key, name })
+    }
+  }
+  return [...references.values()]
 }
 
 function avatarFileName(operatorId: string, eliteLevel: number): string {
@@ -175,13 +167,12 @@ function buildReplacement(records: TorappuSkillRecord[], index: number): string 
 }
 
 function buildSkills(
-  buildingCharacter: TorappuBuildingCharacter,
+  character: TorappuCharacter,
   buffs: Record<string, TorappuBuff>,
-  terms: BaseSkillTerms,
 ): OperatorSkill[] {
   const skills: OperatorSkill[] = []
 
-  for (const [slotIndex, slotData] of (buildingCharacter.buffChar ?? []).entries()) {
+  for (const [slotIndex, slotData] of (character.buffChar ?? []).entries()) {
     const slot = String(slotIndex + 1)
     const records: TorappuSkillRecord[] = []
     for (const buffData of slotData.buffData ?? []) {
@@ -201,7 +192,8 @@ function buildSkills(
         facility: FACILITY_LABELS[buff.roomType ?? ''] ?? buff.roomType ?? '',
         iconFile: buff.skillIcon ? `${buff.skillIcon}.png` : '',
         iconStatus: '正常',
-        description: normalizeDescription(buff.description, terms),
+        description: buff.description ?? '',
+        termReferences: extractTermReferences(buff.description),
         phase: phaseValue(buffData.cond),
         level: conditionLevel(buffData.cond),
       })
@@ -223,19 +215,16 @@ function buildSkills(
 export function parseTorappuData(
   characterTable: TorappuCharacterTable,
   buildingData: TorappuBuildingData,
-  terms: BaseSkillTerms,
   metadata: BaseDataMetadata,
 ): Operator[] {
-  const buildingCharacters = buildingData.chars ?? {}
   const buffs = buildingData.buffs ?? {}
   const missingAvatars = new Set(metadata.missingAvatars ?? [])
   const operators: Operator[] = []
 
-  for (const [operatorId, buildingCharacter] of Object.entries(buildingCharacters)) {
+  for (const [operatorId, character] of Object.entries(characterTable)) {
     if (!operatorId.startsWith('char_')) {
       continue
     }
-    const character = characterTable[operatorId]
     if (!character?.name) {
       continue
     }
@@ -249,7 +238,7 @@ export function parseTorappuData(
       branch: character.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
-      skills: buildSkills(buildingCharacter, buffs, terms),
+      skills: buildSkills(character, buffs),
     })
   }
 

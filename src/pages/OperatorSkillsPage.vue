@@ -10,7 +10,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import OperatorSkillCard from '@/components/OperatorSkillCard.vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
-import type { BaseSkillTerm, Operator, OperatorSkill } from '@/types/baseData'
+import type { Operator, OperatorSkill, SkillTermReference } from '@/types/baseData'
 import { getOperatorSkillTermKeys, getOperatorTerms } from '@/utils/operatorSkill'
 
 const FACILITIES = [
@@ -29,7 +29,7 @@ type SortMode = 'implementationOrder' | 'name'
 type OperatorDisplayRow = {
   operator: Operator
   skills: OperatorSkill[]
-  terms: Array<[string, BaseSkillTerm]>
+  terms: SkillTermReference[]
   implementationOrder: number | undefined
   searchMatchedHiddenSkill: boolean
 }
@@ -41,14 +41,13 @@ type PreparedSkill = {
 type PreparedOperator = {
   operator: Operator
   skills: PreparedSkill[]
-  terms: Array<[string, BaseSkillTerm]>
+  terms: SkillTermReference[]
   searchText: string
   implementationOrder: number | undefined
 }
 
 const {
   operators,
-  terms,
   metadata,
   loading,
   assetsLoading,
@@ -65,7 +64,6 @@ const selectedFacilities = ref<string[]>([])
 const showReplaced = ref(false)
 const showOperatorId = ref(true)
 const showTerms = ref(true)
-const showTermDefinitions = ref(true)
 const sortMode = ref<SortMode>('implementationOrder')
 const expandedOperatorIds = ref(new Set<string>())
 let filterUpdateTimer: number | undefined
@@ -143,7 +141,7 @@ function sortOperatorRows(operatorRows: OperatorDisplayRow[]): OperatorDisplayRo
 
 const preparedOperators = computed<PreparedOperator[]>(() => {
   return operators.value.map((operator) => {
-    const termsForOperator = getOperatorTerms(operator, terms.value)
+    const termsForOperator = getOperatorTerms(operator)
 
     const skills = operator.skills.map((skill) => ({
       skill,
@@ -153,8 +151,11 @@ const preparedOperators = computed<PreparedOperator[]>(() => {
         skill.facility,
         skill.unlockCondition,
         skill.replacement,
-        skill.description.replace(/\[(?:\/?(?:C|T)(?:=[^\]]+)?)\]/g, ''),
-        ...getOperatorSkillTermKeys([skill]).flatMap((key) => [key, terms.value[key]?.name ?? '']),
+        skill.description,
+        ...getOperatorSkillTermKeys([skill]).flatMap((key) => {
+          const reference = skill.termReferences.find((term) => term.key === key)
+          return [key, reference?.name ?? '']
+        }),
       ].join(' ').toLocaleLowerCase(),
     }))
 
@@ -167,7 +168,7 @@ const preparedOperators = computed<PreparedOperator[]>(() => {
         operator.id,
         operator.profession,
         operator.branch,
-        ...termsForOperator.flatMap(([key, term]) => [key, term.name]),
+        ...termsForOperator.flatMap((term) => [term.key, term.name]),
       ].join(' ').toLocaleLowerCase(),
       implementationOrder: operator.implementationOrder,
     }
@@ -241,6 +242,14 @@ const totalSkillCount = computed(() => {
   return operators.value.reduce((count, operator) => count + operator.skills.length, 0)
 })
 
+const totalTermCount = computed(() => {
+  return new Set(
+    operators.value.flatMap((operator) => operator.skills.flatMap((skill) => (
+      skill.termReferences.map((reference) => reference.key)
+    ))),
+  ).size
+})
+
 function handleReload(): void {
   void reload()
 }
@@ -249,7 +258,7 @@ watch([searchText, selectedFacilities, showReplaced, sortMode], () => {
   clearExpandedOperators()
   scheduleFilteredOperatorUpdate()
 })
-watch([operators, terms], scheduleFilteredOperatorUpdate, { immediate: true })
+watch(operators, scheduleFilteredOperatorUpdate, { immediate: true })
 
 onBeforeUnmount(() => {
   if (filterUpdateTimer !== undefined) {
@@ -276,7 +285,7 @@ onBeforeUnmount(() => {
         <span v-if="loading">正在读取数据...</span>
         <span v-else-if="assetsLoading">正在后台准备图片...</span>
         <span v-else-if="ready">
-          已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 · {{ Object.keys(terms).length }} 条术语
+          已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 · {{ totalTermCount }} 条术语
           <span v-if="metadata" class="operator-data-version">Torappu {{ metadata.clientVersion }} · {{ metadata.resVersion }}</span>
           <span v-if="assetPreloadResult?.failed" class="operator-data-version">
             {{ assetPreloadResult.failed }} 张图片读取失败
@@ -336,7 +345,6 @@ onBeforeUnmount(() => {
         <a-checkbox v-model:checked="showReplaced">展开已被替换的技能</a-checkbox>
         <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
         <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
-        <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
         <span v-if="ready" class="operator-filter-count">当前显示 {{ filteredOperatorRows.length }} 名干员 · {{ visibleSkillCount }} 条技能</span>
       </div>
     </a-card>
@@ -346,15 +354,13 @@ onBeforeUnmount(() => {
         <OperatorSkillCard
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
-          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms, showTermDefinitions]"
+          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms]"
           :data-source="selectedDataSource"
           :operator="row.operator"
           :operator-terms="row.terms"
           :show-operator-id="showOperatorId"
-          :show-term-definitions="showTermDefinitions"
           :show-terms="showTerms"
           :skills="row.operator.skills"
-          :terms="terms"
           :visible-skills="row.skills"
           :expanded="isExpanded(row.operator)"
           show-expand-button

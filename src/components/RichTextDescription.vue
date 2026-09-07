@@ -2,66 +2,83 @@
 import { computed } from 'vue'
 
 import SearchHighlight from '@/components/SearchHighlight.vue'
-import type { BaseSkillTerm } from '@/types/baseData'
+import type { SkillTermReference } from '@/types/baseData'
 
 interface RichTextPart {
   text: string
   color?: string
-  term?: BaseSkillTerm
+  term?: SkillTermReference
+}
+
+const DESCRIPTION_COLORS: Record<string, string> = {
+  'cc.kw': '#00B0FF',
+  'cc.rem': '#8C8C8C',
+  'cc.vdown': '#FF6237',
+  'cc.vup': '#0098DC',
 }
 
 const props = defineProps<{
   highlightQuery?: string
   text: string
-  terms: Record<string, BaseSkillTerm>
 }>()
 
-function parseParts(text: string, color?: string, term?: BaseSkillTerm): RichTextPart[] {
+const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
+
+function parseParts(
+  text: string,
+  color?: string,
+  term?: SkillTermReference,
+  cursor = 0,
+  closingTag?: string,
+): { parts: RichTextPart[]; cursor: number } {
   const parts: RichTextPart[] = []
-  let cursor = 0
 
   while (cursor < text.length) {
-    const tagStart = text.indexOf('[', cursor)
-    if (tagStart < 0) {
+    MARKUP_TOKEN.lastIndex = cursor
+    const match = MARKUP_TOKEN.exec(text)
+    if (!match) {
       parts.push({ text: text.slice(cursor), color, term })
-      break
+      return { parts, cursor: text.length }
     }
+
+    const tag = match[0]
+    const tagStart = match.index
     if (tagStart > cursor) {
       parts.push({ text: text.slice(cursor, tagStart), color, term })
     }
-
-    const tagEnd = text.indexOf(']', tagStart)
-    if (tagEnd < 0) {
-      parts.push({ text: text.slice(tagStart), color, term })
-      break
+    if (tag === closingTag) {
+      return { parts, cursor: tagStart + tag.length }
     }
-
-    const openingTag = text.slice(tagStart, tagEnd + 1)
-    const tagType = openingTag.startsWith('[C=') ? 'C' : openingTag.startsWith('[T=') ? 'T' : ''
-    if (!tagType) {
-      parts.push({ text: openingTag, color, term })
-      cursor = tagEnd + 1
+    if (tag === '</>') {
+      parts.push({ text: tag, color, term })
+      cursor = tagStart + tag.length
       continue
     }
 
-    const closeTag = `[/${tagType}]`
-    const closeIndex = text.indexOf(closeTag, tagEnd + 1)
-    if (closeIndex < 0) {
-      parts.push({ text: text.slice(tagStart), color, term })
-      break
+    const tagType = tag[1]
+    const attribute = tag.slice(2, -1)
+    const nextColor = tagType === '@'
+      ? (DESCRIPTION_COLORS[attribute] ?? attribute)
+      : color
+    const nextTerm = tagType === '$' && !DESCRIPTION_COLORS[attribute]
+      ? { key: attribute, name: '' }
+      : term
+    const nextClosingTag = '</>'
+    const child = parseParts(text, nextColor, nextTerm, tagStart + tag.length, nextClosingTag)
+    if (tagType === '$' && nextTerm && !DESCRIPTION_COLORS[attribute]) {
+      const name = child.parts.map((part) => part.text).join('').trim()
+      child.parts.forEach((part) => {
+        part.term = { key: attribute, name }
+      })
     }
-
-    const attribute = openingTag.slice(3, -1)
-    const nextColor = tagType === 'C' ? attribute : color
-    const nextTerm = tagType === 'T' ? props.terms[attribute] : term
-    parts.push(...parseParts(text.slice(tagEnd + 1, closeIndex), nextColor, nextTerm))
-    cursor = closeIndex + closeTag.length
+    parts.push(...child.parts)
+    cursor = child.cursor
   }
 
-  return parts
+  return { parts, cursor }
 }
 
-const parts = computed(() => parseParts(props.text))
+const parts = computed(() => parseParts(props.text).parts)
 </script>
 
 <template>
@@ -70,7 +87,6 @@ const parts = computed(() => parseParts(props.text))
       <a-tooltip v-if="part.term" placement="topLeft">
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
-          <div v-if="part.term.definition" class="term-tooltip-definition">{{ part.term.definition }}</div>
         </template>
         <span :style="{ color: part.color }" class="term-text">
           <SearchHighlight :query="highlightQuery ?? ''" :text="part.text" />

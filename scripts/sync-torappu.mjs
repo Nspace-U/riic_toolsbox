@@ -1,4 +1,4 @@
-import { access, copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -79,10 +79,16 @@ async function runPool(items, concurrency, worker) {
 }
 
 // Keep the local snapshot limited to fields consumed by the app and asset sync.
-function selectCharacterTable(characterTable, operatorIds, previousCharacterTable = {}) {
+function selectCharacterTable(
+  characterTable,
+  buildingCharacters,
+  operatorIds,
+  previousCharacterTable = {},
+) {
   return Object.fromEntries(
     operatorIds.map((operatorId) => {
       const character = characterTable[operatorId]
+      const buildingCharacter = buildingCharacters[operatorId]
       const implementationDate = previousCharacterTable[operatorId]?.implementationDate
       const implementationOrder = previousCharacterTable[operatorId]?.implementationOrder
       const branch = previousCharacterTable[operatorId]?.branch
@@ -92,6 +98,19 @@ function selectCharacterTable(characterTable, operatorIds, previousCharacterTabl
         profession: character.profession,
         subProfessionId: character.subProfessionId,
         phaseCount: Array.isArray(character.phases) ? character.phases.length : 0,
+        buffChar: (buildingCharacter?.buffChar ?? []).map((slotData) => ({
+          buffData: (slotData.buffData ?? []).map((buffData) => ({
+            buffId: buffData.buffId,
+            ...(buffData.cond
+              ? {
+                  cond: {
+                    phase: buffData.cond.phase,
+                    level: buffData.cond.level,
+                  },
+                }
+              : {}),
+          })),
+        })),
         ...(implementationDate ? { implementationDate } : {}),
         ...(Number.isFinite(implementationOrder) ? { implementationOrder } : {}),
         ...(branch ? { branch } : {}),
@@ -110,29 +129,9 @@ async function readExistingCharacterTable() {
 }
 
 function selectBuildingData(buildingData, operatorIds) {
-  const chars = Object.fromEntries(
-    operatorIds.map((operatorId) => {
-      const character = buildingData.chars[operatorId]
-      return [operatorId, {
-        buffChar: (character.buffChar ?? []).map((slotData) => ({
-          buffData: (slotData.buffData ?? []).map((buffData) => ({
-            buffId: buffData.buffId,
-            ...(buffData.cond
-              ? {
-                  cond: {
-                    phase: buffData.cond.phase,
-                    level: buffData.cond.level,
-                  },
-                }
-              : {}),
-          })),
-        })),
-      }]
-    }),
-  )
   const buffIds = new Set(
-    Object.values(chars).flatMap((character) =>
-      character.buffChar.flatMap((slotData) =>
+    operatorIds.flatMap((operatorId) =>
+      (buildingData.chars?.[operatorId]?.buffChar ?? []).flatMap((slotData) =>
         slotData.buffData.map((buffData) => buffData.buffId).filter(Boolean),
       ),
     ),
@@ -149,7 +148,7 @@ function selectBuildingData(buildingData, operatorIds) {
     }),
   )
 
-  return { chars, buffs }
+  return { buffs }
 }
 
 function avatarNames(operatorId, character) {
@@ -184,7 +183,12 @@ async function main() {
     (operatorId) => operatorId.startsWith('char_') && rawData.character_table[operatorId]?.name,
   )
   const data = {
-    character_table: selectCharacterTable(rawData.character_table, operatorIds, previousCharacterTable),
+    character_table: selectCharacterTable(
+      rawData.character_table,
+      rawData.building_data.chars ?? {},
+      operatorIds,
+      previousCharacterTable,
+    ),
     building_data: selectBuildingData(rawData.building_data, operatorIds),
   }
   for (const dataFile of DATA_FILES) {
@@ -223,15 +227,6 @@ async function main() {
     }
   })
 
-  const legacyTermsPath = resolve(publicAssetsRoot, 'base-skill-terms.json')
-  const projectTermsPath = resolve(publicAssetsRoot, 'project/base-skill-terms.json')
-  await mkdir(dirname(projectTermsPath), { recursive: true })
-  try {
-    await access(projectTermsPath)
-  } catch {
-    await copyFile(legacyTermsPath, projectTermsPath)
-  }
-
   await writeJson('gamedata/latest/torappu-meta.json', {
     source: 'Torappu',
     sourceUrl: SOURCE_URL,
@@ -245,7 +240,6 @@ async function main() {
       buildingData: 'gamedata/latest/excel/building_data.json',
       avatars: 'raw/char_avatar',
       skillIcons: 'raw/build_skill_icon',
-      terms: 'project/base-skill-terms.json',
     },
   })
 

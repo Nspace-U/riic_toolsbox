@@ -16,6 +16,7 @@ export interface OperatorSkill {
   iconFile: string
   iconStatus: string
   description: string
+  termReferences: SkillTermReference[]
 }
 
 export interface Operator {
@@ -30,13 +31,10 @@ export interface Operator {
   skills: OperatorSkill[]
 }
 
-export interface BaseSkillTerm {
+export interface SkillTermReference {
+  key: string
   name: string
-  definition: string
-  members: string[]
 }
-
-export type BaseSkillTerms = Record<string, BaseSkillTerm>
 
 export interface BaseDataMetadata {
   versionId: number
@@ -50,6 +48,5 @@ export interface BaseDataMetadata {
 
 export interface BaseData {
   operators: Operator[]
-  terms: BaseSkillTerms
   metadata?: BaseDataMetadata
 }
