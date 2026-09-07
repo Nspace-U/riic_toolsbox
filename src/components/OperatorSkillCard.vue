@@ -110,6 +110,8 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           <a-tooltip
             v-for="term in termsForOperator"
             :key="term.key"
+            :align="{ offset: [0, 0] }"
+            overlay-class-name="term-tooltip"
             placement="topLeft"
           >
             <template #title>

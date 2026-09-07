@@ -83,7 +83,12 @@ const parts = computed(() => parseParts(props.text).parts)
 <template>
   <span class="rich-description">
     <template v-for="(part, index) in parts" :key="`${index}-${part.text}`">
-      <a-tooltip v-if="part.term" placement="topLeft">
+      <a-tooltip
+        v-if="part.term"
+        :align="{ offset: [0, 0] }"
+        overlay-class-name="term-tooltip"
+        placement="topLeft"
+      >
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
           <div v-if="part.term.definition" class="term-tooltip-definition">{{ part.term.definition }}</div>
