@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  CopyOutlined,
   DownloadOutlined,
   PictureOutlined,
   ReloadOutlined,
@@ -39,6 +40,9 @@ const moodScattered = ref(false)
 const generating = ref(false)
 const generationError = ref('')
 const generatedImageUrl = ref('')
+const copying = ref(false)
+const copyError = ref('')
+const copySuccess = ref(false)
 
 const operatorOptions = computed(() => {
   return operators.value.map((operator) => ({
@@ -161,11 +165,40 @@ function handleDownload(): void {
   link.click()
 }
 
+async function handleCopyImage(): Promise<void> {
+  if (!generatedImageUrl.value || copying.value) {
+    return
+  }
+
+  copying.value = true
+  copyError.value = ''
+  copySuccess.value = false
+
+  try {
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      throw new Error('当前浏览器不支持复制图片，请使用下载 PNG')
+    }
+
+    const response = await fetch(generatedImageUrl.value)
+    const imageBlob = await response.blob()
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'image/png': imageBlob }),
+    ])
+    copySuccess.value = true
+  } catch (error: unknown) {
+    copyError.value = error instanceof Error ? error.message : '图片复制失败，请使用下载 PNG'
+  } finally {
+    copying.value = false
+  }
+}
+
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
   [selectedOperatorId, selectedEliteLevel, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
   () => {
     generationError.value = ''
+    copyError.value = ''
+    copySuccess.value = false
     void handleGenerate()
   },
   { immediate: true },
@@ -259,6 +292,13 @@ onBeforeUnmount(() => {
               show-icon
               type="error"
             />
+            <a-alert
+              v-if="copyError"
+              :message="copyError"
+              class="avatar-generator-warning"
+              show-icon
+              type="error"
+            />
 
           </a-form>
         </a-card>
@@ -284,12 +324,20 @@ onBeforeUnmount(() => {
               <span v-if="selectedOperator">{{ selectedOperator.name }}</span>
               <span v-if="selectedOperator">{{ rarityLabel(selectedOperator) }} · {{ selectedOperator.profession || '未知职业' }}</span>
             </div>
-            <a-button v-if="generatedImageUrl" type="primary" @click="handleDownload">
-              <template #icon>
-                <DownloadOutlined />
-              </template>
-              下载 PNG
-            </a-button>
+            <div v-if="generatedImageUrl" class="avatar-preview-actions">
+              <a-button :loading="copying" @click="handleCopyImage">
+                <template #icon>
+                  <CopyOutlined />
+                </template>
+                {{ copySuccess ? '已复制' : '复制图片' }}
+              </a-button>
+              <a-button type="primary" @click="handleDownload">
+                <template #icon>
+                  <DownloadOutlined />
+                </template>
+                下载 PNG
+              </a-button>
+            </div>
           </div>
         </a-card>
       </div>

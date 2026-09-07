@@ -392,6 +392,13 @@ a {
   padding-block-start: 18px;
 }
 
+.avatar-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .avatar-preview-meta {
   display: grid;
   min-width: 0;
@@ -846,6 +853,14 @@ a {
   }
 
   .avatar-preview-footer .ant-btn {
+    width: 100%;
+  }
+
+  .avatar-preview-actions {
+    flex-direction: column;
+  }
+
+  .avatar-preview-actions .ant-btn {
     width: 100%;
   }
 
