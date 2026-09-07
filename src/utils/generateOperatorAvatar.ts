@@ -93,6 +93,7 @@ function drawOperatorName(
     context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
   }
 
+  context.fillStyle = '#000000'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillText(operatorName, width / 2, avatarHeight + nameHeight / 2, maxTextWidth)
