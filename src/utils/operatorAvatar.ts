@@ -18,6 +18,7 @@ export interface OperatorAvatarRenderOptions {
   showRarity: boolean
   showEliteLevel: boolean
   showProfession: boolean
+  showName: boolean
   moodScattered: boolean
 }
 
@@ -57,12 +58,14 @@ export async function generateOperatorAvatarUrl(
 
   const imageBlob = await generateOperatorAvatar({
     imageUrl: getOperatorAvatarSourceUrl(dataSource, avatarFile),
+    operatorName: operator.name,
     professionIconUrl: getProfessionIconUrl(operator.profession),
     eliteIconUrl: getEliteIconUrl(options.eliteLevel),
     rarityIconUrl: operator.rarity > 0 ? getRarityIconUrl(operator.rarity) : undefined,
     showRarity: options.showRarity,
     showEliteLevel: options.showEliteLevel,
     showProfession: options.showProfession,
+    showName: options.showName,
     moodScattered: options.moodScattered,
   })
   return URL.createObjectURL(imageBlob)

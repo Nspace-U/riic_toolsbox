@@ -1,11 +1,13 @@
 export interface OperatorAvatarGenerationOptions {
   imageUrl: string
+  operatorName: string
   professionIconUrl?: string
   eliteIconUrl?: string
   rarityIconUrl?: string
   showRarity: boolean
   showEliteLevel: boolean
   showProfession: boolean
+  showName: boolean
   moodScattered: boolean
 }
 
@@ -76,6 +78,30 @@ function drawMetadata(
   }
 }
 
+function drawOperatorName(
+  context: CanvasRenderingContext2D,
+  operatorName: string,
+  width: number,
+  avatarHeight: number,
+  nameHeight: number,
+): void {
+  context.fillStyle = '#253238'
+  context.fillRect(0, avatarHeight, width, nameHeight)
+
+  const maxTextWidth = Math.max(1, width - 24)
+  let fontSize = Math.max(12, Math.round(nameHeight * 0.42))
+  context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
+  while (fontSize > 12 && context.measureText(operatorName).width > maxTextWidth) {
+    fontSize -= 1
+    context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
+  }
+
+  context.fillStyle = '#fff5e9'
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(operatorName, width / 2, avatarHeight + nameHeight / 2, maxTextWidth)
+}
+
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -93,9 +119,12 @@ export async function generateOperatorAvatar(
 ): Promise<Blob> {
   const image = await loadImage(options.imageUrl)
   const overlayImages = await loadOverlayImages(options)
+  const nameHeight = options.showName && options.operatorName
+    ? Math.max(48, Math.round(image.naturalWidth * 0.18))
+    : 0
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
-  canvas.height = image.naturalHeight
+  canvas.height = image.naturalHeight + nameHeight
 
   const context = canvas.getContext('2d')
   if (!context) {
@@ -110,6 +139,10 @@ export async function generateOperatorAvatar(
   }
 
   drawMetadata(context, overlayImages, image.naturalWidth, image.naturalHeight, options)
+
+  if (nameHeight > 0) {
+    drawOperatorName(context, options.operatorName, image.naturalWidth, image.naturalHeight, nameHeight)
+  }
 
   return canvasToBlob(canvas)
 }

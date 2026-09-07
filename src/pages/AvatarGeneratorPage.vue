@@ -34,6 +34,7 @@ const selectedEliteLevel = ref<EliteLevel>(0)
 const showRarity = ref(true)
 const showEliteLevel = ref(true)
 const showProfession = ref(true)
+const showName = ref(false)
 const moodScattered = ref(false)
 const generating = ref(false)
 const generationError = ref('')
@@ -126,6 +127,7 @@ async function handleGenerate(): Promise<void> {
       showRarity: showRarity.value,
       showEliteLevel: showEliteLevel.value,
       showProfession: showProfession.value,
+      showName: showName.value,
       moodScattered: moodScattered.value,
     })
     if (requestId === generationRequestId) {
@@ -159,7 +161,7 @@ function handleDownload(): void {
 
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
-  [selectedOperatorId, selectedEliteLevel, showRarity, showEliteLevel, showProfession, moodScattered, selectedDataSource],
+  [selectedOperatorId, selectedEliteLevel, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
   () => {
     generationError.value = ''
     void handleGenerate()
@@ -233,6 +235,7 @@ onBeforeUnmount(() => {
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
               <a-checkbox v-model:checked="showEliteLevel">显示精英化等级</a-checkbox>
               <a-checkbox v-model:checked="showProfession">显示职业</a-checkbox>
+              <a-checkbox v-model:checked="showName">显示干员名称</a-checkbox>
               <a-checkbox v-model:checked="moodScattered">心情涣散</a-checkbox>
             </div>
 
