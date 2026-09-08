@@ -2,6 +2,7 @@
 import { DownOutlined, UpOutlined } from '@ant-design/icons-vue'
 import { computed } from 'vue'
 
+import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import type { DataSourceId } from '@/composables/useDataSource'
@@ -87,11 +88,18 @@ function isSkillVisible(skill: OperatorSkill): boolean {
 <template>
   <a-card :bordered="false" class="operator-card">
     <div class="operator-avatar-column">
-      <img
+      <OperatorAvatarDisplay
         v-if="operatorAvatarUrl(operator)"
-        :alt="`${operator.name}头像`"
-        :src="operatorAvatarUrl(operator) || ''"
-        decoding="async"
+        :data-source="dataSource"
+        :elite-level="0"
+        :mood-scattered="false"
+        :operator="operator"
+        :plain="true"
+        :show-elite-level="false"
+        :show-name="false"
+        :show-profession="false"
+        :show-rarity="false"
+        :size="112"
       />
       <div v-else class="operator-avatar-placeholder">暂无</div>
     </div>
