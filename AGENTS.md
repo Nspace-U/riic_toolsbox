@@ -24,6 +24,15 @@
 
 每次修改完成后对修改部分进行提交
 
+Common commit types:
+
+- `feature` - New feature
+- `fix` - Bug fix
+- `update` - Small updates (text changes, JSON data updates)
+- `css` - Style updates
+- `optimized` - Code optimization
+- `refactor` - Code refactoring
+
 ## 要求
 
 - 收到任务立即调工具，每轮至少一次工具调用
