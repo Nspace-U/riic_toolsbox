@@ -2,8 +2,8 @@
 import { SettingOutlined } from '@ant-design/icons-vue'
 
 import { isDataSourceId, useDataSource } from '@/composables/useDataSource'
-import { useMaaFacilityColors } from '@/composables/useMaaFacilityColors'
-import type { MaaRoomKey } from '@/types/maaSchedule'
+import { useFacilityColors } from '@/composables/useFacilityColors'
+import type { RoomKey } from '@/types/schedule'
 
 const { dataSourceOptions, selectedDataSource, selectedDataSourceLabel, setDataSource } = useDataSource()
 const {
@@ -14,9 +14,9 @@ const {
   setFacilityColor,
   setProductColor,
   resetFacilityColors,
-} = useMaaFacilityColors()
+} = useFacilityColors()
 
-const facilityColorEntries = Object.entries(facilityLabels) as Array<[MaaRoomKey, string]>
+const facilityColorEntries = Object.entries(facilityLabels) as Array<[RoomKey, string]>
 const productColorEntries = Object.entries(productLabels) as Array<['Pure Gold' | 'Orundum' | 'Originium Shard', string]>
 
 function handleDataSourceChange(value: string): void {

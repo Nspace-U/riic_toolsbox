@@ -12,50 +12,49 @@ import { computed, ref, watch } from 'vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import {
-  isMaaProductColorKey,
-  useMaaFacilityColors,
-} from '@/composables/useMaaFacilityColors'
-import { useMaaDocuments } from '@/composables/useMaaDocuments'
+  isProductColorKey,
+  useFacilityColors,
+} from '@/composables/useFacilityColors'
+import { useScheduleDocuments } from '@/composables/useScheduleDocuments'
 import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
+import { DEFAULT_SCHEDULE_ADAPTER } from '@/adapters'
 import type { EliteLevel, Operator } from '@/types/baseData'
 import type {
-  MaaLayoutEntry,
-  MaaOperatorState,
-  MaaPlan,
-  MaaRoomAssignment,
-  MaaRoomKey,
-  MaaScheduleDocument,
-  StoredMaaDocument,
-} from '@/types/maaSchedule'
+  LayoutEntry,
+  OperatorState,
+  Plan,
+  RoomAssignment,
+  RoomKey,
+  ScheduleDocument,
+  StoredDocument,
+} from '@/types/schedule'
 import {
-  DEFAULT_MAA_SOURCE_MATERIAL,
-  MAA_PRODUCT_OPTIONS,
-  MAA_PRODUCT_REPRESENTATIVE_COLORS,
-  MAA_ROOM_LABELS,
-  MAA_ROOM_ORDER,
-  MAA_ROOM_REPRESENTATIVE_COLORS,
-  MAA_SOURCE_MATERIAL_OPTIONS,
-  MAA_UNSUPPORTED_PRODUCT_LABELS,
-  MaaScheduleError,
-  canAddMaaLayoutEntry,
-  cloneMaaSchedule,
-  maaFacilityPower,
-  parseMaaScheduleText,
+  DEFAULT_SOURCE_MATERIAL,
+  PRODUCT_OPTIONS,
+  PRODUCT_REPRESENTATIVE_COLORS,
+  ROOM_LABELS,
+  ROOM_ORDER,
+  ROOM_REPRESENTATIVE_COLORS,
+  SOURCE_MATERIAL_OPTIONS,
+  UNSUPPORTED_PRODUCT_LABELS,
+  ScheduleError,
+  canAddLayoutEntry,
+  cloneSchedule,
+  facilityPower,
   roomSlotCount,
   roomLevelRange,
-  serializeMaaSchedule,
-  validateMaaSchedule,
-} from '@/utils/maaSchedule'
+  validateSchedule,
+} from '@/utils/schedule'
 
 interface FacilityEntry {
-  entry: MaaLayoutEntry
+  entry: LayoutEntry
   index: number
   position: number
 }
 
 interface FacilityRow {
   key: string
-  type: MaaRoomKey
+  type: RoomKey
   label: string
   entries: FacilityEntry[]
 }
@@ -80,16 +79,16 @@ const {
   updateDocument,
   removeDocument,
   duplicateDocument,
-} = useMaaDocuments()
+} = useScheduleDocuments()
 const { operators } = useBaseData()
 const { selectedDataSource } = useDataSource()
-const { facilityColors, productColors } = useMaaFacilityColors()
+const { facilityColors, productColors } = useFacilityColors()
 
 const fileInput = ref<HTMLInputElement>()
 const errorMessage = ref('')
 const successMessage = ref('')
 const draftOperatorNames = ref<Record<string, string>>({})
-const newLayoutType = ref<MaaRoomKey>('trading')
+const newLayoutType = ref<RoomKey>('trading')
 
 const activeDocument = computed(() => getActiveDocument())
 const currentDocument = computed(() => activeDocument.value?.document)
@@ -99,13 +98,13 @@ const operatorOptions = computed(() => operators.value.map((operator) => ({
   label: operator.name,
 })))
 
-const layoutAddOptions = computed(() => MAA_ROOM_ORDER.map((type) => {
+const layoutAddOptions = computed(() => ROOM_ORDER.map((type) => {
   const result = currentDocument.value
-    ? canAddMaaLayoutEntry(currentDocument.value.layout, type)
+    ? canAddLayoutEntry(currentDocument.value.layout, type)
     : { ok: false, reason: '暂无排班表' }
   return {
     value: type,
-    label: MAA_ROOM_LABELS[type],
+    label: ROOM_LABELS[type],
     disabled: !result.ok,
   }
 }))
@@ -117,7 +116,7 @@ const powerSummary = computed<PowerSummary>(() => {
   }
 
   return document.layout.reduce<PowerSummary>((summary, entry) => {
-    const power = maaFacilityPower(entry.type, entry.level)
+    const power = facilityPower(entry.type, entry.level)
     if (power >= 0) {
       summary.provided += power
     } else {
@@ -134,9 +133,9 @@ const layoutGroups = computed(() => {
     return []
   }
 
-  return MAA_ROOM_ORDER.map((type) => ({
+  return ROOM_ORDER.map((type) => ({
     type,
-    label: MAA_ROOM_LABELS[type],
+    label: ROOM_LABELS[type],
     entries: document.layout.filter((entry) => entry.type === type),
   })).filter((group) => group.entries.length > 0)
 })
@@ -148,7 +147,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
   }
 
   const rows: FacilityRow[] = []
-  MAA_ROOM_ORDER.forEach((type) => {
+  ROOM_ORDER.forEach((type) => {
     const entries = document.layout
       .map((entry, index) => ({ entry, index }))
       .filter(({ entry }) => entry.type === type)
@@ -161,7 +160,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
       rows.push({
         key: type,
         type,
-        label: `${MAA_ROOM_LABELS[type]}（${entries.length}）`,
+        label: `${ROOM_LABELS[type]}（${entries.length}）`,
         entries,
       })
       return
@@ -172,7 +171,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
       rows.push({
         key: `${type}-${entry.position}`,
         type,
-        label: `${MAA_ROOM_LABELS[type]}${suffix}`,
+        label: `${ROOM_LABELS[type]}${suffix}`,
         entries: [entry],
       })
     })
@@ -186,7 +185,7 @@ const extraRooms = computed(() => {
     return []
   }
 
-  return document.plans.flatMap((plan, planIndex) => MAA_ROOM_ORDER.flatMap((type) => {
+  return document.plans.flatMap((plan, planIndex) => ROOM_ORDER.flatMap((type) => {
     const rooms = plan.rooms[type]
     if (!Array.isArray(rooms)) {
       return []
@@ -197,7 +196,7 @@ const extraRooms = computed(() => {
       planName: plan.name || `队列${planIndex + 1}`,
       type,
       index: expected + offset,
-      room: room as MaaRoomAssignment,
+      room: room as RoomAssignment,
     }))
   }))
 })
@@ -213,7 +212,7 @@ function setError(error: unknown): void {
 }
 
 function updateCurrent(
-  mutator: (document: MaaScheduleDocument) => void,
+  mutator: (document: ScheduleDocument) => void,
   options: { markLayoutExplicit?: boolean } = {},
 ): boolean {
   const document = currentDocument.value
@@ -222,10 +221,10 @@ function updateCurrent(
     return false
   }
 
-  const candidate = cloneMaaSchedule(document)
+  const candidate = cloneSchedule(document)
   try {
     mutator(candidate)
-    validateMaaSchedule(candidate)
+    validateSchedule(candidate)
   } catch (error: unknown) {
     setError(error)
     return false
@@ -263,9 +262,9 @@ function updatePlanDuration(planIndex: number, value: number | null): void {
   })
 }
 
-function roomsForLayout(layout: MaaLayoutEntry[]): Record<string, MaaRoomAssignment[]> {
-  const rooms: Record<string, MaaRoomAssignment[]> = {}
-  MAA_ROOM_ORDER.forEach((type) => {
+function roomsForLayout(layout: LayoutEntry[]): Record<string, RoomAssignment[]> {
+  const rooms: Record<string, RoomAssignment[]> = {}
+  ROOM_ORDER.forEach((type) => {
     const count = layout.filter((entry) => entry.type === type).length
     if (count > 0) {
       rooms[type] = Array.from({ length: count }, () => ({ skip: true }))
@@ -275,10 +274,10 @@ function roomsForLayout(layout: MaaLayoutEntry[]): Record<string, MaaRoomAssignm
 }
 
 function normalizeRoomCapacity(
-  room: MaaRoomAssignment,
-  type: MaaRoomKey,
+  room: RoomAssignment,
+  type: RoomKey,
   level: number,
-): MaaRoomAssignment {
+): RoomAssignment {
   const capacity = roomSlotCount(type, level)
   if (!room.operators || room.operators.length <= capacity) {
     return room
@@ -296,16 +295,16 @@ function normalizeRoomCapacity(
   return room
 }
 
-function resizeRoomsForLayout(plan: MaaPlan, layout: MaaLayoutEntry[]): void {
-  const nextRooms: Record<string, MaaRoomAssignment[] | unknown> = { ...plan.rooms }
-  MAA_ROOM_ORDER.forEach((type) => {
+function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
+  const nextRooms: Record<string, RoomAssignment[] | unknown> = { ...plan.rooms }
+  ROOM_ORDER.forEach((type) => {
     const expected = layout.filter((entry) => entry.type === type).length
     if (expected === 0) {
       delete nextRooms[type]
       return
     }
     const previous = Array.isArray(plan.rooms[type])
-      ? plan.rooms[type] as MaaRoomAssignment[]
+      ? plan.rooms[type] as RoomAssignment[]
       : []
     const entries = layout.filter((entry) => entry.type === type)
     nextRooms[type] = Array.from({ length: expected }, (_, index) => normalizeRoomCapacity(
@@ -317,7 +316,7 @@ function resizeRoomsForLayout(plan: MaaPlan, layout: MaaLayoutEntry[]): void {
   plan.rooms = nextRooms
 }
 
-function layoutEntryLevelMax(type: MaaRoomKey): number {
+function layoutEntryLevelMax(type: RoomKey): number {
   return roomLevelRange(type).max
 }
 
@@ -328,11 +327,11 @@ function layoutTypeOptions(index: number): Array<{ value: string; label: string;
   }
 
   const baseLayout = layout.filter((_entry, entryIndex) => entryIndex !== index)
-  return MAA_ROOM_ORDER.map((type) => {
-    const result = canAddMaaLayoutEntry(baseLayout, type)
+  return ROOM_ORDER.map((type) => {
+    const result = canAddLayoutEntry(baseLayout, type)
     return {
       value: type,
-      label: MAA_ROOM_LABELS[type],
+      label: ROOM_LABELS[type],
       disabled: !result.ok,
     }
   })
@@ -344,9 +343,9 @@ function addLayoutEntry(): void {
   if (!document) {
     return
   }
-  const result = canAddMaaLayoutEntry(document.layout, type)
+  const result = canAddLayoutEntry(document.layout, type)
   if (!result.ok) {
-    setError(new MaaScheduleError(result.reason))
+    setError(new ScheduleError(result.reason))
     return
   }
 
@@ -369,7 +368,7 @@ function updateLayoutLevel(index: number, value: number | null): void {
   }, { markLayoutExplicit: true })
 }
 
-function normalizeRoomProduct(type: MaaRoomKey, room: MaaRoomAssignment): void {
+function normalizeRoomProduct(type: RoomKey, room: RoomAssignment): void {
   const product = room.product
   if (type !== 'trading' && type !== 'manufacture') {
     delete room.product
@@ -388,7 +387,7 @@ function normalizeRoomProduct(type: MaaRoomKey, room: MaaRoomAssignment): void {
 }
 
 function updateLayoutType(index: number, value: string): void {
-  if (!MAA_ROOM_ORDER.includes(value as MaaRoomKey)) {
+  if (!ROOM_ORDER.includes(value as RoomKey)) {
     return
   }
 
@@ -397,18 +396,18 @@ function updateLayoutType(index: number, value: string): void {
     if (!entry) {
       return
     }
-    const nextType = value as MaaRoomKey
+    const nextType = value as RoomKey
     if (entry.type === nextType) {
       return
     }
     if (entry.type === 'control') {
-      throw new MaaScheduleError('控制中枢不可更换设施类型')
+      throw new ScheduleError('控制中枢不可更换设施类型')
     }
 
     const baseLayout = document.layout.filter((_layoutEntry, entryIndex) => entryIndex !== index)
-    const result = canAddMaaLayoutEntry(baseLayout, nextType)
+    const result = canAddLayoutEntry(baseLayout, nextType)
     if (!result.ok) {
-      throw new MaaScheduleError(result.reason)
+      throw new ScheduleError(result.reason)
     }
 
     const previousType = entry.type
@@ -423,7 +422,7 @@ function updateLayoutType(index: number, value: string): void {
 
     document.plans.forEach((plan) => {
       const previousRooms = Array.isArray(plan.rooms[previousType])
-        ? [...plan.rooms[previousType] as MaaRoomAssignment[]]
+        ? [...plan.rooms[previousType] as RoomAssignment[]]
         : []
       const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? { skip: true }
       if (previousRooms.length > 0) {
@@ -433,7 +432,7 @@ function updateLayoutType(index: number, value: string): void {
       }
 
       const nextRooms = Array.isArray(plan.rooms[nextType])
-        ? [...plan.rooms[nextType] as MaaRoomAssignment[]]
+        ? [...plan.rooms[nextType] as RoomAssignment[]]
         : []
       normalizeRoomProduct(nextType, movedRoom)
       nextRooms.splice(nextPosition, 0, movedRoom)
@@ -446,7 +445,7 @@ function updateLayoutType(index: number, value: string): void {
   }, { markLayoutExplicit: true })
 }
 
-function cascadeLayoutTypes(type: MaaRoomKey): MaaRoomKey[] {
+function cascadeLayoutTypes(type: RoomKey): RoomKey[] {
   if (type === 'meeting') {
     return ['processing', 'hire', 'training']
   }
@@ -466,14 +465,14 @@ function removeLayoutEntry(index: number): void {
     return
   }
   if (entry.type === 'control') {
-    setError(new MaaScheduleError('控制中枢不可删除'))
+    setError(new ScheduleError('控制中枢不可删除'))
     return
   }
 
-  const removedTypes = new Set<MaaRoomKey>([entry.type, ...cascadeLayoutTypes(entry.type)])
-  const cascadedTypes = new Set<MaaRoomKey>(cascadeLayoutTypes(entry.type))
+  const removedTypes = new Set<RoomKey>([entry.type, ...cascadeLayoutTypes(entry.type)])
+  const cascadedTypes = new Set<RoomKey>(cascadeLayoutTypes(entry.type))
   updateCurrent((candidate) => {
-    const removedPositions = new Map<MaaRoomKey, number[]>()
+    const removedPositions = new Map<RoomKey, number[]>()
     candidate.layout.forEach((layoutEntry, layoutIndex) => {
       if (!removedTypes.has(layoutEntry.type)) {
         return
@@ -490,13 +489,13 @@ function removeLayoutEntry(index: number): void {
     })
 
     candidate.plans.forEach((plan) => {
-      MAA_ROOM_ORDER.forEach((type) => {
+      ROOM_ORDER.forEach((type) => {
         const positions = removedPositions.get(type)
         if (!positions?.length) {
           return
         }
         const rooms = Array.isArray(plan.rooms[type])
-          ? plan.rooms[type] as MaaRoomAssignment[]
+          ? plan.rooms[type] as RoomAssignment[]
           : []
         const nextRooms = rooms.filter((_room, position) => !positions.includes(position))
         if (nextRooms.length > 0) {
@@ -521,7 +520,7 @@ function addPlan(): void {
   updateCurrent((document) => {
     const previous = document.plans[document.plans.length - 1]
     const plan = previous
-      ? JSON.parse(JSON.stringify(previous)) as MaaPlan
+      ? JSON.parse(JSON.stringify(previous)) as Plan
       : {
           name: '',
           duration: 720,
@@ -538,7 +537,7 @@ function duplicatePlan(planIndex: number): void {
     if (!source) {
       return
     }
-    const copy = JSON.parse(JSON.stringify(source)) as MaaPlan
+    const copy = JSON.parse(JSON.stringify(source)) as Plan
     copy.name = `${source.name?.trim() || `队列${planIndex + 1}`} 副本`
     document.plans.splice(planIndex + 1, 0, copy)
   })
@@ -546,7 +545,7 @@ function duplicatePlan(planIndex: number): void {
 
 function removePlan(planIndex: number): void {
   if ((currentDocument.value?.plans.length ?? 0) <= 1) {
-    setError(new MaaScheduleError('队列数量最少为 1'))
+    setError(new ScheduleError('队列数量最少为 1'))
     return
   }
   updateCurrent((document) => {
@@ -554,16 +553,16 @@ function removePlan(planIndex: number): void {
   })
 }
 
-function roomAt(plan: MaaPlan, type: MaaRoomKey, position: number): MaaRoomAssignment | undefined {
+function roomAt(plan: Plan, type: RoomKey, position: number): RoomAssignment | undefined {
   const rooms = plan.rooms[type]
-  return Array.isArray(rooms) ? rooms[position] as MaaRoomAssignment | undefined : undefined
+  return Array.isArray(rooms) ? rooms[position] as RoomAssignment | undefined : undefined
 }
 
 function updatePlanRoom(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
-  update: (room: MaaRoomAssignment) => void,
+  update: (room: RoomAssignment) => void,
 ): void {
   updateCurrent((document) => {
     const plan = document.plans[planIndex]
@@ -571,7 +570,7 @@ function updatePlanRoom(
       return
     }
     const rooms = Array.isArray(plan.rooms[type])
-      ? [...plan.rooms[type] as MaaRoomAssignment[]]
+      ? [...plan.rooms[type] as RoomAssignment[]]
       : []
     const expected = document.layout.filter((entry) => entry.type === type).length
     while (rooms.length < expected) {
@@ -586,30 +585,30 @@ function updatePlanRoom(
   })
 }
 
-function roomEntries(row: FacilityRow, plan: MaaPlan): Array<{ entry: FacilityEntry; room?: MaaRoomAssignment }> {
+function roomEntries(row: FacilityRow, plan: Plan): Array<{ entry: FacilityEntry; room?: RoomAssignment }> {
   return row.entries.map((entry) => ({
     entry,
     room: roomAt(plan, row.type, entry.position),
   }))
 }
 
-function roomProducts(row: FacilityRow, plan: MaaPlan): string[] {
+function roomProducts(row: FacilityRow, plan: Plan): string[] {
   return Array.from(new Set(roomEntries(row, plan)
     .map(({ room }) => room?.product)
     .filter((product): product is string => Boolean(product))))
 }
 
-function roomHasProduct(type: MaaRoomKey): boolean {
+function roomHasProduct(type: RoomKey): boolean {
   return type === 'trading' || type === 'manufacture'
 }
 
 function productOptions(
-  type: MaaRoomKey,
+  type: RoomKey,
   currentProduct: string | undefined,
 ): Array<{ value: string; label: string; disabled?: boolean }> {
   const options = type === 'trading'
-    ? MAA_PRODUCT_OPTIONS.filter((option) => option.value === 'LMD' || option.value === 'Orundum')
-    : MAA_PRODUCT_OPTIONS.filter((option) => option.value !== 'LMD' && option.value !== 'Orundum')
+    ? PRODUCT_OPTIONS.filter((option) => option.value === 'LMD' || option.value === 'Orundum')
+    : PRODUCT_OPTIONS.filter((option) => option.value !== 'LMD' && option.value !== 'Orundum')
   const result: Array<{ value: string; label: string; disabled?: boolean }> = [
     { value: '', label: '未指定产物' },
     ...options,
@@ -617,25 +616,25 @@ function productOptions(
   if (currentProduct && !result.some((option) => option.value === currentProduct)) {
     result.push({
       value: currentProduct,
-      label: MAA_UNSUPPORTED_PRODUCT_LABELS[currentProduct] ?? `${currentProduct}（仅保留）`,
+      label: UNSUPPORTED_PRODUCT_LABELS[currentProduct] ?? `${currentProduct}（仅保留）`,
       disabled: true,
     })
   }
   return result
 }
 
-function sourceValue(room: MaaRoomAssignment | undefined): string {
+function sourceValue(room: RoomAssignment | undefined): string {
   return room?.sourceMaterial
-    ?? (room?.product === 'Originium Shard' ? DEFAULT_MAA_SOURCE_MATERIAL : '')
+    ?? (room?.product === 'Originium Shard' ? DEFAULT_SOURCE_MATERIAL : '')
 }
 
-function sourceVisible(room: MaaRoomAssignment | undefined): boolean {
+function sourceVisible(room: RoomAssignment | undefined): boolean {
   return room?.product === 'Originium Shard'
 }
 
 function updateRoomSkip(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   skip: boolean,
 ): void {
@@ -650,7 +649,7 @@ function updateRoomSkip(
 
 function updateRoomProduct(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   product: string,
 ): void {
@@ -662,7 +661,7 @@ function updateRoomProduct(
     }
     room.product = product
     if (product === 'Originium Shard') {
-      room.sourceMaterial ||= DEFAULT_MAA_SOURCE_MATERIAL
+      room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL
     } else {
       delete room.sourceMaterial
     }
@@ -671,7 +670,7 @@ function updateRoomProduct(
 
 function updateRoomSource(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   sourceMaterial: string,
 ): void {
@@ -684,13 +683,13 @@ function updateRoomSource(
   })
 }
 
-function operatorSlotKey(planIndex: number, type: MaaRoomKey, position: number, slotIndex: number): string {
+function operatorSlotKey(planIndex: number, type: RoomKey, position: number, slotIndex: number): string {
   return `${planIndex}-${type}-${position}-${slotIndex}`
 }
 
 function operatorNameAt(
-  plan: MaaPlan,
-  type: MaaRoomKey,
+  plan: Plan,
+  type: RoomKey,
   position: number,
   slotIndex: number,
 ): string {
@@ -698,9 +697,9 @@ function operatorNameAt(
 }
 
 function operatorDraftValue(
-  plan: MaaPlan,
+  plan: Plan,
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   slotIndex: number,
 ): string {
@@ -710,7 +709,7 @@ function operatorDraftValue(
 
 function handleOperatorDraft(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   slotIndex: number,
   value: string,
@@ -718,7 +717,7 @@ function handleOperatorDraft(
   draftOperatorNames.value[operatorSlotKey(planIndex, type, position, slotIndex)] = value
 }
 
-function operatorElite(room: MaaRoomAssignment | undefined, name: string): EliteLevel {
+function operatorElite(room: RoomAssignment | undefined, name: string): EliteLevel {
   const state = operatorState(room, name)
   if (state.elite === 1 || state.elite === 2) {
     return state.elite
@@ -726,17 +725,17 @@ function operatorElite(room: MaaRoomAssignment | undefined, name: string): Elite
   return 0
 }
 
-function operatorMood(room: MaaRoomAssignment | undefined, name: string): number | undefined {
+function operatorMood(room: RoomAssignment | undefined, name: string): number | undefined {
   return operatorState(room, name).mood
 }
 
-function operatorEliteValue(room: MaaRoomAssignment | undefined, name: string): number | undefined {
+function operatorEliteValue(room: RoomAssignment | undefined, name: string): number | undefined {
   return operatorState(room, name).elite
 }
 
 function updateOperatorState(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   slotIndex: number,
   key: 'mood' | 'elite',
@@ -787,13 +786,13 @@ function facilityCardWidth(row: FacilityRow): string {
 }
 
 function productAccent(product: string): string | undefined {
-  if (!isMaaProductColorKey(product)) {
+  if (!isProductColorKey(product)) {
     return undefined
   }
-  return productColors.value[product] ?? MAA_PRODUCT_REPRESENTATIVE_COLORS[product]
+  return productColors.value[product] ?? PRODUCT_REPRESENTATIVE_COLORS[product]
 }
 
-function facilityCardStyle(row: FacilityRow, plans: MaaPlan[]): Record<string, string> {
+function facilityCardStyle(row: FacilityRow, plans: Plan[]): Record<string, string> {
   const planProducts = plans.map((plan) => {
     const products = roomProducts(row, plan)
     return products.length === 1 ? products[0] : ''
@@ -805,35 +804,35 @@ function facilityCardStyle(row: FacilityRow, plans: MaaPlan[]): Record<string, s
     : undefined
 
   return {
-    '--simulator-facility-accent': commonAccent ?? facilityColors.value[row.type] ?? MAA_ROOM_REPRESENTATIVE_COLORS[row.type],
+    '--simulator-facility-accent': commonAccent ?? facilityColors.value[row.type] ?? ROOM_REPRESENTATIVE_COLORS[row.type],
   }
 }
 
-function facilityQueueStyle(row: FacilityRow, plan: MaaPlan): Record<string, string> {
+function facilityQueueStyle(row: FacilityRow, plan: Plan): Record<string, string> {
   const products = roomProducts(row, plan)
   const product = products.length === 1 ? products[0] : undefined
   const accent = product ? productAccent(product) : undefined
 
   return {
-    '--simulator-facility-accent': accent ?? facilityColors.value[row.type] ?? MAA_ROOM_REPRESENTATIVE_COLORS[row.type],
+    '--simulator-facility-accent': accent ?? facilityColors.value[row.type] ?? ROOM_REPRESENTATIVE_COLORS[row.type],
   }
 }
 
-function slotRoom(plan: MaaPlan, slot: FacilitySlotRef): MaaRoomAssignment | undefined {
+function slotRoom(plan: Plan, slot: FacilitySlotRef): RoomAssignment | undefined {
   return roomAt(plan, slot.entry.entry.type, slot.entry.position)
 }
 
-function slotName(row: FacilityRow, plan: MaaPlan, planIndex: number, slot: FacilitySlotRef): string {
+function slotName(row: FacilityRow, plan: Plan, planIndex: number, slot: FacilitySlotRef): string {
   return operatorDraftValue(plan, planIndex, row.type, slot.entry.position, slot.slotIndex)
 }
 
-function slotOperator(row: FacilityRow, plan: MaaPlan, planIndex: number, slot: FacilitySlotRef): Operator | undefined {
+function slotOperator(row: FacilityRow, plan: Plan, planIndex: number, slot: FacilitySlotRef): Operator | undefined {
   return operatorByName(slotName(row, plan, planIndex, slot))
 }
 
 function commitOperatorName(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   slotIndex: number,
 ): void {
@@ -857,7 +856,7 @@ function commitOperatorName(
       return
     }
     const rooms = Array.isArray(candidatePlan.rooms[type])
-      ? [...candidatePlan.rooms[type] as MaaRoomAssignment[]]
+      ? [...candidatePlan.rooms[type] as RoomAssignment[]]
       : []
     const room = rooms[position] ?? {}
     const capacity = candidate.layout.filter((entry) => entry.type === type)[position]
@@ -871,16 +870,16 @@ function commitOperatorName(
           return false
         }
         return roomList.some((candidateRoom, roomPosition) => {
-          const otherRoom = candidateRoom as MaaRoomAssignment
+          const otherRoom = candidateRoom as RoomAssignment
           return (roomType !== type || roomPosition !== position || otherRoom.operators?.indexOf(nextName) !== slotIndex)
             && otherRoom.operators?.includes(nextName)
         })
       })
       if (duplicate) {
-        throw new MaaScheduleError(`干员“${nextName}”已在当前队列的其他设施中配置`)
+        throw new ScheduleError(`干员“${nextName}”已在当前队列的其他设施中配置`)
       }
     }
-    const nextStates: Record<string, MaaOperatorState> = {}
+    const nextStates: Record<string, OperatorState> = {}
     compactNames.forEach((name) => {
       const state = room.operatorStates?.[name]
       if (state) {
@@ -906,7 +905,7 @@ function commitOperatorName(
   }
 }
 
-function planDurationHours(plan: MaaPlan): string {
+function planDurationHours(plan: Plan): string {
   const minutes = Number(plan.duration ?? 720)
   return `${(minutes / 60).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 小时`
 }
@@ -915,7 +914,7 @@ function operatorByName(name: string): Operator | undefined {
   return operators.value.find((operator) => operator.name === name)
 }
 
-function operatorState(room: MaaRoomAssignment | undefined, name: string): MaaOperatorState {
+function operatorState(room: RoomAssignment | undefined, name: string): OperatorState {
   return room?.operatorStates?.[name] ?? {}
 }
 
@@ -939,11 +938,11 @@ async function handleFileChange(event: Event): Promise<void> {
 
   clearMessages()
   try {
-    const parsed = parseMaaScheduleText(await file.text())
+    const parsed = DEFAULT_SCHEDULE_ADAPTER.parse(await file.text())
     createDocument(parsed.document, parsed.inferredLayout, file.name)
     successMessage.value = parsed.inferredLayout
       ? '已导入，布局由文件内容推断。'
-      : '已导入 Maa 排班表。'
+      : '已导入排班 JSON。'
   } catch (error: unknown) {
     setError(error)
   }
@@ -979,12 +978,12 @@ function handleExport(): void {
 
   clearMessages()
   try {
-    const json = serializeMaaSchedule(document)
+    const json = DEFAULT_SCHEDULE_ADAPTER.serialize(document)
     const blob = new Blob([json], { type: 'application/json;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = window.document.createElement('a')
     link.href = url
-    link.download = `${(document.title?.trim() || '排班模拟器').replace(/[\\/:*?"<>|]/g, '_')}.json`
+    link.download = `${(document.title?.trim() || '排班模拟器').replace(/[\\/:*?"<>|]/g, '_')}.${DEFAULT_SCHEDULE_ADAPTER.fileExtension}`
     link.click()
     URL.revokeObjectURL(url)
     successMessage.value = '已导出严格 JSON 文件。'
@@ -993,7 +992,7 @@ function handleExport(): void {
   }
 }
 
-function isStoredDocument(document: StoredMaaDocument): boolean {
+function isStoredDocument(document: StoredDocument): boolean {
   return document.id === activeDocumentId.value
 }
 
@@ -1010,7 +1009,7 @@ watch(activeDocumentId, () => {
       </div>
       <div class="page-heading-copy">
         <a-typography-title :level="2" class="page-title">排班模拟器</a-typography-title>
-        <span class="page-heading-description">按设施与队列查看 MAA 排班，保留干员状态与布局关系</span>
+        <span class="page-heading-description">按设施与队列查看排班，保留干员状态与布局关系</span>
       </div>
     </div>
 
@@ -1139,7 +1138,7 @@ watch(activeDocumentId, () => {
                 size="small"
               />
               <a-button
-                :disabled="!currentDocument || !canAddMaaLayoutEntry(currentDocument.layout, newLayoutType).ok"
+                :disabled="!currentDocument || !canAddLayoutEntry(currentDocument.layout, newLayoutType).ok"
                 size="small"
                 @click="addLayoutEntry"
               >
@@ -1282,7 +1281,7 @@ watch(activeDocumentId, () => {
                           class="simulator-room-control"
                         >
                           <span v-if="row.entries.length > 1" class="simulator-room-control-label">
-                            {{ MAA_ROOM_LABELS[row.type] }} {{ entry.position + 1 }}
+                            {{ ROOM_LABELS[row.type] }} {{ entry.position + 1 }}
                           </span>
                           <a-select
                             v-if="roomHasProduct(row.type)"
@@ -1295,7 +1294,7 @@ watch(activeDocumentId, () => {
                           />
                           <a-select
                             v-if="roomHasProduct(row.type) && sourceVisible(room)"
-                            :options="[{ value: '', label: '未指定原料' }, ...MAA_SOURCE_MATERIAL_OPTIONS]"
+                            :options="[{ value: '', label: '未指定原料' }, ...SOURCE_MATERIAL_OPTIONS]"
                             :value="sourceValue(room)"
                             class="simulator-room-source"
                             placeholder="原料"
@@ -1378,7 +1377,7 @@ watch(activeDocumentId, () => {
           <template #description>
             <div class="simulator-anomaly-list">
               <span v-for="item in extraRooms" :key="`${item.planIndex}-${item.type}-${item.index}`">
-                {{ item.planName }} · {{ MAA_ROOM_LABELS[item.type] }} {{ item.index + 1 }}
+                {{ item.planName }} · {{ ROOM_LABELS[item.type] }} {{ item.index + 1 }}
                 <template v-if="item.room.operators?.length">：{{ item.room.operators.join('、') }}</template>
               </span>
             </div>

@@ -10,26 +10,25 @@ import {
 } from '@ant-design/icons-vue'
 import { computed, ref, watch } from 'vue'
 
-import { useMaaDocuments } from '@/composables/useMaaDocuments'
+import { parseMaaScheduleText, serializeMaaSchedule } from '@/adapters/maaSchedule'
+import { useScheduleDocuments } from '@/composables/useScheduleDocuments'
 import type {
-  MaaLayoutEntry,
-  MaaOperatorState,
-  MaaPlan,
-  MaaRoomAssignment,
-  MaaRoomKey,
-  StoredMaaDocument,
-} from '@/types/maaSchedule'
+  LayoutEntry,
+  OperatorState,
+  Plan,
+  RoomAssignment,
+  RoomKey,
+  StoredDocument,
+} from '@/types/schedule'
 import {
-  MAA_PRODUCT_OPTIONS,
-  MAA_UNSUPPORTED_PRODUCT_LABELS,
-  DEFAULT_MAA_SOURCE_MATERIAL,
-  MAA_ROOM_LABELS,
-  MAA_ROOM_ORDER,
-  MAA_SOURCE_MATERIAL_OPTIONS,
-  MaaScheduleError,
-  parseMaaScheduleText,
-  serializeMaaSchedule,
-} from '@/utils/maaSchedule'
+  PRODUCT_OPTIONS,
+  UNSUPPORTED_PRODUCT_LABELS,
+  DEFAULT_SOURCE_MATERIAL,
+  ROOM_LABELS,
+  ROOM_ORDER,
+  SOURCE_MATERIAL_OPTIONS,
+  ScheduleError,
+} from '@/utils/schedule'
 
 const {
   documents,
@@ -40,7 +39,7 @@ const {
   updateDocument,
   removeDocument,
   duplicateDocument,
-} = useMaaDocuments()
+} = useScheduleDocuments()
 
 const fileInput = ref<HTMLInputElement>()
 const errorMessage = ref('')
@@ -57,9 +56,9 @@ const layoutGroups = computed(() => {
     return []
   }
 
-  return MAA_ROOM_ORDER.map((type) => ({
+  return ROOM_ORDER.map((type) => ({
     type,
-    label: MAA_ROOM_LABELS[type],
+    label: ROOM_LABELS[type],
     entries: document.layout
       .map((entry, index) => ({ entry, index }))
       .filter(({ entry }) => entry.type === type),
@@ -113,13 +112,13 @@ function updateMeta(key: 'title' | 'description', value: string): void {
   })
 }
 
-function updatePlanMeta(plan: MaaPlan, key: 'name' | 'description', value: string): void {
+function updatePlanMeta(plan: Plan, key: 'name' | 'description', value: string): void {
   updateCurrent(() => {
     plan[key] = value
   })
 }
 
-function updatePlanDuration(plan: MaaPlan, value: number | null): void {
+function updatePlanDuration(plan: Plan, value: number | null): void {
   updateCurrent(() => {
     plan.duration = value ?? undefined
   })
@@ -239,9 +238,9 @@ function removePlan(index: number): void {
   })
 }
 
-function roomsForLayout(layout: MaaLayoutEntry[]): Record<string, MaaRoomAssignment[]> {
-  const rooms: Record<string, MaaRoomAssignment[]> = {}
-  MAA_ROOM_ORDER.forEach((type) => {
+function roomsForLayout(layout: LayoutEntry[]): Record<string, RoomAssignment[]> {
+  const rooms: Record<string, RoomAssignment[]> = {}
+  ROOM_ORDER.forEach((type) => {
     const count = layout.filter((entry) => entry.type === type).length
     if (count > 0) {
       rooms[type] = Array.from({ length: count }, () => ({ skip: true }))
@@ -250,15 +249,15 @@ function roomsForLayout(layout: MaaLayoutEntry[]): Record<string, MaaRoomAssignm
   return rooms
 }
 
-function resizeRoomsForLayout(plan: MaaPlan, layout: MaaLayoutEntry[]): void {
-  const nextRooms: Record<string, MaaRoomAssignment[] | unknown> = { ...plan.rooms }
-  MAA_ROOM_ORDER.forEach((type) => {
+function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
+  const nextRooms: Record<string, RoomAssignment[] | unknown> = { ...plan.rooms }
+  ROOM_ORDER.forEach((type) => {
     const expected = layout.filter((entry) => entry.type === type).length
     if (expected === 0) {
       delete nextRooms[type]
       return
     }
-    const previous = Array.isArray(plan.rooms[type]) ? plan.rooms[type] as MaaRoomAssignment[] : []
+    const previous = Array.isArray(plan.rooms[type]) ? plan.rooms[type] as RoomAssignment[] : []
     nextRooms[type] = Array.from({ length: expected }, (_, index) => previous[index] ?? { skip: true })
   })
   plan.rooms = nextRooms
@@ -277,7 +276,7 @@ function updateLayoutLevel(index: number, value: number | null): void {
 }
 
 function updateLayoutType(index: number, value: string): void {
-  if (!MAA_ROOM_ORDER.includes(value as MaaRoomKey)) {
+  if (!ROOM_ORDER.includes(value as RoomKey)) {
     return
   }
   updateCurrent((document) => {
@@ -285,7 +284,7 @@ function updateLayoutType(index: number, value: string): void {
     if (!entry) {
       return
     }
-    const nextType = value as MaaRoomKey
+    const nextType = value as RoomKey
     if (entry.type === nextType) {
       return
     }
@@ -301,7 +300,7 @@ function updateLayoutType(index: number, value: string): void {
 
     document.plans.forEach((plan) => {
       const previousRooms = Array.isArray(plan.rooms[previousType])
-        ? [...plan.rooms[previousType] as MaaRoomAssignment[]]
+        ? [...plan.rooms[previousType] as RoomAssignment[]]
         : []
       const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? { skip: true }
       if (previousRooms.length > 0) {
@@ -311,7 +310,7 @@ function updateLayoutType(index: number, value: string): void {
       }
 
       const nextRooms = Array.isArray(plan.rooms[nextType])
-        ? [...plan.rooms[nextType] as MaaRoomAssignment[]]
+        ? [...plan.rooms[nextType] as RoomAssignment[]]
         : []
       nextRooms.splice(nextPosition, 0, movedRoom)
       plan.rooms[nextType] = nextRooms
@@ -349,7 +348,7 @@ function removeLayoutEntry(index: number): void {
       if (!Array.isArray(rooms)) {
         return
       }
-      const nextRooms = [...rooms as MaaRoomAssignment[]]
+      const nextRooms = [...rooms as RoomAssignment[]]
       nextRooms.splice(position, 1)
       if (nextRooms.length > 0) {
         plan.rooms[entry.type] = nextRooms
@@ -362,7 +361,7 @@ function removeLayoutEntry(index: number): void {
   })
 }
 
-function planRoom(plan: MaaPlan, type: MaaRoomKey, position: number): MaaRoomAssignment {
+function planRoom(plan: Plan, type: RoomKey, position: number): RoomAssignment {
   const rooms = plan.rooms[type]
   if (!Array.isArray(rooms)) {
     return { skip: true }
@@ -372,16 +371,16 @@ function planRoom(plan: MaaPlan, type: MaaRoomKey, position: number): MaaRoomAss
 
 function updatePlanRoom(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
-  update: (room: MaaRoomAssignment) => void,
+  update: (room: RoomAssignment) => void,
 ): void {
   updateCurrent((document) => {
     const plan = document.plans[planIndex]
     if (!plan) {
       return
     }
-    const rooms = Array.isArray(plan.rooms[type]) ? plan.rooms[type] as MaaRoomAssignment[] : []
+    const rooms = Array.isArray(plan.rooms[type]) ? plan.rooms[type] as RoomAssignment[] : []
     const expected = document.layout.filter((entry) => entry.type === type).length
     while (rooms.length < expected) {
       rooms.push({ skip: true })
@@ -395,11 +394,11 @@ function updatePlanRoom(
   })
 }
 
-function operatorsText(room: MaaRoomAssignment): string {
+function operatorsText(room: RoomAssignment): string {
   return room.operators?.join('\n') ?? ''
 }
 
-function updateOperators(planIndex: number, type: MaaRoomKey, position: number, value: string): void {
+function updateOperators(planIndex: number, type: RoomKey, position: number, value: string): void {
   updatePlanRoom(planIndex, type, position, (room) => {
     const operators = value.split(/\r?\n/).map((name) => name.trim()).filter(Boolean)
     room.operators = operators
@@ -416,7 +415,7 @@ function updateOperators(planIndex: number, type: MaaRoomKey, position: number, 
   })
 }
 
-function updateRoomSkip(planIndex: number, type: MaaRoomKey, position: number, skip: boolean): void {
+function updateRoomSkip(planIndex: number, type: RoomKey, position: number, skip: boolean): void {
   updatePlanRoom(planIndex, type, position, (room) => {
     if (skip) {
       room.skip = true
@@ -426,12 +425,12 @@ function updateRoomSkip(planIndex: number, type: MaaRoomKey, position: number, s
   })
 }
 
-function updateRoomProduct(planIndex: number, type: MaaRoomKey, position: number, product: string): void {
+function updateRoomProduct(planIndex: number, type: RoomKey, position: number, product: string): void {
   updatePlanRoom(planIndex, type, position, (room) => {
     if (product) {
       room.product = product
       if (product === 'Originium Shard' && !room.sourceMaterial) {
-        room.sourceMaterial = DEFAULT_MAA_SOURCE_MATERIAL
+        room.sourceMaterial = DEFAULT_SOURCE_MATERIAL
       }
     } else {
       delete room.product
@@ -440,7 +439,7 @@ function updateRoomProduct(planIndex: number, type: MaaRoomKey, position: number
   })
 }
 
-function updateRoomSource(planIndex: number, type: MaaRoomKey, position: number, sourceMaterial: string): void {
+function updateRoomSource(planIndex: number, type: RoomKey, position: number, sourceMaterial: string): void {
   updatePlanRoom(planIndex, type, position, (room) => {
     if (sourceMaterial) {
       room.sourceMaterial = sourceMaterial
@@ -450,13 +449,13 @@ function updateRoomSource(planIndex: number, type: MaaRoomKey, position: number,
   })
 }
 
-function stateFor(room: MaaRoomAssignment, name: string): MaaOperatorState {
+function stateFor(room: RoomAssignment, name: string): OperatorState {
   return room.operatorStates?.[name] ?? {}
 }
 
 function updateState(
   planIndex: number,
-  type: MaaRoomKey,
+  type: RoomKey,
   position: number,
   name: string,
   key: 'mood' | 'elite',
@@ -483,29 +482,29 @@ function updateState(
   })
 }
 
-function roomHasProduct(type: MaaRoomKey): boolean {
+function roomHasProduct(type: RoomKey): boolean {
   return type === 'trading' || type === 'manufacture'
 }
 
-function productOptions(type: MaaRoomKey, currentProduct: string | undefined): Array<{ value: string; label: string; disabled?: boolean }> {
+function productOptions(type: RoomKey, currentProduct: string | undefined): Array<{ value: string; label: string; disabled?: boolean }> {
   const options: Array<{ value: string; label: string; disabled?: boolean }> = type === 'trading'
-    ? MAA_PRODUCT_OPTIONS.filter((option) => option.value === 'LMD' || option.value === 'Orundum')
-    : MAA_PRODUCT_OPTIONS.filter((option) => option.value !== 'LMD' && option.value !== 'Orundum')
+    ? PRODUCT_OPTIONS.filter((option) => option.value === 'LMD' || option.value === 'Orundum')
+    : PRODUCT_OPTIONS.filter((option) => option.value !== 'LMD' && option.value !== 'Orundum')
   if (currentProduct && !options.some((option) => option.value === currentProduct)) {
     options.push({
       value: currentProduct,
-      label: MAA_UNSUPPORTED_PRODUCT_LABELS[currentProduct] ?? `${currentProduct}（仅保留）`,
+      label: UNSUPPORTED_PRODUCT_LABELS[currentProduct] ?? `${currentProduct}（仅保留）`,
       disabled: true,
     })
   }
   return options
 }
 
-function sourceValue(room: MaaRoomAssignment): string {
-  return room.sourceMaterial ?? (room.product === 'Originium Shard' ? DEFAULT_MAA_SOURCE_MATERIAL : '')
+function sourceValue(room: RoomAssignment): string {
+  return room.sourceMaterial ?? (room.product === 'Originium Shard' ? DEFAULT_SOURCE_MATERIAL : '')
 }
 
-function sourceVisible(room: MaaRoomAssignment): boolean {
+function sourceVisible(room: RoomAssignment): boolean {
   return room.product === 'Originium Shard'
 }
 
@@ -647,7 +646,7 @@ watch(activeDocumentId, () => {
             <div v-for="(entry, index) in currentDocument.layout" :key="`${entry.type}-${index}`" class="maa-layout-row">
               <span class="maa-layout-order">{{ index + 1 }}</span>
               <a-select
-                :options="MAA_ROOM_ORDER.map((type) => ({ value: type, label: MAA_ROOM_LABELS[type] }))"
+                :options="ROOM_ORDER.map((type) => ({ value: type, label: ROOM_LABELS[type] }))"
                 :value="entry.type"
                 class="maa-room-type-select"
                 @update:value="(value: string) => updateLayoutType(index, value)"
@@ -741,7 +740,7 @@ watch(activeDocumentId, () => {
                       />
                       <a-select
                         v-if="roomHasProduct(group.type) && sourceVisible(planRoom(plan, group.type, position))"
-                        :options="[{ value: '', label: '未指定原料' }, ...MAA_SOURCE_MATERIAL_OPTIONS]"
+                        :options="[{ value: '', label: '未指定原料' }, ...SOURCE_MATERIAL_OPTIONS]"
                         :value="sourceValue(planRoom(plan, group.type, position))"
                         class="maa-room-product"
                         @update:value="(value: string) => updateRoomSource(planIndex, group.type, position, value)"

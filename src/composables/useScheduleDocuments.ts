@@ -1,36 +1,56 @@
 import { ref } from 'vue'
 
 import {
-  cloneMaaSchedule,
-  createEmptyMaaSchedule,
-  validateMaaSchedule,
-} from '@/utils/maaSchedule'
+  cloneSchedule,
+  createEmptySchedule,
+  validateSchedule,
+} from '@/utils/schedule'
 import type {
-  MaaScheduleDocument,
-  StoredMaaDocument,
-} from '@/types/maaSchedule'
+  ScheduleDocument,
+  StoredDocument,
+} from '@/types/schedule'
 
-const DOCUMENTS_STORAGE_KEY = 'riic-tools:maa-documents:v1'
-const ACTIVE_DOCUMENT_STORAGE_KEY = 'riic-tools:maa-active-document:v1'
+const DOCUMENTS_STORAGE_KEY = 'riic-tools:schedule-documents:v1'
+const ACTIVE_DOCUMENT_STORAGE_KEY = 'riic-tools:schedule-active-document:v1'
+const LEGACY_DOCUMENTS_STORAGE_KEY = 'riic-tools:maa-documents:v1'
+const LEGACY_ACTIVE_DOCUMENT_STORAGE_KEY = 'riic-tools:maa-active-document:v1'
 
-const documents = ref<StoredMaaDocument[]>(readDocuments())
+let legacyStorageUsed = false
+
+const documents = ref<StoredDocument[]>(readDocuments())
 const activeDocumentId = ref(readActiveDocumentId())
 
 function createId(): string {
-  return `maa-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  return `schedule-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
 function now(): string {
   return new Date().toISOString()
 }
 
-function readDocuments(): StoredMaaDocument[] {
+function readStorageValue(key: string, legacyKey: string): string | null {
+  try {
+    const stored = window.localStorage.getItem(key)
+    if (stored !== null) {
+      return stored
+    }
+    const legacyStored = window.localStorage.getItem(legacyKey)
+    if (legacyStored !== null) {
+      legacyStorageUsed = true
+    }
+    return legacyStored
+  } catch {
+    return null
+  }
+}
+
+function readDocuments(): StoredDocument[] {
   if (typeof window === 'undefined') {
     return []
   }
 
   try {
-    const raw = window.localStorage.getItem(DOCUMENTS_STORAGE_KEY)
+    const raw = readStorageValue(DOCUMENTS_STORAGE_KEY, LEGACY_DOCUMENTS_STORAGE_KEY)
     if (!raw) {
       return []
     }
@@ -38,7 +58,7 @@ function readDocuments(): StoredMaaDocument[] {
     if (!Array.isArray(parsed)) {
       return []
     }
-    return parsed.filter(isStoredMaaDocument)
+    return parsed.filter(isStoredDocument)
   } catch {
     return []
   }
@@ -50,17 +70,17 @@ function readActiveDocumentId(): string {
   }
 
   try {
-    return window.localStorage.getItem(ACTIVE_DOCUMENT_STORAGE_KEY) ?? ''
+    return readStorageValue(ACTIVE_DOCUMENT_STORAGE_KEY, LEGACY_ACTIVE_DOCUMENT_STORAGE_KEY) ?? ''
   } catch {
     return ''
   }
 }
 
-function isStoredMaaDocument(value: unknown): value is StoredMaaDocument {
+function isStoredDocument(value: unknown): value is StoredDocument {
   if (typeof value !== 'object' || value === null) {
     return false
   }
-  const candidate = value as Partial<StoredMaaDocument>
+  const candidate = value as Partial<StoredDocument>
   if (!(
     typeof candidate.id === 'string'
       && candidate.document
@@ -74,7 +94,7 @@ function isStoredMaaDocument(value: unknown): value is StoredMaaDocument {
   }
 
   try {
-    validateMaaSchedule(candidate.document)
+    validateSchedule(candidate.document)
     return true
   } catch {
     return false
@@ -101,20 +121,20 @@ function normalizeActiveDocument(): void {
   activeDocumentId.value = documents.value[0]?.id ?? ''
 }
 
-function documentName(document: MaaScheduleDocument, fallback = '排班表'): string {
+function documentName(document: ScheduleDocument, fallback = '排班表'): string {
   const title = document.title?.trim()
   return title || fallback
 }
 
 function createStoredDocument(
-  document: MaaScheduleDocument,
+  document: ScheduleDocument,
   inferredLayout: boolean,
   sourceFileName: string,
-): StoredMaaDocument {
+): StoredDocument {
   const timestamp = now()
   return {
     id: createId(),
-    document: cloneMaaSchedule(document),
+    document: cloneSchedule(document),
     inferredLayout,
     sourceFileName,
     createdAt: timestamp,
@@ -123,10 +143,10 @@ function createStoredDocument(
 }
 
 function createDocument(
-  document: MaaScheduleDocument = createEmptyMaaSchedule(),
+  document: ScheduleDocument = createEmptySchedule(),
   inferredLayout = false,
   sourceFileName = '',
-): StoredMaaDocument {
+): StoredDocument {
   const stored = createStoredDocument(document, inferredLayout, sourceFileName)
   documents.value.push(stored)
   activeDocumentId.value = stored.id
@@ -134,11 +154,11 @@ function createDocument(
   return stored
 }
 
-function getDocument(id: string): StoredMaaDocument | undefined {
+function getDocument(id: string): StoredDocument | undefined {
   return documents.value.find((document) => document.id === id)
 }
 
-function getActiveDocument(): StoredMaaDocument | undefined {
+function getActiveDocument(): StoredDocument | undefined {
   normalizeActiveDocument()
   return getDocument(activeDocumentId.value)
 }
@@ -153,8 +173,8 @@ function setActiveDocument(id: string): void {
 
 function updateDocument(
   id: string,
-  update: (document: StoredMaaDocument) => void,
-): StoredMaaDocument | undefined {
+  update: (document: StoredDocument) => void,
+): StoredDocument | undefined {
   const stored = getDocument(id)
   if (!stored) {
     return undefined
@@ -177,14 +197,14 @@ function removeDocument(id: string): void {
   persist()
 }
 
-function duplicateDocument(id: string): StoredMaaDocument | undefined {
+function duplicateDocument(id: string): StoredDocument | undefined {
   const source = getDocument(id)
   if (!source) {
     return undefined
   }
   const copy = createStoredDocument(
     {
-      ...cloneMaaSchedule(source.document),
+      ...cloneSchedule(source.document),
       title: `${documentName(source.document)} 副本`,
     },
     source.inferredLayout,
@@ -197,8 +217,11 @@ function duplicateDocument(id: string): StoredMaaDocument | undefined {
 }
 
 normalizeActiveDocument()
+if (legacyStorageUsed) {
+  persist()
+}
 
-export function useMaaDocuments() {
+export function useScheduleDocuments() {
   return {
     documents,
     activeDocumentId,

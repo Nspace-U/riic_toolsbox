@@ -1,4 +1,4 @@
-export const MAA_ROOM_KEYS = [
+export const ROOM_KEYS = [
   'control',
   'trading',
   'manufacture',
@@ -10,67 +10,67 @@ export const MAA_ROOM_KEYS = [
   'training',
 ] as const
 
-export type MaaRoomKey = (typeof MAA_ROOM_KEYS)[number]
+export type RoomKey = (typeof ROOM_KEYS)[number]
 
-export type MaaJsonValue =
+export type JsonValue =
   | string
   | number
   | boolean
   | null
-  | MaaJsonValue[]
-  | { [key: string]: MaaJsonValue }
+  | JsonValue[]
+  | { [key: string]: JsonValue }
 
-export interface MaaLayoutEntry {
-  type: MaaRoomKey
+export interface LayoutEntry {
+  type: RoomKey
   level: number
   [key: string]: unknown
 }
 
-export interface MaaOperatorState {
+export interface OperatorState {
   mood?: number
   elite?: number
   [key: string]: unknown
 }
 
-export interface MaaRoomAssignment {
+export interface RoomAssignment {
   operators?: string[]
   skip?: boolean
   product?: string
   sourceMaterial?: string
-  operatorStates?: Record<string, MaaOperatorState>
+  operatorStates?: Record<string, OperatorState>
   [key: string]: unknown
 }
 
-export interface MaaRooms {
-  [roomKey: string]: MaaRoomAssignment[] | unknown
+export interface Rooms {
+  [roomKey: string]: RoomAssignment[] | unknown
 }
 
-export interface MaaPlan {
+export interface Plan {
   name?: string
   description?: string
   description_post?: string
   period?: string[][]
   duration?: number
-  rooms: MaaRooms
+  rooms: Rooms
   [key: string]: unknown
 }
 
-export interface MaaScheduleDocument {
+export interface ScheduleDocument {
   title?: string
   description?: string
-  layout: MaaLayoutEntry[]
-  plans: MaaPlan[]
+  layout: LayoutEntry[]
+  plans: Plan[]
   [key: string]: unknown
 }
 
-export interface ParsedMaaSchedule {
-  document: MaaScheduleDocument
+export interface ParsedSchedule {
+  document: ScheduleDocument
   inferredLayout: boolean
 }
 
-export interface StoredMaaDocument {
+export interface StoredDocument {
   id: string
-  document: MaaScheduleDocument
+  document: ScheduleDocument
   inferredLayout: boolean
   sourceFileName: string
   createdAt: string
