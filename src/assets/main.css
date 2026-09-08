@@ -1065,15 +1065,27 @@ a {
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
 }
 
-.simulator-queue-card,
 .simulator-facility-card {
+  width: 100%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--simulator-facility-accent) 10%, #ffffff);
+  border-color: color-mix(in srgb, var(--simulator-facility-accent) 42%, #e0e8e5);
+}
+
+.simulator-queue-card {
   width: 100%;
   overflow: hidden;
   background: #ffffff;
 }
 
-.simulator-queue-card .ant-card-head,
 .simulator-facility-card .ant-card-head {
+  min-height: 46px;
+  padding-inline: 12px;
+  background: color-mix(in srgb, var(--simulator-facility-accent) 18%, #ffffff);
+  border-block-end-color: color-mix(in srgb, var(--simulator-facility-accent) 34%, #e0e8e5);
+}
+
+.simulator-queue-card .ant-card-head {
   min-height: 46px;
   padding-inline: 12px;
   background: #f6f9f8;
@@ -1190,7 +1202,8 @@ a {
   height: 132px;
   min-height: 132px;
   margin: 0;
-  background: #f8fbfa;
+  background: color-mix(in srgb, var(--simulator-facility-accent) 5%, #ffffff);
+  border-color: color-mix(in srgb, var(--simulator-facility-accent) 30%, #e0e8e5);
 }
 
 .simulator-facility-queue .ant-card-body {

@@ -15,6 +15,8 @@ const props = withDefaults(defineProps<{
   operator: Operator
   dataSource: DataSourceId
   eliteLevel: EliteLevel
+  displayName?: string
+  editableName?: boolean
   showRarity?: boolean
   showEliteLevel?: boolean
   showProfession?: boolean
@@ -32,6 +34,10 @@ const props = withDefaults(defineProps<{
   plain: false,
 })
 
+const emit = defineEmits<{
+  'name-edit-complete': [name: string]
+}>()
+
 type AvatarBadgeKind = 'profession' | 'elite' | 'rarity'
 
 interface NaturalImageSize {
@@ -44,6 +50,8 @@ const sources = computed(() => getOperatorAvatarLayerSources(
   props.dataSource,
   props.eliteLevel,
 ))
+
+const displayName = computed(() => props.displayName ?? props.operator.name)
 
 const frameStyle = computed(() => ({
   width: `${props.size}px`,
@@ -59,14 +67,14 @@ const badgeNaturalSizes = reactive<Partial<Record<AvatarBadgeKind, NaturalImageS
 
 function updateNameFontSize(): void {
   const measureElement = nameMeasureRef.value
-  if (!props.plain || !props.showName || !props.operator.name || !measureElement) {
+  if (!props.plain || !props.showName || !displayName.value || !measureElement) {
     nameFontSize.value = getOperatorAvatarNameFontSize(nameHeight.value)
     return
   }
 
   const maxTextWidth = Math.max(1, props.size - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding)
   const fontSize = getOperatorAvatarNameFontSizeForWidth(
-    props.operator.name,
+    displayName.value,
     nameHeight.value,
     maxTextWidth,
     (name, size) => {
@@ -76,6 +84,24 @@ function updateNameFontSize(): void {
     },
   )
   nameFontSize.value = fontSize
+}
+
+function handleNameEditComplete(event: FocusEvent): void {
+  if (!props.editableName) {
+    return
+  }
+
+  const element = event.currentTarget
+  if (element instanceof HTMLElement) {
+    emit('name-edit-complete', element.textContent ?? '')
+  }
+}
+
+function handleNameKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Enter' && event.currentTarget instanceof HTMLElement) {
+    event.preventDefault()
+    event.currentTarget.blur()
+  }
 }
 
 function handleBadgeLoad(kind: AvatarBadgeKind, event: Event): void {
@@ -132,10 +158,10 @@ const nameStyle = computed(() => (props.plain
     }
   : {}))
 
-const fallbackName = computed(() => props.operator.name.slice(0, 1) || '?')
+const fallbackName = computed(() => displayName.value.slice(0, 1) || '?')
 
 watch(
-  [() => props.operator.name, () => props.showName, () => props.size, () => props.plain],
+  [displayName, () => props.showName, () => props.size, () => props.plain],
   () => {
     void nextTick(updateNameFontSize)
   },
@@ -154,7 +180,7 @@ onMounted(updateNameFontSize)
     >
       <img
         v-if="sources.avatarUrl"
-        :alt="`${operator.name}头像`"
+        :alt="`${displayName}头像`"
         class="operator-avatar-base"
         :src="sources.avatarUrl"
         decoding="async"
@@ -190,16 +216,20 @@ onMounted(updateNameFontSize)
     </div>
     <span
       v-if="showName"
+      :contenteditable="editableName"
       :style="nameStyle"
+      :aria-label="editableName ? '编辑干员名称' : undefined"
       class="operator-avatar-display-name"
+      @blur="handleNameEditComplete"
+      @keydown="handleNameKeydown"
     >
-      {{ operator.name }}
+      {{ displayName }}
     </span>
     <span
       v-if="plain"
       ref="nameMeasureRef"
       aria-hidden="true"
       class="operator-avatar-name-measure"
-    >{{ operator.name }}</span>
+    >{{ displayName }}</span>
   </div>
 </template>

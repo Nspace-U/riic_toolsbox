@@ -24,10 +24,14 @@ import type {
   StoredMaaDocument,
 } from '@/types/maaSchedule'
 import {
+  DEFAULT_MAA_SOURCE_MATERIAL,
   MAA_PRODUCT_LABELS,
+  MAA_PRODUCT_OPTIONS,
   MAA_ROOM_LABELS,
   MAA_ROOM_ORDER,
+  MAA_ROOM_REPRESENTATIVE_COLORS,
   MAA_SOURCE_MATERIAL_OPTIONS,
+  MAA_UNSUPPORTED_PRODUCT_LABELS,
   MaaScheduleError,
   cloneMaaSchedule,
   parseMaaScheduleText,
@@ -297,6 +301,12 @@ function facilityCardWidth(row: FacilityRow): string {
   const slotCount = Math.max(1, slotRefs(row).length)
   const contentWidth = slotCount * SIMULATOR_SLOT_WIDTH + (slotCount - 1) * SIMULATOR_SLOT_GAP
   return `${Math.max(SIMULATOR_FACILITY_MIN_WIDTH, contentWidth + 40)}px`
+}
+
+function facilityCardStyle(type: MaaRoomKey): Record<string, string> {
+  return {
+    '--simulator-facility-accent': MAA_ROOM_REPRESENTATIVE_COLORS[type],
+  }
 }
 
 function slotRoom(plan: MaaPlan, slot: FacilitySlotRef): MaaRoomAssignment | undefined {
@@ -638,7 +648,11 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
             :style="{ '--simulator-column-width': facilityCardWidth(row) }"
             class="simulator-facility-column"
           >
-            <a-card :bordered="false" class="simulator-column-card simulator-facility-card">
+            <a-card
+              :bordered="false"
+              :class="['simulator-column-card', 'simulator-facility-card']"
+              :style="facilityCardStyle(row.type)"
+            >
               <template #title>
                 <div class="simulator-facility-title">
                   <span>{{ row.label }}</span>
@@ -685,6 +699,7 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                           :show-name="false"
                           :show-profession="true"
                           :show-rarity="true"
+                          :plain="true"
                           :size="72"
                         />
                         <a-avatar v-else :size="72" class="simulator-empty-avatar" shape="square">

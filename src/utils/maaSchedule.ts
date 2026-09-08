@@ -21,6 +21,18 @@ export const MAA_ROOM_LABELS: Record<MaaRoomKey, string> = {
   training: '训练室',
 }
 
+export const MAA_ROOM_REPRESENTATIVE_COLORS: Record<MaaRoomKey, string> = {
+  control: '#216A66',
+  trading: '#2486B3',
+  manufacture: '#E2C60C',
+  power: '#9DCB3B',
+  meeting: '#E27B5A',
+  hire: '#C2C2C2',
+  dormitory: '#37CBBF',
+  processing: '#D0D60D',
+  training: '#8A1F39',
+}
+
 export const MAA_ROOM_ORDER: MaaRoomKey[] = [...MAA_ROOM_KEYS]
 
 export const MAA_PRODUCT_LABELS: Record<string, string> = {

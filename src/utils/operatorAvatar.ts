@@ -15,6 +15,7 @@ const AVATAR_KEYS: Record<EliteLevel, keyof OperatorAvatars> = {
 
 export interface OperatorAvatarRenderOptions {
   eliteLevel: EliteLevel
+  operatorName?: string
   showRarity: boolean
   showEliteLevel: boolean
   showProfession: boolean
@@ -79,7 +80,7 @@ export async function generateOperatorAvatarBlob(
 
   return generateOperatorAvatar({
     imageUrl: sources.avatarUrl,
-    operatorName: operator.name,
+    operatorName: options.operatorName ?? operator.name,
     professionIconUrl: sources.professionIconUrl,
     eliteIconUrl: sources.eliteIconUrl,
     rarityIconUrl: sources.rarityIconUrl,
