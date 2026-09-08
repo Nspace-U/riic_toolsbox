@@ -289,6 +289,16 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   ))
 }
 
+const SIMULATOR_SLOT_WIDTH = 72
+const SIMULATOR_SLOT_GAP = 8
+const SIMULATOR_FACILITY_MIN_WIDTH = 224
+
+function facilityCardWidth(row: FacilityRow): string {
+  const slotCount = Math.max(1, slotRefs(row).length)
+  const contentWidth = slotCount * SIMULATOR_SLOT_WIDTH + (slotCount - 1) * SIMULATOR_SLOT_GAP
+  return `${Math.max(SIMULATOR_FACILITY_MIN_WIDTH, contentWidth + 40)}px`
+}
+
 function slotRoom(plan: MaaPlan, slot: FacilitySlotRef): MaaRoomAssignment | undefined {
   return roomAt(plan, slot.entry.entry.type, slot.entry.position)
 }
@@ -586,52 +596,49 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
           </div>
         </a-card>
 
-        <a-card :bordered="false" class="simulator-queue-panel" title="队列信息">
-          <a-row :gutter="[12, 12]">
-            <a-col v-for="(plan, planIndex) in currentDocument.plans" :key="`queue-${planIndex}`" :lg="8" :md="12" :sm="24" :xs="24">
-              <div class="simulator-queue-entry">
-                <a-input
-                  :value="plan.name ?? ''"
-                  class="simulator-queue-entry-title"
-                  placeholder="队列名称"
-                  @update:value="(value: string) => updatePlanMeta(planIndex, 'name', value)"
-                />
-                <a-form layout="vertical">
-                  <a-form-item label="持续时间">
+        <a-row :gutter="[10, 10]" class="simulator-facility-grid">
+          <a-col class="simulator-queue-column" flex="0 0 220px">
+            <a-card :bordered="false" class="simulator-column-card simulator-queue-card" title="队列信息">
+              <div class="simulator-queue-entries">
+                <div v-for="(plan, planIndex) in currentDocument.plans" :key="`queue-${planIndex}`" class="simulator-queue-info">
+                  <div class="simulator-queue-info-main">
+                    <a-input
+                      :value="plan.name ?? ''"
+                      class="simulator-queue-entry-title"
+                      placeholder="队列名称"
+                      size="small"
+                      @update:value="(value: string) => updatePlanMeta(planIndex, 'name', value)"
+                    />
                     <a-input-number
                       :max="1440"
                       :min="60"
                       :value="plan.duration ?? 720"
                       addon-after="分钟"
-                      style="width: 100%"
+                      class="simulator-queue-duration"
+                      size="small"
                       @update:value="(value: number | null) => updatePlanDuration(planIndex, value)"
                     />
-                    <a-typography-text type="secondary">{{ planDurationHours(plan) }}</a-typography-text>
-                  </a-form-item>
-                  <a-form-item label="描述">
-                    <a-input
-                      :value="plan.description ?? ''"
-                      placeholder="队列描述（可选）"
-                      @update:value="(value: string) => updatePlanMeta(planIndex, 'description', value)"
-                    />
-                  </a-form-item>
-                </a-form>
+                  </div>
+                  <span class="simulator-queue-duration-summary">{{ planDurationHours(plan) }}</span>
+                  <a-input
+                    :value="plan.description ?? ''"
+                    class="simulator-queue-description"
+                    placeholder="队列描述（可选）"
+                    size="small"
+                    @update:value="(value: string) => updatePlanMeta(planIndex, 'description', value)"
+                  />
+                </div>
               </div>
-            </a-col>
-          </a-row>
-        </a-card>
+            </a-card>
+          </a-col>
 
-        <a-row :gutter="[16, 16]" class="simulator-facility-grid">
           <a-col
             v-for="row in facilityRows"
             :key="row.key"
-            :lg="8"
-            :md="12"
-            :sm="24"
-            :xl="8"
-            :xs="24"
+            :style="{ '--simulator-column-width': facilityCardWidth(row) }"
+            class="simulator-facility-column"
           >
-            <a-card :bordered="false" class="simulator-facility-card">
+            <a-card :bordered="false" class="simulator-column-card simulator-facility-card">
               <template #title>
                 <div class="simulator-facility-title">
                   <span>{{ row.label }}</span>
@@ -645,20 +652,28 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
               </template>
 
               <div class="simulator-facility-queues">
-                <div v-for="(plan, planIndex) in currentDocument.plans" :key="`${row.key}-${planIndex}`" class="simulator-facility-queue">
+                <a-card
+                  v-for="(plan, planIndex) in currentDocument.plans"
+                  :key="`${row.key}-${planIndex}`"
+                  :bordered="true"
+                  class="simulator-facility-queue"
+                  size="small"
+                >
                   <div class="simulator-facility-queue-content">
-                    <a-space v-if="roomEntries(row, plan).some(({ room }) => roomProduct(room) || roomSource(room))" :size="4" wrap>
-                      <template v-for="({ room }, entryIndex) in roomEntries(row, plan)" :key="`products-${entryIndex}`">
-                        <a-tag v-if="roomProduct(room)" color="gold">{{ roomProduct(room) }}</a-tag>
-                        <a-tag v-if="roomSource(room)" color="orange">{{ roomSource(room) }}</a-tag>
-                      </template>
-                    </a-space>
-                    <a-tag
-                      v-if="row.entries.some((entry) => roomStatus(roomAt(plan, row.type, entry.position)) === '跳过换班')"
-                      color="default"
-                    >
-                      跳过换班
-                    </a-tag>
+                    <div class="simulator-facility-queue-meta">
+                      <a-space v-if="roomEntries(row, plan).some(({ room }) => roomProduct(room) || roomSource(room))" :size="4" wrap>
+                        <template v-for="({ room }, entryIndex) in roomEntries(row, plan)" :key="`products-${entryIndex}`">
+                          <a-tag v-if="roomProduct(room)" color="gold">{{ roomProduct(room) }}</a-tag>
+                          <a-tag v-if="roomSource(room)" color="orange">{{ roomSource(room) }}</a-tag>
+                        </template>
+                      </a-space>
+                      <a-tag
+                        v-if="row.entries.some((entry) => roomStatus(roomAt(plan, row.type, entry.position)) === '跳过换班')"
+                        color="default"
+                      >
+                        跳过换班
+                      </a-tag>
+                    </div>
                     <div class="simulator-slot-grid">
                       <div v-for="slot in slotRefs(row)" :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`" class="simulator-slot">
                         <OperatorAvatarDisplay
@@ -686,7 +701,7 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                       </div>
                     </div>
                   </div>
-                </div>
+                </a-card>
               </div>
             </a-card>
           </a-col>
