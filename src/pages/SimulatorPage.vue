@@ -7,7 +7,7 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons-vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
@@ -29,7 +29,6 @@ import type {
 } from '@/types/maaSchedule'
 import {
   DEFAULT_MAA_SOURCE_MATERIAL,
-  MAA_PRODUCT_LABELS,
   MAA_PRODUCT_OPTIONS,
   MAA_PRODUCT_REPRESENTATIVE_COLORS,
   MAA_ROOM_LABELS,
@@ -38,9 +37,12 @@ import {
   MAA_SOURCE_MATERIAL_OPTIONS,
   MAA_UNSUPPORTED_PRODUCT_LABELS,
   MaaScheduleError,
+  canAddMaaLayoutEntry,
   cloneMaaSchedule,
+  maaFacilityPower,
   parseMaaScheduleText,
   roomSlotCount,
+  roomLevelRange,
   serializeMaaSchedule,
   validateMaaSchedule,
 } from '@/utils/maaSchedule'
@@ -63,6 +65,12 @@ interface FacilitySlotRef {
   slotIndex: number
 }
 
+interface PowerSummary {
+  used: number
+  provided: number
+  net: number
+}
+
 const {
   documents,
   activeDocumentId,
@@ -81,9 +89,44 @@ const fileInput = ref<HTMLInputElement>()
 const errorMessage = ref('')
 const successMessage = ref('')
 const draftOperatorNames = ref<Record<string, string>>({})
+const newLayoutType = ref<MaaRoomKey>('trading')
 
 const activeDocument = computed(() => getActiveDocument())
 const currentDocument = computed(() => activeDocument.value?.document)
+
+const operatorOptions = computed(() => operators.value.map((operator) => ({
+  value: operator.name,
+  label: operator.name,
+})))
+
+const layoutAddOptions = computed(() => MAA_ROOM_ORDER.map((type) => {
+  const result = currentDocument.value
+    ? canAddMaaLayoutEntry(currentDocument.value.layout, type)
+    : { ok: false, reason: '暂无排班表' }
+  return {
+    value: type,
+    label: MAA_ROOM_LABELS[type],
+    disabled: !result.ok,
+  }
+}))
+
+const powerSummary = computed<PowerSummary>(() => {
+  const document = currentDocument.value
+  if (!document) {
+    return { used: 0, provided: 0, net: 0 }
+  }
+
+  return document.layout.reduce<PowerSummary>((summary, entry) => {
+    const power = maaFacilityPower(entry.type, entry.level)
+    if (power >= 0) {
+      summary.provided += power
+    } else {
+      summary.used += -power
+    }
+    summary.net = summary.provided - summary.used
+    return summary
+  }, { used: 0, provided: 0, net: 0 })
+})
 
 const layoutGroups = computed(() => {
   const document = currentDocument.value
@@ -169,11 +212,14 @@ function setError(error: unknown): void {
   successMessage.value = ''
 }
 
-function updateCurrent(mutator: (document: MaaScheduleDocument) => void): void {
+function updateCurrent(
+  mutator: (document: MaaScheduleDocument) => void,
+  options: { markLayoutExplicit?: boolean } = {},
+): boolean {
   const document = currentDocument.value
   const stored = activeDocument.value
   if (!document || !stored) {
-    return
+    return false
   }
 
   const candidate = cloneMaaSchedule(document)
@@ -182,11 +228,15 @@ function updateCurrent(mutator: (document: MaaScheduleDocument) => void): void {
     validateMaaSchedule(candidate)
   } catch (error: unknown) {
     setError(error)
-    return
+    return false
   }
   updateDocument(stored.id, (target) => {
     target.document = candidate
+    if (options.markLayoutExplicit) {
+      target.inferredLayout = false
+    }
   })
+  return true
 }
 
 function updateMeta(key: 'title' | 'description', value: string): void {
@@ -213,9 +263,327 @@ function updatePlanDuration(planIndex: number, value: number | null): void {
   })
 }
 
+function roomsForLayout(layout: MaaLayoutEntry[]): Record<string, MaaRoomAssignment[]> {
+  const rooms: Record<string, MaaRoomAssignment[]> = {}
+  MAA_ROOM_ORDER.forEach((type) => {
+    const count = layout.filter((entry) => entry.type === type).length
+    if (count > 0) {
+      rooms[type] = Array.from({ length: count }, () => ({ skip: true }))
+    }
+  })
+  return rooms
+}
+
+function normalizeRoomCapacity(
+  room: MaaRoomAssignment,
+  type: MaaRoomKey,
+  level: number,
+): MaaRoomAssignment {
+  const capacity = roomSlotCount(type, level)
+  if (!room.operators || room.operators.length <= capacity) {
+    return room
+  }
+
+  room.operators = room.operators.slice(0, capacity)
+  if (room.operatorStates) {
+    room.operatorStates = Object.fromEntries(
+      Object.entries(room.operatorStates).filter(([name]) => room.operators?.includes(name)),
+    )
+    if (Object.keys(room.operatorStates).length === 0) {
+      delete room.operatorStates
+    }
+  }
+  return room
+}
+
+function resizeRoomsForLayout(plan: MaaPlan, layout: MaaLayoutEntry[]): void {
+  const nextRooms: Record<string, MaaRoomAssignment[] | unknown> = { ...plan.rooms }
+  MAA_ROOM_ORDER.forEach((type) => {
+    const expected = layout.filter((entry) => entry.type === type).length
+    if (expected === 0) {
+      delete nextRooms[type]
+      return
+    }
+    const previous = Array.isArray(plan.rooms[type])
+      ? plan.rooms[type] as MaaRoomAssignment[]
+      : []
+    const entries = layout.filter((entry) => entry.type === type)
+    nextRooms[type] = Array.from({ length: expected }, (_, index) => normalizeRoomCapacity(
+      previous[index] ?? { skip: true },
+      type,
+      entries[index]?.level ?? 1,
+    ))
+  })
+  plan.rooms = nextRooms
+}
+
+function layoutEntryLevelMax(type: MaaRoomKey): number {
+  return roomLevelRange(type).max
+}
+
+function layoutTypeOptions(index: number): Array<{ value: string; label: string; disabled?: boolean }> {
+  const layout = currentDocument.value?.layout
+  if (!layout) {
+    return []
+  }
+
+  const baseLayout = layout.filter((_entry, entryIndex) => entryIndex !== index)
+  return MAA_ROOM_ORDER.map((type) => {
+    const result = canAddMaaLayoutEntry(baseLayout, type)
+    return {
+      value: type,
+      label: MAA_ROOM_LABELS[type],
+      disabled: !result.ok,
+    }
+  })
+}
+
+function addLayoutEntry(): void {
+  const type = newLayoutType.value
+  const document = currentDocument.value
+  if (!document) {
+    return
+  }
+  const result = canAddMaaLayoutEntry(document.layout, type)
+  if (!result.ok) {
+    setError(new MaaScheduleError(result.reason))
+    return
+  }
+
+  updateCurrent((candidate) => {
+    candidate.layout.push({ type, level: layoutEntryLevelMax(type) })
+    candidate.plans.forEach((plan) => resizeRoomsForLayout(plan, candidate.layout))
+  }, { markLayoutExplicit: true })
+}
+
+function updateLayoutLevel(index: number, value: number | null): void {
+  if (value === null) {
+    return
+  }
+  updateCurrent((document) => {
+    const entry = document.layout[index]
+    if (entry) {
+      entry.level = value
+      document.plans.forEach((plan) => resizeRoomsForLayout(plan, document.layout))
+    }
+  }, { markLayoutExplicit: true })
+}
+
+function normalizeRoomProduct(type: MaaRoomKey, room: MaaRoomAssignment): void {
+  const product = room.product
+  if (type !== 'trading' && type !== 'manufacture') {
+    delete room.product
+    delete room.sourceMaterial
+    return
+  }
+  const isValid = type === 'trading'
+    ? product === 'LMD' || product === 'Orundum'
+    : type === 'manufacture'
+      ? product === 'Pure Gold' || product === 'Battle Record' || product === 'Originium Shard'
+      : false
+  if (!isValid) {
+    delete room.product
+    delete room.sourceMaterial
+  }
+}
+
+function updateLayoutType(index: number, value: string): void {
+  if (!MAA_ROOM_ORDER.includes(value as MaaRoomKey)) {
+    return
+  }
+
+  updateCurrent((document) => {
+    const entry = document.layout[index]
+    if (!entry) {
+      return
+    }
+    const nextType = value as MaaRoomKey
+    if (entry.type === nextType) {
+      return
+    }
+    if (entry.type === 'control') {
+      throw new MaaScheduleError('控制中枢不可更换设施类型')
+    }
+
+    const baseLayout = document.layout.filter((_layoutEntry, entryIndex) => entryIndex !== index)
+    const result = canAddMaaLayoutEntry(baseLayout, nextType)
+    if (!result.ok) {
+      throw new MaaScheduleError(result.reason)
+    }
+
+    const previousType = entry.type
+    const previousPosition = document.layout
+      .slice(0, index)
+      .filter((layoutEntry) => layoutEntry.type === previousType)
+      .length
+    const nextPosition = document.layout
+      .slice(0, index)
+      .filter((layoutEntry) => layoutEntry.type === nextType)
+      .length
+
+    document.plans.forEach((plan) => {
+      const previousRooms = Array.isArray(plan.rooms[previousType])
+        ? [...plan.rooms[previousType] as MaaRoomAssignment[]]
+        : []
+      const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? { skip: true }
+      if (previousRooms.length > 0) {
+        plan.rooms[previousType] = previousRooms
+      } else {
+        delete plan.rooms[previousType]
+      }
+
+      const nextRooms = Array.isArray(plan.rooms[nextType])
+        ? [...plan.rooms[nextType] as MaaRoomAssignment[]]
+        : []
+      normalizeRoomProduct(nextType, movedRoom)
+      nextRooms.splice(nextPosition, 0, movedRoom)
+      plan.rooms[nextType] = nextRooms
+    })
+
+    entry.type = nextType
+    entry.level = Math.min(entry.level, layoutEntryLevelMax(nextType))
+    document.plans.forEach((plan) => resizeRoomsForLayout(plan, document.layout))
+  }, { markLayoutExplicit: true })
+}
+
+function cascadeLayoutTypes(type: MaaRoomKey): MaaRoomKey[] {
+  if (type === 'meeting') {
+    return ['processing', 'hire', 'training']
+  }
+  if (type === 'processing') {
+    return ['hire', 'training']
+  }
+  if (type === 'hire') {
+    return ['training']
+  }
+  return []
+}
+
+function removeLayoutEntry(index: number): void {
+  const document = currentDocument.value
+  const entry = document?.layout[index]
+  if (!document || !entry) {
+    return
+  }
+  if (entry.type === 'control') {
+    setError(new MaaScheduleError('控制中枢不可删除'))
+    return
+  }
+
+  const removedTypes = new Set<MaaRoomKey>([entry.type, ...cascadeLayoutTypes(entry.type)])
+  const cascadedTypes = new Set<MaaRoomKey>(cascadeLayoutTypes(entry.type))
+  updateCurrent((candidate) => {
+    const removedPositions = new Map<MaaRoomKey, number[]>()
+    candidate.layout.forEach((layoutEntry, layoutIndex) => {
+      if (!removedTypes.has(layoutEntry.type)) {
+        return
+      }
+      const positions = removedPositions.get(layoutEntry.type) ?? []
+      const position = candidate.layout
+        .slice(0, layoutIndex)
+        .filter((previousEntry) => previousEntry.type === layoutEntry.type)
+        .length
+      if (layoutIndex === index || layoutEntry.type !== entry.type) {
+        positions.push(position)
+      }
+      removedPositions.set(layoutEntry.type, positions)
+    })
+
+    candidate.plans.forEach((plan) => {
+      MAA_ROOM_ORDER.forEach((type) => {
+        const positions = removedPositions.get(type)
+        if (!positions?.length) {
+          return
+        }
+        const rooms = Array.isArray(plan.rooms[type])
+          ? plan.rooms[type] as MaaRoomAssignment[]
+          : []
+        const nextRooms = rooms.filter((_room, position) => !positions.includes(position))
+        if (nextRooms.length > 0) {
+          plan.rooms[type] = nextRooms
+        } else {
+          delete plan.rooms[type]
+        }
+      })
+    })
+
+    candidate.layout = candidate.layout.filter((layoutEntry, layoutIndex) => {
+      if (layoutIndex === index) {
+        return false
+      }
+      return !cascadedTypes.has(layoutEntry.type)
+    })
+    candidate.plans.forEach((plan) => resizeRoomsForLayout(plan, candidate.layout))
+  }, { markLayoutExplicit: true })
+}
+
+function addPlan(): void {
+  updateCurrent((document) => {
+    const previous = document.plans[document.plans.length - 1]
+    const plan = previous
+      ? JSON.parse(JSON.stringify(previous)) as MaaPlan
+      : {
+          name: '',
+          duration: 720,
+          rooms: roomsForLayout(document.layout),
+        }
+    plan.name = `队列${document.plans.length + 1}`
+    document.plans.push(plan)
+  })
+}
+
+function duplicatePlan(planIndex: number): void {
+  updateCurrent((document) => {
+    const source = document.plans[planIndex]
+    if (!source) {
+      return
+    }
+    const copy = JSON.parse(JSON.stringify(source)) as MaaPlan
+    copy.name = `${source.name?.trim() || `队列${planIndex + 1}`} 副本`
+    document.plans.splice(planIndex + 1, 0, copy)
+  })
+}
+
+function removePlan(planIndex: number): void {
+  if ((currentDocument.value?.plans.length ?? 0) <= 1) {
+    setError(new MaaScheduleError('队列数量最少为 1'))
+    return
+  }
+  updateCurrent((document) => {
+    document.plans.splice(planIndex, 1)
+  })
+}
+
 function roomAt(plan: MaaPlan, type: MaaRoomKey, position: number): MaaRoomAssignment | undefined {
   const rooms = plan.rooms[type]
   return Array.isArray(rooms) ? rooms[position] as MaaRoomAssignment | undefined : undefined
+}
+
+function updatePlanRoom(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  update: (room: MaaRoomAssignment) => void,
+): void {
+  updateCurrent((document) => {
+    const plan = document.plans[planIndex]
+    if (!plan) {
+      return
+    }
+    const rooms = Array.isArray(plan.rooms[type])
+      ? [...plan.rooms[type] as MaaRoomAssignment[]]
+      : []
+    const expected = document.layout.filter((entry) => entry.type === type).length
+    while (rooms.length < expected) {
+      rooms.push({ skip: true })
+    }
+    const room = rooms[position]
+    if (!room) {
+      return
+    }
+    update(room)
+    plan.rooms[type] = rooms
+  })
 }
 
 function roomEntries(row: FacilityRow, plan: MaaPlan): Array<{ entry: FacilityEntry; room?: MaaRoomAssignment }> {
@@ -231,29 +599,89 @@ function roomProducts(row: FacilityRow, plan: MaaPlan): string[] {
     .filter((product): product is string => Boolean(product))))
 }
 
-function roomProduct(room: MaaRoomAssignment | undefined): string {
-  if (!room?.product) {
-    return ''
-  }
-  return MAA_PRODUCT_LABELS[room.product] ?? room.product
+function roomHasProduct(type: MaaRoomKey): boolean {
+  return type === 'trading' || type === 'manufacture'
 }
 
-function roomSource(room: MaaRoomAssignment | undefined): string {
-  if (!room?.sourceMaterial) {
-    return ''
+function productOptions(
+  type: MaaRoomKey,
+  currentProduct: string | undefined,
+): Array<{ value: string; label: string; disabled?: boolean }> {
+  const options = type === 'trading'
+    ? MAA_PRODUCT_OPTIONS.filter((option) => option.value === 'LMD' || option.value === 'Orundum')
+    : MAA_PRODUCT_OPTIONS.filter((option) => option.value !== 'LMD' && option.value !== 'Orundum')
+  const result: Array<{ value: string; label: string; disabled?: boolean }> = [
+    { value: '', label: '未指定产物' },
+    ...options,
+  ]
+  if (currentProduct && !result.some((option) => option.value === currentProduct)) {
+    result.push({
+      value: currentProduct,
+      label: MAA_UNSUPPORTED_PRODUCT_LABELS[currentProduct] ?? `${currentProduct}（仅保留）`,
+      disabled: true,
+    })
   }
-  return MAA_SOURCE_MATERIAL_OPTIONS.find((option) => option.value === room.sourceMaterial)?.label
-    ?? room.sourceMaterial
+  return result
 }
 
-function roomStatus(room: MaaRoomAssignment | undefined): string {
-  if (room?.skip) {
-    return '跳过换班'
-  }
-  if (!room || !room.operators?.length) {
-    return '未配置干员'
-  }
-  return ''
+function sourceValue(room: MaaRoomAssignment | undefined): string {
+  return room?.sourceMaterial
+    ?? (room?.product === 'Originium Shard' ? DEFAULT_MAA_SOURCE_MATERIAL : '')
+}
+
+function sourceVisible(room: MaaRoomAssignment | undefined): boolean {
+  return room?.product === 'Originium Shard'
+}
+
+function updateRoomSkip(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  skip: boolean,
+): void {
+  updatePlanRoom(planIndex, type, position, (room) => {
+    if (skip) {
+      room.skip = true
+    } else {
+      delete room.skip
+    }
+  })
+}
+
+function updateRoomProduct(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  product: string,
+): void {
+  updatePlanRoom(planIndex, type, position, (room) => {
+    if (!product) {
+      delete room.product
+      delete room.sourceMaterial
+      return
+    }
+    room.product = product
+    if (product === 'Originium Shard') {
+      room.sourceMaterial ||= DEFAULT_MAA_SOURCE_MATERIAL
+    } else {
+      delete room.sourceMaterial
+    }
+  })
+}
+
+function updateRoomSource(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  sourceMaterial: string,
+): void {
+  updatePlanRoom(planIndex, type, position, (room) => {
+    if (sourceMaterial) {
+      room.sourceMaterial = sourceMaterial
+    } else {
+      delete room.sourceMaterial
+    }
+  })
 }
 
 function operatorSlotKey(planIndex: number, type: MaaRoomKey, position: number, slotIndex: number): string {
@@ -298,6 +726,49 @@ function operatorElite(room: MaaRoomAssignment | undefined, name: string): Elite
   return 0
 }
 
+function operatorMood(room: MaaRoomAssignment | undefined, name: string): number | undefined {
+  return operatorState(room, name).mood
+}
+
+function operatorEliteValue(room: MaaRoomAssignment | undefined, name: string): number | undefined {
+  return operatorState(room, name).elite
+}
+
+function updateOperatorState(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  slotIndex: number,
+  key: 'mood' | 'elite',
+  value: number | null,
+): void {
+  const plan = currentDocument.value?.plans[planIndex]
+  const name = plan ? operatorNameAt(plan, type, position, slotIndex) : ''
+  if (!name) {
+    return
+  }
+
+  updatePlanRoom(planIndex, type, position, (room) => {
+    const states = room.operatorStates ?? {}
+    const state = states[name] ?? {}
+    if (value === null) {
+      delete state[key]
+    } else {
+      state[key] = value
+    }
+    if (Object.keys(state).length > 0) {
+      states[name] = state
+    } else {
+      delete states[name]
+    }
+    if (Object.keys(states).length > 0) {
+      room.operatorStates = states
+    } else {
+      delete room.operatorStates
+    }
+  })
+}
+
 function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   return row.entries.flatMap((entry) => Array.from(
     { length: roomSlotCount(row.type, entry.entry.level) },
@@ -305,7 +776,7 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   ))
 }
 
-const SIMULATOR_SLOT_WIDTH = 72
+const SIMULATOR_SLOT_WIDTH = 112
 const SIMULATOR_SLOT_GAP = 8
 const SIMULATOR_FACILITY_MIN_WIDTH = 224
 
@@ -380,7 +851,7 @@ function commitOperatorName(
     return
   }
 
-  updateCurrent((candidate) => {
+  const updated = updateCurrent((candidate) => {
     const candidatePlan = candidate.plans[planIndex]
     if (!candidatePlan) {
       return
@@ -430,7 +901,7 @@ function commitOperatorName(
     rooms[position] = room
     candidatePlan.rooms[type] = rooms
   })
-  if (!errorMessage.value) {
+  if (updated) {
     delete draftOperatorNames.value[key]
   }
 }
@@ -525,6 +996,10 @@ function handleExport(): void {
 function isStoredDocument(document: StoredMaaDocument): boolean {
   return document.id === activeDocumentId.value
 }
+
+watch(activeDocumentId, () => {
+  draftOperatorNames.value = {}
+})
 </script>
 
 <template>
@@ -643,11 +1118,81 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
               {{ group.label }} × {{ group.entries.length }}
             </a-tag>
           </div>
+          <div class="simulator-power-summary">
+            <span class="simulator-summary-label">电力</span>
+            <a-tag color="orange">消耗 {{ powerSummary.used }}</a-tag>
+            <a-tag color="green">提供 {{ powerSummary.provided }}</a-tag>
+            <a-tag :color="powerSummary.net < 0 ? 'red' : 'cyan'">
+              净 {{ powerSummary.net >= 0 ? '+' : '' }}{{ powerSummary.net }}
+            </a-tag>
+          </div>
+        </a-card>
+
+        <a-card :bordered="false" class="simulator-layout-panel" title="设施布局">
+          <template #extra>
+            <a-space :size="6">
+              <a-select
+                v-model:value="newLayoutType"
+                :options="layoutAddOptions"
+                class="simulator-layout-add-select"
+                placeholder="选择设施"
+                size="small"
+              />
+              <a-button
+                :disabled="!currentDocument || !canAddMaaLayoutEntry(currentDocument.layout, newLayoutType).ok"
+                size="small"
+                @click="addLayoutEntry"
+              >
+                <template #icon><PlusOutlined /></template>
+                添加设施
+              </a-button>
+            </a-space>
+          </template>
+          <div class="simulator-layout-list">
+            <div
+              v-for="(entry, index) in currentDocument.layout"
+              :key="`${entry.type}-${index}`"
+              class="simulator-layout-row"
+            >
+              <span class="simulator-layout-order">{{ index + 1 }}</span>
+              <a-select
+                :disabled="entry.type === 'control'"
+                :options="layoutTypeOptions(index)"
+                :value="entry.type"
+                class="simulator-layout-type"
+                @update:value="(value: string) => updateLayoutType(index, value)"
+              />
+              <a-input-number
+                :max="layoutEntryLevelMax(entry.type)"
+                :min="1"
+                :value="entry.level"
+                addon-after="级"
+                class="simulator-layout-level"
+                @update:value="(value: number | null) => updateLayoutLevel(index, value)"
+              />
+              <a-button
+                :disabled="entry.type === 'control'"
+                aria-label="删除设施"
+                danger
+                title="删除设施"
+                type="text"
+                @click="removeLayoutEntry(index)"
+              >
+                <template #icon><DeleteOutlined /></template>
+              </a-button>
+            </div>
+          </div>
         </a-card>
 
         <a-row :gutter="[10, 10]" class="simulator-facility-grid">
           <a-col class="simulator-queue-column" flex="0 0 220px">
             <a-card :bordered="false" class="simulator-column-card simulator-queue-card" title="队列信息">
+              <template #extra>
+                <a-button size="small" @click="addPlan">
+                  <template #icon><PlusOutlined /></template>
+                  新增
+                </a-button>
+              </template>
               <div class="simulator-queue-entries">
                 <div v-for="(plan, planIndex) in currentDocument.plans" :key="`queue-${planIndex}`" class="simulator-queue-info">
                   <div class="simulator-queue-info-main">
@@ -666,7 +1211,7 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                       class="simulator-queue-duration"
                       size="small"
                       @update:value="(value: number | null) => updatePlanDuration(planIndex, value)"
-                    />
+                   />
                   </div>
                   <span class="simulator-queue-duration-summary">{{ planDurationHours(plan) }}</span>
                   <a-input
@@ -676,6 +1221,21 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                     size="small"
                     @update:value="(value: string) => updatePlanMeta(planIndex, 'description', value)"
                   />
+                  <div class="simulator-queue-info-actions">
+                    <a-button size="small" @click="duplicatePlan(planIndex)">
+                      <template #icon><CopyOutlined /></template>
+                      复制队列
+                    </a-button>
+                    <a-button
+                      :disabled="currentDocument.plans.length <= 1"
+                      danger
+                      size="small"
+                      @click="removePlan(planIndex)"
+                    >
+                      <template #icon><DeleteOutlined /></template>
+                      删除
+                    </a-button>
+                  </div>
                 </div>
               </div>
             </a-card>
@@ -715,18 +1275,41 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                 >
                   <div class="simulator-facility-queue-content">
                     <div class="simulator-facility-queue-meta">
-                      <a-space v-if="roomEntries(row, plan).some(({ room }) => roomProduct(room) || roomSource(room))" :size="4" wrap>
-                        <template v-for="({ room }, entryIndex) in roomEntries(row, plan)" :key="`products-${entryIndex}`">
-                          <a-tag v-if="roomProduct(room)" color="gold">{{ roomProduct(room) }}</a-tag>
-                          <a-tag v-if="roomSource(room)" color="orange">{{ roomSource(room) }}</a-tag>
-                        </template>
-                      </a-space>
-                      <a-tag
-                        v-if="row.entries.some((entry) => roomStatus(roomAt(plan, row.type, entry.position)) === '跳过换班')"
-                        color="default"
-                      >
-                        跳过换班
-                      </a-tag>
+                      <div class="simulator-room-controls">
+                        <div
+                          v-for="({ entry, room }, entryIndex) in roomEntries(row, plan)"
+                          :key="`room-controls-${entryIndex}`"
+                          class="simulator-room-control"
+                        >
+                          <span v-if="row.entries.length > 1" class="simulator-room-control-label">
+                            {{ MAA_ROOM_LABELS[row.type] }} {{ entry.position + 1 }}
+                          </span>
+                          <a-select
+                            v-if="roomHasProduct(row.type)"
+                            :options="productOptions(row.type, room?.product)"
+                            :value="room?.product ?? ''"
+                            class="simulator-room-product"
+                            placeholder="产物"
+                            size="small"
+                            @update:value="(value: string) => updateRoomProduct(planIndex, row.type, entry.position, value)"
+                          />
+                          <a-select
+                            v-if="roomHasProduct(row.type) && sourceVisible(room)"
+                            :options="[{ value: '', label: '未指定原料' }, ...MAA_SOURCE_MATERIAL_OPTIONS]"
+                            :value="sourceValue(room)"
+                            class="simulator-room-source"
+                            placeholder="原料"
+                            size="small"
+                            @update:value="(value: string) => updateRoomSource(planIndex, row.type, entry.position, value)"
+                          />
+                          <a-checkbox
+                            :checked="room?.skip === true"
+                            @change="(event: { target: { checked: boolean } }) => updateRoomSkip(planIndex, row.type, entry.position, event.target.checked)"
+                          >
+                            跳过
+                          </a-checkbox>
+                        </div>
+                      </div>
                     </div>
                     <div class="simulator-slot-grid">
                       <div v-for="slot in slotRefs(row)" :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`" class="simulator-slot">
@@ -745,7 +1328,8 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                         <a-avatar v-else :size="72" class="simulator-empty-avatar" shape="square">
                           {{ slotName(row, plan, planIndex, slot) || '空槽位' }}
                         </a-avatar>
-                        <a-input
+                        <a-auto-complete
+                          :options="operatorOptions"
                           :value="slotName(row, plan, planIndex, slot)"
                           class="simulator-slot-input"
                           placeholder="干员名称"
@@ -753,6 +1337,28 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                           @press-enter="commitOperatorName(planIndex, row.type, slot.entry.position, slot.slotIndex)"
                           @update:value="(value: string) => handleOperatorDraft(planIndex, row.type, slot.entry.position, slot.slotIndex, value)"
                         />
+                        <div class="simulator-slot-state">
+                          <a-input-number
+                            :disabled="!slotName(row, plan, planIndex, slot)"
+                            :max="24"
+                            :min="0"
+                            :value="operatorMood(slotRoom(plan, slot), slotName(row, plan, planIndex, slot))"
+                            class="simulator-slot-state-input"
+                            placeholder="心情"
+                            size="small"
+                            @update:value="(value: number | null) => updateOperatorState(planIndex, row.type, slot.entry.position, slot.slotIndex, 'mood', value)"
+                          />
+                          <a-input-number
+                            :disabled="!slotName(row, plan, planIndex, slot)"
+                            :max="2"
+                            :min="0"
+                            :value="operatorEliteValue(slotRoom(plan, slot), slotName(row, plan, planIndex, slot))"
+                            class="simulator-slot-state-input"
+                            placeholder="精英"
+                            size="small"
+                            @update:value="(value: number | null) => updateOperatorState(planIndex, row.type, slot.entry.position, slot.slotIndex, 'elite', value)"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

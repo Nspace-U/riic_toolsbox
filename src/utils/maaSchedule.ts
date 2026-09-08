@@ -41,6 +41,50 @@ export const MAA_PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
 
 export const MAA_ROOM_ORDER: MaaRoomKey[] = [...MAA_ROOM_KEYS]
 
+export const MAA_ROOM_LEVEL_LIMITS: Record<MaaRoomKey, { min: number; max: number }> = {
+  control: { min: 1, max: 5 },
+  trading: { min: 1, max: 3 },
+  manufacture: { min: 1, max: 3 },
+  power: { min: 1, max: 3 },
+  meeting: { min: 1, max: 3 },
+  hire: { min: 1, max: 3 },
+  dormitory: { min: 1, max: 5 },
+  processing: { min: 1, max: 3 },
+  training: { min: 1, max: 3 },
+}
+
+export const MAA_ROOM_LIMITS: Record<MaaRoomKey, number> = {
+  control: 1,
+  trading: 5,
+  manufacture: 5,
+  power: 3,
+  meeting: 1,
+  hire: 1,
+  dormitory: 4,
+  processing: 1,
+  training: 1,
+}
+
+export const MAA_BUILD_CHAIN_REQUIRED: Partial<Record<MaaRoomKey, MaaRoomKey>> = {
+  processing: 'meeting',
+  hire: 'processing',
+  training: 'hire',
+}
+
+export const MAA_CORE_ROOM_KEYS: MaaRoomKey[] = ['trading', 'manufacture', 'power']
+
+export const MAA_ROOM_POWER_VALUES: Record<MaaRoomKey, number[]> = {
+  control: [0, 0, 0, 0, 0],
+  trading: [-10, -30, -60],
+  manufacture: [-10, -30, -60],
+  power: [60, 130, 270],
+  meeting: [-10, -30, -60],
+  hire: [-10, -30, -60],
+  dormitory: [-10, -20, -30, -45, -65],
+  processing: [-10, -10, -10],
+  training: [-10, -30, -60],
+}
+
 export const MAA_PRODUCT_LABELS: Record<string, string> = {
   LMD: '龙门币',
   Orundum: '合成玉',
@@ -90,10 +134,8 @@ function isMaaRoomKey(value: unknown): value is MaaRoomKey {
   return typeof value === 'string' && ROOM_KEY_SET.has(value)
 }
 
-function levelRange(type: MaaRoomKey): { min: number; max: number } {
-  return type === 'control' || type === 'dormitory'
-    ? { min: 1, max: 5 }
-    : { min: 1, max: 3 }
+export function roomLevelRange(type: MaaRoomKey): { min: number; max: number } {
+  return MAA_ROOM_LEVEL_LIMITS[type]
 }
 
 export function roomSlotCount(type: MaaRoomKey, level: number): number {
@@ -127,7 +169,7 @@ function validateLayout(layout: unknown): MaaLayoutEntry[] {
     if (typeof entry.level !== 'number' || !Number.isInteger(entry.level)) {
       fail(`layout[${index}].level`, '必须是整数')
     }
-    const range = levelRange(entry.type)
+    const range = roomLevelRange(entry.type)
     if (entry.level < range.min || entry.level > range.max) {
       fail(`layout[${index}].level`, `必须在 ${range.min} 到 ${range.max} 之间`)
     }
@@ -254,8 +296,41 @@ function validatePlan(plan: unknown, index: number, layout: MaaLayoutEntry[] | u
 }
 
 function clampLevel(type: MaaRoomKey, level: number): number {
-  const range = levelRange(type)
+  const range = roomLevelRange(type)
   return Math.max(range.min, Math.min(range.max, Math.round(level)))
+}
+
+export function canAddMaaLayoutEntry(
+  layout: MaaLayoutEntry[],
+  type: MaaRoomKey,
+): { ok: true } | { ok: false; reason: string } {
+  const count = layout.filter((entry) => entry.type === type).length
+  const limit = MAA_ROOM_LIMITS[type]
+  if (count >= limit) {
+    return { ok: false, reason: `${MAA_ROOM_LABELS[type]}最多 ${limit} 个` }
+  }
+
+  const requiredType = MAA_BUILD_CHAIN_REQUIRED[type]
+  if (requiredType && !layout.some((entry) => entry.type === requiredType)) {
+    return { ok: false, reason: `需先建造 ${MAA_ROOM_LABELS[requiredType]}` }
+  }
+
+  if (MAA_CORE_ROOM_KEYS.includes(type)) {
+    const coreCount = MAA_CORE_ROOM_KEYS.reduce(
+      (total, roomType) => total + layout.filter((entry) => entry.type === roomType).length,
+      0,
+    )
+    if (coreCount >= 9) {
+      return { ok: false, reason: '贸易站 + 制造站 + 发电站合计最多 9 个' }
+    }
+  }
+
+  return { ok: true }
+}
+
+export function maaFacilityPower(type: MaaRoomKey, level: number): number {
+  const value = MAA_ROOM_POWER_VALUES[type][level - 1]
+  return value ?? 0
 }
 
 function maxOperatorsForRoom(plans: MaaPlan[], type: MaaRoomKey, position: number): number {

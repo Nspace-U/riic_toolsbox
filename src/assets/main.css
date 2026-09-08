@@ -1147,6 +1147,47 @@ a {
   border-block-start: 1px solid #edf1f0;
 }
 
+.simulator-power-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-block-start: 12px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-layout-panel .ant-card-body {
+  padding: 12px 14px;
+}
+
+.simulator-layout-add-select {
+  width: 128px;
+}
+
+.simulator-layout-list {
+  display: grid;
+  gap: 8px;
+}
+
+.simulator-layout-row {
+  display: grid;
+  grid-template-columns: 28px minmax(150px, 1fr) 104px 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.simulator-layout-order {
+  color: #8a9698;
+  font-size: 12px;
+  text-align: center;
+}
+
+.simulator-layout-type,
+.simulator-layout-level {
+  width: 100%;
+}
+
 .simulator-column-card {
   border: 1px solid #e0e8e5;
   border-radius: 6px;
@@ -1193,7 +1234,7 @@ a {
 
 .simulator-queue-info {
   display: grid;
-  min-height: 132px;
+  min-height: 224px;
   align-content: start;
   padding: 10px;
   gap: 6px;
@@ -1234,6 +1275,14 @@ a {
 
 .simulator-queue-description {
   width: 100%;
+}
+
+.simulator-queue-info-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-block-start: auto;
+  padding-block-start: 4px;
 }
 
 .simulator-facility-grid {
@@ -1287,8 +1336,8 @@ a {
 
 .simulator-facility-queue {
   min-width: 0;
-  height: 132px;
-  min-height: 132px;
+  height: auto;
+  min-height: 224px;
   margin: 0;
   background: color-mix(in srgb, var(--simulator-facility-accent) 5%, #ffffff);
   border-color: color-mix(in srgb, var(--simulator-facility-accent) 30%, #e0e8e5);
@@ -1306,12 +1355,34 @@ a {
 }
 
 .simulator-facility-queue-meta {
-  min-height: 18px;
+  min-height: 24px;
+}
+
+.simulator-room-controls {
+  display: grid;
+  gap: 4px;
+}
+
+.simulator-room-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.simulator-room-control-label {
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-room-product,
+.simulator-room-source {
+  width: 112px;
 }
 
 .simulator-slot-grid {
   display: grid;
-  grid-auto-columns: 72px;
+  grid-auto-columns: 112px;
   grid-auto-flow: column;
   grid-template-columns: none;
   justify-content: start;
@@ -1322,17 +1393,29 @@ a {
 .simulator-slot {
   display: grid;
   justify-items: center;
-  width: 72px;
-  min-width: 72px;
+  width: 112px;
+  min-width: 112px;
   gap: 6px;
 }
 
 .simulator-slot-input {
-  width: 72px;
-  max-width: 72px;
-  min-width: 72px;
+  width: 112px;
+  max-width: 112px;
+  min-width: 112px;
   font-size: 11px;
   text-align: center;
+}
+
+.simulator-slot-state {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 112px;
+  gap: 4px;
+}
+
+.simulator-slot-state-input {
+  width: 100%;
+  min-width: 0;
 }
 
 .simulator-empty-avatar {
@@ -1708,5 +1791,21 @@ a {
 
   .simulator-meta-panel .ant-card-body {
     padding: 14px;
+  }
+
+  .simulator-layout-panel .ant-card-head {
+    min-height: 54px;
+  }
+
+  .simulator-layout-panel .ant-card-extra {
+    max-width: 100%;
+  }
+
+  .simulator-layout-row {
+    grid-template-columns: 24px minmax(0, 1fr) 96px 32px;
+  }
+
+  .simulator-layout-add-select {
+    width: 112px;
   }
 }
