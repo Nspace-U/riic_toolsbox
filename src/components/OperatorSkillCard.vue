@@ -127,9 +127,10 @@ function isSkillVisible(skill: OperatorSkill): boolean {
               <div class="term-tooltip-title">术语：{{ term.name }}</div>
               <div v-if="showTermDefinitions && termDefinition(term)" class="term-tooltip-definition">
                 <RichTextDescription
-                  :show-term-definitions="false"
+                  :show-term-definitions="showTermDefinitions"
                   :show-terms="showTerms"
                   :rich-text-styles="richTextStyles"
+                  :term-definition-depth="1"
                   :terms="terms"
                   :text="termDefinition(term) ?? ''"
                 />
@@ -202,9 +203,10 @@ function isSkillVisible(skill: OperatorSkill): boolean {
       >
         <span class="operator-term-definition-name">{{ term.name }}：</span>
         <RichTextDescription
-          :show-term-definitions="false"
+          :show-term-definitions="showTermDefinitions"
           :show-terms="showTerms"
           :rich-text-styles="richTextStyles"
+          :term-definition-depth="1"
           :terms="terms"
           :text="termDefinition(term) ?? ''"
         />

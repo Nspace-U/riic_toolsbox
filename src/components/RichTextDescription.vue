@@ -15,9 +15,15 @@ const props = defineProps<{
   showTermDefinitions?: boolean
   showTerms?: boolean
   richTextStyles: RichTextStyles
+  termDefinitionDepth?: number
   text: string
   terms: Record<string, SkillTerm>
 }>()
+
+const termDefinitionDepth = computed(() => props.termDefinitionDepth ?? 0)
+const canShowTermDefinitions = computed(() => {
+  return props.showTermDefinitions !== false && termDefinitionDepth.value < 2
+})
 
 const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
 
@@ -99,9 +105,10 @@ const parts = computed(() => {
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
           <div v-if="showTermDefinitions !== false && part.term.definition" class="term-tooltip-definition">
             <RichTextDescription
-              :show-term-definitions="false"
+              :show-term-definitions="canShowTermDefinitions"
               :show-terms="showTerms"
               :rich-text-styles="richTextStyles"
+              :term-definition-depth="termDefinitionDepth + 1"
               :terms="terms"
               :text="part.term.definition"
             />

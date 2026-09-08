@@ -356,7 +356,7 @@ onBeforeUnmount(() => {
         <OperatorSkillCard
           v-for="row in filteredOperatorRows"
           :key="row.operator.id"
-          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms, showTermDefinitions]"
+          v-memo="[row, isExpanded(row.operator), showOperatorId, showTerms, showTermDefinitions, searchText]"
           :data-source="selectedDataSource"
           :operator="row.operator"
           :operator-terms="row.terms"
@@ -364,6 +364,7 @@ onBeforeUnmount(() => {
           :show-term-definitions="showTermDefinitions"
           :show-terms="showTerms"
           :rich-text-styles="richTextStyles"
+          :search-text="searchText"
           :skills="row.operator.skills"
           :terms="terms"
           :visible-skills="row.skills"
