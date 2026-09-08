@@ -1,0 +1,46 @@
+{
+  "id": "char_401_elysm",
+  "name": "极境",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "通讯员",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得罗德岛制药线索"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "插旗",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "每当新搜集到的线索不是罗德岛制药时，则额外增加罗德岛制药线索的出现概率（工作时长影响概率）"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

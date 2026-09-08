@@ -1,0 +1,27 @@
+{
+  "id": "char_1024_hbisc2",
+  "name": "濯尘芙蓉",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "异格者",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "value": 0.05,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

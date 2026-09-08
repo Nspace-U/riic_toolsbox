@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
+    "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",
     "sync:torappu": "node scripts/sync-torappu.mjs",
     "preview": "vite preview",

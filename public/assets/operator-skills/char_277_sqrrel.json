@@ -1,0 +1,26 @@
+{
+  "id": "char_277_sqrrel",
+  "name": "阿消",
+  "chains": [
+    {
+      "slot": 2,
+      "room": "power",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 1
+          },
+          "name": "设备维护",
+          "effects": [
+            {
+              "target": "power",
+              "stat": "droneCharge",
+              "value": 15
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

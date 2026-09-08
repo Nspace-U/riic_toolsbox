@@ -1,0 +1,67 @@
+{
+  "id": "char_457_blitz",
+  "name": "闪击",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "彩虹小队",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "value": 0.05,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "hire",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "语言学",
+          "effects": [
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "per": {
+                "per": 1,
+                "value": 5,
+                "source": "basePoint",
+                "term": "cc.bd_ash"
+              }
+            },
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "per": {
+                "per": 1,
+                "value": 5,
+                "source": "basePoint",
+                "term": "cc.bd_tachanka"
+              }
+            },
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

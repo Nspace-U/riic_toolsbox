@@ -1,0 +1,47 @@
+{
+  "id": "char_1011_lava2",
+  "name": "炎狱炎熔",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "异格者",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "value": 0.05,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "power",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "热能充能·γ",
+          "effects": [
+            {
+              "target": "power",
+              "stat": "droneCharge",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

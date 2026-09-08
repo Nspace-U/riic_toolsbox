@@ -1,0 +1,36 @@
+{
+  "id": "char_4126_fuze",
+  "name": "导火索",
+  "chains": [
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "实干的寡言者",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "storageCap",
+              "per": {
+                "per": 1,
+                "value": 2,
+                "source": "basePoint",
+                "term": "cc.bd_tachanka"
+              }
+            },
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

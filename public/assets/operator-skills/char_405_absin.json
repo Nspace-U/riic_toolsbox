@@ -1,0 +1,46 @@
+{
+  "id": "char_405_absin",
+  "name": "苦艾",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "秘密搜查",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得乌萨斯学生自治团线索"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "甄别",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "每当新搜集到的线索不是乌萨斯学生自治团时，则额外增加乌萨斯学生自治团线索的出现概率（工作时长影响概率）"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "char_181_flower",
+  "name": "调香师",
+  "chains": [
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 1
+          },
+          "name": "标准化·β",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 25
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

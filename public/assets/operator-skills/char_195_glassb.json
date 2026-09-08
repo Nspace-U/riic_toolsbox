@@ -1,0 +1,31 @@
+{
+  "id": "char_195_glassb",
+  "name": "真理",
+  "chains": [
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "军师",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得乌萨斯学生自治团线索"
+            },
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "char_4123_ela",
+  "name": "艾拉",
+  "chains": [
+    {
+      "slot": 2,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "反抗者",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得线索板上尚未拥有的线索"
+            },
+            {
+              "target": "control",
+              "stat": "moodCost",
+              "value": 0.25,
+              "scope": "room",
+              "other": true
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

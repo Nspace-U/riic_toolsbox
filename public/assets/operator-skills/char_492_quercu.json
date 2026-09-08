@@ -1,0 +1,46 @@
+{
+  "id": "char_492_quercu",
+  "name": "夏栎",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "风声",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得格拉斯哥帮线索"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "情报整理",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "每当新搜集到的线索不是格拉斯哥帮时，则额外增加格拉斯哥帮线索的出现概率（工作时长影响概率）"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

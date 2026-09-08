@@ -1,0 +1,51 @@
+{
+  "id": "char_264_f12yin",
+  "name": "山",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "hire",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "内幕",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "每产生1次联络次数，增加黑钢国际线索的概率（工作时长和招募位影响概率）"
+            },
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "哥伦比亚史",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "每当新搜集到的线索不是莱茵生命时，则额外增加莱茵生命线索的出现概率（工作时长影响概率）"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

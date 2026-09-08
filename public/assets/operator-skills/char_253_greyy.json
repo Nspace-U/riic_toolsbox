@@ -1,0 +1,26 @@
+{
+  "id": "char_253_greyy",
+  "name": "格雷伊",
+  "chains": [
+    {
+      "slot": 1,
+      "room": "power",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "静电场",
+          "effects": [
+            {
+              "target": "power",
+              "stat": "droneCharge",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
