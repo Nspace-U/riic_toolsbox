@@ -1,0 +1,1357 @@
+{
+  "sourcePath": "gamedata/latest/excel/item_table.json",
+  "iconSourcePath": "assets/item_icon",
+  "iconLocalPath": "raw/item_icon",
+  "items": {
+    "2003": {
+      "itemId": "2003",
+      "name": "中级作战记录",
+      "description": "在恶劣环境下的每次行动都可能有人会丢掉性命。如果做好了充足的准备，或许也能多拯救一些生命。\\n存储了多个录像集锦，夹带了一张录像人的签名版。",
+      "rarity": "TIER_4",
+      "iconId": "sprite_exp_card_t3",
+      "overrideBkg": null,
+      "stackIconId": "sprite_exp_card_stack_t3",
+      "sortId": 70002,
+      "usage": "记录了作战录像的存储装置，可以大幅增加干员的经验值。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "MATERIAL",
+      "itemType": "CARD_EXP",
+      "stageDropList": [
+        {
+          "stageId": "wk_kc_1",
+          "occPer": "ALWAYS",
+          "sortId": 0
+        },
+        {
+          "stageId": "main_17-08",
+          "occPer": "ALWAYS",
+          "sortId": 1
+        },
+        {
+          "stageId": "main_17-08#s",
+          "occPer": "ALWAYS",
+          "sortId": 2
+        },
+        {
+          "stageId": "main_16-01",
+          "occPer": "ALWAYS",
+          "sortId": 3
+        },
+        {
+          "stageId": "main_16-01#s",
+          "occPer": "ALWAYS",
+          "sortId": 4
+        },
+        {
+          "stageId": "main_15-07",
+          "occPer": "ALWAYS",
+          "sortId": 5
+        },
+        {
+          "stageId": "main_15-07#s",
+          "occPer": "ALWAYS",
+          "sortId": 6
+        },
+        {
+          "stageId": "main_14-06",
+          "occPer": "ALWAYS",
+          "sortId": 7
+        },
+        {
+          "stageId": "tough_14-06",
+          "occPer": "ALWAYS",
+          "sortId": 8
+        },
+        {
+          "stageId": "main_13-01",
+          "occPer": "ALWAYS",
+          "sortId": 9
+        },
+        {
+          "stageId": "tough_13-01",
+          "occPer": "ALWAYS",
+          "sortId": 10
+        },
+        {
+          "stageId": "main_12-08",
+          "occPer": "ALWAYS",
+          "sortId": 11
+        },
+        {
+          "stageId": "tough_12-08",
+          "occPer": "ALWAYS",
+          "sortId": 12
+        },
+        {
+          "stageId": "main_11-01",
+          "occPer": "ALWAYS",
+          "sortId": 13
+        },
+        {
+          "stageId": "tough_11-01",
+          "occPer": "ALWAYS",
+          "sortId": 14
+        },
+        {
+          "stageId": "main_10-01",
+          "occPer": "ALWAYS",
+          "sortId": 15
+        },
+        {
+          "stageId": "tough_10-01",
+          "occPer": "ALWAYS",
+          "sortId": 16
+        },
+        {
+          "stageId": "main_09-09",
+          "occPer": "ALWAYS",
+          "sortId": 17
+        },
+        {
+          "stageId": "main_08-06",
+          "occPer": "ALWAYS",
+          "sortId": 18
+        },
+        {
+          "stageId": "main_07-11",
+          "occPer": "ALWAYS",
+          "sortId": 19
+        },
+        {
+          "stageId": "sub_06-1-1",
+          "occPer": "ALWAYS",
+          "sortId": 20
+        },
+        {
+          "stageId": "sub_05-3-2",
+          "occPer": "ALWAYS",
+          "sortId": 21
+        },
+        {
+          "stageId": "sub_04-3-3",
+          "occPer": "ALWAYS",
+          "sortId": 22
+        },
+        {
+          "stageId": "main_04-03",
+          "occPer": "ALWAYS",
+          "sortId": 23
+        }
+      ],
+      "buildingProductList": [
+        {
+          "roomType": "MANUFACTURE",
+          "formulaId": "3"
+        }
+      ],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/sprite_exp_card_t3.png",
+      "localIconPath": "raw/item_icon/sprite_exp_card_t3.png"
+    },
+    "3003": {
+      "itemId": "3003",
+      "name": "赤金",
+      "description": "需要多少矿石才能提炼出如此贵重的金条呢——之类的想法已经不重要了。现在它正整整齐齐堆在你眼前，这才是关键啊。",
+      "rarity": "TIER_4",
+      "iconId": "MTL_GOLD3",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": 10202,
+      "usage": "提纯精炼后的金条，可以换取大量龙门币。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NORMAL",
+      "itemType": "MATERIAL",
+      "stageDropList": [],
+      "buildingProductList": [
+        {
+          "roomType": "MANUFACTURE",
+          "formulaId": "4"
+        }
+      ],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/MTL_GOLD3.png",
+      "localIconPath": "raw/item_icon/MTL_GOLD3.png"
+    },
+    "3141": {
+      "itemId": "3141",
+      "name": "源石碎片",
+      "description": "从遭受重度污染的地区回收的源石碎块，存在高感染威胁及一定突变概率，是哥伦比亚疾病防控中心毒性数据库重点提及的危险物质。",
+      "rarity": "TIER_5",
+      "iconId": "MTL_DIAMOND_SHD",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": 10003,
+      "usage": "从污染区域中收集到的源石碎片，用以制作合成玉。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NORMAL",
+      "itemType": "MATERIAL",
+      "stageDropList": [],
+      "buildingProductList": [
+        {
+          "roomType": "MANUFACTURE",
+          "formulaId": "13"
+        }
+      ],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/MTL_DIAMOND_SHD.png",
+      "localIconPath": "raw/item_icon/MTL_DIAMOND_SHD.png"
+    },
+    "4001": {
+      "itemId": "4001",
+      "name": "龙门币",
+      "description": "经济危机发生后，经济的衰退与政权之间的对立让贸易参与者们举步维艰。龙门币的流通使商业复兴成为可能。",
+      "rarity": "TIER_4",
+      "iconId": "GOLD",
+      "overrideBkg": null,
+      "stackIconId": "GOLD_STACK",
+      "sortId": 10201,
+      "usage": "由龙门发行的货币，用途广泛。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NORMAL",
+      "itemType": "GOLD",
+      "stageDropList": [
+        {
+          "stageId": "wk_melee_1",
+          "occPer": "ALWAYS",
+          "sortId": 0
+        },
+        {
+          "stageId": "main_17-01",
+          "occPer": "ALWAYS",
+          "sortId": 1
+        },
+        {
+          "stageId": "main_17-01#s",
+          "occPer": "ALWAYS",
+          "sortId": 2
+        },
+        {
+          "stageId": "main_16-07",
+          "occPer": "ALWAYS",
+          "sortId": 3
+        },
+        {
+          "stageId": "main_16-07#s",
+          "occPer": "ALWAYS",
+          "sortId": 4
+        },
+        {
+          "stageId": "main_15-02",
+          "occPer": "ALWAYS",
+          "sortId": 5
+        },
+        {
+          "stageId": "main_15-02#s",
+          "occPer": "ALWAYS",
+          "sortId": 6
+        },
+        {
+          "stageId": "main_13-07",
+          "occPer": "ALWAYS",
+          "sortId": 7
+        },
+        {
+          "stageId": "tough_13-07",
+          "occPer": "ALWAYS",
+          "sortId": 8
+        },
+        {
+          "stageId": "main_12-01",
+          "occPer": "ALWAYS",
+          "sortId": 9
+        },
+        {
+          "stageId": "tough_12-01",
+          "occPer": "ALWAYS",
+          "sortId": 10
+        },
+        {
+          "stageId": "main_11-08",
+          "occPer": "ALWAYS",
+          "sortId": 11
+        },
+        {
+          "stageId": "tough_11-08",
+          "occPer": "ALWAYS",
+          "sortId": 12
+        },
+        {
+          "stageId": "main_10-07",
+          "occPer": "ALWAYS",
+          "sortId": 13
+        },
+        {
+          "stageId": "tough_10-07",
+          "occPer": "ALWAYS",
+          "sortId": 14
+        },
+        {
+          "stageId": "main_09-01",
+          "occPer": "ALWAYS",
+          "sortId": 15
+        },
+        {
+          "stageId": "main_08-01",
+          "occPer": "ALWAYS",
+          "sortId": 16
+        },
+        {
+          "stageId": "sub_07-1-1",
+          "occPer": "ALWAYS",
+          "sortId": 17
+        },
+        {
+          "stageId": "sub_06-2-2",
+          "occPer": "ALWAYS",
+          "sortId": 18
+        },
+        {
+          "stageId": "sub_05-1-2",
+          "occPer": "ALWAYS",
+          "sortId": 19
+        },
+        {
+          "stageId": "sub_04-2-3",
+          "occPer": "ALWAYS",
+          "sortId": 20
+        },
+        {
+          "stageId": "main_04-01",
+          "occPer": "ALWAYS",
+          "sortId": 21
+        },
+        {
+          "stageId": "main_03-06",
+          "occPer": "ALWAYS",
+          "sortId": 22
+        },
+        {
+          "stageId": "main_02-07",
+          "occPer": "ALWAYS",
+          "sortId": 23
+        },
+        {
+          "stageId": "sub_02-02",
+          "occPer": "ALWAYS",
+          "sortId": 24
+        },
+        {
+          "stageId": "main_01-01",
+          "occPer": "ALWAYS",
+          "sortId": 25
+        }
+      ],
+      "buildingProductList": [],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/GOLD.png",
+      "localIconPath": "raw/item_icon/GOLD.png"
+    },
+    "4003": {
+      "itemId": "4003",
+      "name": "合成玉",
+      "description": "由至纯源石加工而来，混合了其他矿物以后的源石产物。以前仅能当作一些传导元件使用，现在却逐渐成为人事交互关系中令人信服的象征物。",
+      "rarity": "TIER_5",
+      "iconId": "DIAMOND_SHD",
+      "overrideBkg": null,
+      "stackIconId": "DIAMOND_SHD_STACK",
+      "sortId": 10002,
+      "usage": "合成物质。常用于招募干员。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NORMAL",
+      "itemType": "DIAMOND_SHD",
+      "stageDropList": [
+        {
+          "stageId": "camp_01",
+          "occPer": "ALWAYS",
+          "sortId": 0
+        },
+        {
+          "stageId": "camp_r_18",
+          "occPer": "ALWAYS",
+          "sortId": 1
+        },
+        {
+          "stageId": "camp_r_19",
+          "occPer": "ALWAYS",
+          "sortId": 2
+        },
+        {
+          "stageId": "camp_r_20",
+          "occPer": "ALWAYS",
+          "sortId": 3
+        },
+        {
+          "stageId": "camp_r_21",
+          "occPer": "ALWAYS",
+          "sortId": 4
+        },
+        {
+          "stageId": "camp_r_22",
+          "occPer": "ALWAYS",
+          "sortId": 5
+        },
+        {
+          "stageId": "camp_r_23",
+          "occPer": "ALWAYS",
+          "sortId": 6
+        },
+        {
+          "stageId": "camp_r_17",
+          "occPer": "ALWAYS",
+          "sortId": 7
+        },
+        {
+          "stageId": "camp_r_24",
+          "occPer": "ALWAYS",
+          "sortId": 8
+        },
+        {
+          "stageId": "camp_r_26",
+          "occPer": "ALWAYS",
+          "sortId": 9
+        },
+        {
+          "stageId": "camp_r_27",
+          "occPer": "ALWAYS",
+          "sortId": 10
+        },
+        {
+          "stageId": "camp_r_28",
+          "occPer": "ALWAYS",
+          "sortId": 11
+        },
+        {
+          "stageId": "camp_r_29",
+          "occPer": "ALWAYS",
+          "sortId": 12
+        },
+        {
+          "stageId": "camp_r_30",
+          "occPer": "ALWAYS",
+          "sortId": 13
+        },
+        {
+          "stageId": "camp_r_31",
+          "occPer": "ALWAYS",
+          "sortId": 14
+        },
+        {
+          "stageId": "camp_r_25",
+          "occPer": "ALWAYS",
+          "sortId": 15
+        },
+        {
+          "stageId": "camp_r_16",
+          "occPer": "ALWAYS",
+          "sortId": 16
+        },
+        {
+          "stageId": "camp_r_15",
+          "occPer": "ALWAYS",
+          "sortId": 17
+        },
+        {
+          "stageId": "camp_r_14",
+          "occPer": "ALWAYS",
+          "sortId": 18
+        },
+        {
+          "stageId": "camp_02",
+          "occPer": "ALWAYS",
+          "sortId": 19
+        },
+        {
+          "stageId": "camp_03",
+          "occPer": "ALWAYS",
+          "sortId": 20
+        },
+        {
+          "stageId": "camp_r_01",
+          "occPer": "ALWAYS",
+          "sortId": 21
+        },
+        {
+          "stageId": "camp_r_02",
+          "occPer": "ALWAYS",
+          "sortId": 22
+        },
+        {
+          "stageId": "camp_r_03",
+          "occPer": "ALWAYS",
+          "sortId": 23
+        },
+        {
+          "stageId": "camp_r_04",
+          "occPer": "ALWAYS",
+          "sortId": 24
+        },
+        {
+          "stageId": "camp_r_05",
+          "occPer": "ALWAYS",
+          "sortId": 25
+        },
+        {
+          "stageId": "camp_r_06",
+          "occPer": "ALWAYS",
+          "sortId": 26
+        },
+        {
+          "stageId": "camp_r_07",
+          "occPer": "ALWAYS",
+          "sortId": 27
+        },
+        {
+          "stageId": "camp_r_08",
+          "occPer": "ALWAYS",
+          "sortId": 28
+        },
+        {
+          "stageId": "camp_r_09",
+          "occPer": "ALWAYS",
+          "sortId": 29
+        },
+        {
+          "stageId": "camp_r_10",
+          "occPer": "ALWAYS",
+          "sortId": 30
+        },
+        {
+          "stageId": "camp_r_11",
+          "occPer": "ALWAYS",
+          "sortId": 31
+        },
+        {
+          "stageId": "camp_r_12",
+          "occPer": "ALWAYS",
+          "sortId": 32
+        },
+        {
+          "stageId": "camp_r_13",
+          "occPer": "ALWAYS",
+          "sortId": 33
+        },
+        {
+          "stageId": "camp_r_32",
+          "occPer": "ALWAYS",
+          "sortId": 34
+        },
+        {
+          "stageId": "camp_r_33",
+          "occPer": "ALWAYS",
+          "sortId": 35
+        }
+      ],
+      "buildingProductList": [],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/DIAMOND_SHD.png",
+      "localIconPath": "raw/item_icon/DIAMOND_SHD.png"
+    },
+    "7001": {
+      "itemId": "7001",
+      "name": "招聘许可",
+      "description": "人事部的同事们每天都要处理巨量信息，但他们总是能从砂土中淘出那块属于罗德岛的黄金。",
+      "rarity": "TIER_4",
+      "iconId": "TKT_RECRUIT",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": 40012,
+      "usage": "罗德岛人事部颁发的许可书，可从公开渠道招聘一位干员。",
+      "obtainApproach": "采购中心、任务奖励",
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NORMAL",
+      "itemType": "TKT_RECRUIT",
+      "stageDropList": [],
+      "buildingProductList": [],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/TKT_RECRUIT.png",
+      "localIconPath": "raw/item_icon/TKT_RECRUIT.png"
+    },
+    "30012": {
+      "itemId": "30012",
+      "name": "固源岩",
+      "description": "内含有密集的微孔，常作为源石气体分解物的吸附剂。多用于防护夹层。",
+      "rarity": "TIER_2",
+      "iconId": "MTL_SL_G2",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": 100039,
+      "usage": "从地表开采出的岩石固块，可用于多种强化场合，也常作为制造站合成项目的原料。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "MATERIAL",
+      "itemType": "MATERIAL",
+      "stageDropList": [
+        {
+          "stageId": "act44side_04",
+          "occPer": "ALMOST",
+          "sortId": 0
+        },
+        {
+          "stageId": "act53side_04",
+          "occPer": "ALMOST",
+          "sortId": 1
+        },
+        {
+          "stageId": "act43side_03",
+          "occPer": "ALWAYS",
+          "sortId": 2
+        },
+        {
+          "stageId": "act21mini_05",
+          "occPer": "ALWAYS",
+          "sortId": 3
+        },
+        {
+          "stageId": "act42side_06",
+          "occPer": "ALWAYS",
+          "sortId": 4
+        },
+        {
+          "stageId": "act42side_04",
+          "occPer": "ALMOST",
+          "sortId": 5
+        },
+        {
+          "stageId": "act41side_03",
+          "occPer": "ALWAYS",
+          "sortId": 6
+        },
+        {
+          "stageId": "act49side_05",
+          "occPer": "ALMOST",
+          "sortId": 7
+        },
+        {
+          "stageId": "act40side_04",
+          "occPer": "ALMOST",
+          "sortId": 8
+        },
+        {
+          "stageId": "act39side_04",
+          "occPer": "ALWAYS",
+          "sortId": 9
+        },
+        {
+          "stageId": "act39side_05",
+          "occPer": "ALMOST",
+          "sortId": 10
+        },
+        {
+          "stageId": "act47side_05",
+          "occPer": "ALWAYS",
+          "sortId": 11
+        },
+        {
+          "stageId": "act38side_05",
+          "occPer": "ALMOST",
+          "sortId": 12
+        },
+        {
+          "stageId": "act46side_04",
+          "occPer": "ALWAYS",
+          "sortId": 13
+        },
+        {
+          "stageId": "act37side_04",
+          "occPer": "ALWAYS",
+          "sortId": 14
+        },
+        {
+          "stageId": "act45side_05",
+          "occPer": "ALMOST",
+          "sortId": 15
+        },
+        {
+          "stageId": "act35side_06",
+          "occPer": "ALMOST",
+          "sortId": 16
+        },
+        {
+          "stageId": "act34side_04",
+          "occPer": "ALWAYS",
+          "sortId": 17
+        },
+        {
+          "stageId": "act33side_04",
+          "occPer": "ALMOST",
+          "sortId": 18
+        },
+        {
+          "stageId": "act31side_05",
+          "occPer": "ALMOST",
+          "sortId": 19
+        },
+        {
+          "stageId": "act30side_05",
+          "occPer": "ALWAYS",
+          "sortId": 20
+        },
+        {
+          "stageId": "act29side_04",
+          "occPer": "ALWAYS",
+          "sortId": 21
+        },
+        {
+          "stageId": "act28side_04",
+          "occPer": "ALWAYS",
+          "sortId": 22
+        },
+        {
+          "stageId": "act36side_03",
+          "occPer": "ALMOST",
+          "sortId": 23
+        },
+        {
+          "stageId": "act17mini_05",
+          "occPer": "ALWAYS",
+          "sortId": 24
+        },
+        {
+          "stageId": "act25side_06",
+          "occPer": "ALWAYS",
+          "sortId": 25
+        },
+        {
+          "stageId": "act17d0_06",
+          "occPer": "ALMOST",
+          "sortId": 26
+        },
+        {
+          "stageId": "act17d0_04",
+          "occPer": "ALMOST",
+          "sortId": 27
+        },
+        {
+          "stageId": "act32side_03",
+          "occPer": "ALMOST",
+          "sortId": 28
+        },
+        {
+          "stageId": "act16mini_05",
+          "occPer": "ALWAYS",
+          "sortId": 29
+        },
+        {
+          "stageId": "act20side_03",
+          "occPer": "ALWAYS",
+          "sortId": 30
+        },
+        {
+          "stageId": "act20side_05",
+          "occPer": "ALWAYS",
+          "sortId": 31
+        },
+        {
+          "stageId": "act15mini_05",
+          "occPer": "ALWAYS",
+          "sortId": 32
+        },
+        {
+          "stageId": "act18side_03",
+          "occPer": "ALMOST",
+          "sortId": 33
+        },
+        {
+          "stageId": "act16side_04",
+          "occPer": "ALMOST",
+          "sortId": 34
+        },
+        {
+          "stageId": "act14mini_06",
+          "occPer": "ALWAYS",
+          "sortId": 35
+        },
+        {
+          "stageId": "act15side_04",
+          "occPer": "ALMOST",
+          "sortId": 36
+        },
+        {
+          "stageId": "act14side_04",
+          "occPer": "ALMOST",
+          "sortId": 37
+        },
+        {
+          "stageId": "act13side_06",
+          "occPer": "ALWAYS",
+          "sortId": 38
+        },
+        {
+          "stageId": "act13side_04",
+          "occPer": "ALMOST",
+          "sortId": 39
+        },
+        {
+          "stageId": "act11mini_06",
+          "occPer": "ALWAYS",
+          "sortId": 40
+        },
+        {
+          "stageId": "act18d3_04",
+          "occPer": "ALMOST",
+          "sortId": 41
+        },
+        {
+          "stageId": "act18d3_06",
+          "occPer": "ALMOST",
+          "sortId": 42
+        },
+        {
+          "stageId": "act18d0_04",
+          "occPer": "ALMOST",
+          "sortId": 43
+        },
+        {
+          "stageId": "act16d5_06",
+          "occPer": "ALWAYS",
+          "sortId": 44
+        },
+        {
+          "stageId": "act16d5_04",
+          "occPer": "ALMOST",
+          "sortId": 45
+        },
+        {
+          "stageId": "act15d0_04",
+          "occPer": "ALMOST",
+          "sortId": 46
+        },
+        {
+          "stageId": "act13d5_05",
+          "occPer": "ALWAYS",
+          "sortId": 47
+        },
+        {
+          "stageId": "act12d0_04",
+          "occPer": "ALMOST",
+          "sortId": 48
+        },
+        {
+          "stageId": "act11d0_04",
+          "occPer": "ALMOST",
+          "sortId": 49
+        },
+        {
+          "stageId": "act9d0_04",
+          "occPer": "ALWAYS",
+          "sortId": 50
+        },
+        {
+          "stageId": "act6d5_03",
+          "occPer": "ALWAYS",
+          "sortId": 51
+        },
+        {
+          "stageId": "main_01-07",
+          "occPer": "ALWAYS",
+          "sortId": 52
+        },
+        {
+          "stageId": "sub_02-12",
+          "occPer": "ALWAYS",
+          "sortId": 53
+        },
+        {
+          "stageId": "sub_03-3-2",
+          "occPer": "USUAL",
+          "sortId": 54
+        },
+        {
+          "stageId": "sub_06-1-2",
+          "occPer": "ALWAYS",
+          "sortId": 55
+        },
+        {
+          "stageId": "sub_05-1-1",
+          "occPer": "ALWAYS",
+          "sortId": 56
+        },
+        {
+          "stageId": "main_05-10",
+          "occPer": "USUAL",
+          "sortId": 57
+        },
+        {
+          "stageId": "main_14-18",
+          "occPer": "OFTEN",
+          "sortId": 58
+        },
+        {
+          "stageId": "tough_14-18",
+          "occPer": "OFTEN",
+          "sortId": 59
+        },
+        {
+          "stageId": "main_07-14",
+          "occPer": "USUAL",
+          "sortId": 60
+        }
+      ],
+      "buildingProductList": [
+        {
+          "roomType": "WORKSHOP",
+          "formulaId": "34"
+        }
+      ],
+      "voucherRelateList": null,
+      "shopRelateInfoList": [
+        {
+          "shopType": "EPGS_SHOP",
+          "shopGroup": 0,
+          "startTs": 1749096000
+        }
+      ],
+      "sourceIconPath": "assets/item_icon/MTL_SL_G2.png",
+      "localIconPath": "raw/item_icon/MTL_SL_G2.png"
+    },
+    "30062": {
+      "itemId": "30062",
+      "name": "装置",
+      "description": "一套相对完整的装置，含有大量密集的可用电子元件。为了迎合轻便实用的设计，主板寸土寸金的空间被塞得满满当当。",
+      "rarity": "TIER_2",
+      "iconId": "MTL_SL_BOSS2",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": 100043,
+      "usage": "收缴来的常规机械装置，可用于多种强化场合，也常作为制造站合成项目的原料。",
+      "obtainApproach": null,
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "MATERIAL",
+      "itemType": "MATERIAL",
+      "stageDropList": [
+        {
+          "stageId": "act54side_05",
+          "occPer": "USUAL",
+          "sortId": 0
+        },
+        {
+          "stageId": "act44side_04",
+          "occPer": "USUAL",
+          "sortId": 1
+        },
+        {
+          "stageId": "act53side_05",
+          "occPer": "USUAL",
+          "sortId": 2
+        },
+        {
+          "stageId": "act43side_05",
+          "occPer": "USUAL",
+          "sortId": 3
+        },
+        {
+          "stageId": "act43side_03",
+          "occPer": "OFTEN",
+          "sortId": 4
+        },
+        {
+          "stageId": "act21mini_06",
+          "occPer": "ALMOST",
+          "sortId": 5
+        },
+        {
+          "stageId": "act42side_05",
+          "occPer": "USUAL",
+          "sortId": 6
+        },
+        {
+          "stageId": "act20mini_06",
+          "occPer": "ALMOST",
+          "sortId": 7
+        },
+        {
+          "stageId": "act49side_04",
+          "occPer": "OFTEN",
+          "sortId": 8
+        },
+        {
+          "stageId": "act40side_05",
+          "occPer": "USUAL",
+          "sortId": 9
+        },
+        {
+          "stageId": "act48side_05",
+          "occPer": "USUAL",
+          "sortId": 10
+        },
+        {
+          "stageId": "act48side_03",
+          "occPer": "OFTEN",
+          "sortId": 11
+        },
+        {
+          "stageId": "act47side_04",
+          "occPer": "USUAL",
+          "sortId": 12
+        },
+        {
+          "stageId": "act38side_04",
+          "occPer": "OFTEN",
+          "sortId": 13
+        },
+        {
+          "stageId": "act38side_06",
+          "occPer": "OFTEN",
+          "sortId": 14
+        },
+        {
+          "stageId": "act46side_06",
+          "occPer": "OFTEN",
+          "sortId": 15
+        },
+        {
+          "stageId": "act37side_05",
+          "occPer": "OFTEN",
+          "sortId": 16
+        },
+        {
+          "stageId": "act45side_03",
+          "occPer": "OFTEN",
+          "sortId": 17
+        },
+        {
+          "stageId": "act35side_04",
+          "occPer": "OFTEN",
+          "sortId": 18
+        },
+        {
+          "stageId": "act19mini_05",
+          "occPer": "ALMOST",
+          "sortId": 19
+        },
+        {
+          "stageId": "act33side_05",
+          "occPer": "OFTEN",
+          "sortId": 20
+        },
+        {
+          "stageId": "act31side_06",
+          "occPer": "OFTEN",
+          "sortId": 21
+        },
+        {
+          "stageId": "act30side_04",
+          "occPer": "OFTEN",
+          "sortId": 22
+        },
+        {
+          "stageId": "act29side_06",
+          "occPer": "ALMOST",
+          "sortId": 23
+        },
+        {
+          "stageId": "act28side_05",
+          "occPer": "OFTEN",
+          "sortId": 24
+        },
+        {
+          "stageId": "act36side_05",
+          "occPer": "OFTEN",
+          "sortId": 25
+        },
+        {
+          "stageId": "act26side_05",
+          "occPer": "OFTEN",
+          "sortId": 26
+        },
+        {
+          "stageId": "act25side_04",
+          "occPer": "OFTEN",
+          "sortId": 27
+        },
+        {
+          "stageId": "act25side_07",
+          "occPer": "OFTEN",
+          "sortId": 28
+        },
+        {
+          "stageId": "act17d0_06",
+          "occPer": "USUAL",
+          "sortId": 29
+        },
+        {
+          "stageId": "act32side_05",
+          "occPer": "USUAL",
+          "sortId": 30
+        },
+        {
+          "stageId": "act23side_06",
+          "occPer": "USUAL",
+          "sortId": 31
+        },
+        {
+          "stageId": "act23side_05",
+          "occPer": "OFTEN",
+          "sortId": 32
+        },
+        {
+          "stageId": "act16mini_06",
+          "occPer": "ALMOST",
+          "sortId": 33
+        },
+        {
+          "stageId": "act20side_06",
+          "occPer": "ALMOST",
+          "sortId": 34
+        },
+        {
+          "stageId": "act20side_04",
+          "occPer": "OFTEN",
+          "sortId": 35
+        },
+        {
+          "stageId": "act19side_05",
+          "occPer": "OFTEN",
+          "sortId": 36
+        },
+        {
+          "stageId": "act19side_03",
+          "occPer": "USUAL",
+          "sortId": 37
+        },
+        {
+          "stageId": "act18side_03",
+          "occPer": "USUAL",
+          "sortId": 38
+        },
+        {
+          "stageId": "act16side_04",
+          "occPer": "USUAL",
+          "sortId": 39
+        },
+        {
+          "stageId": "act13side_07",
+          "occPer": "ALMOST",
+          "sortId": 40
+        },
+        {
+          "stageId": "act12mini_05",
+          "occPer": "ALMOST",
+          "sortId": 41
+        },
+        {
+          "stageId": "act11mini_05",
+          "occPer": "ALMOST",
+          "sortId": 42
+        },
+        {
+          "stageId": "act18d0_05",
+          "occPer": "USUAL",
+          "sortId": 43
+        },
+        {
+          "stageId": "act16d5_05",
+          "occPer": "OFTEN",
+          "sortId": 44
+        },
+        {
+          "stageId": "act15d0_05",
+          "occPer": "OFTEN",
+          "sortId": 45
+        },
+        {
+          "stageId": "act9mini_03",
+          "occPer": "USUAL",
+          "sortId": 46
+        },
+        {
+          "stageId": "act13d5_04",
+          "occPer": "OFTEN",
+          "sortId": 47
+        },
+        {
+          "stageId": "act12d0_05",
+          "occPer": "OFTEN",
+          "sortId": 48
+        },
+        {
+          "stageId": "act8mini_03",
+          "occPer": "USUAL",
+          "sortId": 49
+        },
+        {
+          "stageId": "act11d0_05",
+          "occPer": "OFTEN",
+          "sortId": 50
+        },
+        {
+          "stageId": "act7mini_03",
+          "occPer": "USUAL",
+          "sortId": 51
+        },
+        {
+          "stageId": "act9d0_05",
+          "occPer": "OFTEN",
+          "sortId": 52
+        },
+        {
+          "stageId": "act15d5_05",
+          "occPer": "USUAL",
+          "sortId": 53
+        },
+        {
+          "stageId": "act13d0_05",
+          "occPer": "USUAL",
+          "sortId": 54
+        },
+        {
+          "stageId": "act6d5_05",
+          "occPer": "ALMOST",
+          "sortId": 55
+        },
+        {
+          "stageId": "sub_03-2-2",
+          "occPer": "ALMOST",
+          "sortId": 56
+        },
+        {
+          "stageId": "main_14-10",
+          "occPer": "ALWAYS",
+          "sortId": 57
+        },
+        {
+          "stageId": "tough_14-10",
+          "occPer": "ALWAYS",
+          "sortId": 58
+        },
+        {
+          "stageId": "main_01-12",
+          "occPer": "USUAL",
+          "sortId": 59
+        },
+        {
+          "stageId": "main_09-02",
+          "occPer": "USUAL",
+          "sortId": 60
+        },
+        {
+          "stageId": "main_08-09",
+          "occPer": "USUAL",
+          "sortId": 61
+        },
+        {
+          "stageId": "sub_05-3-1",
+          "occPer": "USUAL",
+          "sortId": 62
+        },
+        {
+          "stageId": "main_06-10",
+          "occPer": "USUAL",
+          "sortId": 63
+        },
+        {
+          "stageId": "main_10-03",
+          "occPer": "OFTEN",
+          "sortId": 64
+        },
+        {
+          "stageId": "tough_10-03",
+          "occPer": "OFTEN",
+          "sortId": 65
+        }
+      ],
+      "buildingProductList": [
+        {
+          "roomType": "WORKSHOP",
+          "formulaId": "19"
+        }
+      ],
+      "voucherRelateList": null,
+      "shopRelateInfoList": [
+        {
+          "shopType": "EPGS_SHOP",
+          "shopGroup": 0,
+          "startTs": 1749096000
+        }
+      ],
+      "sourceIconPath": "assets/item_icon/MTL_SL_BOSS2.png",
+      "localIconPath": "raw/item_icon/MTL_SL_BOSS2.png"
+    },
+    "base_ap": {
+      "itemId": "base_ap",
+      "name": "无人机",
+      "description": "由罗德岛后勤部统一操控的建造用无人机，没有它们，干员们可能要多等十倍的时间才能入住。",
+      "rarity": "TIER_5",
+      "iconId": "AP_BASE",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": -10000,
+      "usage": "支持罗德岛基础建设的重要机械，通常会用于基建设施的清理与建造升级等。",
+      "obtainApproach": "清理房间获取、自然时间回复",
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NONE",
+      "itemType": "AP_BASE",
+      "stageDropList": [],
+      "buildingProductList": [],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/AP_BASE.png",
+      "localIconPath": "raw/item_icon/AP_BASE.png"
+    },
+    "SOCIAL_PT": {
+      "itemId": "SOCIAL_PT",
+      "name": "信用",
+      "description": "信用维系着各个群体间的关系，也是社会稳定的象征，有时候甚至比金钱还有用哦，请好好珍惜。",
+      "rarity": "TIER_2",
+      "iconId": "SOCIAL_PT",
+      "overrideBkg": null,
+      "stackIconId": null,
+      "sortId": -10000,
+      "usage": "友谊的见证，用于在商店中兑换物资。",
+      "obtainApproach": "好友助战、支援单位、宿舍氛围、线索交流",
+      "hideInItemGet": false,
+      "reslockStatus": "NOT_SUPPORT_RESLOCK",
+      "canReslock": false,
+      "classifyType": "NONE",
+      "itemType": "SOCIAL_PT",
+      "stageDropList": [],
+      "buildingProductList": [],
+      "voucherRelateList": null,
+      "shopRelateInfoList": null,
+      "sourceIconPath": "assets/item_icon/SOCIAL_PT.png",
+      "localIconPath": "raw/item_icon/SOCIAL_PT.png"
+    }
+  },
+  "expItems": {},
+  "potentialItems": {},
+  "apSupplies": {},
+  "resources": {
+    "drone": {
+      "itemId": "base_ap",
+      "name": "无人机",
+      "kind": "base_resource",
+      "sourcePath": "gamedata/latest/excel/item_table.json",
+      "sourceIconPath": "assets/item_icon/AP_BASE.png",
+      "localIconPath": "raw/item_icon/AP_BASE.png"
+    }
+  }
+}

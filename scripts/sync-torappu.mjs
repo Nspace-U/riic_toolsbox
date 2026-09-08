@@ -20,7 +20,28 @@ const DATA_FILES = [
     name: 'gamedata_const',
     path: 'gamedata/latest/excel/gamedata_const.json',
   },
+  {
+    name: 'item_table',
+    path: 'gamedata/latest/excel/item_table.json',
+  },
 ]
+
+const TARGET_ITEM_IDS = [
+  '4001',
+  '4003',
+  '2003',
+  '3003',
+  '3141',
+  'base_ap',
+  'SOCIAL_PT',
+  '7001',
+  '30012',
+  '30062',
+]
+
+const ITEM_TABLE_PATH = 'gamedata/latest/excel/item_table.json'
+const ITEM_ICON_SOURCE_PATH = 'assets/item_icon'
+const ITEM_ICON_LOCAL_PATH = 'raw/item_icon'
 
 async function fetchResponse(url, label) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -156,6 +177,40 @@ function selectBuildingData(buildingData, operatorIds) {
   return { buffs }
 }
 
+function selectItemTable(itemTable) {
+  const items = Object.fromEntries(TARGET_ITEM_IDS.map((itemId) => {
+    const item = itemTable.items?.[itemId]
+    if (!item) {
+      throw new Error(`Torappu 物品 ${itemId} 不存在`)
+    }
+    return [itemId, {
+      ...item,
+      sourceIconPath: `${ITEM_ICON_SOURCE_PATH}/${item.iconId}.png`,
+      localIconPath: `${ITEM_ICON_LOCAL_PATH}/${item.iconId}.png`,
+    }]
+  }))
+
+  return {
+    sourcePath: ITEM_TABLE_PATH,
+    iconSourcePath: ITEM_ICON_SOURCE_PATH,
+    iconLocalPath: ITEM_ICON_LOCAL_PATH,
+    items,
+    expItems: {},
+    potentialItems: {},
+    apSupplies: {},
+    resources: {
+      drone: {
+        itemId: items.base_ap.itemId,
+        name: items.base_ap.name,
+        kind: 'base_resource',
+        sourcePath: ITEM_TABLE_PATH,
+        sourceIconPath: items.base_ap.sourceIconPath,
+        localIconPath: items.base_ap.localIconPath,
+      },
+    },
+  }
+}
+
 function avatarNames(operatorId, character) {
   const names = [`${operatorId}.png`]
   const phaseCount = character?.phaseCount ?? 0
@@ -196,6 +251,7 @@ async function main() {
     ),
     building_data: selectBuildingData(rawData.building_data, operatorIds),
     gamedata_const: rawData.gamedata_const,
+    item_table: selectItemTable(rawData.item_table),
   }
   for (const dataFile of DATA_FILES) {
     await writeJson(dataFile.path, data[dataFile.name])
@@ -203,6 +259,7 @@ async function main() {
 
   const characterTable = data.character_table
   const buildingData = data.building_data
+  const itemTable = data.item_table
   const skillIcons = new Set(
     Object.values(buildingData.buffs ?? {})
       .map((buff) => buff.skillIcon)
@@ -219,19 +276,34 @@ async function main() {
     directory: 'build_skill_icon',
     fileName,
   }))
+  const itemIcons = new Set(
+    Object.values(itemTable.items ?? {})
+      .map((item) => item.iconId)
+      .filter(Boolean),
+  )
+  const itemIconTasks = [...itemIcons].map((fileName) => ({
+    directory: 'item_icon',
+    fileName: `${fileName}.png`,
+  }))
   const missingAvatars = []
+  const missingItemIcons = []
   let completed = 0
-  const imageTasks = [...avatarTasks, ...iconTasks]
+  const imageTasks = [...avatarTasks, ...iconTasks, ...itemIconTasks]
   await runPool(imageTasks, 12, async (task) => {
     const downloaded = await downloadAsset(task.directory, task.fileName)
     if (!downloaded && task.directory === 'char_avatar') {
       missingAvatars.push(task.fileName)
+    }
+    if (!downloaded && task.directory === 'item_icon') {
+      missingItemIcons.push(task.fileName)
     }
     completed += 1
     if (completed % 100 === 0 || completed === imageTasks.length) {
       console.log(`资源同步进度：${completed}/${imageTasks.length}`)
     }
   })
+  missingAvatars.sort()
+  missingItemIcons.sort()
 
   await writeJson('gamedata/latest/torappu-meta.json', {
     source: 'Torappu',
@@ -241,17 +313,21 @@ async function main() {
     resVersion: latest.resVersion,
     syncedAt: new Date().toISOString(),
     missingAvatars,
+    missingItemIcons,
     paths: {
       characterTable: 'gamedata/latest/excel/character_table.json',
       buildingData: 'gamedata/latest/excel/building_data.json',
       gamedataConst: 'gamedata/latest/excel/gamedata_const.json',
+      itemTable: ITEM_TABLE_PATH,
       avatars: 'raw/char_avatar',
       skillIcons: 'raw/build_skill_icon',
+      itemIcons: ITEM_ICON_LOCAL_PATH,
     },
   })
 
   console.log(`Torappu 同步完成：${latest.clientVersion} / ${latest.resVersion}`)
-  console.log(`干员：${operatorIds.length}，基建图标：${skillIcons.size}，缺失阶段头像：${missingAvatars.length}`)
+  console.log(`干员：${operatorIds.length}，基建图标：${skillIcons.size}，物品：${Object.keys(itemTable.items).length}，物品图标：${itemIcons.size}`)
+  console.log(`缺失阶段头像：${missingAvatars.length}，缺失物品图标：${missingItemIcons.length}`)
   if (missingAvatars.length > 0) {
     console.log(`缺失头像：${missingAvatars.join(', ')}`)
   }

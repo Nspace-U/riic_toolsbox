@@ -53,6 +53,16 @@ export interface BaseDataMetadata {
   resVersion: string
   syncedAt: string
   missingAvatars?: string[]
+  missingItemIcons?: string[]
+  paths?: {
+    characterTable?: string
+    buildingData?: string
+    gamedataConst?: string
+    itemTable?: string
+    avatars?: string
+    skillIcons?: string
+    itemIcons?: string
+  }
 }
 
 export interface BaseData {
