@@ -33,7 +33,16 @@ Common commit types:
 - `optimized` - Code optimization
 - `refactor` - Code refactoring
 
-## 要求
+## 项目协作规则
 
-- 收到任务立即调工具，每轮至少一次工具调用
-- 禁止只回文字
+开始任务前：
+
+- 读取 CONTEXT.md
+- 读取 docs/decision-log.md 的最近内容
+
+完成任务后：
+
+- 更新 CONTEXT.md
+- 把重要技术决定追加到 docs/decision-log.md
+- 明确记录已完成、未完成、风险和下一步
+- 不要把未经验证的内容写成已完成
