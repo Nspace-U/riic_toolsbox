@@ -87,6 +87,7 @@ function buildSkill(row: CsvRow, columns: Map<string, number>): OperatorSkill {
     iconFile: cell(row, columns, '图标文件名'),
     iconStatus: cell(row, columns, '图标状态'),
     description: cell(row, columns, '技能描述'),
+    termReferences: [],
   }
 }
 

@@ -10,8 +10,10 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
+import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
 import type { EliteLevel, Operator } from '@/types/baseData'
 import {
+  generateOperatorAvatarBlob,
   generateOperatorAvatarUrl,
   getOperatorAvatarFile,
 } from '@/utils/operatorAvatar'
@@ -32,6 +34,7 @@ const { selectedDataSource } = useDataSource()
 
 const selectedOperatorId = ref('')
 const selectedEliteLevel = ref<EliteLevel>(0)
+const avatarDisplayMode = ref<'combined' | 'layered'>('combined')
 const showRarity = ref(true)
 const showEliteLevel = ref(true)
 const showProfession = ref(true)
@@ -83,6 +86,8 @@ const previewDescription = computed(() => {
   return `${selectedOperator.value.name} · ${selectedEliteOption.value?.label ?? ''}`
 })
 
+const showLayeredPreview = computed(() => avatarDisplayMode.value === 'layered')
+
 function updateSelectedOperator(value: Operator[]): void {
   if (!value.some((operator) => operator.id === selectedOperatorId.value)) {
     selectedOperatorId.value = value[0]?.id ?? ''
@@ -102,6 +107,17 @@ function handleReload(): void {
 
 function rarityLabel(operator: Operator): string {
   return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
+}
+
+function avatarGenerationOptions(): Parameters<typeof generateOperatorAvatarBlob>[2] {
+  return {
+    eliteLevel: selectedEliteLevel.value,
+    showRarity: showRarity.value,
+    showEliteLevel: showEliteLevel.value,
+    showProfession: showProfession.value,
+    showName: showName.value,
+    moodScattered: moodScattered.value,
+  }
 }
 
 watch(availableAvatarStages, (stages) => {
@@ -124,14 +140,15 @@ async function handleGenerate(): Promise<void> {
   generationError.value = ''
 
   try {
-    const generatedUrl = await generateOperatorAvatarUrl(operator, selectedDataSource.value, {
-      eliteLevel: selectedEliteLevel.value,
-      showRarity: showRarity.value,
-      showEliteLevel: showEliteLevel.value,
-      showProfession: showProfession.value,
-      showName: showName.value,
-      moodScattered: moodScattered.value,
-    })
+    if (showLayeredPreview.value) {
+      clearGeneratedImage()
+      return
+    }
+    const generatedUrl = await generateOperatorAvatarUrl(
+      operator,
+      selectedDataSource.value,
+      avatarGenerationOptions(),
+    )
     if (requestId === generationRequestId) {
       const previousImageUrl = generatedImageUrl.value
       generatedImageUrl.value = generatedUrl ?? ''
@@ -152,34 +169,59 @@ async function handleGenerate(): Promise<void> {
   }
 }
 
-function handleDownload(): void {
-  if (!generatedImageUrl.value || !selectedOperator.value) {
+async function createDownloadImageUrl(): Promise<{ url: string; temporary: boolean } | undefined> {
+  const operator = selectedOperator.value
+  if (!operator || !selectedAvatarFile.value) {
+    return undefined
+  }
+  if (generatedImageUrl.value) {
+    return { url: generatedImageUrl.value, temporary: false }
+  }
+  const blob = await generateOperatorAvatarBlob(
+    operator,
+    selectedDataSource.value,
+    avatarGenerationOptions(),
+  )
+  return blob ? { url: URL.createObjectURL(blob), temporary: true } : undefined
+}
+
+async function handleDownload(): Promise<void> {
+  const image = await createDownloadImageUrl()
+  if (!image || !selectedOperator.value) {
     return
   }
 
   const eliteLabel = selectedEliteOption.value?.label.replace(/\s/g, '') ?? `精${selectedEliteLevel.value}`
   const moodLabel = moodScattered.value ? '-心情涣散' : ''
   const link = document.createElement('a')
-  link.href = generatedImageUrl.value
+  link.href = image.url
   link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}.png`
   link.click()
+  if (image.temporary) {
+    URL.revokeObjectURL(image.url)
+  }
 }
 
 async function handleCopyImage(): Promise<void> {
-  if (!generatedImageUrl.value || copying.value) {
+  if (copying.value) {
     return
   }
 
   copying.value = true
   copyError.value = ''
   copySuccess.value = false
+  let image: Awaited<ReturnType<typeof createDownloadImageUrl>>
 
   try {
     if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
       throw new Error('当前浏览器不支持复制图片，请使用下载 PNG')
     }
 
-    const response = await fetch(generatedImageUrl.value)
+    image = await createDownloadImageUrl()
+    if (!image) {
+      throw new Error('当前没有可复制的头像图片')
+    }
+    const response = await fetch(image.url)
     const imageBlob = await response.blob()
     await navigator.clipboard.write([
       new ClipboardItem({ 'image/png': imageBlob }),
@@ -188,13 +230,16 @@ async function handleCopyImage(): Promise<void> {
   } catch (error: unknown) {
     copyError.value = error instanceof Error ? error.message : '图片复制失败，请使用下载 PNG'
   } finally {
+    if (image?.temporary) {
+      URL.revokeObjectURL(image.url)
+    }
     copying.value = false
   }
 }
 
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
-  [selectedOperatorId, selectedEliteLevel, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
+  [selectedOperatorId, selectedEliteLevel, avatarDisplayMode, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
   () => {
     generationError.value = ''
     copyError.value = ''
@@ -265,6 +310,13 @@ onBeforeUnmount(() => {
               </a-typography-text>
             </a-form-item>
 
+            <a-form-item label="头像显示方式">
+              <a-radio-group v-model:value="avatarDisplayMode" button-style="solid" option-type="button">
+                <a-radio-button value="combined">整合图片</a-radio-button>
+                <a-radio-button value="layered">分层显示</a-radio-button>
+              </a-radio-group>
+            </a-form-item>
+
             <a-divider orientation="left">头像信息</a-divider>
             <div class="avatar-checkboxes">
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
@@ -307,10 +359,22 @@ onBeforeUnmount(() => {
           <template #title>生成预览</template>
           <div class="avatar-preview-stage">
             <img
-              v-if="generatedImageUrl"
+              v-if="generatedImageUrl && !showLayeredPreview"
               :alt="`${selectedOperator?.name ?? ''}生成头像`"
               class="avatar-generated-image"
               :src="generatedImageUrl"
+            />
+            <OperatorAvatarDisplay
+              v-else-if="selectedOperator && selectedAvatarFile && showLayeredPreview"
+              :data-source="selectedDataSource"
+              :elite-level="selectedEliteLevel"
+              :mood-scattered="moodScattered"
+              :operator="selectedOperator"
+              :show-elite-level="showEliteLevel"
+              :show-name="showName"
+              :show-profession="showProfession"
+              :show-rarity="showRarity"
+              :size="240"
             />
             <div v-else class="avatar-preview-empty">
               <PictureOutlined />
@@ -324,7 +388,7 @@ onBeforeUnmount(() => {
               <span v-if="selectedOperator">{{ selectedOperator.name }}</span>
               <span v-if="selectedOperator">{{ rarityLabel(selectedOperator) }} · {{ selectedOperator.profession || '未知职业' }}</span>
             </div>
-            <div v-if="generatedImageUrl" class="avatar-preview-actions">
+            <div v-if="generatedImageUrl || (showLayeredPreview && selectedAvatarFile)" class="avatar-preview-actions">
               <a-button :loading="copying" @click="handleCopyImage">
                 <template #icon>
                   <CopyOutlined />

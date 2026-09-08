@@ -4,7 +4,6 @@ import {
   CopyOutlined,
   DeleteOutlined,
   DownloadOutlined,
-  EditOutlined,
   PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons-vue'
@@ -13,6 +12,7 @@ import { computed, ref } from 'vue'
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import { useMaaDocuments } from '@/composables/useMaaDocuments'
+import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
 import type { EliteLevel, Operator } from '@/types/baseData'
 import type {
   MaaLayoutEntry,
@@ -28,13 +28,13 @@ import {
   MAA_ROOM_LABELS,
   MAA_ROOM_ORDER,
   MAA_SOURCE_MATERIAL_OPTIONS,
+  MaaScheduleError,
   cloneMaaSchedule,
   parseMaaScheduleText,
   roomSlotCount,
   serializeMaaSchedule,
   validateMaaSchedule,
 } from '@/utils/maaSchedule'
-import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
 interface FacilityEntry {
   entry: MaaLayoutEntry
@@ -49,16 +49,9 @@ interface FacilityRow {
   entries: FacilityEntry[]
 }
 
-interface DraftSlot {
-  name: string
-  mood: number | null
-  elite: number | null
-}
-
-interface DraftRoom {
-  position: number
-  label: string
-  slots: DraftSlot[]
+interface FacilitySlotRef {
+  entry: FacilityEntry
+  slotIndex: number
 }
 
 const {
@@ -77,11 +70,7 @@ const { selectedDataSource } = useDataSource()
 const fileInput = ref<HTMLInputElement>()
 const errorMessage = ref('')
 const successMessage = ref('')
-const editingPlanIndex = ref<number | null>(null)
-const editingType = ref<MaaRoomKey>()
-const editingRowKey = ref('')
-const draftRooms = ref<DraftRoom[]>([])
-const editorOpen = ref(false)
+const draftOperatorNames = ref<Record<string, string>>({})
 
 const activeDocument = computed(() => getActiveDocument())
 const currentDocument = computed(() => activeDocument.value?.document)
@@ -160,11 +149,6 @@ const extraRooms = computed(() => {
   }))
 })
 
-const baseOperatorOptions = computed(() => operators.value.map((operator) => ({
-  value: operator.name,
-  label: `${operator.name} · ${operator.id}`,
-})))
-
 function clearMessages(): void {
   errorMessage.value = ''
   successMessage.value = ''
@@ -183,8 +167,8 @@ function updateCurrent(mutator: (document: MaaScheduleDocument) => void): void {
   }
 
   const candidate = cloneMaaSchedule(document)
-  mutator(candidate)
   try {
+    mutator(candidate)
     validateMaaSchedule(candidate)
   } catch (error: unknown) {
     setError(error)
@@ -231,14 +215,6 @@ function roomEntries(row: FacilityRow, plan: MaaPlan): Array<{ entry: FacilityEn
   }))
 }
 
-function roomOperators(row: FacilityRow, plan: MaaPlan): string[] {
-  return roomEntries(row, plan).flatMap(({ room }) => room?.operators ?? [])
-}
-
-function firstEntryPosition(row: FacilityRow): number {
-  return row.entries[0]?.position ?? 0
-}
-
 function roomProduct(room: MaaRoomAssignment | undefined): string {
   if (!room?.product) {
     return ''
@@ -264,6 +240,142 @@ function roomStatus(room: MaaRoomAssignment | undefined): string {
   return ''
 }
 
+function operatorSlotKey(planIndex: number, type: MaaRoomKey, position: number, slotIndex: number): string {
+  return `${planIndex}-${type}-${position}-${slotIndex}`
+}
+
+function operatorNameAt(
+  plan: MaaPlan,
+  type: MaaRoomKey,
+  position: number,
+  slotIndex: number,
+): string {
+  return roomAt(plan, type, position)?.operators?.[slotIndex] ?? ''
+}
+
+function operatorDraftValue(
+  plan: MaaPlan,
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  slotIndex: number,
+): string {
+  const key = operatorSlotKey(planIndex, type, position, slotIndex)
+  return draftOperatorNames.value[key] ?? operatorNameAt(plan, type, position, slotIndex)
+}
+
+function handleOperatorDraft(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  slotIndex: number,
+  value: string,
+): void {
+  draftOperatorNames.value[operatorSlotKey(planIndex, type, position, slotIndex)] = value
+}
+
+function operatorElite(room: MaaRoomAssignment | undefined, name: string): EliteLevel {
+  const state = operatorState(room, name)
+  if (state.elite === 1 || state.elite === 2) {
+    return state.elite
+  }
+  return 0
+}
+
+function slotRefs(row: FacilityRow): FacilitySlotRef[] {
+  return row.entries.flatMap((entry) => Array.from(
+    { length: roomSlotCount(row.type, entry.entry.level) },
+    (_, slotIndex) => ({ entry, slotIndex }),
+  ))
+}
+
+function slotRoom(plan: MaaPlan, slot: FacilitySlotRef): MaaRoomAssignment | undefined {
+  return roomAt(plan, slot.entry.entry.type, slot.entry.position)
+}
+
+function slotName(row: FacilityRow, plan: MaaPlan, planIndex: number, slot: FacilitySlotRef): string {
+  return operatorDraftValue(plan, planIndex, row.type, slot.entry.position, slot.slotIndex)
+}
+
+function slotOperator(row: FacilityRow, plan: MaaPlan, planIndex: number, slot: FacilitySlotRef): Operator | undefined {
+  return operatorByName(slotName(row, plan, planIndex, slot))
+}
+
+function commitOperatorName(
+  planIndex: number,
+  type: MaaRoomKey,
+  position: number,
+  slotIndex: number,
+): void {
+  const document = currentDocument.value
+  const plan = document?.plans[planIndex]
+  if (!document || !plan) {
+    return
+  }
+
+  const key = operatorSlotKey(planIndex, type, position, slotIndex)
+  const nextName = draftOperatorNames.value[key]?.trim() ?? ''
+  const previousName = operatorNameAt(plan, type, position, slotIndex)
+  if (nextName === previousName) {
+    delete draftOperatorNames.value[key]
+    return
+  }
+
+  updateCurrent((candidate) => {
+    const candidatePlan = candidate.plans[planIndex]
+    if (!candidatePlan) {
+      return
+    }
+    const rooms = Array.isArray(candidatePlan.rooms[type])
+      ? [...candidatePlan.rooms[type] as MaaRoomAssignment[]]
+      : []
+    const room = rooms[position] ?? {}
+    const capacity = candidate.layout.filter((entry) => entry.type === type)[position]
+    const slotLimit = capacity ? roomSlotCount(type, capacity.level) : 0
+    const names = Array.from({ length: slotLimit }, (_, index) => room.operators?.[index] ?? '')
+    names[slotIndex] = nextName
+    const compactNames = names.filter(Boolean)
+    if (nextName) {
+      const duplicate = Object.entries(candidatePlan.rooms).some(([roomType, roomList]) => {
+        if (!Array.isArray(roomList)) {
+          return false
+        }
+        return roomList.some((candidateRoom, roomPosition) => {
+          const otherRoom = candidateRoom as MaaRoomAssignment
+          return (roomType !== type || roomPosition !== position || otherRoom.operators?.indexOf(nextName) !== slotIndex)
+            && otherRoom.operators?.includes(nextName)
+        })
+      })
+      if (duplicate) {
+        throw new MaaScheduleError(`干员“${nextName}”已在当前队列的其他设施中配置`)
+      }
+    }
+    const nextStates: Record<string, MaaOperatorState> = {}
+    compactNames.forEach((name) => {
+      const state = room.operatorStates?.[name]
+      if (state) {
+        nextStates[name] = state
+      }
+    })
+    room.operators = compactNames
+    if (compactNames.length === 0) {
+      room.skip = true
+    } else {
+      delete room.skip
+    }
+    if (Object.keys(nextStates).length > 0) {
+      room.operatorStates = nextStates
+    } else {
+      delete room.operatorStates
+    }
+    rooms[position] = room
+    candidatePlan.rooms[type] = rooms
+  })
+  if (!errorMessage.value) {
+    delete draftOperatorNames.value[key]
+  }
+}
+
 function planDurationHours(plan: MaaPlan): string {
   const minutes = Number(plan.duration ?? 720)
   return `${(minutes / 60).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} 小时`
@@ -275,30 +387,6 @@ function operatorByName(name: string): Operator | undefined {
 
 function operatorState(room: MaaRoomAssignment | undefined, name: string): MaaOperatorState {
   return room?.operatorStates?.[name] ?? {}
-}
-
-function avatarUrl(name: string, state: MaaOperatorState): string | undefined {
-  const operator = operatorByName(name)
-  if (!operator) {
-    return undefined
-  }
-  const elite = Number.isInteger(state.elite) && state.elite !== undefined
-    ? Math.max(0, Math.min(2, state.elite)) as EliteLevel
-    : 0
-  const file = getOperatorAvatarFile(operator, elite)
-  return file ? getOperatorAvatarSourceUrl(selectedDataSource.value, file) : undefined
-}
-
-function stateTagText(room: MaaRoomAssignment | undefined, name: string): string[] {
-  const state = operatorState(room, name)
-  const tags: string[] = []
-  if (typeof state.mood === 'number') {
-    tags.push(`心情 ${state.mood}`)
-  }
-  if (typeof state.elite === 'number') {
-    tags.push(`精英 ${state.elite}`)
-  }
-  return tags
 }
 
 function handleCreate(): void {
@@ -372,167 +460,6 @@ function handleExport(): void {
     successMessage.value = '已导出严格 JSON 文件。'
   } catch (error: unknown) {
     setError(error)
-  }
-}
-
-function roomLabel(type: MaaRoomKey, position: number, total: number): string {
-  const suffix = total > 1 ? ` ${position + 1}` : ''
-  return `${MAA_ROOM_LABELS[type]}${suffix}`
-}
-
-function openOperatorEditor(row: FacilityRow, planIndex: number): void {
-  const plan = currentDocument.value?.plans[planIndex]
-  if (!plan) {
-    return
-  }
-
-  editingPlanIndex.value = planIndex
-  editingType.value = row.type
-  editingRowKey.value = row.key
-  draftRooms.value = row.entries.map((entry) => {
-    const room = roomAt(plan, row.type, entry.position)
-    const names = room?.operators ?? []
-    const capacity = roomSlotCount(row.type, entry.entry.level)
-    return {
-      position: entry.position,
-      label: row.type === 'power'
-        ? roomLabel(row.type, entry.position, row.entries.length)
-        : row.label,
-      slots: Array.from({ length: capacity }, (_, slotIndex) => {
-        const name = names[slotIndex] ?? ''
-        const state = operatorState(room, name)
-        return {
-          name,
-          mood: typeof state.mood === 'number' ? state.mood : null,
-          elite: typeof state.elite === 'number' ? state.elite : null,
-        }
-      }),
-    }
-  })
-  editorOpen.value = true
-}
-
-function draftNameSet(excludedRoom: DraftRoom, excludedSlot: DraftSlot): Set<string> {
-  const names = new Set<string>()
-  draftRooms.value.forEach((room) => room.slots.forEach((slot) => {
-    if (room === excludedRoom && slot === excludedSlot) {
-      return
-    }
-    if (slot.name) {
-      names.add(slot.name)
-    }
-  }))
-  return names
-}
-
-function currentPlanNameSet(): Set<string> {
-  const names = new Set<string>()
-  const planIndex = editingPlanIndex.value
-  const type = editingType.value
-  const row = facilityRows.value.find((item) => item.key === editingRowKey.value)
-  const plan = planIndex === null ? undefined : currentDocument.value?.plans[planIndex]
-  if (!plan || !type || !row) {
-    return names
-  }
-
-  MAA_ROOM_ORDER.forEach((roomType) => {
-    const rooms = plan.rooms[roomType]
-    if (!Array.isArray(rooms)) {
-      return
-    }
-    rooms.forEach((room, position) => {
-      const isEditingRoom = roomType === type && row.entries.some((entry) => entry.position === position)
-      if (isEditingRoom) {
-        return
-      }
-      ;(room as MaaRoomAssignment).operators?.forEach((name) => names.add(name))
-    })
-  })
-  return names
-}
-
-function operatorOptionsFor(room: DraftRoom, slot: DraftSlot): Array<{ value: string; label: string; disabled?: boolean }> {
-  const selectedElsewhere = draftNameSet(room, slot)
-  const selectedInOtherRooms = currentPlanNameSet()
-  const options = baseOperatorOptions.value.map((option) => ({
-    ...option,
-    disabled: selectedElsewhere.has(option.value) || selectedInOtherRooms.has(option.value),
-  }))
-  if (slot.name && !options.some((option) => option.value === slot.name)) {
-    options.unshift({
-      value: slot.name,
-      label: `${slot.name}（未知干员）`,
-      disabled: false,
-    })
-  }
-  return options
-}
-
-function clearDraftState(slot: DraftSlot): void {
-  if (!slot.name) {
-    slot.mood = null
-    slot.elite = null
-  }
-}
-
-function saveOperatorEditor(): void {
-  const planIndex = editingPlanIndex.value
-  const type = editingType.value
-  const row = facilityRows.value.find((item) => item.key === editingRowKey.value)
-  if (planIndex === null || !type || !row) {
-    editorOpen.value = false
-    return
-  }
-
-  updateCurrent((document) => {
-    const plan = document.plans[planIndex]
-    if (!plan) {
-      return
-    }
-    const rooms = Array.isArray(plan.rooms[type]) ? [...plan.rooms[type] as MaaRoomAssignment[]] : []
-    row.entries.forEach((entry, entryIndex) => {
-      const draft = draftRooms.value[entryIndex]
-      if (!draft) {
-        return
-      }
-      const operatorsForRoom: string[] = []
-      const operatorStates: Record<string, MaaOperatorState> = {}
-      draft.slots.forEach((slot) => {
-        if (!slot.name) {
-          return
-        }
-        operatorsForRoom.push(slot.name)
-        const state: MaaOperatorState = {}
-        if (slot.mood !== null) {
-          state.mood = slot.mood
-        }
-        if (slot.elite !== null) {
-          state.elite = slot.elite
-        }
-        if (Object.keys(state).length > 0) {
-          operatorStates[slot.name] = state
-        }
-      })
-      const room = rooms[entry.position] ?? {}
-      if (operatorsForRoom.length > 0) {
-        room.operators = operatorsForRoom
-        delete room.skip
-      } else {
-        delete room.operators
-        room.skip = true
-      }
-      if (Object.keys(operatorStates).length > 0) {
-        room.operatorStates = operatorStates
-      } else {
-        delete room.operatorStates
-      }
-      rooms[entry.position] = room
-    })
-    plan.rooms[type] = rooms
-  })
-  if (!errorMessage.value) {
-    editorOpen.value = false
-    successMessage.value = '已更新干员组合。'
   }
 }
 
@@ -659,114 +586,111 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
           </div>
         </a-card>
 
-        <a-card :bordered="false" class="simulator-matrix-panel" title="设施排班">
-          <template #extra>
-            <span class="simulator-matrix-hint">横向滚动查看全部队列</span>
-          </template>
-          <div class="simulator-matrix-scroll">
-            <div :style="{ '--simulator-queue-count': currentDocument.plans.length }" class="simulator-matrix">
-              <div class="simulator-matrix-corner">设施</div>
-              <div v-for="(plan, planIndex) in currentDocument.plans" :key="`head-${planIndex}`" class="simulator-queue-head">
-                <div class="simulator-queue-head-main">
-                  <a-typography-text strong>{{ plan.name || `队列${planIndex + 1}` }}</a-typography-text>
-                  <a-tag color="blue">{{ planDurationHours(plan) }}</a-tag>
-                </div>
+        <a-card :bordered="false" class="simulator-queue-panel" title="队列信息">
+          <a-row :gutter="[12, 12]">
+            <a-col v-for="(plan, planIndex) in currentDocument.plans" :key="`queue-${planIndex}`" :lg="8" :md="12" :sm="24" :xs="24">
+              <div class="simulator-queue-entry">
                 <a-input
-                  :value="plan.description ?? ''"
-                  class="simulator-queue-description"
-                  placeholder="队列描述（可选）"
-                  @update:value="(value: string) => updatePlanMeta(planIndex, 'description', value)"
+                  :value="plan.name ?? ''"
+                  class="simulator-queue-entry-title"
+                  placeholder="队列名称"
+                  @update:value="(value: string) => updatePlanMeta(planIndex, 'name', value)"
                 />
-                <div class="simulator-queue-head-actions">
-                  <a-input-number
-                    :max="1440"
-                    :min="60"
-                    :value="plan.duration ?? 720"
-                    addon-after="分钟"
-                    size="small"
-                    @update:value="(value: number | null) => updatePlanDuration(planIndex, value)"
-                  />
-                  <a-input
-                    :value="plan.name ?? ''"
-                    placeholder="队列名称"
-                    size="small"
-                    @update:value="(value: string) => updatePlanMeta(planIndex, 'name', value)"
-                  />
-                </div>
+                <a-form layout="vertical">
+                  <a-form-item label="持续时间">
+                    <a-input-number
+                      :max="1440"
+                      :min="60"
+                      :value="plan.duration ?? 720"
+                      addon-after="分钟"
+                      style="width: 100%"
+                      @update:value="(value: number | null) => updatePlanDuration(planIndex, value)"
+                    />
+                    <a-typography-text type="secondary">{{ planDurationHours(plan) }}</a-typography-text>
+                  </a-form-item>
+                  <a-form-item label="描述">
+                    <a-input
+                      :value="plan.description ?? ''"
+                      placeholder="队列描述（可选）"
+                      @update:value="(value: string) => updatePlanMeta(planIndex, 'description', value)"
+                    />
+                  </a-form-item>
+                </a-form>
               </div>
+            </a-col>
+          </a-row>
+        </a-card>
 
-              <template v-for="row in facilityRows" :key="row.key">
-                <div class="simulator-facility-cell">
-                  <div class="simulator-facility-cell-title">{{ row.label }}</div>
-                  <div class="simulator-facility-cell-meta">
+        <a-row :gutter="[16, 16]" class="simulator-facility-grid">
+          <a-col
+            v-for="row in facilityRows"
+            :key="row.key"
+            :lg="8"
+            :md="12"
+            :sm="24"
+            :xl="8"
+            :xs="24"
+          >
+            <a-card :bordered="false" class="simulator-facility-card">
+              <template #title>
+                <div class="simulator-facility-title">
+                  <span>{{ row.label }}</span>
+                  <a-space :size="4" wrap>
                     <a-tag v-for="entry in row.entries" :key="entry.index" color="gold">Lv {{ entry.entry.level }}</a-tag>
-                  </div>
+                  </a-space>
                 </div>
-                <div v-for="(plan, planIndex) in currentDocument.plans" :key="`${row.key}-${planIndex}`" class="simulator-plan-cell">
-                  <div class="simulator-plan-cell-topline">
-                    <a-space :size="4" wrap>
+              </template>
+              <template #extra>
+                <a-tag v-if="row.type === 'power'" color="cyan">合并显示</a-tag>
+              </template>
+
+              <div class="simulator-facility-queues">
+                <div v-for="(plan, planIndex) in currentDocument.plans" :key="`${row.key}-${planIndex}`" class="simulator-facility-queue">
+                  <div class="simulator-facility-queue-content">
+                    <a-space v-if="roomEntries(row, plan).some(({ room }) => roomProduct(room) || roomSource(room))" :size="4" wrap>
                       <template v-for="({ room }, entryIndex) in roomEntries(row, plan)" :key="`products-${entryIndex}`">
                         <a-tag v-if="roomProduct(room)" color="gold">{{ roomProduct(room) }}</a-tag>
                         <a-tag v-if="roomSource(room)" color="orange">{{ roomSource(room) }}</a-tag>
                       </template>
                     </a-space>
-                    <a-button aria-label="编辑干员组合" title="编辑干员组合" type="text" @click="openOperatorEditor(row, planIndex)">
-                      <template #icon><EditOutlined /></template>
-                    </a-button>
-                  </div>
-
-                  <template v-if="row.type === 'power'">
-                    <div v-for="({ entry, room }, entryIndex) in roomEntries(row, plan)" :key="`power-${entryIndex}`" class="simulator-power-group">
-                      <span class="simulator-power-group-title">{{ roomLabel(row.type, entry.position, row.entries.length) }}</span>
-                      <div v-if="room?.operators?.length" class="simulator-operator-list">
-                        <div v-for="operator in room.operators" :key="operator" class="simulator-operator">
-                          <a-avatar :size="38" :src="avatarUrl(operator, operatorState(room, operator))">
-                            {{ operator.slice(0, 1) }}
-                          </a-avatar>
-                          <div class="simulator-operator-copy">
-                            <span class="simulator-operator-name">{{ operator }}</span>
-                            <a-space v-if="stateTagText(room, operator).length" :size="4" wrap>
-                              <a-tag v-for="tag in stateTagText(room, operator)" :key="tag" color="blue">{{ tag }}</a-tag>
-                            </a-space>
-                          </div>
-                        </div>
-                      </div>
-                      <a-tag v-else :color="roomStatus(room) === '跳过换班' ? 'default' : 'warning'">
-                        {{ roomStatus(room) }}
-                      </a-tag>
-                    </div>
-                  </template>
-                  <template v-else>
-                    <div v-if="roomOperators(row, plan).length" class="simulator-operator-list">
-                      <div v-for="operator in roomOperators(row, plan)" :key="operator" class="simulator-operator">
-                        <a-avatar :size="38" :src="avatarUrl(operator, operatorState(roomAt(plan, row.type, firstEntryPosition(row)), operator))">
-                          {{ operator.slice(0, 1) }}
-                        </a-avatar>
-                        <div class="simulator-operator-copy">
-                          <span class="simulator-operator-name">{{ operator }}</span>
-                          <a-space
-                            v-if="stateTagText(roomAt(plan, row.type, firstEntryPosition(row)), operator).length"
-                            :size="4"
-                            wrap
-                          >
-                            <a-tag
-                              v-for="tag in stateTagText(roomAt(plan, row.type, firstEntryPosition(row)), operator)"
-                              :key="tag"
-                              color="blue"
-                            >{{ tag }}</a-tag>
-                          </a-space>
-                        </div>
-                      </div>
-                    </div>
-                    <a-tag v-else :color="roomStatus(roomAt(plan, row.type, firstEntryPosition(row))) === '跳过换班' ? 'default' : 'warning'">
-                      {{ roomStatus(roomAt(plan, row.type, firstEntryPosition(row))) }}
+                    <a-tag
+                      v-if="row.entries.some((entry) => roomStatus(roomAt(plan, row.type, entry.position)) === '跳过换班')"
+                      color="default"
+                    >
+                      跳过换班
                     </a-tag>
-                  </template>
+                    <div class="simulator-slot-grid">
+                      <div v-for="slot in slotRefs(row)" :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`" class="simulator-slot">
+                        <OperatorAvatarDisplay
+                          v-if="slotOperator(row, plan, planIndex, slot)"
+                          :data-source="selectedDataSource"
+                          :elite-level="operatorElite(slotRoom(plan, slot), slotName(row, plan, planIndex, slot))"
+                          :operator="slotOperator(row, plan, planIndex, slot)!"
+                          :show-elite-level="true"
+                          :show-name="false"
+                          :show-profession="true"
+                          :show-rarity="true"
+                          :size="72"
+                        />
+                        <a-avatar v-else :size="72" class="simulator-empty-avatar" shape="square">
+                          {{ slotName(row, plan, planIndex, slot) || '空槽位' }}
+                        </a-avatar>
+                        <a-input
+                          :value="slotName(row, plan, planIndex, slot)"
+                          class="simulator-slot-input"
+                          placeholder="干员名称"
+                          @blur="commitOperatorName(planIndex, row.type, slot.entry.position, slot.slotIndex)"
+                          @press-enter="commitOperatorName(planIndex, row.type, slot.entry.position, slot.slotIndex)"
+                          @update:value="(value: string) => handleOperatorDraft(planIndex, row.type, slot.entry.position, slot.slotIndex, value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </template>
-            </div>
-          </div>
-        </a-card>
+              </div>
+            </a-card>
+          </a-col>
+        </a-row>
 
         <a-alert
           v-if="extraRooms.length"
@@ -802,53 +726,5 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
       </a-empty>
     </div>
 
-    <a-modal
-      v-model:open="editorOpen"
-      ok-text="保存"
-      title="编辑干员组合"
-      width="680px"
-      @ok="saveOperatorEditor"
-    >
-      <a-alert
-        class="simulator-editor-modal-alert"
-        description="同一队列内不能重复配置干员；空槽位保存后会从 JSON 中移除。"
-        show-icon
-        type="info"
-      />
-      <div class="simulator-draft-rooms">
-        <section v-for="room in draftRooms" :key="room.position" class="simulator-draft-room">
-          <div class="simulator-draft-room-title">{{ room.label }}</div>
-          <div v-for="(slot, slotIndex) in room.slots" :key="slotIndex" class="simulator-draft-slot">
-            <span class="simulator-draft-slot-label">槽位 {{ slotIndex + 1 }}</span>
-            <a-select
-              v-model:value="slot.name"
-              :options="operatorOptionsFor(room, slot)"
-              allow-clear
-              class="simulator-draft-operator-select"
-              option-filter-prop="label"
-              placeholder="选择干员"
-              show-search
-              @change="clearDraftState(slot)"
-            />
-            <a-input-number
-              v-model:value="slot.mood"
-              :disabled="!slot.name"
-              :max="24"
-              :min="0"
-              placeholder="心情"
-              size="small"
-            />
-            <a-input-number
-              v-model:value="slot.elite"
-              :disabled="!slot.name"
-              :max="2"
-              :min="0"
-              placeholder="精英"
-              size="small"
-            />
-          </div>
-        </section>
-      </div>
-    </a-modal>
   </div>
 </template>

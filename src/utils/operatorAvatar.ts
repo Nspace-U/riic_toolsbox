@@ -22,6 +22,13 @@ export interface OperatorAvatarRenderOptions {
   moodScattered: boolean
 }
 
+export interface OperatorAvatarLayerSources {
+  avatarUrl?: string
+  professionIconUrl?: string
+  eliteIconUrl: string
+  rarityIconUrl?: string
+}
+
 function assetUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`
 }
@@ -46,27 +53,52 @@ export function getOperatorAvatarSourceUrl(
   return assetUrl(`${directory}/${encodedFileName}`)
 }
 
-export async function generateOperatorAvatarUrl(
+export function getOperatorAvatarLayerSources(
+  operator: Operator,
+  dataSource: DataSourceId,
+  eliteLevel: EliteLevel,
+): OperatorAvatarLayerSources {
+  const avatarFile = getOperatorAvatarFile(operator, eliteLevel)
+  return {
+    avatarUrl: avatarFile ? getOperatorAvatarSourceUrl(dataSource, avatarFile) : undefined,
+    professionIconUrl: getProfessionIconUrl(operator.profession),
+    eliteIconUrl: getEliteIconUrl(eliteLevel),
+    rarityIconUrl: operator.rarity > 0 ? getRarityIconUrl(operator.rarity) : undefined,
+  }
+}
+
+export async function generateOperatorAvatarBlob(
   operator: Operator,
   dataSource: DataSourceId,
   options: OperatorAvatarRenderOptions,
-): Promise<string | undefined> {
-  const avatarFile = getOperatorAvatarFile(operator, options.eliteLevel)
-  if (!avatarFile) {
+): Promise<Blob | undefined> {
+  const sources = getOperatorAvatarLayerSources(operator, dataSource, options.eliteLevel)
+  if (!sources.avatarUrl) {
     return undefined
   }
 
-  const imageBlob = await generateOperatorAvatar({
-    imageUrl: getOperatorAvatarSourceUrl(dataSource, avatarFile),
+  return generateOperatorAvatar({
+    imageUrl: sources.avatarUrl,
     operatorName: operator.name,
-    professionIconUrl: getProfessionIconUrl(operator.profession),
-    eliteIconUrl: getEliteIconUrl(options.eliteLevel),
-    rarityIconUrl: operator.rarity > 0 ? getRarityIconUrl(operator.rarity) : undefined,
+    professionIconUrl: sources.professionIconUrl,
+    eliteIconUrl: sources.eliteIconUrl,
+    rarityIconUrl: sources.rarityIconUrl,
     showRarity: options.showRarity,
     showEliteLevel: options.showEliteLevel,
     showProfession: options.showProfession,
     showName: options.showName,
     moodScattered: options.moodScattered,
   })
+}
+
+export async function generateOperatorAvatarUrl(
+  operator: Operator,
+  dataSource: DataSourceId,
+  options: OperatorAvatarRenderOptions,
+): Promise<string | undefined> {
+  const imageBlob = await generateOperatorAvatarBlob(operator, dataSource, options)
+  if (!imageBlob) {
+    return undefined
+  }
   return URL.createObjectURL(imageBlob)
 }
