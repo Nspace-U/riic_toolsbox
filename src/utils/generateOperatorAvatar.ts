@@ -1,3 +1,9 @@
+import {
+  getOperatorAvatarNameFontSizeForWidth,
+  getOperatorAvatarNameHeight,
+  OPERATOR_AVATAR_LAYOUT,
+} from '@/utils/operatorAvatarLayout'
+
 export interface OperatorAvatarGenerationOptions {
   imageUrl: string
   operatorName: string
@@ -61,42 +67,52 @@ function drawMetadata(
   options: OperatorAvatarGenerationOptions,
 ): void {
   if (options.showProfession && images.profession) {
-    const professionSize = Math.round(width * 0.25)
+    const professionSize = Math.round(width * OPERATOR_AVATAR_LAYOUT.professionSizeRatio)
     context.drawImage(images.profession, 0, 0, professionSize, professionSize)
   }
 
   if (options.showEliteLevel && images.elite) {
-    const eliteWidth = Math.round(width * 0.35)
+    const eliteWidth = Math.round(width * OPERATOR_AVATAR_LAYOUT.eliteWidthRatio)
     const eliteHeight = Math.round(eliteWidth * (images.elite.naturalHeight / images.elite.naturalWidth))
     context.drawImage(images.elite, 0, height - eliteHeight, eliteWidth, eliteHeight)
   }
 
   if (options.showRarity && images.rarity) {
-    const rarityHeight = Math.round(height * 0.18)
+    const rarityHeight = Math.round(height * OPERATOR_AVATAR_LAYOUT.rarityHeightRatio)
     const rarityWidth = Math.round(rarityHeight * (images.rarity.naturalWidth / images.rarity.naturalHeight))
     context.drawImage(images.rarity, width - rarityWidth, height - rarityHeight, rarityWidth, rarityHeight)
   }
 }
 
-function drawOperatorName(
+export function drawOperatorAvatarName(
   context: CanvasRenderingContext2D,
   operatorName: string,
   width: number,
-  avatarHeight: number,
+  nameTop: number,
   nameHeight: number,
 ): void {
-  const maxTextWidth = Math.max(1, width - 24)
-  let fontSize = Math.max(12, Math.round(nameHeight * 0.7))
+  const maxTextWidth = Math.max(1, width - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding)
+  const fontSize = getOperatorAvatarNameFontSizeForWidth(
+    operatorName,
+    nameHeight,
+    maxTextWidth,
+    (name, size) => {
+      context.font = `600 ${size}px "Segoe UI", sans-serif`
+      return context.measureText(name).width
+    },
+  )
   context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
-  while (fontSize > 12 && context.measureText(operatorName).width > maxTextWidth) {
-    fontSize -= 1
-    context.font = `600 ${fontSize}px "Segoe UI", sans-serif`
-  }
 
+  const fontMetrics = context.measureText('Mg')
+  const fontAscent = fontMetrics.fontBoundingBoxAscent
+  const fontDescent = fontMetrics.fontBoundingBoxDescent
+  const baseline = Number.isFinite(fontAscent) && Number.isFinite(fontDescent)
+    ? (nameHeight - fontAscent - fontDescent) / 2 + fontAscent
+    : nameHeight / 2
   context.fillStyle = '#000000'
   context.textAlign = 'center'
-  context.textBaseline = 'middle'
-  context.fillText(operatorName, width / 2, avatarHeight + nameHeight / 2, maxTextWidth)
+  context.textBaseline = 'alphabetic'
+  context.fillText(operatorName, width / 2, nameTop + baseline, maxTextWidth)
 }
 
 function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
@@ -117,7 +133,7 @@ export async function generateOperatorAvatar(
   const image = await loadImage(options.imageUrl)
   const overlayImages = await loadOverlayImages(options)
   const nameHeight = options.showName && options.operatorName
-    ? Math.max(36, Math.round(image.naturalWidth * 0.14))
+    ? getOperatorAvatarNameHeight(image.naturalWidth)
     : 0
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth
@@ -138,7 +154,7 @@ export async function generateOperatorAvatar(
   drawMetadata(context, overlayImages, image.naturalWidth, image.naturalHeight, options)
 
   if (nameHeight > 0) {
-    drawOperatorName(context, options.operatorName, image.naturalWidth, image.naturalHeight, nameHeight)
+    drawOperatorAvatarName(context, options.operatorName, image.naturalWidth, image.naturalHeight, nameHeight)
   }
 
   return canvasToBlob(canvas)

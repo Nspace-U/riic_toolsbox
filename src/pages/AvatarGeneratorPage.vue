@@ -288,32 +288,34 @@ onBeforeUnmount(() => {
           </template>
 
           <a-form layout="vertical">
-            <a-form-item label="干员名称">
-              <a-select
-                v-model:value="selectedOperatorId"
-                :options="operatorOptions"
-                :show-search="true"
-                class="avatar-operator-select"
-                option-filter-prop="label"
-                placeholder="选择干员"
-              />
-            </a-form-item>
+            <div class="avatar-selection-row">
+              <a-form-item class="avatar-selection-item avatar-selection-item--operator" label="干员名称">
+                <a-select
+                  v-model:value="selectedOperatorId"
+                  :options="operatorOptions"
+                  :show-search="true"
+                  class="avatar-operator-select"
+                  option-filter-prop="label"
+                  placeholder="选择干员"
+                />
+              </a-form-item>
 
-            <a-form-item label="精英化等级">
-              <a-radio-group v-model:value="selectedEliteLevel" button-style="solid" option-type="button">
-                <a-radio-button v-for="option in availableAvatarStages" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </a-radio-button>
-              </a-radio-group>
-              <a-typography-text v-if="selectedOperator && availableAvatarStages.length === 0" type="secondary">
-                当前干员没有可用头像资源
-              </a-typography-text>
-            </a-form-item>
+              <a-form-item class="avatar-selection-item avatar-selection-item--elite" label="精英化等级">
+                <a-radio-group v-model:value="selectedEliteLevel" button-style="solid" option-type="button">
+                  <a-radio-button v-for="option in availableAvatarStages" :key="option.value" :value="option.value">
+                    {{ option.label }}
+                  </a-radio-button>
+                </a-radio-group>
+                <a-typography-text v-if="selectedOperator && availableAvatarStages.length === 0" type="secondary">
+                  当前干员没有可用头像资源
+                </a-typography-text>
+              </a-form-item>
+            </div>
 
             <a-form-item label="头像显示方式">
               <a-radio-group v-model:value="avatarDisplayMode" button-style="solid" option-type="button">
-                <a-radio-button value="combined">整合图片</a-radio-button>
-                <a-radio-button value="layered">分层显示</a-radio-button>
+                <a-radio-button value="combined">整合</a-radio-button>
+                <a-radio-button value="layered">分层</a-radio-button>
               </a-radio-group>
             </a-form-item>
 
@@ -374,7 +376,8 @@ onBeforeUnmount(() => {
               :show-name="showName"
               :show-profession="showProfession"
               :show-rarity="showRarity"
-              :size="240"
+              :plain="true"
+              :size="180"
             />
             <div v-else class="avatar-preview-empty">
               <PictureOutlined />

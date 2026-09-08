@@ -347,6 +347,21 @@ a {
   padding: 24px;
 }
 
+.avatar-selection-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: start;
+  gap: 16px;
+}
+
+.avatar-selection-item {
+  min-width: 0;
+}
+
+.avatar-selection-item--elite .ant-radio-group {
+  white-space: nowrap;
+}
+
 .avatar-operator-select {
   width: 100%;
 }
@@ -377,6 +392,7 @@ a {
   display: grid;
   place-items: center;
   min-height: 420px;
+  overflow: auto;
   padding: 20px;
   background: #eef2f1;
   border: 1px solid #e0e8e5;
@@ -384,9 +400,9 @@ a {
 
 .avatar-generated-image {
   display: block;
-  width: auto;
-  max-width: 100%;
-  max-height: 100%;
+  width: 180px;
+  max-width: none;
+  max-height: none;
   height: auto;
   object-fit: contain;
 }
@@ -1221,8 +1237,16 @@ a {
   box-shadow: 0 3px 8px rgba(36, 52, 57, 0.12);
 }
 
-.operator-avatar-frame--scattered {
-  transform: rotate(-2deg);
+.operator-avatar-frame--plain {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.operator-avatar-frame--plain .operator-avatar-badge {
+  filter: none;
+  object-fit: fill;
 }
 
 .operator-avatar-base,
@@ -1238,6 +1262,11 @@ a {
   object-fit: cover;
 }
 
+.operator-avatar-frame--plain .operator-avatar-base,
+.operator-avatar-frame--plain .operator-avatar-fallback {
+  object-fit: fill;
+}
+
 .operator-avatar-fallback {
   display: grid;
   place-items: center;
@@ -1247,11 +1276,10 @@ a {
 
 .operator-avatar-badge {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   width: 27%;
   height: 27%;
   object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
 .operator-avatar-badge--profession {
@@ -1270,13 +1298,58 @@ a {
   width: 42%;
 }
 
+.operator-avatar-frame--plain .operator-avatar-badge--profession {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+
+.operator-avatar-frame--plain .operator-avatar-badge--elite {
+  inset-block-end: 0;
+  inset-inline-start: 0;
+}
+
+.operator-avatar-frame--plain .operator-avatar-badge--rarity {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+
+.operator-avatar-mood-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(255, 0, 0, 0.5);
+}
+
 .operator-avatar-display-name {
   max-width: 100%;
   overflow: hidden;
   color: #344447;
+  font-family: "Segoe UI", sans-serif;
   font-size: 12px;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.operator-avatar-display--plain .operator-avatar-display-name {
+  display: block;
+  text-align: center;
+}
+
+.operator-avatar-name-measure {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: -10000px;
+  width: max-content;
+  overflow: visible;
+  visibility: hidden;
+  color: transparent;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .simulator-summary-label {
