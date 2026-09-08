@@ -15,6 +15,7 @@ const selectedOperatorId = ref('')
 const showOperatorId = ref(true)
 const showTerms = ref(true)
 const showTermDefinitions = ref(true)
+const showReplaced = ref(false)
 const generating = ref(false)
 const generationError = ref('')
 const generatedImageUrl = ref('')
@@ -35,8 +36,12 @@ const selectedOperator = computed<Operator | undefined>(() => {
 })
 
 const visibleSkills = computed<OperatorSkill[]>(() => {
-  return selectedOperator.value?.skills.filter((skill) => !skill.replacement.includes('被「')) ?? []
+  return selectedOperator.value?.skills.filter((skill) => {
+    return showReplaced.value || !skill.replacement.includes('被「')
+  }) ?? []
 })
+
+const visibleSkillLabel = computed(() => showReplaced.value ? '技能' : '常规技能')
 
 const previewDescription = computed(() => {
   if (!selectedOperator.value) {
@@ -187,7 +192,7 @@ async function handleCopyImage(): Promise<void> {
 
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
-  [operators, terms, selectedOperatorId, showOperatorId, showTerms, showTermDefinitions, selectedDataSource],
+  [operators, terms, selectedOperatorId, showOperatorId, showTerms, showTermDefinitions, showReplaced, selectedDataSource],
   () => {
     generationError.value = ''
     copyError.value = ''
@@ -252,6 +257,7 @@ onBeforeUnmount(() => {
               <a-checkbox v-model:checked="showOperatorId">显示干员 ID</a-checkbox>
               <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
               <a-checkbox v-model:checked="showTermDefinitions" :disabled="!showTerms">显示术语描述</a-checkbox>
+              <a-checkbox v-model:checked="showReplaced">显示被替换技能</a-checkbox>
             </div>
 
             <a-alert
@@ -283,7 +289,7 @@ onBeforeUnmount(() => {
           <div class="skill-preview-footer">
             <div class="skill-preview-meta">
               <span v-if="selectedOperator">{{ selectedOperator.name }}</span>
-              <span v-if="selectedOperator">{{ visibleSkills.length }} 条常规技能</span>
+              <span v-if="selectedOperator">{{ visibleSkills.length }} 条{{ visibleSkillLabel }}</span>
             </div>
             <div v-if="generatedImageUrl" class="skill-preview-actions">
               <a-button :loading="copying" @click="handleCopyImage">
