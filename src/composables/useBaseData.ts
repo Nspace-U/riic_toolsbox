@@ -1,7 +1,13 @@
 import { ref, watch } from 'vue'
 
 import { useDataSource, type DataSourceId } from '@/composables/useDataSource'
-import type { BaseData, BaseDataMetadata, BaseSkillTerms, Operator } from '@/types/baseData'
+import type {
+  BaseData,
+  BaseDataMetadata,
+  BaseSkillTerms,
+  Operator,
+  RichTextStyles,
+} from '@/types/baseData'
 import { parseOperatorCsv } from '@/utils/parseOperatorCsv'
 import {
   clearBaseDataAssetCache,
@@ -17,6 +23,7 @@ import {
 
 interface UseBaseDataResult {
   operators: Readonly<typeof operators>
+  richTextStyles: Readonly<typeof richTextStyles>
   terms: Readonly<typeof terms>
   metadata: Readonly<typeof metadata>
   loading: Readonly<typeof loading>
@@ -30,6 +37,7 @@ interface UseBaseDataResult {
 
 const dataCache = new Map<string, BaseData>()
 const operators = ref<Operator[]>([])
+const richTextStyles = ref<RichTextStyles>({})
 const terms = ref<BaseSkillTerms>({})
 const metadata = ref<BaseDataMetadata>()
 const loading = ref(false)
@@ -65,6 +73,7 @@ async function fetchLegacyData(): Promise<BaseData> {
 
   return {
     operators: parseOperatorCsv(operatorCsv),
+    richTextStyles: {},
     terms: {},
   }
 }
@@ -97,7 +106,10 @@ async function fetchTorappuData(): Promise<BaseData> {
       characterTable,
       buildingData,
       metadata,
+      gamedataConst.termDescriptionDict ?? {},
+      gamedataConst.richTextStyles ?? {},
     ),
+    richTextStyles: gamedataConst.richTextStyles ?? {},
     terms,
     metadata,
   }
@@ -163,6 +175,7 @@ async function load(): Promise<void> {
       }
 
       operators.value = data.operators
+      richTextStyles.value = data.richTextStyles
       terms.value = data.terms
       metadata.value = data.metadata
       loadedSourceId = sourceId
@@ -171,6 +184,7 @@ async function load(): Promise<void> {
     })
     .catch((error: unknown) => {
       operators.value = []
+      richTextStyles.value = {}
       terms.value = {}
       metadata.value = undefined
       ready.value = false
@@ -208,6 +222,7 @@ async function reload(): Promise<void> {
 
 const result: UseBaseDataResult = {
   operators,
+  richTextStyles,
   terms,
   metadata,
   loading,

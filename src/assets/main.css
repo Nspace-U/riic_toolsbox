@@ -568,6 +568,74 @@ a {
   padding: 24px;
 }
 
+.settings-facility-colors-panel {
+  margin-block-start: 16px;
+}
+
+.settings-panel-description {
+  margin-block: 0 16px;
+  color: #647275;
+  font-size: 13px;
+}
+
+.facility-color-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+}
+
+.facility-color-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-block: 8px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.facility-color-name,
+.facility-color-controls {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.facility-color-name {
+  color: #344447;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.facility-color-swatch {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(37, 50, 56, 0.2);
+  border-radius: 4px;
+}
+
+.facility-color-picker {
+  width: 32px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid #d9e2df;
+  border-radius: 5px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.facility-color-value {
+  width: 88px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.facility-color-reset {
+  margin-block-start: 18px;
+}
+
 .operator-data-summary {
   display: flex;
   align-items: center;
@@ -783,7 +851,7 @@ a {
   display: block;
   color: #748184;
   line-height: 1.5;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .operator-skills-list {
@@ -878,9 +946,29 @@ a {
   font-weight: 650;
 }
 
+.term-tooltip .ant-tooltip-inner {
+  max-width: min(360px, calc(100vw - 32px));
+}
+
 .term-tooltip-definition {
-  max-width: 360px;
-  white-space: pre-wrap;
+  max-width: min(360px, calc(100vw - 32px));
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.operator-term-definition .rich-description,
+.term-tooltip-definition .rich-description {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.operator-term-definition .rich-description {
+  white-space: nowrap;
+}
+
+.term-tooltip-definition .rich-description {
+  white-space: normal;
 }
 
 .operator-hidden-skills-button {

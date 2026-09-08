@@ -25,6 +25,7 @@ export interface Operator {
   implementationDate?: string
   implementationOrder?: number
   isSpChar?: boolean
+  termReferences: SkillTermReference[]
   profession: string
   branch: string
   rarity: number
@@ -44,6 +45,7 @@ export interface SkillTerm {
 }
 
 export type BaseSkillTerms = Record<string, SkillTerm>
+export type RichTextStyles = Record<string, string>
 
 export interface BaseDataMetadata {
   versionId: number
@@ -67,6 +69,7 @@ export interface BaseDataMetadata {
 
 export interface BaseData {
   operators: Operator[]
+  richTextStyles: RichTextStyles
   terms: BaseSkillTerms
   metadata?: BaseDataMetadata
 }

@@ -33,6 +33,12 @@ export const MAA_ROOM_REPRESENTATIVE_COLORS: Record<MaaRoomKey, string> = {
   training: '#8A1F39',
 }
 
+export const MAA_PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
+  'Pure Gold': '#B87321',
+  Orundum: '#B52D2D',
+  'Originium Shard': '#B52D2D',
+}
+
 export const MAA_ROOM_ORDER: MaaRoomKey[] = [...MAA_ROOM_KEYS]
 
 export const MAA_PRODUCT_LABELS: Record<string, string> = {

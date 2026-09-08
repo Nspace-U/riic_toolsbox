@@ -14,11 +14,16 @@ export function getOperatorTerms(
   operator: Operator,
 ): SkillTermReference[] {
   const termEntries = new Map<string, SkillTermReference>()
-  if (operator.isSpChar) {
-    termEntries.set(ALTER_TERM.key, ALTER_TERM)
+  const addTerm = (reference: SkillTermReference): void => {
+    if (!termEntries.has(reference.name)) {
+      termEntries.set(reference.name, reference)
+    }
   }
-  operator.skills.flatMap((skill) => skill.termReferences).forEach((reference) => {
-    termEntries.set(reference.key, reference)
+  if (operator.isSpChar) {
+    addTerm(ALTER_TERM)
+  }
+  operator.termReferences.forEach((reference) => {
+    addTerm(reference)
   })
 
   return [...termEntries.values()]

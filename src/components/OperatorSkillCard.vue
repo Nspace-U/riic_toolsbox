@@ -6,7 +6,7 @@ import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
 import RichTextDescription from '@/components/RichTextDescription.vue'
 import SearchHighlight from '@/components/SearchHighlight.vue'
 import type { DataSourceId } from '@/composables/useDataSource'
-import type { Operator, OperatorSkill, SkillTerm, SkillTermReference } from '@/types/baseData'
+import type { Operator, OperatorSkill, RichTextStyles, SkillTerm, SkillTermReference } from '@/types/baseData'
 import { getOperatorTerms } from '@/utils/operatorSkill'
 import { getOperatorAvatarFile, getOperatorAvatarSourceUrl } from '@/utils/operatorAvatar'
 
@@ -17,6 +17,7 @@ const props = withDefaults(defineProps<{
   skills?: OperatorSkill[]
   visibleSkills?: OperatorSkill[]
   operatorTerms?: SkillTermReference[]
+  richTextStyles: RichTextStyles
   expanded?: boolean
   showExpandButton?: boolean
   showOperatorId?: boolean
@@ -124,7 +125,15 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           >
             <template #title>
               <div class="term-tooltip-title">术语：{{ term.name }}</div>
-              <div v-if="showTermDefinitions && termDefinition(term)" class="term-tooltip-definition">{{ termDefinition(term) }}</div>
+              <div v-if="showTermDefinitions && termDefinition(term)" class="term-tooltip-definition">
+                <RichTextDescription
+                  :show-term-definitions="false"
+                  :show-terms="showTerms"
+                  :rich-text-styles="richTextStyles"
+                  :terms="terms"
+                  :text="termDefinition(term) ?? ''"
+                />
+              </div>
             </template>
             <span class="term-text"><SearchHighlight :query="searchText" :text="term.name" /></span>
           </a-tooltip>
@@ -159,6 +168,9 @@ function isSkillVisible(skill: OperatorSkill): boolean {
           <RichTextDescription
             v-if="skill.description"
             :highlight-query="searchText"
+            :show-term-definitions="showTermDefinitions"
+            :show-terms="showTerms"
+            :rich-text-styles="richTextStyles"
             :terms="terms"
             :text="skill.description"
           />
@@ -189,7 +201,13 @@ function isSkillVisible(skill: OperatorSkill): boolean {
         class="operator-term-definition"
       >
         <span class="operator-term-definition-name">{{ term.name }}：</span>
-        <span class="operator-term-definition-text">{{ termDefinition(term) }}</span>
+        <RichTextDescription
+          :show-term-definitions="false"
+          :show-terms="showTerms"
+          :rich-text-styles="richTextStyles"
+          :terms="terms"
+          :text="termDefinition(term) ?? ''"
+        />
       </div>
     </div>
 

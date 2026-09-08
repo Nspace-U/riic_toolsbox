@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import SearchHighlight from '@/components/SearchHighlight.vue'
-import type { SkillTerm, SkillTermReference } from '@/types/baseData'
+import type { RichTextStyles, SkillTerm, SkillTermReference } from '@/types/baseData'
 
 interface RichTextPart {
   text: string
@@ -10,20 +10,20 @@ interface RichTextPart {
   term?: SkillTerm
 }
 
-const DESCRIPTION_COLORS: Record<string, string> = {
-  'cc.kw': '#00B0FF',
-  'cc.rem': '#8C8C8C',
-  'cc.vdown': '#FF6237',
-  'cc.vup': '#0098DC',
-}
-
 const props = defineProps<{
   highlightQuery?: string
+  showTermDefinitions?: boolean
+  showTerms?: boolean
+  richTextStyles: RichTextStyles
   text: string
   terms: Record<string, SkillTerm>
 }>()
 
 const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
+
+function styleColor(style: string | undefined): string | undefined {
+  return style?.match(/<color\s*=\s*([^>]+)>/i)?.[1]?.trim()
+}
 
 function parseParts(
   text: string,
@@ -59,12 +59,12 @@ function parseParts(
     const tagType = tag[1]
     const attribute = tag.slice(2, -1)
     const nextColor = tagType === '@'
-      ? (DESCRIPTION_COLORS[attribute] ?? attribute)
+      ? styleColor(props.richTextStyles[attribute])
       : color
     const nextTerm = tagType === '$' ? props.terms[attribute] : term
     const nextClosingTag = '</>'
     const child = parseParts(text, nextColor, nextTerm, tagStart + tag.length, nextClosingTag)
-    if (tagType === '$' && !nextTerm && !DESCRIPTION_COLORS[attribute]) {
+    if (tagType === '$' && !nextTerm && !Object.hasOwn(props.richTextStyles, attribute)) {
       const name = child.parts.map((part) => part.text).join('').trim()
       child.parts.forEach((part) => {
         part.term = { name }
@@ -77,7 +77,13 @@ function parseParts(
   return { parts, cursor }
 }
 
-const parts = computed(() => parseParts(props.text).parts)
+const parts = computed(() => {
+  const normalizedText = props.text.replace(/<<(?=[$@])/g, '<')
+  if (props.showTerms === false) {
+    return parseParts(normalizedText).parts.map((part) => ({ ...part, term: undefined }))
+  }
+  return parseParts(normalizedText).parts
+})
 </script>
 
 <template>
@@ -91,7 +97,15 @@ const parts = computed(() => parseParts(props.text).parts)
       >
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
-          <div v-if="part.term.definition" class="term-tooltip-definition">{{ part.term.definition }}</div>
+          <div v-if="showTermDefinitions !== false && part.term.definition" class="term-tooltip-definition">
+            <RichTextDescription
+              :show-term-definitions="false"
+              :show-terms="showTerms"
+              :rich-text-styles="richTextStyles"
+              :terms="terms"
+              :text="part.term.definition"
+            />
+          </div>
         </template>
         <span :style="{ color: part.color }" class="term-text">
           <SearchHighlight :query="highlightQuery ?? ''" :text="part.text" />

@@ -2,6 +2,7 @@ import type {
   BaseDataMetadata,
   Operator,
   OperatorSkill,
+  RichTextStyles,
   SkillTermReference,
 } from '@/types/baseData'
 
@@ -51,6 +52,7 @@ export interface TorappuTermDescription {
 }
 
 export interface TorappuGamedataConst {
+  richTextStyles?: RichTextStyles
   termDescriptionDict?: Record<string, TorappuTermDescription>
 }
 
@@ -80,13 +82,6 @@ const FACILITY_LABELS: Record<string, string> = {
   TRADING: '贸易站',
   TRAINING: '训练室',
   WORKSHOP: '加工站',
-}
-
-const DESCRIPTION_COLORS: Record<string, string> = {
-  'cc.kw': '#00B0FF',
-  'cc.rem': '#8C8C8C',
-  'cc.vdown': '#FF6237',
-  'cc.vup': '#0098DC',
 }
 
 function rarityValue(value: string | undefined): number {
@@ -119,15 +114,34 @@ function stripDescriptionTags(value: string): string {
     .replace(/<\/>/g, '')
 }
 
-function extractTermReferences(description: string | undefined): SkillTermReference[] {
+function extractTermReferences(
+  description: string | undefined,
+  terms: Record<string, TorappuTermDescription>,
+  richTextStyles: RichTextStyles,
+): SkillTermReference[] {
   const references = new Map<string, SkillTermReference>()
-  for (const match of (description ?? '').matchAll(/<\$([^>]+)>([\s\S]*?)<\/>/g)) {
+  const normalizedDescription = (description ?? '').replace(/<<(?=[$@])/g, '<')
+  for (const match of normalizedDescription.matchAll(/<\$([^>]+)>([\s\S]*?)<\/>/g)) {
     const key = match[1]?.trim()
     const name = stripDescriptionTags(match[2] ?? '').trim()
-    if (key && name && !Object.hasOwn(DESCRIPTION_COLORS, key) && !references.has(key)) {
-      references.set(key, { key, name })
+    if (key && name && !Object.hasOwn(richTextStyles, key) && !references.has(key)) {
+      references.set(key, { key, name: terms[key]?.termName ?? name })
     }
   }
+  return [...references.values()]
+}
+
+function extractOperatorTerms(
+  skills: OperatorSkill[],
+  terms: Record<string, TorappuTermDescription>,
+): SkillTermReference[] {
+  const references = new Map<string, SkillTermReference>()
+  skills.flatMap((skill) => skill.termReferences).forEach((reference) => {
+    references.set(reference.key, {
+      key: reference.key,
+      name: terms[reference.key]?.termName ?? reference.name,
+    })
+  })
   return [...references.values()]
 }
 
@@ -180,6 +194,8 @@ function buildReplacement(records: TorappuSkillRecord[], index: number): string 
 function buildSkills(
   character: TorappuCharacter,
   buffs: Record<string, TorappuBuff>,
+  terms: Record<string, TorappuTermDescription>,
+  richTextStyles: RichTextStyles,
 ): OperatorSkill[] {
   const skills: OperatorSkill[] = []
 
@@ -204,7 +220,7 @@ function buildSkills(
         iconFile: buff.skillIcon ? `${buff.skillIcon}.png` : '',
         iconStatus: '正常',
         description: buff.description ?? '',
-        termReferences: extractTermReferences(buff.description),
+        termReferences: extractTermReferences(buff.description, terms, richTextStyles),
         phase: phaseValue(buffData.cond),
         level: conditionLevel(buffData.cond),
       })
@@ -227,6 +243,8 @@ export function parseTorappuData(
   characterTable: TorappuCharacterTable,
   buildingData: TorappuBuildingData,
   metadata: BaseDataMetadata,
+  terms: Record<string, TorappuTermDescription> = {},
+  richTextStyles: RichTextStyles = {},
 ): Operator[] {
   const buffs = buildingData.buffs ?? {}
   const missingAvatars = new Set(metadata.missingAvatars ?? [])
@@ -240,6 +258,7 @@ export function parseTorappuData(
       continue
     }
 
+    const skills = buildSkills(character, buffs, terms, richTextStyles)
     operators.push({
       id: operatorId,
       name: character.name,
@@ -250,7 +269,8 @@ export function parseTorappuData(
       branch: character.branch ?? character.subProfessionId ?? '',
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
-      skills: buildSkills(character, buffs),
+      termReferences: extractOperatorTerms(skills, terms),
+      skills,
     })
   }
 

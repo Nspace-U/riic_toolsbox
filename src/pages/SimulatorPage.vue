@@ -11,6 +11,10 @@ import { computed, ref } from 'vue'
 
 import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
+import {
+  isMaaProductColorKey,
+  useMaaFacilityColors,
+} from '@/composables/useMaaFacilityColors'
 import { useMaaDocuments } from '@/composables/useMaaDocuments'
 import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
 import type { EliteLevel, Operator } from '@/types/baseData'
@@ -27,6 +31,7 @@ import {
   DEFAULT_MAA_SOURCE_MATERIAL,
   MAA_PRODUCT_LABELS,
   MAA_PRODUCT_OPTIONS,
+  MAA_PRODUCT_REPRESENTATIVE_COLORS,
   MAA_ROOM_LABELS,
   MAA_ROOM_ORDER,
   MAA_ROOM_REPRESENTATIVE_COLORS,
@@ -70,6 +75,7 @@ const {
 } = useMaaDocuments()
 const { operators } = useBaseData()
 const { selectedDataSource } = useDataSource()
+const { facilityColors, productColors } = useMaaFacilityColors()
 
 const fileInput = ref<HTMLInputElement>()
 const errorMessage = ref('')
@@ -219,6 +225,12 @@ function roomEntries(row: FacilityRow, plan: MaaPlan): Array<{ entry: FacilityEn
   }))
 }
 
+function roomProducts(row: FacilityRow, plan: MaaPlan): string[] {
+  return Array.from(new Set(roomEntries(row, plan)
+    .map(({ room }) => room?.product)
+    .filter((product): product is string => Boolean(product))))
+}
+
 function roomProduct(room: MaaRoomAssignment | undefined): string {
   if (!room?.product) {
     return ''
@@ -303,9 +315,36 @@ function facilityCardWidth(row: FacilityRow): string {
   return `${Math.max(SIMULATOR_FACILITY_MIN_WIDTH, contentWidth + 40)}px`
 }
 
-function facilityCardStyle(type: MaaRoomKey): Record<string, string> {
+function productAccent(product: string): string | undefined {
+  if (!isMaaProductColorKey(product)) {
+    return undefined
+  }
+  return productColors.value[product] ?? MAA_PRODUCT_REPRESENTATIVE_COLORS[product]
+}
+
+function facilityCardStyle(row: FacilityRow, plans: MaaPlan[]): Record<string, string> {
+  const planProducts = plans.map((plan) => {
+    const products = roomProducts(row, plan)
+    return products.length === 1 ? products[0] : ''
+  })
+  const commonProduct = planProducts[0]
+  const commonAccent = commonProduct
+    && planProducts.every((product) => product === commonProduct)
+    ? productAccent(commonProduct)
+    : undefined
+
   return {
-    '--simulator-facility-accent': MAA_ROOM_REPRESENTATIVE_COLORS[type],
+    '--simulator-facility-accent': commonAccent ?? facilityColors.value[row.type] ?? MAA_ROOM_REPRESENTATIVE_COLORS[row.type],
+  }
+}
+
+function facilityQueueStyle(row: FacilityRow, plan: MaaPlan): Record<string, string> {
+  const products = roomProducts(row, plan)
+  const product = products.length === 1 ? products[0] : undefined
+  const accent = product ? productAccent(product) : undefined
+
+  return {
+    '--simulator-facility-accent': accent ?? facilityColors.value[row.type] ?? MAA_ROOM_REPRESENTATIVE_COLORS[row.type],
   }
 }
 
@@ -651,7 +690,7 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
             <a-card
               :bordered="false"
               :class="['simulator-column-card', 'simulator-facility-card']"
-              :style="facilityCardStyle(row.type)"
+              :style="facilityCardStyle(row, currentDocument.plans)"
             >
               <template #title>
                 <div class="simulator-facility-title">
@@ -672,6 +711,7 @@ function isStoredDocument(document: StoredMaaDocument): boolean {
                   :bordered="true"
                   class="simulator-facility-queue"
                   size="small"
+                  :style="facilityQueueStyle(row, plan)"
                 >
                   <div class="simulator-facility-queue-content">
                     <div class="simulator-facility-queue-meta">

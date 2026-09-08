@@ -48,6 +48,7 @@ type PreparedOperator = {
 
 const {
   operators,
+  richTextStyles,
   terms,
   metadata,
   loading,
@@ -362,6 +363,7 @@ onBeforeUnmount(() => {
           :show-operator-id="showOperatorId"
           :show-term-definitions="showTermDefinitions"
           :show-terms="showTerms"
+          :rich-text-styles="richTextStyles"
           :skills="row.operator.skills"
           :terms="terms"
           :visible-skills="row.skills"

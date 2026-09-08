@@ -34,7 +34,6 @@ const { selectedDataSource } = useDataSource()
 
 const selectedOperatorId = ref('')
 const selectedEliteLevel = ref<EliteLevel>(0)
-const operatorName = ref('')
 const avatarDisplayMode = ref<'combined' | 'layered'>('combined')
 const showRarity = ref(true)
 const showEliteLevel = ref(true)
@@ -58,8 +57,6 @@ const operatorOptions = computed(() => {
 const selectedOperator = computed<Operator | undefined>(() => {
   return operators.value.find((operator) => operator.id === selectedOperatorId.value)
 })
-
-const displayedOperatorName = computed(() => operatorName.value || selectedOperator.value?.name || '')
 
 const availableAvatarStages = computed<EliteOption[]>(() => {
   const operator = selectedOperator.value
@@ -115,7 +112,6 @@ function rarityLabel(operator: Operator): string {
 function avatarGenerationOptions(): Parameters<typeof generateOperatorAvatarBlob>[2] {
   return {
     eliteLevel: selectedEliteLevel.value,
-    operatorName: displayedOperatorName.value,
     showRarity: showRarity.value,
     showEliteLevel: showEliteLevel.value,
     showProfession: showProfession.value,
@@ -133,7 +129,7 @@ watch(availableAvatarStages, (stages) => {
 
 let generationRequestId = 0
 
-async function handleGenerate(forceGenerate = false): Promise<void> {
+async function handleGenerate(): Promise<void> {
   const operator = selectedOperator.value
   if (!operator || !selectedAvatarFile.value) {
     return
@@ -144,7 +140,7 @@ async function handleGenerate(forceGenerate = false): Promise<void> {
   generationError.value = ''
 
   try {
-    if (showLayeredPreview.value && !forceGenerate) {
+    if (showLayeredPreview.value) {
       clearGeneratedImage()
       return
     }
@@ -173,16 +169,6 @@ async function handleGenerate(forceGenerate = false): Promise<void> {
   }
 }
 
-function handleOperatorNameEditComplete(name: string): void {
-  const nextName = name.replace(/[\r\n]+/g, ' ').trim() || selectedOperator.value?.name || ''
-  if (nextName === displayedOperatorName.value) {
-    return
-  }
-
-  operatorName.value = nextName
-  void handleGenerate(true)
-}
-
 async function createDownloadImageUrl(): Promise<{ url: string; temporary: boolean } | undefined> {
   const operator = selectedOperator.value
   if (!operator || !selectedAvatarFile.value) {
@@ -209,7 +195,7 @@ async function handleDownload(): Promise<void> {
   const moodLabel = moodScattered.value ? '-心情涣散' : ''
   const link = document.createElement('a')
   link.href = image.url
-  link.download = `${displayedOperatorName.value}-${eliteLabel}${moodLabel}.png`
+  link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}.png`
   link.click()
   if (image.temporary) {
     URL.revokeObjectURL(image.url)
@@ -252,9 +238,6 @@ async function handleCopyImage(): Promise<void> {
 }
 
 watch(operators, updateSelectedOperator, { immediate: true })
-watch(selectedOperator, (operator) => {
-  operatorName.value = operator?.name ?? ''
-}, { immediate: true })
 watch(
   [selectedOperatorId, selectedEliteLevel, avatarDisplayMode, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
   () => {
@@ -379,15 +362,13 @@ onBeforeUnmount(() => {
           <div class="avatar-preview-stage">
             <img
               v-if="generatedImageUrl && !showLayeredPreview"
-              :alt="`${displayedOperatorName}生成头像`"
+              :alt="`${selectedOperator?.name ?? ''}生成头像`"
               class="avatar-generated-image"
               :src="generatedImageUrl"
             />
             <OperatorAvatarDisplay
               v-else-if="selectedOperator && selectedAvatarFile && showLayeredPreview"
               :data-source="selectedDataSource"
-              :display-name="displayedOperatorName"
-              :editable-name="showName"
               :elite-level="selectedEliteLevel"
               :mood-scattered="moodScattered"
               :operator="selectedOperator"
@@ -397,7 +378,6 @@ onBeforeUnmount(() => {
               :show-rarity="showRarity"
               :plain="true"
               :size="180"
-              @name-edit-complete="handleOperatorNameEditComplete"
             />
             <div v-else class="avatar-preview-empty">
               <PictureOutlined />

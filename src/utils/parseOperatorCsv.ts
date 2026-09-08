@@ -91,6 +91,14 @@ function buildSkill(row: CsvRow, columns: Map<string, number>): OperatorSkill {
   }
 }
 
+function buildTermReferences(row: CsvRow, columns: Map<string, number>): Operator['termReferences'] {
+  return cell(row, columns, '关联术语')
+    .split('、')
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => ({ key: name, name }))
+}
+
 export function parseOperatorCsv(text: string): Operator[] {
   const rows = parseCsv(text.replace(/^\uFEFF/, ''))
   const header = rows[0]
@@ -113,6 +121,7 @@ export function parseOperatorCsv(text: string): Operator[] {
       operator = {
         id,
         name,
+          termReferences: buildTermReferences(row, columns),
         profession: cell(row, columns, '职业'),
         branch: cell(row, columns, '分支'),
         rarity: rarityValue(cell(row, columns, '稀有度')),

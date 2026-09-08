@@ -8,7 +8,7 @@ import { useBaseData } from '@/composables/useBaseData'
 import { useDataSource } from '@/composables/useDataSource'
 import type { Operator, OperatorSkill } from '@/types/baseData'
 
-const { operators, terms, loading, ready, reload } = useBaseData()
+const { operators, richTextStyles, terms, loading, ready, reload } = useBaseData()
 const { selectedDataSource } = useDataSource()
 
 const selectedOperatorId = ref('')
@@ -118,6 +118,7 @@ async function generateImage(): Promise<void> {
 
   const requestId = ++generationRequestId
   generating.value = true
+  clearGeneratedImage()
   generationError.value = ''
 
   try {
@@ -186,7 +187,7 @@ async function handleCopyImage(): Promise<void> {
 
 watch(operators, updateSelectedOperator, { immediate: true })
 watch(
-  [operators, selectedOperatorId, showOperatorId, showTerms, showTermDefinitions, selectedDataSource],
+  [operators, terms, selectedOperatorId, showOperatorId, showTerms, showTermDefinitions, selectedDataSource],
   () => {
     generationError.value = ''
     copyError.value = ''
@@ -310,6 +311,7 @@ onBeforeUnmount(() => {
         :show-operator-id="showOperatorId"
         :show-term-definitions="showTermDefinitions"
         :show-terms="showTerms"
+        :rich-text-styles="richTextStyles"
         :skills="visibleSkills"
         :terms="terms"
       />
