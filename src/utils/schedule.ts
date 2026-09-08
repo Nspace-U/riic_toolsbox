@@ -4,6 +4,7 @@ import {
   type Plan,
   type RoomAssignment,
   type RoomKey,
+  type ScheduleSettings,
   type ScheduleDocument,
 } from '@/types/schedule'
 
@@ -233,7 +234,63 @@ function validateOperatorStates(room: RoomAssignment, names: string[], path: str
         fail(`${path}.operatorStates.${name}.elite`, '必须是 0 到 2 之间的整数')
       }
     }
+    if (hasOwn(state, 'level')) {
+      if (typeof state.level !== 'number' || !Number.isInteger(state.level) || state.level < 1 || state.level > 90) {
+        fail(`${path}.operatorStates.${name}.level`, '必须是 1 到 90 之间的整数')
+      }
+    }
   })
+}
+
+function validateNumberMap(value: unknown, path: string): void {
+  if (!isRecord(value)) {
+    fail(path, '必须是对象')
+  }
+  Object.entries(value).forEach(([key, entry]) => {
+    if (!key.trim() || typeof entry !== 'number' || !Number.isFinite(entry) || entry < 0) {
+      fail(`${path}.${key}`, '必须是非负有限数字')
+    }
+  })
+}
+
+function validateSettings(settings: unknown): ScheduleSettings {
+  if (!isRecord(settings)) {
+    fail('settings', '必须是对象')
+  }
+  if (hasOwn(settings, 'clueExchanging') && typeof settings.clueExchanging !== 'boolean') {
+    fail('settings.clueExchanging', '必须是布尔值')
+  }
+  if (hasOwn(settings, 'dormFullTreat') && typeof settings.dormFullTreat !== 'boolean') {
+    fail('settings.dormFullTreat', '必须是布尔值')
+  }
+  if (hasOwn(settings, 'preferMaxJieEfficiency') && typeof settings.preferMaxJieEfficiency !== 'boolean') {
+    fail('settings.preferMaxJieEfficiency', '必须是布尔值')
+  }
+  if (hasOwn(settings, 'overflowMode') && settings.overflowMode !== 'continue' && settings.overflowMode !== 'zero') {
+    fail('settings.overflowMode', '必须是 continue 或 zero')
+  }
+  if (hasOwn(settings, 'featherFixedOps')) {
+    if (!Array.isArray(settings.featherFixedOps) || settings.featherFixedOps.some((name) => typeof name !== 'string' || !name.trim())) {
+      fail('settings.featherFixedOps', '必须是干员名称字符串数组')
+    }
+  }
+  if (hasOwn(settings, 'orderProgress')) {
+    validateNumberMap(settings.orderProgress, 'settings.orderProgress')
+    Object.entries(settings.orderProgress as Record<string, number>).forEach(([key, value]) => {
+      if (value > 100) {
+        fail(`settings.orderProgress.${key}`, '必须在 0 到 100 之间')
+      }
+    })
+  }
+  if (hasOwn(settings, 'firstItemProgress')) {
+    validateNumberMap(settings.firstItemProgress, 'settings.firstItemProgress')
+    Object.entries(settings.firstItemProgress as Record<string, number>).forEach(([key, value]) => {
+      if (value > 1) {
+        fail(`settings.firstItemProgress.${key}`, '必须在 0 到 1 之间')
+      }
+    })
+  }
+  return settings as ScheduleSettings
 }
 
 function validateRoom(room: unknown, type: RoomKey, index: number, planIndex: number): RoomAssignment {
@@ -338,6 +395,9 @@ export function validateSchedule(document: ScheduleDocument): void {
     throw new ScheduleError('文档根节点必须是对象')
   }
   validateLayout(document.layout)
+  if (Object.prototype.hasOwnProperty.call(document, 'settings')) {
+    validateSettings(document.settings)
+  }
   if (!Array.isArray(document.plans) || document.plans.length === 0) {
     throw new ScheduleError('缺少非空 plans 数组')
   }
@@ -352,6 +412,13 @@ export function createEmptySchedule(): ScheduleDocument {
   return {
     title: '新建排班表',
     description: '',
+    settings: {
+      clueExchanging: false,
+      dormFullTreat: true,
+      featherFixedOps: [],
+      preferMaxJieEfficiency: true,
+      overflowMode: 'continue',
+    },
     layout: [{ type: 'control', level: 5 }],
     plans: [
       {

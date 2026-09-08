@@ -29,6 +29,7 @@ export interface LayoutEntry {
 export interface OperatorState {
   mood?: number
   elite?: number
+  level?: number
   [key: string]: unknown
 }
 
@@ -55,11 +56,24 @@ export interface Plan {
   [key: string]: unknown
 }
 
+export type OverflowMode = 'continue' | 'zero'
+
+export interface ScheduleSettings {
+  clueExchanging?: boolean
+  dormFullTreat?: boolean
+  featherFixedOps?: string[]
+  preferMaxJieEfficiency?: boolean
+  orderProgress?: Record<string, number>
+  overflowMode?: OverflowMode
+  firstItemProgress?: Record<string, number>
+}
+
 export interface ScheduleDocument {
   title?: string
   description?: string
   layout: LayoutEntry[]
   plans: Plan[]
+  settings?: ScheduleSettings
   [key: string]: unknown
 }
 
