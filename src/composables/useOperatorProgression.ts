@@ -72,7 +72,7 @@ function readSettings(): StoredProgressionSettings {
     return {
       treatSkillsAsUnlocked: false,
       showNoEditableOperators: false,
-      showUnownedOperators: false,
+      showUnownedOperators: true,
     };
   }
   try {

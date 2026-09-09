@@ -493,7 +493,7 @@ watch(
               setShowNoEditableOperators(event.target.checked)
           "
         >
-          显示无可编辑节点干员
+          显示无可用技能干员
         </a-checkbox>
         <a-checkbox
           :checked="showUnownedOperators"
