@@ -101,6 +101,8 @@ const termsForOperator = computed<SkillTermReference[]>(() => {
 function isSkillVisible(skill: OperatorSkill): boolean {
   return props.expanded || visibleSkillKeys.value.has(skillKey(skill));
 }
+
+const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
 </script>
 
 <template>
@@ -176,8 +178,7 @@ function isSkillVisible(skill: OperatorSkill): boolean {
 
     <div class="operator-skills-list">
       <article
-        v-for="skill in allSkills"
-        v-show="isSkillVisible(skill)"
+        v-for="skill in displayedSkills"
         :key="skillKey(skill)"
         :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
         class="operator-skill-row"

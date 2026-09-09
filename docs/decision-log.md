@@ -31,3 +31,10 @@
 - **约束**：不为现有代码增加 ESLint 例外规则或自定义 Prettier 风格；构建产物、依赖、游戏数据快照和生成的干员技能 JSON 不参与检查。
 - **命令**：新增 `npm run lint`、`npm run lint:fix`、`npm run format` 和 `npm run format:check`。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `npm run generate:operator-skills` 均通过。对默认规则报告的未使用变量、无效赋值、变量声明、空代码块和 Vue 属性顺序问题进行了局部代码修复；未增加规则例外，也未关闭质量检查。
+
+## 2026-09-09：修复隐藏技能折叠状态下的技能分割线
+
+- **问题**：技能行通过 `v-show` 隐藏时仍保留在 DOM 中，且展开/折叠按钮位于技能行之后，导致最后一条可见技能无法命中原有的 `:last-child` 规则，按钮上方错误显示分割线。
+- **决定**：`OperatorSkillCard` 使用当前可见技能列表渲染技能行，避免隐藏技能参与末尾元素判断；CSS 改用 `.operator-skill-row:last-of-type`，确保按钮存在时最后一个技能行仍移除下边框。
+- **范围**：仅影响基建技能一览页的技能卡片；技能图片生成页不启用隐藏技能展开按钮，不改变其显示逻辑。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build` 均通过；构建仅保留既有的大 chunk 警告。

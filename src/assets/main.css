@@ -879,7 +879,7 @@ a {
   background: #fff9ef;
 }
 
-.operator-skill-row:last-child {
+.operator-skill-row:last-of-type {
   padding-block-end: 0;
   border-block-end: 0;
 }

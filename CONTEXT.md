@@ -30,6 +30,7 @@
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
 - `ScheduleDocument.settings` 已加入计算设置；`OperatorState.level` 已加入供等级解锁和未来训练室扩展使用。
 - 已接入 ESLint 与 Prettier：使用 Vue 3、TypeScript 和 JavaScript 的标准推荐配置，构建产物与生成数据目录已排除。
+- 已修复基建技能一览中折叠隐藏技能时最后一条可见技能仍显示分割线的问题：技能卡片只渲染当前可见技能，并按最后一个技能元素移除边框。
 - 加工站、训练室模拟和宿舍自动休整仍不参与第一版计算。
 
 ## 风险与下一步
@@ -40,3 +41,4 @@
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。
 - 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
 - 当前验证中，`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和技能生成命令均已通过；ESLint 报告的未使用变量、无效赋值、变量声明和 Vue 属性顺序问题已按默认规则修复。
+- 本次 UI 修复已验证 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build` 通过；构建仍仅提示既有的大 chunk 警告。
