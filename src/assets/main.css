@@ -593,7 +593,8 @@ a {
 }
 
 .settings-progression-unlock-option {
-  display: block;
+  display: inline-flex;
+  white-space: nowrap;
   margin-block-end: 16px;
 }
 
