@@ -133,8 +133,8 @@ function facilityFilterStyle(
   const color = facilityColors.value[type];
   return {
     "--facility-filter-color": color,
-    "--facility-filter-background": selected ? color : `${color}1a`,
-    "--facility-filter-text": selected ? "#ffffff" : color,
+    "background-color": selected ? color : `${color}1a`,
+    color: selected ? "#ffffff" : "#344447",
   };
 }
 

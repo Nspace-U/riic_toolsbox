@@ -592,10 +592,11 @@ a {
   width: min(100%, 320px);
 }
 
-.settings-progression-unlock-option {
-  display: inline-flex;
-  white-space: nowrap;
-  margin-block-end: 16px;
+.settings-progression-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-block-end: 12px;
 }
 
 .settings-progression-filters {
@@ -638,25 +639,36 @@ a {
   font-weight: 600;
 }
 
-.settings-progression-facility-filter-button {
-  color: var(--facility-filter-text, #344447) !important;
-  background: var(--facility-filter-background, #ffffff) !important;
+.ant-btn.settings-progression-facility-filter-button {
   border-color: var(--facility-filter-color, #d9e2df) !important;
 }
 
-.settings-progression-facility-filter-button:hover,
-.settings-progression-facility-filter-button:focus {
-  color: var(--facility-filter-text, #344447) !important;
-  background: var(--facility-filter-background, #ffffff) !important;
+.ant-btn.settings-progression-facility-filter-button:hover,
+.ant-btn.settings-progression-facility-filter-button:focus {
   border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
+.ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected,
+.ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected:hover,
+.ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected:focus {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: var(--facility-filter-color, #ffffff) !important;
+  box-shadow: inset 0 0 0 100vmax var(--facility-filter-color, #ffffff) !important;
+}
+
+.ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected
+  > span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .settings-progression-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   max-height: 680px;
   overflow: auto;
-  gap: 8px;
+  gap: 6px;
   padding-inline-end: 4px;
 }
 
@@ -668,8 +680,8 @@ a {
 
 .settings-progression-item .ant-card-body {
   display: grid;
-  gap: 8px;
-  padding: 8px;
+  gap: 6px;
+  padding: 6px;
 }
 
 .settings-progression-item-heading {
@@ -712,24 +724,24 @@ a {
   color: #49645f !important;
 }
 
-.settings-progression-item-heading > .ant-btn {
-  flex: 0 0 auto;
-  padding-inline: 7px;
-}
-
-.settings-progression-item-heading > .ant-btn .anticon {
-  margin-inline-end: 0;
-}
-
-.settings-progression-item-heading > .ant-btn > span:last-child {
-  display: none;
+.settings-progression-node-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .settings-progression-nodes {
   display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
   flex-wrap: wrap;
-  gap: 6px;
-  padding-block-start: 2px;
+  gap: 4px;
+}
+
+.settings-progression-node-editor-row > .ant-btn {
+  flex: 0 0 auto;
+  padding-inline: 7px;
 }
 
 .settings-progression-node--current {
@@ -891,10 +903,22 @@ a {
   font-weight: 600;
 }
 
-.facility-filter-button {
-  color: var(--facility-filter-text, #344447) !important;
-  background: var(--facility-filter-background, #ffffff) !important;
+.ant-btn.facility-filter-button {
   border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
+.ant-btn.facility-filter-button.facility-filter-button--selected,
+.ant-btn.facility-filter-button.facility-filter-button--selected:hover,
+.ant-btn.facility-filter-button.facility-filter-button--selected:focus {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: var(--facility-filter-color, #ffffff) !important;
+  box-shadow: inset 0 0 0 100vmax var(--facility-filter-color, #ffffff) !important;
+}
+
+.ant-btn.facility-filter-button.facility-filter-button--selected > span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 
 .operator-filter-footer {

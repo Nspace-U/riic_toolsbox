@@ -19,6 +19,8 @@ interface StoredProgressionState {
 
 interface StoredProgressionSettings {
   treatSkillsAsUnlocked: boolean;
+  showNoEditableOperators: boolean;
+  showUnownedOperators: boolean;
 }
 
 function createId(prefix: string): string {
@@ -67,17 +69,42 @@ function readState(): StoredProgressionState {
 
 function readSettings(): StoredProgressionSettings {
   if (typeof window === "undefined") {
-    return { treatSkillsAsUnlocked: false };
+    return {
+      treatSkillsAsUnlocked: false,
+      showNoEditableOperators: false,
+      showUnownedOperators: false,
+    };
   }
   try {
     const value: unknown = JSON.parse(
       window.localStorage.getItem(SETTINGS_STORAGE_KEY) ?? "null",
     );
-    return isRecord(value) && typeof value.treatSkillsAsUnlocked === "boolean"
-      ? { treatSkillsAsUnlocked: value.treatSkillsAsUnlocked }
-      : { treatSkillsAsUnlocked: false };
+    return isRecord(value)
+      ? {
+          treatSkillsAsUnlocked:
+            typeof value.treatSkillsAsUnlocked === "boolean"
+              ? value.treatSkillsAsUnlocked
+              : false,
+          showNoEditableOperators:
+            typeof value.showNoEditableOperators === "boolean"
+              ? value.showNoEditableOperators
+              : false,
+          showUnownedOperators:
+            typeof value.showUnownedOperators === "boolean"
+              ? value.showUnownedOperators
+              : false,
+        }
+      : {
+          treatSkillsAsUnlocked: false,
+          showNoEditableOperators: false,
+          showUnownedOperators: false,
+        };
   } catch {
-    return { treatSkillsAsUnlocked: false };
+    return {
+      treatSkillsAsUnlocked: false,
+      showNoEditableOperators: false,
+      showUnownedOperators: false,
+    };
   }
 }
 
@@ -129,7 +156,10 @@ function isStoredState(value: unknown): value is StoredProgressionState {
 const initialState = readState();
 const profiles = ref<OperatorProgressionProfile[]>(initialState.profiles);
 const activeProfileId = ref(initialState.activeProfileId);
-const treatSkillsAsUnlocked = ref(readSettings().treatSkillsAsUnlocked);
+const initialSettings = readSettings();
+const treatSkillsAsUnlocked = ref(initialSettings.treatSkillsAsUnlocked);
+const showNoEditableOperators = ref(initialSettings.showNoEditableOperators);
+const showUnownedOperators = ref(initialSettings.showUnownedOperators);
 
 function persist(): void {
   profiles.value = [...profiles.value];
@@ -144,7 +174,11 @@ function persist(): void {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     window.localStorage.setItem(
       SETTINGS_STORAGE_KEY,
-      JSON.stringify({ treatSkillsAsUnlocked: treatSkillsAsUnlocked.value }),
+      JSON.stringify({
+        treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+        showNoEditableOperators: showNoEditableOperators.value,
+        showUnownedOperators: showUnownedOperators.value,
+      }),
     );
   } catch {
     // Keep in-memory state usable when localStorage is unavailable.
@@ -312,6 +346,16 @@ function setTreatSkillsAsUnlocked(value: boolean): void {
   persist();
 }
 
+function setShowNoEditableOperators(value: boolean): void {
+  showNoEditableOperators.value = value;
+  persist();
+}
+
+function setShowUnownedOperators(value: boolean): void {
+  showUnownedOperators.value = value;
+  persist();
+}
+
 normalizeActiveProfile();
 
 const activeProfile = computed(() => getProfile(activeProfileId.value));
@@ -322,6 +366,8 @@ export function useOperatorProgression() {
     activeProfileId,
     activeProfile,
     treatSkillsAsUnlocked,
+    showNoEditableOperators,
+    showUnownedOperators,
     importProfile,
     getProfile,
     setActiveProfile,
@@ -333,6 +379,8 @@ export function useOperatorProgression() {
     removeProfile,
     renameProfile,
     setTreatSkillsAsUnlocked,
+    setShowNoEditableOperators,
+    setShowUnownedOperators,
     persist,
   };
 }

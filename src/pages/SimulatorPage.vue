@@ -871,7 +871,8 @@ function operatorOwned(
     return true;
   }
   const operator = operatorByName(name);
-  return activeProfile.value.entries[operator?.id ?? ""]?.owned ?? false;
+  const entry = operator ? activeProfile.value.entries[operator.id] : undefined;
+  return entry?.owned === true;
 }
 
 function operatorTrainingUpgraded(

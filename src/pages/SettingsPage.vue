@@ -20,6 +20,10 @@ import type {
   OperatorProgressionNode,
 } from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
+import {
+  sortBranchValues,
+  sortProfessionValues,
+} from "@/utils/operatorOrdering";
 import { ROOM_ORDER } from "@/utils/schedule";
 import { nodesForOperator } from "@/utils/operatorProgression";
 
@@ -43,6 +47,8 @@ const {
   profiles,
   activeProfileId,
   activeProfile,
+  showNoEditableOperators,
+  showUnownedOperators,
   treatSkillsAsUnlocked,
   importProfile,
   setActiveProfile,
@@ -52,6 +58,8 @@ const {
   resetProfile,
   duplicateProfile,
   removeProfile,
+  setShowNoEditableOperators,
+  setShowUnownedOperators,
   setTreatSkillsAsUnlocked,
 } = useOperatorProgression();
 
@@ -72,6 +80,7 @@ const selectedProgressionProfession = ref("");
 const selectedProgressionBranch = ref("");
 const selectedProgressionRarity = ref<number | "">("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
+const skillFileLoadFailures = ref<Record<string, boolean>>({});
 let skillFileRequestVersion = 0;
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
@@ -83,13 +92,9 @@ const progressionRarityOptions = [1, 2, 3, 4, 5, 6].map((value) => ({
   label: `${value} 星`,
 }));
 const progressionProfessionOptions = computed(() =>
-  [
-    ...new Set(
-      operators.value.map((operator) => operator.profession).filter(Boolean),
-    ),
-  ]
-    .sort((left, right) => left.localeCompare(right, "zh-CN"))
-    .map((value) => ({ value, label: value })),
+  sortProfessionValues(
+    operators.value.map((operator) => operator.profession).filter(Boolean),
+  ).map((value) => ({ value, label: value })),
 );
 const progressionBranchOptions = computed(() => {
   const branches = operators.value
@@ -100,9 +105,9 @@ const progressionBranchOptions = computed(() => {
     )
     .map((operator) => operator.branch)
     .filter(Boolean);
-  return [...new Set(branches)]
-    .sort((left, right) => left.localeCompare(right, "zh-CN"))
-    .map((value) => ({ value, label: value }));
+  return sortBranchValues(selectedProgressionProfession.value, branches).map(
+    (value) => ({ value, label: value }),
+  );
 });
 const filteredProgressionOperators = computed(() => {
   const query = progressionSearch.value.trim().toLocaleLowerCase();
@@ -110,7 +115,14 @@ const filteredProgressionOperators = computed(() => {
     .filter((operator) => {
       const skillFile = skillFiles.value[operator.id];
       const nodes = nodesForOperator(skillFile);
+      const entry = progressionEntry(operator);
+      const hasEditableNodes = nodes.length > 0;
+      const skillFileLoadFailed = skillFileLoadFailures.value[operator.id];
       return (
+        (showNoEditableOperators.value ||
+          hasEditableNodes ||
+          skillFileLoadFailed) &&
+        (showUnownedOperators.value || entry?.owned === true) &&
         (!selectedProgressionFacility.value ||
           nodes.some((node) =>
             node.facilities.includes(
@@ -158,9 +170,26 @@ function progressionEntry(
 }
 
 function progressionNodes(operator: Operator): OperatorProgressionNode[] {
-  return nodesForOperator(skillFiles.value[operator.id]).filter(
-    (node) => node.type === "elite",
-  );
+  const nodes = nodesForOperator(skillFiles.value[operator.id]);
+  const eliteNodes = nodes.filter((node) => node.type === "elite");
+  if (eliteNodes.some((node) => node.value > 0)) {
+    return eliteNodes;
+  }
+
+  const levelNodes = nodes.filter((node) => node.type === "level");
+  if (levelNodes.length === 0 || levelNodes.some((node) => node.value === 0)) {
+    return levelNodes;
+  }
+  return [
+    {
+      key: "level-0",
+      type: "level",
+      value: 0,
+      label: "0级",
+      facilities: [...new Set(levelNodes.flatMap((node) => node.facilities))],
+    },
+    ...levelNodes,
+  ];
 }
 
 function nodeIsCurrent(
@@ -168,7 +197,12 @@ function nodeIsCurrent(
   node: OperatorProgressionNode,
 ): boolean {
   const entry = progressionEntry(operator);
-  return entry?.owned === true && entry.elite === node.value;
+  return (
+    entry?.owned === true &&
+    (node.type === "elite"
+      ? entry.elite === node.value
+      : entry.level === node.value)
+  );
 }
 
 function nodeFacilities(node: OperatorProgressionNode): string {
@@ -184,13 +218,21 @@ function updateProgressionNode(
     return;
   }
   updateEntry(profile.id, operator.id, (entry) => {
-    const isCurrent = entry.owned && entry.elite === node.value;
+    const isCurrent =
+      entry.owned &&
+      (node.type === "elite"
+        ? entry.elite === node.value
+        : entry.level === node.value);
     if (isCurrent) {
       entry.owned = false;
       return;
     }
-    entry.elite = node.value as 0 | 1 | 2;
-    entry.level = 1;
+    if (node.type === "elite") {
+      entry.elite = node.value as 0 | 1 | 2;
+      entry.level = 1;
+    } else {
+      entry.level = node.value;
+    }
     entry.owned = true;
   });
 }
@@ -217,7 +259,7 @@ function progressionAvatarElite(operator: Operator): 0 | 1 | 2 {
 
 function progressionCurrentLabel(operator: Operator): string {
   const entry = progressionEntry(operator);
-  return entry?.owned ? `精英${entry.elite}` : "—";
+  return entry?.owned ? `精英${entry.elite} · ${entry.level}级` : "—";
 }
 
 function facilityFilterStyle(
@@ -227,8 +269,8 @@ function facilityFilterStyle(
   const color = facilityColors.value[type];
   return {
     "--facility-filter-color": color,
-    "--facility-filter-background": selected ? color : `${color}1a`,
-    "--facility-filter-text": selected ? "#ffffff" : color,
+    "background-color": selected ? color : `${color}1a`,
+    color: selected ? "#ffffff" : "#344447",
   };
 }
 
@@ -277,6 +319,10 @@ async function refreshProgressionSkillFiles(): Promise<void> {
   const requestVersion = ++skillFileRequestVersion;
   if (!baseDataReady.value || selectedDataSource.value !== "torappu") {
     skillFiles.value = {};
+    skillFileLoadFailures.value = Object.fromEntries(
+      operators.value.map((operator) => [operator.id, true]),
+    );
+    progressionLoading.value = false;
     return;
   }
   progressionLoading.value = true;
@@ -292,14 +338,20 @@ async function refreshProgressionSkillFiles(): Promise<void> {
             result.ok
               ? ((await result.json()) as OperatorSkillFile)
               : undefined,
+            !result.ok,
           ] as const;
         } catch {
-          return [operator.id, undefined] as const;
+          return [operator.id, undefined, true] as const;
         }
       }),
     );
     if (requestVersion === skillFileRequestVersion) {
-      skillFiles.value = Object.fromEntries(response);
+      skillFiles.value = Object.fromEntries(
+        response.map(([id, skillFile]) => [id, skillFile]),
+      );
+      skillFileLoadFailures.value = Object.fromEntries(
+        response.map(([id, , failed]) => [id, failed]),
+      );
       if (activeProfile.value) {
         operators.value.forEach((operator) => {
           ensureEntry(activeProfile.value!.id, {
@@ -435,16 +487,35 @@ watch(
           </a-button>
         </a-space>
       </div>
-      <a-checkbox
-        :checked="treatSkillsAsUnlocked"
-        class="settings-progression-unlock-option"
-        @change="
-          (event: { target: { checked: boolean } }) =>
-            setTreatSkillsAsUnlocked(event.target.checked)
-        "
-      >
-        基建技能视为已解锁
-      </a-checkbox>
+      <div class="settings-progression-options">
+        <a-checkbox
+          :checked="treatSkillsAsUnlocked"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setTreatSkillsAsUnlocked(event.target.checked)
+          "
+        >
+          基建技能视为已解锁
+        </a-checkbox>
+        <a-checkbox
+          :checked="showNoEditableOperators"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setShowNoEditableOperators(event.target.checked)
+          "
+        >
+          显示无可编辑节点干员
+        </a-checkbox>
+        <a-checkbox
+          :checked="showUnownedOperators"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setShowUnownedOperators(event.target.checked)
+          "
+        >
+          显示未拥有干员
+        </a-checkbox>
+      </div>
       <template v-if="activeProfile">
         <div class="settings-progression-filters">
           <a-input
@@ -471,6 +542,7 @@ watch(
                   'settings-progression-filter-button--selected':
                     selectedProgressionFacility === option.value,
                 }"
+                type="default"
                 :style="
                   facilityFilterStyle(
                     option.value,
@@ -506,11 +578,13 @@ watch(
               </a-button>
             </div>
           </div>
-          <div class="settings-progression-filter-group">
+          <div
+            v-if="selectedProgressionProfession"
+            class="settings-progression-filter-group"
+          >
             <span class="settings-progression-filter-label">分支</span>
             <div class="settings-progression-filter-options">
               <a-button
-                :disabled="!selectedProgressionProfession"
                 :type="!selectedProgressionBranch ? 'primary' : 'default'"
                 @click="selectedProgressionBranch = ''"
               >
@@ -519,7 +593,6 @@ watch(
               <a-button
                 v-for="option in progressionBranchOptions"
                 :key="option.value"
-                :disabled="!selectedProgressionProfession"
                 :type="
                   selectedProgressionBranch === option.value
                     ? 'primary'
@@ -571,8 +644,9 @@ watch(
                   :operator="operator"
                   :show-elite-level="true"
                   :show-name="false"
-                  :show-profession="false"
-                  :show-rarity="false"
+                  :show-profession="true"
+                  :show-rarity="true"
+                  :plain="true"
                   :size="56"
                 />
                 <div class="settings-progression-item-copy">
@@ -585,6 +659,31 @@ watch(
                     >当前练度：{{ progressionCurrentLabel(operator) }}</span
                   >
                 </div>
+              </div>
+              <div class="settings-progression-node-editor-row">
+                <div
+                  v-if="progressionNodes(operator).length"
+                  class="settings-progression-nodes"
+                >
+                  <a-button
+                    v-for="node in progressionNodes(operator)"
+                    :key="node.key"
+                    :class="{
+                      'settings-progression-node--current': nodeIsCurrent(
+                        operator,
+                        node,
+                      ),
+                    }"
+                    :title="nodeFacilities(node)"
+                    size="small"
+                    @click="updateProgressionNode(operator, node)"
+                  >
+                    {{ node.label }}
+                  </a-button>
+                </div>
+                <span v-else class="settings-progression-no-node"
+                  >暂无可编辑的基建技能节点</span
+                >
                 <a-button
                   :aria-label="`重置${operator.name}练度`"
                   size="small"
@@ -594,29 +693,6 @@ watch(
                   <template #icon><ReloadOutlined /></template>
                 </a-button>
               </div>
-              <div
-                v-if="progressionNodes(operator).length"
-                class="settings-progression-nodes"
-              >
-                <a-button
-                  v-for="node in progressionNodes(operator)"
-                  :key="node.key"
-                  :class="{
-                    'settings-progression-node--current': nodeIsCurrent(
-                      operator,
-                      node,
-                    ),
-                  }"
-                  :title="nodeFacilities(node)"
-                  size="small"
-                  @click="updateProgressionNode(operator, node)"
-                >
-                  {{ node.label }}
-                </a-button>
-              </div>
-              <span v-else class="settings-progression-no-node"
-                >暂无可编辑的基建技能节点</span
-              >
             </a-card>
           </div>
         </a-spin>
