@@ -661,6 +661,14 @@ watch(
                 </div>
               </div>
               <div class="settings-progression-node-editor-row">
+                <a-button
+                  :aria-label="`重置${operator.name}练度`"
+                  size="small"
+                  title="重置为导入时状态"
+                  @click="resetProgressionEntry(operator)"
+                >
+                  <template #icon><ReloadOutlined /></template>
+                </a-button>
                 <div
                   v-if="progressionNodes(operator).length"
                   class="settings-progression-nodes"
@@ -684,14 +692,6 @@ watch(
                 <span v-else class="settings-progression-no-node"
                   >暂无可编辑的基建技能节点</span
                 >
-                <a-button
-                  :aria-label="`重置${operator.name}练度`"
-                  size="small"
-                  title="重置为导入时状态"
-                  @click="resetProgressionEntry(operator)"
-                >
-                  <template #icon><ReloadOutlined /></template>
-                </a-button>
               </div>
             </a-card>
           </div>
