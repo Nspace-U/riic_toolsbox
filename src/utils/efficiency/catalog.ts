@@ -53,6 +53,7 @@ export function createEfficiencyCatalog(
     byName[operator.name] = {
       id: operator.id,
       name: operator.name,
+      maxEliteLevel: operator.maxEliteLevel,
       rarity: operator.rarity,
       termKeys: operator.termReferences.map((reference) => reference.key),
       skillFile,

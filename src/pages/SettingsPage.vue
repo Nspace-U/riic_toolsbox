@@ -1,9 +1,25 @@
 <script setup lang="ts">
-import { SettingOutlined } from "@ant-design/icons-vue";
+import {
+  CopyOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  UploadOutlined,
+} from "@ant-design/icons-vue";
+import { computed, ref, watch } from "vue";
 
+import { useBaseData } from "@/composables/useBaseData";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useFacilityColors } from "@/composables/useFacilityColors";
+import { useOperatorProgression } from "@/composables/useOperatorProgression";
+import type { Operator } from "@/types/baseData";
+import type { OperatorSkillFile } from "@/types/efficiency";
+import type {
+  OperatorProgressionEntry,
+  OperatorProgressionNode,
+} from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
+import { nodesForOperator } from "@/utils/operatorProgression";
 
 const {
   dataSourceOptions,
@@ -20,6 +36,21 @@ const {
   setProductColor,
   resetFacilityColors,
 } = useFacilityColors();
+const { operators, ready: baseDataReady } = useBaseData();
+const {
+  profiles,
+  activeProfileId,
+  activeProfile,
+  treatSkillsAsUnlocked,
+  importProfile,
+  setActiveProfile,
+  updateEntry,
+  ensureEntry,
+  resetEntry,
+  duplicateProfile,
+  removeProfile,
+  setTreatSkillsAsUnlocked,
+} = useOperatorProgression();
 
 const facilityColorEntries = Object.entries(facilityLabels) as Array<
   [RoomKey, string]
@@ -28,11 +59,253 @@ const productColorEntries = Object.entries(productLabels) as Array<
   ["Pure Gold" | "Orundum" | "Originium Shard", string]
 >;
 
+const progressionFileInput = ref<HTMLInputElement>();
+const progressionError = ref("");
+const progressionSuccess = ref("");
+const progressionLoading = ref(false);
+const progressionSearch = ref("");
+const selectedProgressionFacility = ref<RoomKey | "">("");
+const selectedProgressionProfession = ref("");
+const selectedProgressionBranch = ref("");
+const selectedProgressionRarity = ref<number | "">("");
+const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
+let skillFileRequestVersion = 0;
+
+const progressionFacilityOptions = Object.entries(facilityLabels).map(
+  ([value, label]) => ({ value, label }),
+);
+const progressionRarityOptions = [1, 2, 3, 4, 5, 6].map((value) => ({
+  value,
+  label: `${value} 星`,
+}));
+const progressionProfessionOptions = computed(() =>
+  [
+    ...new Set(
+      operators.value.map((operator) => operator.profession).filter(Boolean),
+    ),
+  ]
+    .sort((left, right) => left.localeCompare(right, "zh-CN"))
+    .map((value) => ({ value, label: value })),
+);
+const progressionBranchOptions = computed(() => {
+  const branches = operators.value
+    .filter(
+      (operator) =>
+        !selectedProgressionProfession.value ||
+        operator.profession === selectedProgressionProfession.value,
+    )
+    .map((operator) => operator.branch)
+    .filter(Boolean);
+  return [...new Set(branches)]
+    .sort((left, right) => left.localeCompare(right, "zh-CN"))
+    .map((value) => ({ value, label: value }));
+});
+const filteredProgressionOperators = computed(() => {
+  const query = progressionSearch.value.trim().toLocaleLowerCase();
+  const profile = activeProfile.value;
+  return operators.value
+    .filter((operator) => {
+      const skillFile = skillFiles.value[operator.id];
+      const nodes = nodesForOperator(skillFile);
+      return (
+        (!selectedProgressionFacility.value ||
+          nodes.some((node) =>
+            node.facilities.includes(
+              selectedProgressionFacility.value as RoomKey,
+            ),
+          )) &&
+        (!selectedProgressionProfession.value ||
+          operator.profession === selectedProgressionProfession.value) &&
+        (!selectedProgressionBranch.value ||
+          operator.branch === selectedProgressionBranch.value) &&
+        (!selectedProgressionRarity.value ||
+          operator.rarity === selectedProgressionRarity.value) &&
+        (!query ||
+          `${operator.name} ${operator.id}`.toLocaleLowerCase().includes(query))
+      );
+    })
+    .sort((left, right) => {
+      const leftOwned = profile?.entries[left.id]?.owned === true;
+      const rightOwned = profile?.entries[right.id]?.owned === true;
+      return (
+        Number(rightOwned) - Number(leftOwned) ||
+        right.rarity - left.rarity ||
+        left.name.localeCompare(right.name, "zh-CN")
+      );
+    });
+});
+
+function progressionEntry(
+  operator: Operator,
+): OperatorProgressionEntry | undefined {
+  return (
+    activeProfile.value?.entries[operator.id] ?? {
+      id: operator.id,
+      name: operator.name,
+      elite: 0,
+      level: 0,
+      owned: false,
+      rarity: operator.rarity,
+    }
+  );
+}
+
+function progressionNodes(operator: Operator): OperatorProgressionNode[] {
+  return nodesForOperator(skillFiles.value[operator.id]);
+}
+
+function nodeIsCurrent(
+  operator: Operator,
+  node: OperatorProgressionNode,
+): boolean {
+  const entry = progressionEntry(operator);
+  if (!entry) {
+    return false;
+  }
+  return node.type === "elite"
+    ? entry.elite === node.value
+    : entry.level === node.value;
+}
+
+function nodeFacilities(node: OperatorProgressionNode): string {
+  return node.facilities.map((facility) => facilityLabels[facility]).join("、");
+}
+
+function updateProgressionNode(
+  operator: Operator,
+  node: OperatorProgressionNode,
+): void {
+  const profile = activeProfile.value;
+  if (!profile) {
+    return;
+  }
+  updateEntry(profile.id, operator.id, (entry) => {
+    const isCurrent =
+      node.type === "elite"
+        ? entry.elite === node.value
+        : entry.level === node.value;
+    if (!isCurrent) {
+      if (node.type === "elite") {
+        entry.elite = node.value as 0 | 1 | 2;
+        entry.level = 1;
+      } else {
+        entry.level = node.value;
+      }
+    }
+    entry.owned = true;
+  });
+}
+
+function resetProgressionEntry(operator: Operator): void {
+  if (activeProfile.value) {
+    resetEntry(activeProfile.value.id, operator.id);
+  }
+}
+
+function openProgressionFilePicker(): void {
+  progressionFileInput.value?.click();
+}
+
+async function handleProgressionFileChange(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file) {
+    return;
+  }
+  progressionError.value = "";
+  progressionSuccess.value = "";
+  try {
+    importProfile(JSON.parse(await file.text()) as unknown, file.name);
+    progressionSuccess.value = `已导入练度档案“${file.name.replace(/\.json$/i, "")}”。`;
+  } catch (error: unknown) {
+    progressionError.value =
+      error instanceof Error ? error.message : "练度 JSON 导入失败";
+  }
+}
+
+function handleDuplicateProfile(): void {
+  if (!activeProfile.value) {
+    return;
+  }
+  duplicateProfile(activeProfile.value.id);
+  progressionSuccess.value = "已复制当前练度档案。";
+}
+
+function handleRemoveProfile(): void {
+  if (!activeProfile.value) {
+    return;
+  }
+  if (!window.confirm(`确定删除“${activeProfile.value.name}”吗？`)) {
+    return;
+  }
+  removeProfile(activeProfile.value.id);
+  progressionSuccess.value = "已删除练度档案。";
+}
+
+async function refreshProgressionSkillFiles(): Promise<void> {
+  const requestVersion = ++skillFileRequestVersion;
+  if (!baseDataReady.value || selectedDataSource.value !== "torappu") {
+    skillFiles.value = {};
+    return;
+  }
+  progressionLoading.value = true;
+  try {
+    const response = await Promise.all(
+      operators.value.map(async (operator) => {
+        try {
+          const result = await fetch(
+            `${import.meta.env.BASE_URL}assets/operator-skills/${operator.id}.json`,
+          );
+          return [
+            operator.id,
+            result.ok
+              ? ((await result.json()) as OperatorSkillFile)
+              : undefined,
+          ] as const;
+        } catch {
+          return [operator.id, undefined] as const;
+        }
+      }),
+    );
+    if (requestVersion === skillFileRequestVersion) {
+      skillFiles.value = Object.fromEntries(response);
+      if (activeProfile.value) {
+        operators.value.forEach((operator) => {
+          ensureEntry(activeProfile.value!.id, {
+            id: operator.id,
+            name: operator.name,
+            elite: 0,
+            level: 0,
+            owned: false,
+            rarity: operator.rarity,
+          });
+        });
+      }
+    }
+  } finally {
+    if (requestVersion === skillFileRequestVersion) {
+      progressionLoading.value = false;
+    }
+  }
+}
+
 function handleDataSourceChange(value: string): void {
   if (isDataSourceId(value)) {
     setDataSource(value);
   }
 }
+
+watch(selectedProgressionProfession, () => {
+  selectedProgressionBranch.value = "";
+});
+watch(
+  [baseDataReady, selectedDataSource],
+  () => {
+    void refreshProgressionSkillFiles();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -62,6 +335,193 @@ function handleDataSourceChange(value: string): void {
         <span>当前数据源</span>
         <strong>{{ selectedDataSourceLabel }}</strong>
       </div>
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-progression-panel"
+      title="干员练度"
+    >
+      <template #extra>
+        <a-space :size="6">
+          <a-button size="small" @click="openProgressionFilePicker">
+            <template #icon><UploadOutlined /></template>
+            导入
+          </a-button>
+          <input
+            ref="progressionFileInput"
+            accept=".json,application/json"
+            hidden
+            type="file"
+            @change="handleProgressionFileChange"
+          />
+        </a-space>
+      </template>
+      <a-alert
+        v-if="progressionError"
+        :message="progressionError"
+        closable
+        show-icon
+        type="error"
+        @close="progressionError = ''"
+      />
+      <a-alert
+        v-if="progressionSuccess"
+        :message="progressionSuccess"
+        class="settings-progression-alert"
+        closable
+        show-icon
+        type="success"
+        @close="progressionSuccess = ''"
+      />
+      <p class="settings-panel-description">
+        导入干员练度后，可按基建技能节点设置干员状态。未选择档案时，排班模拟器会使用设施默认练度。
+      </p>
+      <div class="settings-progression-toolbar">
+        <a-select
+          :options="[
+            { value: '', label: '未选择练度档案' },
+            ...profiles.map((profile) => ({
+              value: profile.id,
+              label: profile.name,
+            })),
+          ]"
+          :value="activeProfileId"
+          class="settings-progression-profile-select"
+          @update:value="(value: string) => setActiveProfile(value)"
+        />
+        <a-space v-if="activeProfile" :size="6" wrap>
+          <a-button size="small" @click="handleDuplicateProfile">
+            <template #icon><CopyOutlined /></template>
+            复制
+          </a-button>
+          <a-button danger size="small" @click="handleRemoveProfile">
+            <template #icon><DeleteOutlined /></template>
+            删除
+          </a-button>
+        </a-space>
+      </div>
+      <a-checkbox
+        :checked="treatSkillsAsUnlocked"
+        class="settings-progression-unlock-option"
+        @change="
+          (event: { target: { checked: boolean } }) =>
+            setTreatSkillsAsUnlocked(event.target.checked)
+        "
+      >
+        基建技能视为已解锁（模拟器按当前设施所需的最大练度显示）
+      </a-checkbox>
+      <template v-if="activeProfile">
+        <div class="settings-progression-filters">
+          <a-input
+            v-model:value="progressionSearch"
+            allow-clear
+            placeholder="搜索干员名称"
+          />
+          <a-select
+            v-model:value="selectedProgressionFacility"
+            :options="[
+              { value: '', label: '全部设施' },
+              ...progressionFacilityOptions,
+            ]"
+            allow-clear
+            placeholder="设施"
+          />
+          <a-select
+            v-model:value="selectedProgressionProfession"
+            :options="[
+              { value: '', label: '全部职业' },
+              ...progressionProfessionOptions,
+            ]"
+            allow-clear
+            placeholder="职业"
+          />
+          <a-select
+            v-model:value="selectedProgressionBranch"
+            :disabled="!selectedProgressionProfession"
+            :options="[
+              { value: '', label: '全部分支' },
+              ...progressionBranchOptions,
+            ]"
+            allow-clear
+            placeholder="分支"
+          />
+          <a-select
+            v-model:value="selectedProgressionRarity"
+            :options="[
+              { value: '', label: '全部稀有度' },
+              ...progressionRarityOptions,
+            ]"
+            allow-clear
+            placeholder="稀有度"
+          />
+        </div>
+        <a-spin :spinning="progressionLoading">
+          <div class="settings-progression-list">
+            <a-card
+              v-for="operator in filteredProgressionOperators"
+              :key="operator.id"
+              :bordered="false"
+              class="settings-progression-item"
+            >
+              <div class="settings-progression-item-heading">
+                <div>
+                  <strong>{{ operator.name }}</strong>
+                  <span
+                    >{{ operator.profession }} · {{ operator.branch }} ·
+                    {{ operator.rarity }}星</span
+                  >
+                </div>
+                <a-button size="small" @click="resetProgressionEntry(operator)">
+                  <template #icon><ReloadOutlined /></template>
+                  重置
+                </a-button>
+              </div>
+              <div class="settings-progression-item-state">
+                <a-tag
+                  :color="
+                    progressionEntry(operator)?.owned ? 'green' : 'default'
+                  "
+                >
+                  {{ progressionEntry(operator)?.owned ? "已拥有" : "未拥有" }}
+                </a-tag>
+                <span
+                  >精英{{ progressionEntry(operator)?.elite }} ·
+                  {{ progressionEntry(operator)?.level }}级</span
+                >
+              </div>
+              <div
+                v-if="progressionNodes(operator).length"
+                class="settings-progression-nodes"
+              >
+                <a-button
+                  v-for="node in progressionNodes(operator)"
+                  :key="node.key"
+                  :class="{
+                    'settings-progression-node--current': nodeIsCurrent(
+                      operator,
+                      node,
+                    ),
+                  }"
+                  :title="nodeFacilities(node)"
+                  size="small"
+                  @click="updateProgressionNode(operator, node)"
+                >
+                  {{ node.label }}
+                </a-button>
+              </div>
+              <span v-else class="settings-progression-no-node"
+                >暂无可编辑的基建技能节点</span
+              >
+            </a-card>
+          </div>
+        </a-spin>
+      </template>
+      <a-empty
+        v-else
+        :image="undefined"
+        description="请先导入或选择一组练度档案"
+      />
     </a-card>
 
     <a-card

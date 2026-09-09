@@ -1,4 +1,6 @@
 import type { RoomKey, ScheduleDocument } from "@/types/schedule";
+import type { EliteLevel } from "@/types/baseData";
+import type { OperatorProgressionProfile } from "@/types/operatorProgression";
 
 export type EfficiencyStat =
   | "tradeSpd"
@@ -172,10 +174,16 @@ export interface OperatorSkillFile {
 export interface EfficiencyOperator {
   id: string;
   name: string;
+  maxEliteLevel?: EliteLevel;
   rarity: number;
   termKeys: string[];
   skillFile?: OperatorSkillFile;
   skillNames?: string[];
+}
+
+export interface EfficiencyCalculationOptions {
+  progressionProfile?: OperatorProgressionProfile;
+  treatSkillsAsUnlocked?: boolean;
 }
 
 export interface EfficiencyTerm {

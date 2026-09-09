@@ -16,6 +16,7 @@ import {
   useFacilityColors,
 } from "@/composables/useFacilityColors";
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
+import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
 import type { EliteLevel, Operator } from "@/types/baseData";
@@ -52,6 +53,7 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
+import { resolveOperatorProgression } from "@/utils/operatorProgression";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -90,6 +92,7 @@ const {
 const { operators, terms, ready: baseDataReady } = useBaseData();
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
+const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
 
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
@@ -110,7 +113,10 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   if (!document || !catalog) {
     return undefined;
   }
-  return calculateEfficiency(document, catalog);
+  return calculateEfficiency(document, catalog, {
+    progressionProfile: activeProfile.value,
+    treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+  });
 });
 
 const efficiencySupported = computed(
@@ -839,12 +845,57 @@ function handleOperatorDraft(
 function operatorElite(
   room: RoomAssignment | undefined,
   name: string,
+  type: RoomKey,
 ): EliteLevel {
-  const state = operatorState(room, name);
-  if (state.elite === 1 || state.elite === 2) {
-    return state.elite;
+  const operator = operatorByName(name);
+  const profile = operator
+    ? efficiencyCatalog.value?.operators[operator.name]
+    : undefined;
+  return resolveOperatorProgression({
+    operatorId: operator?.id ?? name,
+    facility: type,
+    operatorSkillFile: profile?.skillFile,
+    maxEliteLevel: operator?.maxEliteLevel,
+    manualElite: operatorState(room, name).elite,
+    manualLevel: operatorState(room, name).level,
+    profile: activeProfile.value,
+    treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+  }).elite;
+}
+
+function operatorOwned(
+  room: RoomAssignment | undefined,
+  name: string,
+): boolean {
+  if (!activeProfile.value) {
+    return true;
   }
-  return 0;
+  const operator = operatorByName(name);
+  return activeProfile.value.entries[operator?.id ?? ""]?.owned ?? false;
+}
+
+function operatorTrainingUpgraded(
+  room: RoomAssignment | undefined,
+  name: string,
+  type: RoomKey,
+): boolean {
+  if (!treatSkillsAsUnlocked.value) {
+    return false;
+  }
+  const operator = operatorByName(name);
+  const profile = operator
+    ? efficiencyCatalog.value?.operators[operator.name]
+    : undefined;
+  return resolveOperatorProgression({
+    operatorId: operator?.id ?? name,
+    facility: type,
+    operatorSkillFile: profile?.skillFile,
+    maxEliteLevel: operator?.maxEliteLevel,
+    manualElite: operatorState(room, name).elite,
+    manualLevel: operatorState(room, name).level,
+    profile: activeProfile.value,
+    treatSkillsAsUnlocked: true,
+  }).upgraded;
 }
 
 function operatorMood(
@@ -861,12 +912,19 @@ function operatorEliteValue(
   return operatorState(room, name).elite;
 }
 
+function operatorLevelValue(
+  room: RoomAssignment | undefined,
+  name: string,
+): number | undefined {
+  return operatorState(room, name).level;
+}
+
 function updateOperatorState(
   planIndex: number,
   type: RoomKey,
   position: number,
   slotIndex: number,
-  key: "mood" | "elite",
+  key: "mood" | "elite" | "level",
   value: number | null,
 ): void {
   const plan = currentDocument.value?.plans[planIndex];
@@ -1718,9 +1776,23 @@ watch(
                             operatorElite(
                               slotRoom(plan, slot),
                               slotName(row, plan, planIndex, slot),
+                              row.type,
                             )
                           "
                           :operator="slotOperator(row, plan, planIndex, slot)!"
+                          :operator-owned="
+                            operatorOwned(
+                              slotRoom(plan, slot),
+                              slotName(row, plan, planIndex, slot),
+                            )
+                          "
+                          :operator-training-upgraded="
+                            operatorTrainingUpgraded(
+                              slotRoom(plan, slot),
+                              slotName(row, plan, planIndex, slot),
+                              row.type,
+                            )
+                          "
                           :show-elite-level="true"
                           :show-name="false"
                           :show-profession="true"
@@ -1815,6 +1887,31 @@ watch(
                                   slot.entry.position,
                                   slot.slotIndex,
                                   'elite',
+                                  value,
+                                )
+                            "
+                          />
+                          <a-input-number
+                            :disabled="!slotName(row, plan, planIndex, slot)"
+                            :max="90"
+                            :min="1"
+                            :value="
+                              operatorLevelValue(
+                                slotRoom(plan, slot),
+                                slotName(row, plan, planIndex, slot),
+                              )
+                            "
+                            class="simulator-slot-state-input"
+                            placeholder="等级"
+                            size="small"
+                            @update:value="
+                              (value: number | null) =>
+                                updateOperatorState(
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                  'level',
                                   value,
                                 )
                             "

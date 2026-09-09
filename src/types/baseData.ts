@@ -22,6 +22,7 @@ export interface OperatorSkill {
 export interface Operator {
   id: string;
   name: string;
+  maxEliteLevel?: EliteLevel;
   implementationDate?: string;
   implementationOrder?: number;
   isSpChar?: boolean;

@@ -178,6 +178,11 @@ function buildAvatars(
   };
 }
 
+function maxEliteLevel(character: TorappuCharacter): 0 | 1 | 2 {
+  const phaseCount = character.phaseCount ?? 1;
+  return phaseCount >= 3 ? 2 : phaseCount >= 2 ? 1 : 0;
+}
+
 function buildReplacement(
   records: TorappuSkillRecord[],
   index: number,
@@ -282,6 +287,7 @@ export function parseTorappuData(
     operators.push({
       id: operatorId,
       name: character.name,
+      maxEliteLevel: maxEliteLevel(character),
       implementationDate: character.implementationDate,
       implementationOrder: character.implementationOrder,
       isSpChar: character.isSpChar === true,

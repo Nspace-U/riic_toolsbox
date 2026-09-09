@@ -387,11 +387,9 @@ onBeforeUnmount(() => {
 
             <a-divider orientation="left">头像信息</a-divider>
             <div class="avatar-checkboxes">
-              <a-checkbox v-model:checked="operatorOwned"
-                >干员已拥有</a-checkbox
-              >
+              <a-checkbox v-model:checked="operatorOwned">已拥有</a-checkbox>
               <a-checkbox v-model:checked="operatorTrainingUpgraded"
-                >干员已提升练度</a-checkbox
+                >需提升练度</a-checkbox
               >
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
               <a-checkbox v-model:checked="showEliteLevel"

@@ -15,6 +15,8 @@ import type {
   OperatorSkillFile,
   ProductionValue,
 } from "@/types/efficiency";
+import type { OperatorProgressionProfile } from "@/types/operatorProgression";
+import { resolveOperatorProgression } from "@/utils/operatorProgression";
 import type {
   OperatorState,
   Plan,
@@ -71,6 +73,7 @@ interface Placement {
   costRate: number;
   working: boolean;
   workHoursBefore: number;
+  owned: boolean;
 }
 
 interface PlanContext {
@@ -135,6 +138,27 @@ function stateOf(assignment: RoomAssignment, name: string): OperatorState {
   return assignment.operatorStates?.[name] ?? {};
 }
 
+function progressionOf(
+  profile: OperatorProgressionProfile | undefined,
+  name: string,
+  catalog: EfficiencyCatalog,
+  facility: EfficiencyFacility,
+  state: OperatorState,
+  treatSkillsAsUnlocked: boolean,
+): ReturnType<typeof resolveOperatorProgression> {
+  const operator = catalogOperator(catalog, name);
+  return resolveOperatorProgression({
+    operatorId: operator?.id ?? name,
+    facility: facility.type,
+    operatorSkillFile: operator?.skillFile,
+    maxEliteLevel: operator?.maxEliteLevel,
+    manualElite: state.elite,
+    manualLevel: state.level,
+    profile,
+    treatSkillsAsUnlocked,
+  });
+}
+
 function unlocksStage(
   stage: { unlock?: { type?: string; value?: number } },
   state: OperatorState,
@@ -169,6 +193,8 @@ function selectedSkills(
 function createContexts(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
+  progressionProfile?: OperatorProgressionProfile,
+  treatSkillsAsUnlocked = false,
 ): PlanContext[] {
   const facilities = buildFacilities(document.layout);
   return document.plans.map((plan, index) => {
@@ -189,21 +215,39 @@ function createContexts(
           warnings.push(`队列 ${index + 1}：找不到干员“${name}”的技能数据`);
         }
         const state = stateOf(assignment, name);
+        const progression = progressionOf(
+          progressionProfile,
+          name,
+          catalog,
+          facility,
+          state,
+          treatSkillsAsUnlocked,
+        );
+        const effectiveState: OperatorState = {
+          ...state,
+          elite: progression.elite,
+          level: progression.level,
+        };
         placements.push({
           name,
           facility,
           assignment,
           index: operatorIndex,
-          state,
+          state: effectiveState,
           profile,
           skillFile: profile?.skillFile,
-          selected: selectedSkills(profile?.skillFile, facility.type, state),
+          selected: selectedSkills(
+            profile?.skillFile,
+            facility.type,
+            effectiveState,
+          ),
           explicitMood: Object.prototype.hasOwnProperty.call(state, "mood"),
           moodStart: clampMood(state.mood ?? 24),
           moodEnd: clampMood(state.mood ?? 24),
           costRate: 0,
           working: (state.mood ?? 24) > 0,
           workHoursBefore: 0,
+          owned: progression.owned,
         });
       });
     });
@@ -1964,8 +2008,17 @@ function aggregateDailyProductions(
 export function calculateEfficiency(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
+  options: {
+    progressionProfile?: OperatorProgressionProfile;
+    treatSkillsAsUnlocked?: boolean;
+  } = {},
 ): EfficiencyResult {
-  const contexts = createContexts(document, catalog);
+  const contexts = createContexts(
+    document,
+    catalog,
+    options.progressionProfile,
+    options.treatSkillsAsUnlocked,
+  );
   resolveMoods(contexts, catalog);
   const plans = contexts.map((context) => calculatePlan(context, catalog));
   const totalHours = plans.reduce(
