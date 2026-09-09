@@ -222,15 +222,24 @@ export interface OperatorEfficiencyDetail {
   facility: RoomKey;
 }
 
+export interface OperatorEfficiencyContribution {
+  operator: string;
+  baseEfficiency: number;
+  skillEfficiency: number;
+  efficiency: number;
+}
+
 export interface FacilityEfficiencyResult {
   facility: EfficiencyFacility;
   baseEfficiency: number;
   operatorEfficiency: number;
   skillEfficiency: number;
+  combinationEfficiency: number;
   efficiency: number;
   attributes: FacilityAttributes;
   production?: ProductionValue;
   details: OperatorEfficiencyDetail[];
+  operatorContributions: OperatorEfficiencyContribution[];
 }
 
 export interface MoodSnapshot {
@@ -256,5 +265,6 @@ export interface EfficiencyResult {
   plans: EfficiencyPlanResult[];
   dailyHours: number;
   dailyFacilities: FacilityEfficiencyResult[];
+  dailyProductions: ProductionValue[];
   warnings: string[];
 }

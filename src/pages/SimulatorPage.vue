@@ -20,6 +20,12 @@ import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
+  EfficiencyCatalog,
+  EfficiencyResult,
+  FacilityEfficiencyResult,
+  ProductionValue,
+} from "@/types/efficiency";
+import type {
   LayoutEntry,
   OperatorState,
   Plan,
@@ -45,6 +51,7 @@ import {
   roomLevelRange,
   validateSchedule,
 } from "@/utils/schedule";
+import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -80,18 +87,35 @@ const {
   removeDocument,
   duplicateDocument,
 } = useScheduleDocuments();
-const { operators } = useBaseData();
+const { operators, terms, ready: baseDataReady } = useBaseData();
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
 
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
+const efficiencyCatalog = ref<EfficiencyCatalog>();
+const efficiencyLoading = ref(false);
+const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const newLayoutType = ref<RoomKey>("trading");
+let catalogRequestVersion = 0;
 
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
+
+const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
+  const document = currentDocument.value;
+  const catalog = efficiencyCatalog.value;
+  if (!document || !catalog) {
+    return undefined;
+  }
+  return calculateEfficiency(document, catalog);
+});
+
+const efficiencySupported = computed(
+  () => selectedDataSource.value === "torappu",
+);
 
 const operatorOptions = computed(() =>
   operators.value.map((operator) => ({
@@ -1061,6 +1085,116 @@ function planDurationHours(plan: Plan): string {
   return `${(minutes / 60).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} 小时`;
 }
 
+function formatNumber(value: number, maximumFractionDigits = 2): string {
+  return value.toLocaleString("zh-CN", { maximumFractionDigits });
+}
+
+function signedNumber(value: number): string {
+  return `${value >= 0 ? "+" : ""}${formatNumber(value)}`;
+}
+
+function formatProduction(value: number): string {
+  return formatNumber(value, 3);
+}
+
+function planFacilityResult(
+  row: FacilityRow,
+  planIndex: number,
+): FacilityEfficiencyResult | undefined {
+  const plan = efficiencyResult.value?.plans[planIndex];
+  if (!plan) {
+    return undefined;
+  }
+  const entry = row.entries[0];
+  const facilityId =
+    row.type === "power"
+      ? "power-1"
+      : `${row.type}-${(entry?.position ?? 0) + 1}`;
+  return plan.facilities.find((result) => result.facility.id === facilityId);
+}
+
+function roomOperatorNames(row: FacilityRow, plan: Plan): string[] {
+  return Array.from(
+    new Set(
+      roomEntries(row, plan).flatMap(({ room }) =>
+        room?.skip ? [] : (room?.operators ?? []),
+      ),
+    ),
+  );
+}
+
+function facilityResultLabel(result: FacilityEfficiencyResult): string {
+  const { facility } = result;
+  if (facility.type === "power") {
+    return `${ROOM_LABELS[facility.type]}（合并）`;
+  }
+  const count =
+    currentDocument.value?.layout.filter(
+      (entry) => entry.type === facility.type,
+    ).length ?? 0;
+  return `${ROOM_LABELS[facility.type]}${count > 1 ? ` ${facility.index + 1}` : ""}`;
+}
+
+const efficiencyStatLabels: Record<string, string> = {
+  tradeSpd: "贸易效率",
+  tradeNetEff: "贸易净效率",
+  manuProd: "制造效率",
+  clueSpeed: "线索速度",
+  clueChance: "线索概率",
+  hireSpd: "公开招募效率",
+  droneCharge: "无人机充能",
+  orderLimit: "订单上限",
+  storageCap: "仓库容量",
+  facBase: "设施基础效率",
+  abyssalBoost: "深海效果",
+};
+
+function efficiencyStatLabel(stat: string): string {
+  return efficiencyStatLabels[stat] ?? stat;
+}
+
+function productionMaterials(value: ProductionValue): string[] {
+  return Object.entries(value.materialPerHour ?? {}).map(
+    ([material, amount]) => `${material} ${signedNumber(amount)}/小时`,
+  );
+}
+
+async function refreshEfficiencyCatalog(): Promise<void> {
+  const requestVersion = ++catalogRequestVersion;
+  efficiencyCatalog.value = undefined;
+  efficiencyError.value = "";
+  if (
+    !efficiencySupported.value ||
+    !baseDataReady.value ||
+    operators.value.length === 0
+  ) {
+    efficiencyLoading.value = false;
+    return;
+  }
+
+  efficiencyLoading.value = true;
+  try {
+    const catalog = await loadEfficiencyCatalog(operators.value, terms.value);
+    if (
+      requestVersion !== catalogRequestVersion ||
+      selectedDataSource.value !== "torappu"
+    ) {
+      return;
+    }
+    efficiencyCatalog.value = catalog;
+  } catch (error: unknown) {
+    if (requestVersion !== catalogRequestVersion) {
+      return;
+    }
+    efficiencyError.value =
+      error instanceof Error ? error.message : "效率数据读取失败";
+  } finally {
+    if (requestVersion === catalogRequestVersion) {
+      efficiencyLoading.value = false;
+    }
+  }
+}
+
 function operatorByName(name: string): Operator | undefined {
   return operators.value.find((operator) => operator.name === name);
 }
@@ -1157,6 +1291,14 @@ function isStoredDocument(document: StoredDocument): boolean {
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
 });
+
+watch(
+  [baseDataReady, selectedDataSource],
+  () => {
+    void refreshEfficiencyCatalog();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -1690,12 +1832,251 @@ watch(activeDocumentId, () => {
                         </div>
                       </div>
                     </div>
+                    <div
+                      v-if="
+                        efficiencySupported &&
+                        planFacilityResult(row, planIndex)
+                      "
+                      class="simulator-efficiency-summary"
+                    >
+                      <div class="simulator-efficiency-summary-line">
+                        <span class="simulator-efficiency-summary-label"
+                          >干员组合</span
+                        >
+                        <span class="simulator-efficiency-operators">
+                          {{
+                            roomOperatorNames(row, plan).join("、") ||
+                            "暂无进驻"
+                          }}
+                        </span>
+                      </div>
+                      <div class="simulator-efficiency-summary-line">
+                        <span class="simulator-efficiency-summary-label"
+                          >组合效率</span
+                        >
+                        <strong
+                          >+{{
+                            formatNumber(
+                              planFacilityResult(row, planIndex)
+                                ?.combinationEfficiency ?? 0,
+                            )
+                          }}</strong
+                        >
+                      </div>
+                      <div
+                        class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
+                      >
+                        <span class="simulator-efficiency-summary-label"
+                          >设施最终效率</span
+                        >
+                        <strong
+                          >{{
+                            formatNumber(
+                              planFacilityResult(row, planIndex)?.efficiency ??
+                                0,
+                            )
+                          }}%</strong
+                        >
+                      </div>
+                    </div>
                   </div>
                 </a-card>
               </div>
             </a-card>
           </a-col>
         </a-row>
+
+        <a-card
+          v-if="efficiencySupported"
+          :bordered="false"
+          class="simulator-efficiency-panel"
+          title="计算结果"
+        >
+          <a-alert
+            v-if="efficiencyLoading"
+            message="正在读取干员技能数据并计算效率"
+            show-icon
+            type="info"
+          />
+          <a-alert
+            v-else-if="efficiencyError"
+            :message="efficiencyError"
+            show-icon
+            type="error"
+          />
+          <template v-else-if="efficiencyResult">
+            <div class="simulator-daily-output">
+              <div class="simulator-result-section-heading">
+                <div>
+                  <span class="simulator-eyebrow">DAILY OUTPUT</span>
+                  <h3>排班表每日产出</h3>
+                </div>
+                <a-tag color="blue">
+                  循环 {{ formatNumber(efficiencyResult.dailyHours) }} 小时
+                </a-tag>
+              </div>
+              <div
+                v-if="efficiencyResult.dailyProductions.length"
+                class="simulator-daily-output-grid"
+              >
+                <div
+                  v-for="production in efficiencyResult.dailyProductions"
+                  :key="production.product"
+                  class="simulator-daily-output-item"
+                >
+                  <span class="simulator-daily-output-product">{{
+                    production.product
+                  }}</span>
+                  <strong
+                    >{{ formatProduction(production.amountPerDay) }} /
+                    天</strong
+                  >
+                  <span class="simulator-daily-output-rate">
+                    {{ formatProduction(production.amountPerHour) }} / 小时
+                  </span>
+                  <span
+                    v-for="material in productionMaterials(production)"
+                    :key="material"
+                    class="simulator-daily-output-material"
+                    >{{ material }}</span
+                  >
+                </div>
+              </div>
+              <a-empty
+                v-else
+                :image="undefined"
+                description="当前排班没有可统计的产出"
+              />
+            </div>
+
+            <div class="simulator-calculation-steps">
+              <div class="simulator-result-section-heading">
+                <div>
+                  <span class="simulator-eyebrow">CALCULATION STEPS</span>
+                  <h3>计算步骤</h3>
+                </div>
+                <span class="simulator-result-hint"
+                  >展开设施查看生效技能明细</span
+                >
+              </div>
+              <a-collapse ghost>
+                <a-collapse-panel
+                  v-for="(
+                    result, resultIndex
+                  ) in efficiencyResult.plans.flatMap((plan, planIndex) =>
+                    plan.facilities.map((facility) => ({
+                      plan,
+                      planIndex,
+                      facility,
+                    })),
+                  )"
+                  :key="`${result.planIndex}-${result.facility.facility.id}-${resultIndex}`"
+                >
+                  <template #header>
+                    <div class="simulator-step-header">
+                      <span
+                        >{{ result.plan.name }} ·
+                        {{ facilityResultLabel(result.facility) }}</span
+                      >
+                      <strong
+                        >{{ formatNumber(result.facility.efficiency) }}%</strong
+                      >
+                    </div>
+                  </template>
+                  <div class="simulator-step-content">
+                    <div class="simulator-step-formula">
+                      {{ formatNumber(result.facility.baseEfficiency) }} +
+                      {{ formatNumber(result.facility.operatorEfficiency) }} +
+                      {{ formatNumber(result.facility.skillEfficiency) }} =
+                      <strong
+                        >{{ formatNumber(result.facility.efficiency) }}%</strong
+                      >
+                    </div>
+                    <div class="simulator-step-stat-grid">
+                      <span>基础效率</span>
+                      <strong>{{
+                        formatNumber(result.facility.baseEfficiency)
+                      }}</strong>
+                      <span>干员效率</span>
+                      <strong>{{
+                        formatNumber(result.facility.operatorEfficiency)
+                      }}</strong>
+                      <span>技能/组合效率</span>
+                      <strong>{{
+                        signedNumber(result.facility.skillEfficiency)
+                      }}</strong>
+                      <span>组合效率</span>
+                      <strong>{{
+                        signedNumber(result.facility.combinationEfficiency)
+                      }}</strong>
+                    </div>
+                    <div
+                      v-if="result.facility.operatorContributions.length"
+                      class="simulator-operator-contribution-list"
+                    >
+                      <span class="simulator-step-subheading"
+                        >干员组合贡献</span
+                      >
+                      <div
+                        v-for="contribution in result.facility
+                          .operatorContributions"
+                        :key="contribution.operator"
+                        class="simulator-operator-contribution"
+                      >
+                        <span>{{ contribution.operator }}</span>
+                        <span
+                          >{{ signedNumber(contribution.efficiency) }}（基础
+                          {{ signedNumber(contribution.baseEfficiency) }}，技能
+                          {{
+                            signedNumber(contribution.skillEfficiency)
+                          }}）</span
+                        >
+                      </div>
+                    </div>
+                    <div
+                      v-if="result.facility.details.length"
+                      class="simulator-detail-list"
+                    >
+                      <span class="simulator-step-subheading"
+                        >生效技能明细</span
+                      >
+                      <div
+                        v-for="(detail, detailIndex) in result.facility.details"
+                        :key="`${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
+                        class="simulator-detail-row"
+                      >
+                        <span
+                          >{{ detail.operator
+                          }}<template v-if="detail.skill">
+                            · {{ detail.skill }}</template
+                          ></span
+                        >
+                        <span
+                          >{{ efficiencyStatLabel(detail.stat) }}
+                          {{ signedNumber(detail.value) }}</span
+                        >
+                      </div>
+                    </div>
+                    <a-empty
+                      v-else
+                      :image="undefined"
+                      class="simulator-step-empty"
+                      description="当前设施没有可展开的技能明细"
+                    />
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </div>
+          </template>
+        </a-card>
+
+        <a-alert
+          v-else-if="!efficiencySupported"
+          message="效率计算暂只支持 Torappu 数据源"
+          class="simulator-efficiency-source-alert"
+          show-icon
+          type="info"
+        />
 
         <a-alert
           v-if="extraRooms.length"

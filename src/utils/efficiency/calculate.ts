@@ -10,6 +10,8 @@ import type {
   FacilityAttributes,
   FacilityEfficiencyResult,
   MoodSnapshot,
+  OperatorEfficiencyDetail,
+  OperatorEfficiencyContribution,
   OperatorSkillFile,
   ProductionValue,
 } from "@/types/efficiency";
@@ -1422,6 +1424,56 @@ function detailRows(
     }));
 }
 
+function operatorBaseEfficiency(
+  facility: EfficiencyFacility,
+  placement: Placement,
+): number {
+  if (facility.type === "meeting") {
+    return (
+      (placement.working ? 5 : 0) +
+      rarityEfficiency(placement.profile?.rarity ?? 0) +
+      eliteEfficiency(placement.state.elite ?? 0)
+    );
+  }
+  if (
+    facility.type === "power" ||
+    facility.type === "hire" ||
+    facility.type === "trading" ||
+    facility.type === "manufacture"
+  ) {
+    const value =
+      facility.type === "trading" || facility.type === "manufacture" ? 1 : 5;
+    return placement.working ? value : 0;
+  }
+  return 0;
+}
+
+function operatorContributions(
+  placements: Placement[],
+  skillDetails: OperatorEfficiencyDetail[],
+): OperatorEfficiencyContribution[] {
+  const skillValues = new Map<string, number>();
+  skillDetails.forEach((detail) => {
+    skillValues.set(
+      detail.operator,
+      (skillValues.get(detail.operator) ?? 0) + detail.value,
+    );
+  });
+  return placements.map((placement) => {
+    const baseEfficiency = operatorBaseEfficiency(
+      placement.facility,
+      placement,
+    );
+    const skillEfficiency = skillValues.get(placement.name) ?? 0;
+    return {
+      operator: placement.name,
+      baseEfficiency,
+      skillEfficiency,
+      efficiency: baseEfficiency + skillEfficiency,
+    };
+  });
+}
+
 function calculateFacility(
   context: PlanContext,
   facility: EfficiencyFacility,
@@ -1453,19 +1505,10 @@ function calculateFacility(
     new Set(["facBase"]),
   );
   const placements = placementsInFacility(context, facility);
-  let operatorEfficiency = 0;
-  placements.forEach((placement) => {
-    if (facility.type === "meeting") {
-      operatorEfficiency +=
-        (placement.working ? 5 : 0) +
-        rarityEfficiency(placement.profile?.rarity ?? 0) +
-        eliteEfficiency(placement.state.elite ?? 0);
-    } else if (facility.type === "power" || facility.type === "hire") {
-      operatorEfficiency += placement.working ? 5 : 0;
-    } else if (facility.type === "trading" || facility.type === "manufacture") {
-      operatorEfficiency += placement.working ? 1 : 0;
-    }
-  });
+  const operatorEfficiency = placements.reduce(
+    (total, placement) => total + operatorBaseEfficiency(facility, placement),
+    0,
+  );
   let baseEfficiency = facilityBaseEfficiency(facility.type, facility.level);
   if (facility.type === "meeting") {
     const atmosphere = context.facilities
@@ -1498,14 +1541,23 @@ function calculateFacility(
     ...detailRows(facBase, facility.type),
     ...detailRows(special, facility.type),
   ];
+  const combinationDetails = [
+    ...detailRows(aggregate, facility.type),
+    ...detailRows(special, facility.type),
+  ];
   const result: FacilityEfficiencyResult = {
     facility,
     baseEfficiency,
     operatorEfficiency,
     skillEfficiency,
+    combinationEfficiency: operatorEfficiency + skillEfficiency,
     efficiency: baseEfficiency + operatorEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
     details,
+    operatorContributions: operatorContributions(
+      placements,
+      combinationDetails,
+    ),
   };
   result.production = productionFor(
     context,
@@ -1705,6 +1757,8 @@ function calculatePowerGroup(
   const seenBase = new Set<string>();
   let skillEfficiency = 0;
   let facBase = 0;
+  const skillDetails: OperatorEfficiencyDetail[] = [];
+  const baseDetails: OperatorEfficiencyDetail[] = [];
   powerFacilities.forEach((facility) => {
     const data: EvaluationData = {
       capBoosts: attributeStates.get(facility.id)?.capBoosts ?? {},
@@ -1724,6 +1778,9 @@ function calculatePowerGroup(
       if (!seen.has(key)) {
         seen.add(key);
         skillEfficiency += value;
+        skillDetails.push(
+          ...detailRows({ details: [{ item, value }] }, facility.type),
+        );
       }
     });
     const base = aggregateEffectValues(
@@ -1740,11 +1797,15 @@ function calculatePowerGroup(
       if (!seenBase.has(key)) {
         seenBase.add(key);
         facBase += value;
+        baseDetails.push(
+          ...detailRows({ details: [{ item, value }] }, facility.type),
+        );
       }
     });
   });
   const baseEfficiency = 100 + facBase;
-  const efficiency = baseEfficiency + operatorEfficiency + skillEfficiency;
+  const combinationEfficiency = operatorEfficiency + skillEfficiency;
+  const efficiency = baseEfficiency + combinationEfficiency;
   const production: ProductionValue = {
     product: "Drone",
     amountPerHour: (POWER_OUTPUT_PER_HOUR * efficiency) / 100,
@@ -1755,10 +1816,15 @@ function calculatePowerGroup(
     baseEfficiency,
     operatorEfficiency,
     skillEfficiency,
+    combinationEfficiency,
     efficiency,
     attributes: {},
     production,
-    details: [],
+    details: [...skillDetails, ...baseDetails],
+    operatorContributions: operatorContributions(
+      placementsInRoomType(context, "power"),
+      skillDetails,
+    ),
   };
 }
 
@@ -1844,6 +1910,57 @@ function aggregateDaily(
   });
 }
 
+function aggregateDailyProductions(
+  plans: EfficiencyPlanResult[],
+  totalHours: number,
+): ProductionValue[] {
+  if (totalHours <= EPSILON) {
+    return [];
+  }
+
+  const grouped = new Map<
+    string,
+    { totalPerCycle: number; materialsPerCycle: Record<string, number> }
+  >();
+  plans.forEach((plan) => {
+    plan.facilities.forEach((facility) => {
+      const production = facility.production;
+      if (!production) {
+        return;
+      }
+      const current = grouped.get(production.product) ?? {
+        totalPerCycle: 0,
+        materialsPerCycle: {},
+      };
+      current.totalPerCycle += production.amountPerHour * plan.durationHours;
+      Object.entries(production.materialPerHour ?? {}).forEach(
+        ([material, amount]) => {
+          current.materialsPerCycle[material] =
+            (current.materialsPerCycle[material] ?? 0) +
+            amount * plan.durationHours;
+        },
+      );
+      grouped.set(production.product, current);
+    });
+  });
+
+  return Array.from(grouped, ([product, value]) => {
+    const amountPerHour = value.totalPerCycle / totalHours;
+    const materialPerHour = Object.fromEntries(
+      Object.entries(value.materialsPerCycle).map(([material, amount]) => [
+        material,
+        amount / totalHours,
+      ]),
+    );
+    return {
+      product,
+      amountPerHour,
+      amountPerDay: amountPerHour * 24,
+      ...(Object.keys(materialPerHour).length > 0 ? { materialPerHour } : {}),
+    };
+  });
+}
+
 export function calculateEfficiency(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
@@ -1860,6 +1977,7 @@ export function calculateEfficiency(
     plans,
     dailyHours: totalHours,
     dailyFacilities: aggregateDaily(plans, totalHours),
+    dailyProductions: aggregateDailyProductions(plans, totalHours),
     warnings: plans.flatMap((plan) => plan.warnings),
   };
 }

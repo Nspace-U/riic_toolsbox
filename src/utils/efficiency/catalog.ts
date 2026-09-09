@@ -44,7 +44,7 @@ function skillNames(file: OperatorSkillFile | undefined): string[] {
 
 export function createEfficiencyCatalog(
   operators: readonly Operator[],
-  skillFiles: Record<string, OperatorSkillFile>,
+  skillFiles: Partial<Record<string, OperatorSkillFile>>,
   terms: BaseSkillTerms | Record<string, EfficiencyTerm> = {},
 ): EfficiencyCatalog {
   const byName: Record<string, EfficiencyOperator> = {};
@@ -69,18 +69,20 @@ export async function loadEfficiencyCatalog(
 ): Promise<EfficiencyCatalog> {
   const skillEntries = await Promise.all(
     operators.map(async (operator) => {
-      const response = await fetch(
-        `${baseUrl}assets/operator-skills/${operator.id}.json`,
-      );
-      if (!response.ok) {
-        throw new Error(
-          `干员技能读取失败：${operator.name}（HTTP ${response.status}）`,
+      try {
+        const response = await fetch(
+          `${baseUrl}assets/operator-skills/${operator.id}.json`,
         );
+        if (!response.ok) {
+          return [operator.id, undefined] as const;
+        }
+        return [
+          operator.id,
+          (await response.json()) as OperatorSkillFile,
+        ] as const;
+      } catch {
+        return [operator.id, undefined] as const;
       }
-      return [
-        operator.id,
-        (await response.json()) as OperatorSkillFile,
-      ] as const;
     }),
   );
   return createEfficiencyCatalog(

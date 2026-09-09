@@ -1430,6 +1430,214 @@ a {
   min-width: 0;
 }
 
+.simulator-efficiency-summary {
+  display: grid;
+  gap: 5px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid
+    color-mix(in srgb, var(--simulator-facility-accent) 24%, #e0e8e5);
+}
+
+.simulator-efficiency-summary-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: #425457;
+  font-size: 11px;
+}
+
+.simulator-efficiency-summary-line strong {
+  color: #2b6663;
+  font-size: 13px;
+}
+
+.simulator-efficiency-summary-line--total {
+  margin-block-start: 2px;
+  padding-block-start: 5px;
+  border-block-start: 1px dashed #d9e5e1;
+}
+
+.simulator-efficiency-summary-line--total strong {
+  color: #176b68;
+  font-size: 16px;
+}
+
+.simulator-efficiency-summary-label {
+  flex: 0 0 auto;
+  color: #879294;
+}
+
+.simulator-efficiency-operators {
+  min-width: 0;
+  overflow: hidden;
+  color: #344447;
+  text-align: end;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-efficiency-panel {
+  margin-block-start: 18px;
+  border: 1px solid #dce8e4;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+.simulator-efficiency-panel > .ant-card-head {
+  background: #f4faf8;
+  border-block-end-color: #dce8e4;
+}
+
+.simulator-result-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 12px;
+}
+
+.simulator-result-section-heading h3 {
+  margin: 2px 0 0;
+  color: #2e4043;
+  font-size: 16px;
+}
+
+.simulator-result-hint {
+  color: #879294;
+  font-size: 12px;
+}
+
+.simulator-daily-output {
+  padding-block-end: 18px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-daily-output-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.simulator-daily-output-item {
+  display: grid;
+  gap: 3px;
+  padding: 12px;
+  background: #f8fbfa;
+  border: 1px solid #e0e8e5;
+  border-radius: 5px;
+}
+
+.simulator-daily-output-product {
+  color: #2e4043;
+  font-weight: 650;
+}
+
+.simulator-daily-output-item strong {
+  color: #176b68;
+  font-size: 16px;
+}
+
+.simulator-daily-output-rate,
+.simulator-daily-output-material {
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-daily-output-material {
+  color: #8c6b35;
+}
+
+.simulator-calculation-steps {
+  padding-block-start: 18px;
+}
+
+.simulator-calculation-steps .ant-collapse {
+  background: transparent;
+}
+
+.simulator-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-step-header strong {
+  color: #176b68;
+}
+
+.simulator-step-content {
+  display: grid;
+  gap: 12px;
+  padding: 4px 12px 12px 36px;
+}
+
+.simulator-step-formula {
+  padding: 8px 10px;
+  color: #425457;
+  background: #f8fbfa;
+  border: 1px solid #e0e8e5;
+  border-radius: 4px;
+  font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+.simulator-step-formula strong {
+  color: #176b68;
+}
+
+.simulator-step-stat-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr) auto;
+  align-items: center;
+  gap: 7px 12px;
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-step-stat-grid strong {
+  color: #344447;
+  text-align: end;
+}
+
+.simulator-step-subheading {
+  display: block;
+  margin-block-end: 6px;
+  color: #425457;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.simulator-operator-contribution-list,
+.simulator-detail-list {
+  padding-block-start: 10px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-operator-contribution,
+.simulator-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 4px;
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-operator-contribution span:first-child,
+.simulator-detail-row span:first-child {
+  color: #344447;
+}
+
+.simulator-step-empty.ant-empty {
+  margin: 0;
+}
+
+.simulator-efficiency-source-alert {
+  margin-block-start: 18px;
+}
+
 .simulator-empty-avatar {
   display: grid;
   place-items: center;
@@ -1819,5 +2027,25 @@ a {
 
   .simulator-layout-add-select {
     width: 112px;
+  }
+
+  .simulator-result-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .simulator-step-stat-grid {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .simulator-step-content {
+    padding-inline-start: 12px;
+  }
+
+  .simulator-operator-contribution,
+  .simulator-detail-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
   }
 }
