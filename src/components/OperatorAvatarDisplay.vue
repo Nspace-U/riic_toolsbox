@@ -191,7 +191,6 @@ onMounted(updateNameFontSize);
       <img
         v-if="sources.avatarUrl"
         :alt="`${operator.name}头像`"
-        :class="{ 'operator-avatar-base--unowned': !operatorOwned }"
         class="operator-avatar-base"
         :src="sources.avatarUrl"
         decoding="async"
@@ -199,12 +198,12 @@ onMounted(updateNameFontSize);
       <a-avatar
         v-else
         :size="size"
-        :class="{ 'operator-avatar-fallback--unowned': !operatorOwned }"
         class="operator-avatar-fallback"
         shape="square"
       >
         {{ fallbackName }}
       </a-avatar>
+      <span v-if="!operatorOwned" class="operator-avatar-unowned-overlay" />
       <span
         v-if="operatorTrainingUpgraded"
         class="operator-avatar-training-overlay"

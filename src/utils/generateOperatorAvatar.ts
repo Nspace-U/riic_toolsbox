@@ -177,10 +177,12 @@ export async function generateOperatorAvatar(
     throw new Error("当前浏览器不支持头像图片生成");
   }
 
-  context.save();
-  context.filter = options.operatorOwned ? "none" : "grayscale(1)";
   context.drawImage(image, 0, 0);
-  context.restore();
+
+  if (!options.operatorOwned) {
+    context.fillStyle = "rgba(128, 128, 128, 0.5)";
+    context.fillRect(0, 0, image.naturalWidth, image.naturalHeight);
+  }
 
   if (options.operatorTrainingUpgraded) {
     context.fillStyle = "rgba(0, 255, 0, 0.5)";

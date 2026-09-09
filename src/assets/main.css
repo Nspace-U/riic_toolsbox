@@ -1665,11 +1665,6 @@ a {
   object-fit: cover;
 }
 
-.operator-avatar-base--unowned,
-.operator-avatar-fallback--unowned {
-  filter: grayscale(1);
-}
-
 .operator-avatar-frame--plain .operator-avatar-base,
 .operator-avatar-frame--plain .operator-avatar-fallback {
   object-fit: fill;
@@ -1729,6 +1724,13 @@ a {
   z-index: 1;
   inset: 0;
   background: rgba(255, 0, 0, 0.5);
+}
+
+.operator-avatar-unowned-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(128, 128, 128, 0.5);
 }
 
 .operator-avatar-training-overlay {
