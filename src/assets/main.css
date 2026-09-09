@@ -1731,6 +1731,13 @@ a {
   background: rgba(255, 0, 0, 0.5);
 }
 
+.operator-avatar-training-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(0, 255, 0, 0.5);
+}
+
 .operator-avatar-display-name {
   max-width: 100%;
   overflow: hidden;

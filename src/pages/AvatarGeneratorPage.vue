@@ -41,6 +41,7 @@ const showProfession = ref(true);
 const showName = ref(false);
 const moodScattered = ref(false);
 const operatorOwned = ref(true);
+const operatorTrainingUpgraded = ref(false);
 const generating = ref(false);
 const generationError = ref("");
 const generatedImageUrl = ref("");
@@ -131,6 +132,7 @@ function avatarGenerationOptions(): Parameters<
     showName: showName.value,
     moodScattered: moodScattered.value,
     operatorOwned: operatorOwned.value,
+    operatorTrainingUpgraded: operatorTrainingUpgraded.value,
   };
 }
 
@@ -276,6 +278,7 @@ watch(
     showName,
     moodScattered,
     operatorOwned,
+    operatorTrainingUpgraded,
     selectedDataSource,
   ],
   () => {
@@ -387,9 +390,12 @@ onBeforeUnmount(() => {
               <a-checkbox v-model:checked="operatorOwned"
                 >干员已拥有</a-checkbox
               >
+              <a-checkbox v-model:checked="operatorTrainingUpgraded"
+                >干员已提升练度</a-checkbox
+              >
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
               <a-checkbox v-model:checked="showEliteLevel"
-              >显示精英化等级</a-checkbox
+                >显示精英化等级</a-checkbox
               >
               <a-checkbox v-model:checked="showProfession">显示职业</a-checkbox>
               <a-checkbox v-model:checked="showName">显示干员名称</a-checkbox>
@@ -441,6 +447,7 @@ onBeforeUnmount(() => {
               :elite-level="selectedEliteLevel"
               :mood-scattered="moodScattered"
               :operator-owned="operatorOwned"
+              :operator-training-upgraded="operatorTrainingUpgraded"
               :operator="selectedOperator"
               :show-elite-level="showEliteLevel"
               :show-name="showName"

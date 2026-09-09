@@ -16,6 +16,7 @@ export interface OperatorAvatarGenerationOptions {
   showName: boolean;
   moodScattered: boolean;
   operatorOwned: boolean;
+  operatorTrainingUpgraded: boolean;
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -180,6 +181,11 @@ export async function generateOperatorAvatar(
   context.filter = options.operatorOwned ? "none" : "grayscale(1)";
   context.drawImage(image, 0, 0);
   context.restore();
+
+  if (options.operatorTrainingUpgraded) {
+    context.fillStyle = "rgba(0, 255, 0, 0.5)";
+    context.fillRect(0, 0, image.naturalWidth, image.naturalHeight);
+  }
 
   if (options.moodScattered) {
     context.fillStyle = "rgba(255, 0, 0, 0.5)";

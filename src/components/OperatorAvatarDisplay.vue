@@ -23,6 +23,7 @@ const props = withDefaults(
     size?: number;
     moodScattered?: boolean;
     operatorOwned?: boolean;
+    operatorTrainingUpgraded?: boolean;
     plain?: boolean;
   }>(),
   {
@@ -33,6 +34,7 @@ const props = withDefaults(
     size: 96,
     moodScattered: false,
     operatorOwned: true,
+    operatorTrainingUpgraded: false,
     plain: false,
   },
 );
@@ -203,6 +205,10 @@ onMounted(updateNameFontSize);
       >
         {{ fallbackName }}
       </a-avatar>
+      <span
+        v-if="operatorTrainingUpgraded"
+        class="operator-avatar-training-overlay"
+      />
       <span v-if="moodScattered" class="operator-avatar-mood-overlay" />
       <img
         v-if="showProfession && sources.professionIconUrl"
