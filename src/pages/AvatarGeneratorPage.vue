@@ -5,111 +5,123 @@ import {
   PictureOutlined,
   ReloadOutlined,
   WarningOutlined,
-} from '@ant-design/icons-vue'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+} from "@ant-design/icons-vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
-import { useBaseData } from '@/composables/useBaseData'
-import { useDataSource } from '@/composables/useDataSource'
-import OperatorAvatarDisplay from '@/components/OperatorAvatarDisplay.vue'
-import type { EliteLevel, Operator } from '@/types/baseData'
+import { useBaseData } from "@/composables/useBaseData";
+import { useDataSource } from "@/composables/useDataSource";
+import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import type { EliteLevel, Operator } from "@/types/baseData";
 import {
   generateOperatorAvatarBlob,
   generateOperatorAvatarUrl,
   getOperatorAvatarFile,
-} from '@/utils/operatorAvatar'
+} from "@/utils/operatorAvatar";
 
 interface EliteOption {
-  value: EliteLevel
-  label: string
+  value: EliteLevel;
+  label: string;
 }
 
 const AVATAR_STAGES: EliteOption[] = [
-  { value: 0, label: '精英 0' },
-  { value: 1, label: '精英 1' },
-  { value: 2, label: '精英 2' },
-]
+  { value: 0, label: "精英 0" },
+  { value: 1, label: "精英 1" },
+  { value: 2, label: "精英 2" },
+];
 
-const { operators, loading, errorMessage, ready, reload } = useBaseData()
-const { selectedDataSource } = useDataSource()
+const { operators, loading, errorMessage, ready, reload } = useBaseData();
+const { selectedDataSource } = useDataSource();
 
-const selectedOperatorId = ref('')
-const selectedEliteLevel = ref<EliteLevel>(0)
-const avatarDisplayMode = ref<'combined' | 'layered'>('combined')
-const showRarity = ref(true)
-const showEliteLevel = ref(true)
-const showProfession = ref(true)
-const showName = ref(false)
-const moodScattered = ref(false)
-const generating = ref(false)
-const generationError = ref('')
-const generatedImageUrl = ref('')
-const copying = ref(false)
-const copyError = ref('')
-const copySuccess = ref(false)
+const selectedOperatorId = ref("");
+const selectedEliteLevel = ref<EliteLevel>(0);
+const avatarDisplayMode = ref<"combined" | "layered">("combined");
+const showRarity = ref(true);
+const showEliteLevel = ref(true);
+const showProfession = ref(true);
+const showName = ref(false);
+const moodScattered = ref(false);
+const generating = ref(false);
+const generationError = ref("");
+const generatedImageUrl = ref("");
+const copying = ref(false);
+const copyError = ref("");
+const copySuccess = ref(false);
 
 const operatorOptions = computed(() => {
   return operators.value.map((operator) => ({
     label: `${operator.name} · ${operator.id}`,
     value: operator.id,
-  }))
-})
+  }));
+});
 
 const selectedOperator = computed<Operator | undefined>(() => {
-  return operators.value.find((operator) => operator.id === selectedOperatorId.value)
-})
+  return operators.value.find(
+    (operator) => operator.id === selectedOperatorId.value,
+  );
+});
 
 const availableAvatarStages = computed<EliteOption[]>(() => {
-  const operator = selectedOperator.value
+  const operator = selectedOperator.value;
   if (!operator) {
-    return []
+    return [];
   }
 
-  return AVATAR_STAGES.filter((option) => Boolean(getOperatorAvatarFile(operator, option.value)))
-})
+  return AVATAR_STAGES.filter((option) =>
+    Boolean(getOperatorAvatarFile(operator, option.value)),
+  );
+});
 
 const selectedEliteOption = computed<EliteOption | undefined>(() => {
-  return AVATAR_STAGES.find((option) => option.value === selectedEliteLevel.value)
-})
+  return AVATAR_STAGES.find(
+    (option) => option.value === selectedEliteLevel.value,
+  );
+});
 
 const selectedAvatarFile = computed(() => {
-  const operator = selectedOperator.value
-  return operator ? getOperatorAvatarFile(operator, selectedEliteLevel.value) : ''
-})
+  const operator = selectedOperator.value;
+  return operator
+    ? getOperatorAvatarFile(operator, selectedEliteLevel.value)
+    : "";
+});
 
 const previewDescription = computed(() => {
   if (!selectedOperator.value) {
-    return '读取数据后选择干员'
+    return "读取数据后选择干员";
   }
   if (!selectedAvatarFile.value) {
-    return `${selectedOperator.value.name}暂无${selectedEliteOption.value?.label ?? ''}头像资源`
+    return `${selectedOperator.value.name}暂无${selectedEliteOption.value?.label ?? ""}头像资源`;
   }
-  return `${selectedOperator.value.name} · ${selectedEliteOption.value?.label ?? ''}`
-})
+  return `${selectedOperator.value.name} · ${selectedEliteOption.value?.label ?? ""}`;
+});
 
-const showLayeredPreview = computed(() => avatarDisplayMode.value === 'layered')
+const showLayeredPreview = computed(
+  () => avatarDisplayMode.value === "layered",
+);
 
 function updateSelectedOperator(value: Operator[]): void {
   if (!value.some((operator) => operator.id === selectedOperatorId.value)) {
-    selectedOperatorId.value = value[0]?.id ?? ''
+    selectedOperatorId.value = value[0]?.id ?? "";
   }
 }
 
 function clearGeneratedImage(): void {
   if (generatedImageUrl.value) {
-    URL.revokeObjectURL(generatedImageUrl.value)
-    generatedImageUrl.value = ''
+    URL.revokeObjectURL(generatedImageUrl.value);
+    generatedImageUrl.value = "";
   }
 }
 
 function handleReload(): void {
-  void reload()
+  void reload();
 }
 
 function rarityLabel(operator: Operator): string {
-  return operator.rarity > 0 ? `${operator.rarity}★` : '未知稀有度'
+  return operator.rarity > 0 ? `${operator.rarity}★` : "未知稀有度";
 }
 
-function avatarGenerationOptions(): Parameters<typeof generateOperatorAvatarBlob>[2] {
+function avatarGenerationOptions(): Parameters<
+  typeof generateOperatorAvatarBlob
+>[2] {
   return {
     eliteLevel: selectedEliteLevel.value,
     showRarity: showRarity.value,
@@ -117,141 +129,164 @@ function avatarGenerationOptions(): Parameters<typeof generateOperatorAvatarBlob
     showProfession: showProfession.value,
     showName: showName.value,
     moodScattered: moodScattered.value,
-  }
+  };
 }
 
-watch(availableAvatarStages, (stages) => {
-  const firstStage = stages[0]
-  if (firstStage && !stages.some((stage) => stage.value === selectedEliteLevel.value)) {
-    selectedEliteLevel.value = firstStage.value
-  }
-}, { immediate: true })
+watch(
+  availableAvatarStages,
+  (stages) => {
+    const firstStage = stages[0];
+    if (
+      firstStage &&
+      !stages.some((stage) => stage.value === selectedEliteLevel.value)
+    ) {
+      selectedEliteLevel.value = firstStage.value;
+    }
+  },
+  { immediate: true },
+);
 
-let generationRequestId = 0
+let generationRequestId = 0;
 
 async function handleGenerate(): Promise<void> {
-  const operator = selectedOperator.value
+  const operator = selectedOperator.value;
   if (!operator || !selectedAvatarFile.value) {
-    return
+    return;
   }
 
-  const requestId = ++generationRequestId
-  generating.value = true
-  generationError.value = ''
+  const requestId = ++generationRequestId;
+  generating.value = true;
+  generationError.value = "";
 
   try {
     if (showLayeredPreview.value) {
-      clearGeneratedImage()
-      return
+      clearGeneratedImage();
+      return;
     }
     const generatedUrl = await generateOperatorAvatarUrl(
       operator,
       selectedDataSource.value,
       avatarGenerationOptions(),
-    )
+    );
     if (requestId === generationRequestId) {
-      const previousImageUrl = generatedImageUrl.value
-      generatedImageUrl.value = generatedUrl ?? ''
+      const previousImageUrl = generatedImageUrl.value;
+      generatedImageUrl.value = generatedUrl ?? "";
       if (previousImageUrl && previousImageUrl !== generatedImageUrl.value) {
-        URL.revokeObjectURL(previousImageUrl)
+        URL.revokeObjectURL(previousImageUrl);
       }
     } else if (generatedUrl) {
-      URL.revokeObjectURL(generatedUrl)
+      URL.revokeObjectURL(generatedUrl);
     }
   } catch (error: unknown) {
     if (requestId === generationRequestId) {
-      generationError.value = error instanceof Error ? error.message : '头像生成失败'
+      generationError.value =
+        error instanceof Error ? error.message : "头像生成失败";
     }
   } finally {
     if (requestId === generationRequestId) {
-      generating.value = false
+      generating.value = false;
     }
   }
 }
 
-async function createDownloadImageUrl(): Promise<{ url: string; temporary: boolean } | undefined> {
-  const operator = selectedOperator.value
+async function createDownloadImageUrl(): Promise<
+  { url: string; temporary: boolean } | undefined
+> {
+  const operator = selectedOperator.value;
   if (!operator || !selectedAvatarFile.value) {
-    return undefined
+    return undefined;
   }
   if (generatedImageUrl.value) {
-    return { url: generatedImageUrl.value, temporary: false }
+    return { url: generatedImageUrl.value, temporary: false };
   }
   const blob = await generateOperatorAvatarBlob(
     operator,
     selectedDataSource.value,
     avatarGenerationOptions(),
-  )
-  return blob ? { url: URL.createObjectURL(blob), temporary: true } : undefined
+  );
+  return blob ? { url: URL.createObjectURL(blob), temporary: true } : undefined;
 }
 
 async function handleDownload(): Promise<void> {
-  const image = await createDownloadImageUrl()
+  const image = await createDownloadImageUrl();
   if (!image || !selectedOperator.value) {
-    return
+    return;
   }
 
-  const eliteLabel = selectedEliteOption.value?.label.replace(/\s/g, '') ?? `精${selectedEliteLevel.value}`
-  const moodLabel = moodScattered.value ? '-心情涣散' : ''
-  const link = document.createElement('a')
-  link.href = image.url
-  link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}.png`
-  link.click()
+  const eliteLabel =
+    selectedEliteOption.value?.label.replace(/\s/g, "") ??
+    `精${selectedEliteLevel.value}`;
+  const moodLabel = moodScattered.value ? "-心情涣散" : "";
+  const link = document.createElement("a");
+  link.href = image.url;
+  link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}.png`;
+  link.click();
   if (image.temporary) {
-    URL.revokeObjectURL(image.url)
+    URL.revokeObjectURL(image.url);
   }
 }
 
 async function handleCopyImage(): Promise<void> {
   if (copying.value) {
-    return
+    return;
   }
 
-  copying.value = true
-  copyError.value = ''
-  copySuccess.value = false
-  let image: Awaited<ReturnType<typeof createDownloadImageUrl>>
+  copying.value = true;
+  copyError.value = "";
+  copySuccess.value = false;
+  let image: Awaited<ReturnType<typeof createDownloadImageUrl>>;
 
   try {
-    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-      throw new Error('当前浏览器不支持复制图片，请使用下载 PNG')
+    if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+      throw new Error("当前浏览器不支持复制图片，请使用下载 PNG");
     }
 
-    image = await createDownloadImageUrl()
+    image = await createDownloadImageUrl();
     if (!image) {
-      throw new Error('当前没有可复制的头像图片')
+      throw new Error("当前没有可复制的头像图片");
     }
-    const response = await fetch(image.url)
-    const imageBlob = await response.blob()
+    const response = await fetch(image.url);
+    const imageBlob = await response.blob();
     await navigator.clipboard.write([
-      new ClipboardItem({ 'image/png': imageBlob }),
-    ])
-    copySuccess.value = true
+      new ClipboardItem({ "image/png": imageBlob }),
+    ]);
+    copySuccess.value = true;
   } catch (error: unknown) {
-    copyError.value = error instanceof Error ? error.message : '图片复制失败，请使用下载 PNG'
+    copyError.value =
+      error instanceof Error ? error.message : "图片复制失败，请使用下载 PNG";
   } finally {
     if (image?.temporary) {
-      URL.revokeObjectURL(image.url)
+      URL.revokeObjectURL(image.url);
     }
-    copying.value = false
+    copying.value = false;
   }
 }
 
-watch(operators, updateSelectedOperator, { immediate: true })
+watch(operators, updateSelectedOperator, { immediate: true });
 watch(
-  [selectedOperatorId, selectedEliteLevel, avatarDisplayMode, showRarity, showEliteLevel, showProfession, showName, moodScattered, selectedDataSource],
+  [
+    selectedOperatorId,
+    selectedEliteLevel,
+    avatarDisplayMode,
+    showRarity,
+    showEliteLevel,
+    showProfession,
+    showName,
+    moodScattered,
+    selectedDataSource,
+  ],
   () => {
-    generationError.value = ''
-    copyError.value = ''
-    copySuccess.value = false
-    void handleGenerate()
+    generationError.value = "";
+    copyError.value = "";
+    copySuccess.value = false;
+    void handleGenerate();
   },
   { immediate: true },
-)
+);
 onBeforeUnmount(() => {
-  generationRequestId += 1
-  clearGeneratedImage()
-})
+  generationRequestId += 1;
+  clearGeneratedImage();
+});
 </script>
 
 <template>
@@ -261,8 +296,12 @@ onBeforeUnmount(() => {
         <PictureOutlined />
       </div>
       <div class="page-heading-copy">
-        <a-typography-title :level="2" class="page-title">头像生成器</a-typography-title>
-        <span class="page-heading-description">选择干员和精英化等级，生成可直接使用的头像图片</span>
+        <a-typography-title :level="2" class="page-title"
+          >头像生成器</a-typography-title
+        >
+        <span class="page-heading-description"
+          >选择干员和精英化等级，生成可直接使用的头像图片</span
+        >
       </div>
     </div>
 
@@ -289,7 +328,10 @@ onBeforeUnmount(() => {
 
           <a-form layout="vertical">
             <div class="avatar-selection-row">
-              <a-form-item class="avatar-selection-item avatar-selection-item--operator" label="干员名称">
+              <a-form-item
+                class="avatar-selection-item avatar-selection-item--operator"
+                label="干员名称"
+              >
                 <a-select
                   v-model:value="selectedOperatorId"
                   :options="operatorOptions"
@@ -300,20 +342,38 @@ onBeforeUnmount(() => {
                 />
               </a-form-item>
 
-              <a-form-item class="avatar-selection-item avatar-selection-item--elite" label="精英化等级">
-                <a-radio-group v-model:value="selectedEliteLevel" button-style="solid" option-type="button">
-                  <a-radio-button v-for="option in availableAvatarStages" :key="option.value" :value="option.value">
+              <a-form-item
+                class="avatar-selection-item avatar-selection-item--elite"
+                label="精英化等级"
+              >
+                <a-radio-group
+                  v-model:value="selectedEliteLevel"
+                  button-style="solid"
+                  option-type="button"
+                >
+                  <a-radio-button
+                    v-for="option in availableAvatarStages"
+                    :key="option.value"
+                    :value="option.value"
+                  >
                     {{ option.label }}
                   </a-radio-button>
                 </a-radio-group>
-                <a-typography-text v-if="selectedOperator && availableAvatarStages.length === 0" type="secondary">
+                <a-typography-text
+                  v-if="selectedOperator && availableAvatarStages.length === 0"
+                  type="secondary"
+                >
                   当前干员没有可用头像资源
                 </a-typography-text>
               </a-form-item>
             </div>
 
             <a-form-item label="头像显示方式">
-              <a-radio-group v-model:value="avatarDisplayMode" button-style="solid" option-type="button">
+              <a-radio-group
+                v-model:value="avatarDisplayMode"
+                button-style="solid"
+                option-type="button"
+              >
                 <a-radio-button value="combined">整合</a-radio-button>
                 <a-radio-button value="layered">分层</a-radio-button>
               </a-radio-group>
@@ -322,7 +382,9 @@ onBeforeUnmount(() => {
             <a-divider orientation="left">头像信息</a-divider>
             <div class="avatar-checkboxes">
               <a-checkbox v-model:checked="showRarity">显示稀有度</a-checkbox>
-              <a-checkbox v-model:checked="showEliteLevel">显示精英化等级</a-checkbox>
+              <a-checkbox v-model:checked="showEliteLevel"
+                >显示精英化等级</a-checkbox
+              >
               <a-checkbox v-model:checked="showProfession">显示职业</a-checkbox>
               <a-checkbox v-model:checked="showName">显示干员名称</a-checkbox>
               <a-checkbox v-model:checked="moodScattered">心情涣散</a-checkbox>
@@ -353,7 +415,6 @@ onBeforeUnmount(() => {
               show-icon
               type="error"
             />
-
           </a-form>
         </a-card>
 
@@ -367,7 +428,9 @@ onBeforeUnmount(() => {
               :src="generatedImageUrl"
             />
             <OperatorAvatarDisplay
-              v-else-if="selectedOperator && selectedAvatarFile && showLayeredPreview"
+              v-else-if="
+                selectedOperator && selectedAvatarFile && showLayeredPreview
+              "
               :data-source="selectedDataSource"
               :elite-level="selectedEliteLevel"
               :mood-scattered="moodScattered"
@@ -381,7 +444,9 @@ onBeforeUnmount(() => {
             />
             <div v-else class="avatar-preview-empty">
               <PictureOutlined />
-              <strong>{{ ready ? '配置完成后生成头像' : '正在准备干员数据' }}</strong>
+              <strong>{{
+                ready ? "配置完成后生成头像" : "正在准备干员数据"
+              }}</strong>
               <span>{{ previewDescription }}</span>
             </div>
           </div>
@@ -389,14 +454,22 @@ onBeforeUnmount(() => {
           <div class="avatar-preview-footer">
             <div class="avatar-preview-meta">
               <span v-if="selectedOperator">{{ selectedOperator.name }}</span>
-              <span v-if="selectedOperator">{{ rarityLabel(selectedOperator) }} · {{ selectedOperator.profession || '未知职业' }}</span>
+              <span v-if="selectedOperator"
+                >{{ rarityLabel(selectedOperator) }} ·
+                {{ selectedOperator.profession || "未知职业" }}</span
+              >
             </div>
-            <div v-if="generatedImageUrl || (showLayeredPreview && selectedAvatarFile)" class="avatar-preview-actions">
+            <div
+              v-if="
+                generatedImageUrl || (showLayeredPreview && selectedAvatarFile)
+              "
+              class="avatar-preview-actions"
+            >
               <a-button :loading="copying" @click="handleCopyImage">
                 <template #icon>
                   <CopyOutlined />
                 </template>
-                {{ copySuccess ? '已复制' : '复制图片' }}
+                {{ copySuccess ? "已复制" : "复制图片" }}
               </a-button>
               <a-button type="primary" @click="handleDownload">
                 <template #icon>

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
+import type { Component } from "vue";
 
 defineProps<{
-  icon: Component
-  title: string
-}>()
+  icon: Component;
+  title: string;
+}>();
 </script>
 
 <template>
@@ -13,7 +13,9 @@ defineProps<{
       <div class="page-heading-icon" aria-hidden="true">
         <component :is="icon" />
       </div>
-      <a-typography-title :level="2" class="page-title">{{ title }}</a-typography-title>
+      <a-typography-title :level="2" class="page-title">{{
+        title
+      }}</a-typography-title>
     </div>
 
     <a-card :bordered="false" class="placeholder-panel">

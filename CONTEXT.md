@@ -29,6 +29,7 @@
 - 已新增 `src/types/efficiency.ts`、`src/utils/efficiency/` 纯计算模块和 `docs/效率计算模块使用说明.md`。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
 - `ScheduleDocument.settings` 已加入计算设置；`OperatorState.level` 已加入供等级解锁和未来训练室扩展使用。
+- 已接入 ESLint 与 Prettier：使用 Vue 3、TypeScript 和 JavaScript 的标准推荐配置，构建产物与生成数据目录已排除。
 - 加工站、训练室模拟和宿舍自动休整仍不参与第一版计算。
 
 ## 风险与下一步
@@ -37,3 +38,5 @@
 - 第一版不模拟库存爆仓、首个物品进度、订单逐单衰减或宿舍自动休整；相关设置字段保留以便后续扩展。
 - 新 Torappu 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。
+- 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
+- 当前验证中，`npm run format:check`、`npm run type-check` 和 `npm run build` 已通过；`npm run lint` 仍报告既有源码的 20 个错误和 3 个警告，尚未修改规则或业务代码处理这些问题。

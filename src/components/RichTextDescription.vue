@@ -1,34 +1,38 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed } from "vue";
 
-import SearchHighlight from '@/components/SearchHighlight.vue'
-import type { RichTextStyles, SkillTerm, SkillTermReference } from '@/types/baseData'
+import SearchHighlight from "@/components/SearchHighlight.vue";
+import type {
+  RichTextStyles,
+  SkillTerm,
+  SkillTermReference,
+} from "@/types/baseData";
 
 interface RichTextPart {
-  text: string
-  color?: string
-  term?: SkillTerm
+  text: string;
+  color?: string;
+  term?: SkillTerm;
 }
 
 const props = defineProps<{
-  highlightQuery?: string
-  showTermDefinitions?: boolean
-  showTerms?: boolean
-  richTextStyles: RichTextStyles
-  termDefinitionDepth?: number
-  text: string
-  terms: Record<string, SkillTerm>
-}>()
+  highlightQuery?: string;
+  showTermDefinitions?: boolean;
+  showTerms?: boolean;
+  richTextStyles: RichTextStyles;
+  termDefinitionDepth?: number;
+  text: string;
+  terms: Record<string, SkillTerm>;
+}>();
 
-const termDefinitionDepth = computed(() => props.termDefinitionDepth ?? 0)
+const termDefinitionDepth = computed(() => props.termDefinitionDepth ?? 0);
 const canShowTermDefinitions = computed(() => {
-  return props.showTermDefinitions !== false && termDefinitionDepth.value < 2
-})
+  return props.showTermDefinitions !== false && termDefinitionDepth.value < 2;
+});
 
-const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g
+const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g;
 
 function styleColor(style: string | undefined): string | undefined {
-  return style?.match(/<color\s*=\s*([^>]+)>/i)?.[1]?.trim()
+  return style?.match(/<color\s*=\s*([^>]+)>/i)?.[1]?.trim();
 }
 
 function parseParts(
@@ -38,58 +42,73 @@ function parseParts(
   cursor = 0,
   closingTag?: string,
 ): { parts: RichTextPart[]; cursor: number } {
-  const parts: RichTextPart[] = []
+  const parts: RichTextPart[] = [];
 
   while (cursor < text.length) {
-    MARKUP_TOKEN.lastIndex = cursor
-    const match = MARKUP_TOKEN.exec(text)
+    MARKUP_TOKEN.lastIndex = cursor;
+    const match = MARKUP_TOKEN.exec(text);
     if (!match) {
-      parts.push({ text: text.slice(cursor), color, term })
-      return { parts, cursor: text.length }
+      parts.push({ text: text.slice(cursor), color, term });
+      return { parts, cursor: text.length };
     }
 
-    const tag = match[0]
-    const tagStart = match.index
+    const tag = match[0];
+    const tagStart = match.index;
     if (tagStart > cursor) {
-      parts.push({ text: text.slice(cursor, tagStart), color, term })
+      parts.push({ text: text.slice(cursor, tagStart), color, term });
     }
     if (tag === closingTag) {
-      return { parts, cursor: tagStart + tag.length }
+      return { parts, cursor: tagStart + tag.length };
     }
-    if (tag === '</>') {
-      parts.push({ text: tag, color, term })
-      cursor = tagStart + tag.length
-      continue
+    if (tag === "</>") {
+      parts.push({ text: tag, color, term });
+      cursor = tagStart + tag.length;
+      continue;
     }
 
-    const tagType = tag[1]
-    const attribute = tag.slice(2, -1)
-    const nextColor = tagType === '@'
-      ? styleColor(props.richTextStyles[attribute])
-      : color
-    const nextTerm = tagType === '$' ? props.terms[attribute] : term
-    const nextClosingTag = '</>'
-    const child = parseParts(text, nextColor, nextTerm, tagStart + tag.length, nextClosingTag)
-    if (tagType === '$' && !nextTerm && !Object.hasOwn(props.richTextStyles, attribute)) {
-      const name = child.parts.map((part) => part.text).join('').trim()
+    const tagType = tag[1];
+    const attribute = tag.slice(2, -1);
+    const nextColor =
+      tagType === "@" ? styleColor(props.richTextStyles[attribute]) : color;
+    const nextTerm = tagType === "$" ? props.terms[attribute] : term;
+    const nextClosingTag = "</>";
+    const child = parseParts(
+      text,
+      nextColor,
+      nextTerm,
+      tagStart + tag.length,
+      nextClosingTag,
+    );
+    if (
+      tagType === "$" &&
+      !nextTerm &&
+      !Object.hasOwn(props.richTextStyles, attribute)
+    ) {
+      const name = child.parts
+        .map((part) => part.text)
+        .join("")
+        .trim();
       child.parts.forEach((part) => {
-        part.term = { name }
-      })
+        part.term = { name };
+      });
     }
-    parts.push(...child.parts)
-    cursor = child.cursor
+    parts.push(...child.parts);
+    cursor = child.cursor;
   }
 
-  return { parts, cursor }
+  return { parts, cursor };
 }
 
 const parts = computed(() => {
-  const normalizedText = props.text.replace(/<<(?=[$@])/g, '<')
+  const normalizedText = props.text.replace(/<<(?=[$@])/g, "<");
   if (props.showTerms === false) {
-    return parseParts(normalizedText).parts.map((part) => ({ ...part, term: undefined }))
+    return parseParts(normalizedText).parts.map((part) => ({
+      ...part,
+      term: undefined,
+    }));
   }
-  return parseParts(normalizedText).parts
-})
+  return parseParts(normalizedText).parts;
+});
 </script>
 
 <template>
@@ -103,7 +122,10 @@ const parts = computed(() => {
       >
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
-          <div v-if="showTermDefinitions !== false && part.term.definition" class="term-tooltip-definition">
+          <div
+            v-if="showTermDefinitions !== false && part.term.definition"
+            class="term-tooltip-definition"
+          >
             <RichTextDescription
               :show-term-definitions="canShowTermDefinitions"
               :show-terms="showTerms"

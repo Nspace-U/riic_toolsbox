@@ -1,34 +1,45 @@
-import type { BaseSkillTerms, Operator } from '@/types/baseData'
+import type { BaseSkillTerms, Operator } from "@/types/baseData";
 import type {
   EfficiencyCatalog,
   EfficiencyOperator,
   EfficiencyTerm,
   OperatorSkillFile,
-} from '@/types/efficiency'
+} from "@/types/efficiency";
 
 function membersFromDefinition(definition: string | undefined): string[] {
   if (!definition) {
-    return []
+    return [];
   }
-  const body = definition.split(/\r?\n/).slice(1).join('')
+  const body = definition.split(/\r?\n/).slice(1).join("");
   return body
     .split(/[、,，]/)
     .map((member) => member.trim())
-    .filter(Boolean)
+    .filter(Boolean);
 }
 
-function normalizeTerms(terms: BaseSkillTerms | Record<string, EfficiencyTerm>): Record<string, EfficiencyTerm> {
-  return Object.fromEntries(Object.entries(terms).map(([key, term]) => [key, {
-    ...term,
-    members: term.members?.length ? [...term.members] : membersFromDefinition(term.definition),
-  }]))
+function normalizeTerms(
+  terms: BaseSkillTerms | Record<string, EfficiencyTerm>,
+): Record<string, EfficiencyTerm> {
+  return Object.fromEntries(
+    Object.entries(terms).map(([key, term]) => [
+      key,
+      {
+        ...term,
+        members: term.members?.length
+          ? [...term.members]
+          : membersFromDefinition(term.definition),
+      },
+    ]),
+  );
 }
 
 function skillNames(file: OperatorSkillFile | undefined): string[] {
   if (!file) {
-    return []
+    return [];
   }
-  return file.chains.flatMap((chain) => chain.stages.map((stage) => stage.name))
+  return file.chains.flatMap((chain) =>
+    chain.stages.map((stage) => stage.name),
+  );
 }
 
 export function createEfficiencyCatalog(
@@ -36,9 +47,9 @@ export function createEfficiencyCatalog(
   skillFiles: Record<string, OperatorSkillFile>,
   terms: BaseSkillTerms | Record<string, EfficiencyTerm> = {},
 ): EfficiencyCatalog {
-  const byName: Record<string, EfficiencyOperator> = {}
+  const byName: Record<string, EfficiencyOperator> = {};
   operators.forEach((operator) => {
-    const skillFile = skillFiles[operator.id]
+    const skillFile = skillFiles[operator.id];
     byName[operator.name] = {
       id: operator.id,
       name: operator.name,
@@ -46,9 +57,9 @@ export function createEfficiencyCatalog(
       termKeys: operator.termReferences.map((reference) => reference.key),
       skillFile,
       skillNames: skillNames(skillFile),
-    }
-  })
-  return { operators: byName, terms: normalizeTerms(terms) }
+    };
+  });
+  return { operators: byName, terms: normalizeTerms(terms) };
 }
 
 export async function loadEfficiencyCatalog(
@@ -56,33 +67,56 @@ export async function loadEfficiencyCatalog(
   terms: BaseSkillTerms | Record<string, EfficiencyTerm> = {},
   baseUrl: string = import.meta.env.BASE_URL,
 ): Promise<EfficiencyCatalog> {
-  const skillEntries = await Promise.all(operators.map(async (operator) => {
-    const response = await fetch(`${baseUrl}assets/operator-skills/${operator.id}.json`)
-    if (!response.ok) {
-      throw new Error(`干员技能读取失败：${operator.name}（HTTP ${response.status}）`)
-    }
-    return [operator.id, await response.json() as OperatorSkillFile] as const
-  }))
-  return createEfficiencyCatalog(operators, Object.fromEntries(skillEntries), terms)
+  const skillEntries = await Promise.all(
+    operators.map(async (operator) => {
+      const response = await fetch(
+        `${baseUrl}assets/operator-skills/${operator.id}.json`,
+      );
+      if (!response.ok) {
+        throw new Error(
+          `干员技能读取失败：${operator.name}（HTTP ${response.status}）`,
+        );
+      }
+      return [
+        operator.id,
+        (await response.json()) as OperatorSkillFile,
+      ] as const;
+    }),
+  );
+  return createEfficiencyCatalog(
+    operators,
+    Object.fromEntries(skillEntries),
+    terms,
+  );
 }
 
-export function catalogOperator(catalog: EfficiencyCatalog, name: string): EfficiencyOperator | undefined {
-  return catalog.operators[name]
+export function catalogOperator(
+  catalog: EfficiencyCatalog,
+  name: string,
+): EfficiencyOperator | undefined {
+  return catalog.operators[name];
 }
 
-export function groupMembers(catalog: EfficiencyCatalog, group: string | undefined): string[] {
+export function groupMembers(
+  catalog: EfficiencyCatalog,
+  group: string | undefined,
+): string[] {
   if (!group) {
-    return []
+    return [];
   }
-  const members = catalog.terms[group]?.members ?? []
+  const members = catalog.terms[group]?.members ?? [];
   if (members.length > 0) {
-    return members
+    return members;
   }
   return Object.values(catalog.operators)
     .filter((operator) => operator.termKeys.includes(group))
-    .map((operator) => operator.name)
+    .map((operator) => operator.name);
 }
 
-export function hasGroupMember(catalog: EfficiencyCatalog, group: string | undefined, name: string): boolean {
-  return groupMembers(catalog, group).includes(name)
+export function hasGroupMember(
+  catalog: EfficiencyCatalog,
+  group: string | undefined,
+  name: string,
+): boolean {
+  return groupMembers(catalog, group).includes(name);
 }

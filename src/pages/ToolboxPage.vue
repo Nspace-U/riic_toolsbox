@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { BookOutlined, FileTextOutlined, PictureOutlined, ToolOutlined } from '@ant-design/icons-vue'
-import { useRouter } from 'vue-router'
+import {
+  BookOutlined,
+  FileTextOutlined,
+  PictureOutlined,
+  ToolOutlined,
+} from "@ant-design/icons-vue";
+import { useRouter } from "vue-router";
 
-const router = useRouter()
+const router = useRouter();
 
 function openAvatarGenerator(): void {
-  void router.push('/toolbox/avatar')
+  void router.push("/toolbox/avatar");
 }
 
 function openSkillGenerator(): void {
-  void router.push('/toolbox/skill')
+  void router.push("/toolbox/skill");
 }
 
 function openMaaSchedule(): void {
-  void router.push('/toolbox/maa-schedule')
+  void router.push("/toolbox/maa-schedule");
 }
 </script>
 
@@ -24,7 +29,9 @@ function openMaaSchedule(): void {
         <ToolOutlined />
       </div>
       <div class="page-heading-copy">
-        <a-typography-title :level="2" class="page-title">工具箱</a-typography-title>
+        <a-typography-title :level="2" class="page-title"
+          >工具箱</a-typography-title
+        >
         <span class="page-heading-description">收纳基建之外的实用小工具</span>
       </div>
     </div>
@@ -39,7 +46,11 @@ function openMaaSchedule(): void {
       </div>
 
       <div class="toolbox-grid">
-        <a-card :bordered="false" class="tool-card" @click="openAvatarGenerator">
+        <a-card
+          :bordered="false"
+          class="tool-card"
+          @click="openAvatarGenerator"
+        >
           <div class="tool-card-icon" aria-hidden="true">
             <PictureOutlined />
           </div>
@@ -82,7 +93,9 @@ function openMaaSchedule(): void {
           <div class="tool-card-content">
             <div class="tool-card-meta">PROTOCOL · 03</div>
             <h4>Maa 排班表接口</h4>
-            <p>查看、编辑和导入导出 Maa 排班表 JSON，保留布局与干员状态信息。</p>
+            <p>
+              查看、编辑和导入导出 Maa 排班表 JSON，保留布局与干员状态信息。
+            </p>
             <a-button type="primary" @click.stop="openMaaSchedule">
               <template #icon>
                 <FileTextOutlined />

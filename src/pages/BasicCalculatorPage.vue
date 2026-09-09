@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { CalculatorOutlined } from '@ant-design/icons-vue'
+import { CalculatorOutlined } from "@ant-design/icons-vue";
 
-import ToolPlaceholderPage from '@/components/ToolPlaceholderPage.vue'
+import ToolPlaceholderPage from "@/components/ToolPlaceholderPage.vue";
 </script>
 
 <template>

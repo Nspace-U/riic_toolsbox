@@ -12,118 +12,128 @@ import {
   ToolOutlined,
   SettingOutlined,
   TableOutlined,
-} from '@ant-design/icons-vue'
-import { computed, ref, watch } from 'vue'
-import type { Component } from 'vue'
-import { RouterView, useRoute, useRouter } from 'vue-router'
+} from "@ant-design/icons-vue";
+import { computed, ref, watch } from "vue";
+import type { Component } from "vue";
+import { RouterView, useRoute, useRouter } from "vue-router";
 
-import { useBaseData } from './composables/useBaseData'
-import { useDataSource } from './composables/useDataSource'
+import { useBaseData } from "./composables/useBaseData";
+import { useDataSource } from "./composables/useDataSource";
 
 interface NavigationItem {
-  key: string
-  label: string
-  icon: Component
-  children?: NavigationChildItem[]
+  key: string;
+  label: string;
+  icon: Component;
+  children?: NavigationChildItem[];
 }
 
 interface NavigationChildItem {
-  key: string
-  label: string
-  icon: Component
+  key: string;
+  label: string;
+  icon: Component;
 }
 
 const navigationItems: NavigationItem[] = [
-  { key: '/simulator', label: '排班模拟器', icon: ClusterOutlined },
-  { key: '/schedule-calculator', label: '排班表计算器', icon: TableOutlined },
-  { key: '/schedule-reference', label: '排班表参考', icon: BookOutlined },
-  { key: '/basic-calculator', label: '基础计算器', icon: CalculatorOutlined },
-  { key: '/operator-skills', label: '基建技能一览', icon: BookOutlined },
+  { key: "/simulator", label: "排班模拟器", icon: ClusterOutlined },
+  { key: "/schedule-calculator", label: "排班表计算器", icon: TableOutlined },
+  { key: "/schedule-reference", label: "排班表参考", icon: BookOutlined },
+  { key: "/basic-calculator", label: "基础计算器", icon: CalculatorOutlined },
+  { key: "/operator-skills", label: "基建技能一览", icon: BookOutlined },
   {
-    key: '/toolbox',
-    label: '工具箱',
+    key: "/toolbox",
+    label: "工具箱",
     icon: ToolOutlined,
     children: [
-      { key: '/toolbox/avatar', label: '头像生成器', icon: PictureOutlined },
-      { key: '/toolbox/skill', label: '技能生成器', icon: ReadOutlined },
-      { key: '/toolbox/maa-schedule', label: 'Maa 排班表接口', icon: FileTextOutlined },
+      { key: "/toolbox/avatar", label: "头像生成器", icon: PictureOutlined },
+      { key: "/toolbox/skill", label: "技能生成器", icon: ReadOutlined },
+      {
+        key: "/toolbox/maa-schedule",
+        label: "Maa 排班表接口",
+        icon: FileTextOutlined,
+      },
     ],
   },
-  { key: '/settings', label: '通用设置', icon: SettingOutlined },
-]
+  { key: "/settings", label: "通用设置", icon: SettingOutlined },
+];
 
-const route = useRoute()
-const router = useRouter()
-const { selectedDataSourceLabel } = useDataSource()
-useBaseData()
+const route = useRoute();
+const router = useRouter();
+const { selectedDataSourceLabel } = useDataSource();
+useBaseData();
 
-const siderCollapsed = ref(false)
-const isMobile = ref(false)
-const mobileMenuOpen = ref(false)
-const openNavigationKeys = ref<string[]>([])
+const siderCollapsed = ref(false);
+const isMobile = ref(false);
+const mobileMenuOpen = ref(false);
+const openNavigationKeys = ref<string[]>([]);
 
-const currentPath = computed(() => route.path)
-const currentPageTitle = computed(() => findNavigationLabel(currentPath.value) ?? '基建工具箱')
-const mainLayoutOffset = computed(() => siderCollapsed.value || isMobile.value ? '0' : '200px')
+const currentPath = computed(() => route.path);
+const currentPageTitle = computed(
+  () => findNavigationLabel(currentPath.value) ?? "基建工具箱",
+);
+const mainLayoutOffset = computed(() =>
+  siderCollapsed.value || isMobile.value ? "0" : "200px",
+);
 const mainLayoutStyle = computed(() => ({
   marginInlineStart: mainLayoutOffset.value,
-}))
+}));
 
 const selectedNavigationKey = computed(() => {
-  return currentPath.value
-})
+  return currentPath.value;
+});
 
 function findNavigationLabel(path: string): string | undefined {
   for (const item of navigationItems) {
     if (item.key === path) {
-      return item.label
+      return item.label;
     }
 
-    const child = item.children?.find((navigationChild) => navigationChild.key === path)
+    const child = item.children?.find(
+      (navigationChild) => navigationChild.key === path,
+    );
     if (child) {
-      return child.label
+      return child.label;
     }
   }
 
-  return undefined
+  return undefined;
 }
 
 function handleMenuClick(info: { key: string | number }): void {
-  mobileMenuOpen.value = false
-  void router.push(String(info.key))
+  mobileMenuOpen.value = false;
+  void router.push(String(info.key));
 }
 
 function toggleSider(): void {
-  siderCollapsed.value = !siderCollapsed.value
+  siderCollapsed.value = !siderCollapsed.value;
 }
 
 function handleBreakpoint(broken: boolean): void {
-  isMobile.value = broken
+  isMobile.value = broken;
   if (broken) {
-    siderCollapsed.value = true
+    siderCollapsed.value = true;
   }
 }
 
 function handleHeaderNavigation(): void {
   if (isMobile.value) {
-    mobileMenuOpen.value = true
-    return
+    mobileMenuOpen.value = true;
+    return;
   }
 
-  toggleSider()
+  toggleSider();
 }
 
 function handleNavigationOpenChange(keys: string[]): void {
-  openNavigationKeys.value = keys
+  openNavigationKeys.value = keys;
 }
 
 function handleRouteChange(path: string): void {
-  if (path === '/toolbox' || path.startsWith('/toolbox/')) {
-    openNavigationKeys.value = ['/toolbox']
+  if (path === "/toolbox" || path.startsWith("/toolbox/")) {
+    openNavigationKeys.value = ["/toolbox"];
   }
 }
 
-watch(currentPath, handleRouteChange, { immediate: true })
+watch(currentPath, handleRouteChange, { immediate: true });
 </script>
 
 <template>
@@ -144,7 +154,10 @@ watch(currentPath, handleRouteChange, { immediate: true })
       class="app-sider"
       @breakpoint="handleBreakpoint"
     >
-      <div :class="{ 'sider-brand--collapsed': siderCollapsed }" class="sider-brand">
+      <div
+        :class="{ 'sider-brand--collapsed': siderCollapsed }"
+        class="sider-brand"
+      >
         <div v-if="!siderCollapsed" class="brand-copy">
           <strong>基建工具箱</strong>
           <span>RIIC TOOLS</span>
@@ -186,11 +199,20 @@ watch(currentPath, handleRouteChange, { immediate: true })
     </a-layout-sider>
 
     <a-layout :style="mainLayoutStyle" class="app-main-layout">
-      <a-layout-header :style="{ insetInlineStart: mainLayoutOffset }" class="app-header">
+      <a-layout-header
+        :style="{ insetInlineStart: mainLayoutOffset }"
+        class="app-header"
+      >
         <div class="header-left">
           <a-button
             class="header-nav-button"
-            :aria-label="isMobile ? '打开导航菜单' : siderCollapsed ? '展开侧边栏' : '收起侧边栏'"
+            :aria-label="
+              isMobile
+                ? '打开导航菜单'
+                : siderCollapsed
+                  ? '展开侧边栏'
+                  : '收起侧边栏'
+            "
             type="text"
             @click="handleHeaderNavigation"
           >

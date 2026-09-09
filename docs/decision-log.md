@@ -23,3 +23,11 @@
 - **订单联动**：按 `C -> 锏冠军风采 -> 孑效率扣除 -> X -> 琳琅/孑效率` 的确认顺序实现，订单上限总值保持至少为 1。
 - **范围**：加工站、训练室、宿舍自动休整、库存爆仓、首物品进度和逐单订单衰减不进入第一版模拟；`ScheduleSettings` 保留后续扩展字段。
 - **验证**：`npm run type-check` 和 `npm run build` 通过；技能目录 345 个独立 JSON 的结构检查通过。
+
+## 2026-09-09：接入 ESLint 与 Prettier
+
+- **决定**：使用 ESLint 9 Flat Config，组合 `@eslint/js`、`typescript-eslint` 和 `eslint-plugin-vue` 的标准推荐配置，覆盖 `src/` 与 `scripts/` 中的 JavaScript、TypeScript 和 Vue 文件。
+- **决定**：由 Prettier 单独负责格式化，使用 `eslint-config-prettier` 关闭冲突的 ESLint 格式规则；不使用 `eslint-plugin-prettier`，避免将格式化错误混入语义检查。
+- **约束**：不为现有代码增加 ESLint 例外规则或自定义 Prettier 风格；构建产物、依赖、游戏数据快照和生成的干员技能 JSON 不参与检查。
+- **命令**：新增 `npm run lint`、`npm run lint:fix`、`npm run format` 和 `npm run format:check`。
+- **验证**：`npm run format:check`、`npm run type-check` 和 `npm run build` 通过；`npm run lint` 已执行但因既有源码报告 20 个错误和 3 个警告。按用户要求未增加规则例外，也未为消除这些报告修改业务代码。
