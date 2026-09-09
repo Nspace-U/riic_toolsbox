@@ -80,7 +80,6 @@ const selectedProgressionProfession = ref("");
 const selectedProgressionBranch = ref("");
 const selectedProgressionRarity = ref<number | "">("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
-const skillFileLoadFailures = ref<Record<string, boolean>>({});
 let skillFileRequestVersion = 0;
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
@@ -113,15 +112,11 @@ const filteredProgressionOperators = computed(() => {
   const query = progressionSearch.value.trim().toLocaleLowerCase();
   return operators.value
     .filter((operator) => {
-      const skillFile = skillFiles.value[operator.id];
-      const nodes = nodesForOperator(skillFile);
+      const nodes = progressionNodes(operator);
       const entry = progressionEntry(operator);
       const hasEditableNodes = nodes.length > 0;
-      const skillFileLoadFailed = skillFileLoadFailures.value[operator.id];
       return (
-        (showNoEditableOperators.value ||
-          hasEditableNodes ||
-          skillFileLoadFailed) &&
+        (showNoEditableOperators.value || hasEditableNodes) &&
         (showUnownedOperators.value || entry?.owned === true) &&
         (!selectedProgressionFacility.value ||
           nodes.some((node) =>
@@ -319,9 +314,6 @@ async function refreshProgressionSkillFiles(): Promise<void> {
   const requestVersion = ++skillFileRequestVersion;
   if (!baseDataReady.value || selectedDataSource.value !== "torappu") {
     skillFiles.value = {};
-    skillFileLoadFailures.value = Object.fromEntries(
-      operators.value.map((operator) => [operator.id, true]),
-    );
     progressionLoading.value = false;
     return;
   }
@@ -348,9 +340,6 @@ async function refreshProgressionSkillFiles(): Promise<void> {
     if (requestVersion === skillFileRequestVersion) {
       skillFiles.value = Object.fromEntries(
         response.map(([id, skillFile]) => [id, skillFile]),
-      );
-      skillFileLoadFailures.value = Object.fromEntries(
-        response.map(([id, , failed]) => [id, failed]),
       );
       if (activeProfile.value) {
         operators.value.forEach((operator) => {
