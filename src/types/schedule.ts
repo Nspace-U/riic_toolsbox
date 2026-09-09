@@ -5,9 +5,9 @@ export const ROOM_KEYS = [
   "power",
   "meeting",
   "hire",
-  "dormitory",
   "processing",
   "training",
+  "dormitory",
 ] as const;
 
 export type RoomKey = (typeof ROOM_KEYS)[number];

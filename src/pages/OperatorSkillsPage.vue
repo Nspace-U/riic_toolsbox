@@ -9,28 +9,19 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import OperatorSkillCard from "@/components/OperatorSkillCard.vue";
 import { useBaseData } from "@/composables/useBaseData";
+import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useDataSource } from "@/composables/useDataSource";
 import type {
   Operator,
   OperatorSkill,
   SkillTermReference,
 } from "@/types/baseData";
+import type { RoomKey } from "@/types/schedule";
 import {
   getOperatorSkillTermKeys,
   getOperatorTerms,
 } from "@/utils/operatorSkill";
-
-const FACILITIES = [
-  "控制中枢",
-  "贸易站",
-  "制造站",
-  "发电站",
-  "会客室",
-  "办公室",
-  "加工站",
-  "训练室",
-  "宿舍",
-];
+import { ROOM_LABELS, ROOM_ORDER } from "@/utils/schedule";
 
 type SortMode = "implementationOrder" | "name";
 type OperatorDisplayRow = {
@@ -67,6 +58,7 @@ const {
   reload,
 } = useBaseData();
 const { selectedDataSource } = useDataSource();
+const { facilityColors } = useFacilityColors();
 
 const searchText = ref("");
 const selectedFacilities = ref<string[]>([]);
@@ -78,9 +70,10 @@ const sortMode = ref<SortMode>("implementationOrder");
 const expandedOperatorIds = ref(new Set<string>());
 let filterUpdateTimer: number | undefined;
 
-const facilityOptions = FACILITIES.map((facility) => ({
-  label: facility,
-  value: facility,
+const facilityOptions = ROOM_ORDER.map((value) => ({
+  label: ROOM_LABELS[value],
+  value: ROOM_LABELS[value],
+  type: value,
 }));
 const sortOptions = [
   { label: "实装倒序", value: "implementationOrder" },
@@ -131,6 +124,18 @@ function selectAllFacilities(): void {
 
 function isAllFacilitiesSelected(): boolean {
   return selectedFacilities.value.length === 0;
+}
+
+function facilityFilterStyle(
+  type: RoomKey,
+  selected: boolean,
+): Record<string, string> {
+  const color = facilityColors.value[type];
+  return {
+    "--facility-filter-color": color,
+    "--facility-filter-background": selected ? color : `${color}1a`,
+    "--facility-filter-text": selected ? "#ffffff" : color,
+  };
 }
 
 function sortOperatorRows(
@@ -388,11 +393,19 @@ onBeforeUnmount(() => {
           <a-button
             v-for="facility in facilityOptions"
             :key="facility.value"
-            :type="
-              selectedFacilities.includes(facility.value)
-                ? 'primary'
-                : 'default'
+            class="facility-filter-button"
+            :style="
+              facilityFilterStyle(
+                facility.type,
+                selectedFacilities.includes(facility.value),
+              )
             "
+            :class="{
+              'facility-filter-button--selected': selectedFacilities.includes(
+                facility.value,
+              ),
+            }"
+            type="default"
             @click="toggleFacility(facility.value)"
           >
             {{ facility.label }}

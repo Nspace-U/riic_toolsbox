@@ -39,7 +39,13 @@ export function getOperatorAvatarFile(
   operator: Operator,
   eliteLevel: EliteLevel,
 ): string {
-  return operator.avatars[AVATAR_KEYS[eliteLevel]];
+  for (let level = eliteLevel; level >= 0; level -= 1) {
+    const file = operator.avatars[AVATAR_KEYS[level as EliteLevel]];
+    if (file) {
+      return file;
+    }
+  }
+  return "";
 }
 
 export function getOperatorAvatarSourceUrl(

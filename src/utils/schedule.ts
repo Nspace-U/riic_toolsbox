@@ -15,9 +15,9 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   power: "发电站",
   meeting: "会客室",
   hire: "办公室",
-  dormitory: "宿舍",
   processing: "加工站",
   training: "训练室",
+  dormitory: "宿舍",
 };
 
 export const ROOM_REPRESENTATIVE_COLORS: Record<RoomKey, string> = {
@@ -27,9 +27,9 @@ export const ROOM_REPRESENTATIVE_COLORS: Record<RoomKey, string> = {
   power: "#9DCB3B",
   meeting: "#E27B5A",
   hire: "#C2C2C2",
-  dormitory: "#37CBBF",
   processing: "#D0D60D",
   training: "#8A1F39",
+  dormitory: "#37CBBF",
 };
 
 export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {

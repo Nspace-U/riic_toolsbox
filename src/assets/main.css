@@ -599,14 +599,61 @@ a {
 }
 
 .settings-progression-filters {
+  margin-block-end: 8px;
+}
+
+.settings-progression-filter-groups {
   display: grid;
-  grid-template-columns: minmax(180px, 1.4fr) repeat(4, minmax(120px, 1fr));
   gap: 8px;
   margin-block-end: 12px;
 }
 
+.settings-progression-filter-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.settings-progression-filter-label {
+  flex: 0 0 36px;
+  padding-block: 4px;
+  color: #647275;
+  font-size: 12px;
+  line-height: 24px;
+}
+
+.settings-progression-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-progression-filter-options .ant-btn {
+  height: 28px;
+  padding-inline: 10px;
+  font-size: 12px;
+}
+
+.settings-progression-filter-button--selected {
+  font-weight: 600;
+}
+
+.settings-progression-facility-filter-button {
+  color: var(--facility-filter-text, #344447) !important;
+  background: var(--facility-filter-background, #ffffff) !important;
+  border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
+.settings-progression-facility-filter-button:hover,
+.settings-progression-facility-filter-button:focus {
+  color: var(--facility-filter-text, #344447) !important;
+  background: var(--facility-filter-background, #ffffff) !important;
+  border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
 .settings-progression-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   max-height: 680px;
   overflow: auto;
   gap: 8px;
@@ -622,24 +669,29 @@ a {
 .settings-progression-item .ant-card-body {
   display: grid;
   gap: 8px;
-  padding: 12px;
+  padding: 8px;
 }
 
-.settings-progression-item-heading,
-.settings-progression-item-state {
+.settings-progression-item-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
-.settings-progression-item-heading > div {
+.settings-progression-item-heading .operator-avatar-display {
+  flex: 0 0 auto;
+}
+
+.settings-progression-item-copy {
   display: grid;
   min-width: 0;
+  flex: 1 1 auto;
+  align-content: center;
   gap: 2px;
 }
 
-.settings-progression-item-heading strong {
+.settings-progression-item-copy strong {
   overflow: hidden;
   color: #253238;
   font-size: 14px;
@@ -647,19 +699,37 @@ a {
   white-space: nowrap;
 }
 
-.settings-progression-item-heading span,
-.settings-progression-item-state span,
+.settings-progression-item-copy span,
 .settings-progression-no-node {
+  overflow: hidden;
   color: #879294;
   font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-progression-current {
+  color: #49645f !important;
+}
+
+.settings-progression-item-heading > .ant-btn {
+  flex: 0 0 auto;
+  padding-inline: 7px;
+}
+
+.settings-progression-item-heading > .ant-btn .anticon {
+  margin-inline-end: 0;
+}
+
+.settings-progression-item-heading > .ant-btn > span:last-child {
+  display: none;
 }
 
 .settings-progression-nodes {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding-block-start: 4px;
-  border-block-start: 1px solid #edf1f0;
+  padding-block-start: 2px;
 }
 
 .settings-progression-node--current {
@@ -809,6 +879,22 @@ a {
 
 .facility-filter-options .ant-btn {
   margin: 0;
+}
+
+.facility-filter-options .ant-btn:hover,
+.facility-filter-options .ant-btn:focus {
+  color: inherit;
+  border-color: inherit;
+}
+
+.facility-filter-button--selected {
+  font-weight: 600;
+}
+
+.facility-filter-button {
+  color: var(--facility-filter-text, #344447) !important;
+  background: var(--facility-filter-background, #ffffff) !important;
+  border-color: var(--facility-filter-color, #d9e2df) !important;
 }
 
 .operator-filter-footer {
@@ -2041,7 +2127,15 @@ a {
     width: 100%;
   }
 
-  .settings-progression-filters {
+  .settings-progression-filter-group {
+    align-items: flex-start;
+  }
+
+  .settings-progression-filter-label {
+    flex-basis: 32px;
+  }
+
+  .settings-progression-list {
     grid-template-columns: minmax(0, 1fr);
   }
 

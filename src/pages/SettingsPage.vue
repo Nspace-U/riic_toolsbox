@@ -12,6 +12,7 @@ import { useBaseData } from "@/composables/useBaseData";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
+import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
 import type { OperatorSkillFile } from "@/types/efficiency";
 import type {
@@ -19,6 +20,7 @@ import type {
   OperatorProgressionNode,
 } from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
+import { ROOM_ORDER } from "@/utils/schedule";
 import { nodesForOperator } from "@/utils/operatorProgression";
 
 const {
@@ -47,14 +49,15 @@ const {
   updateEntry,
   ensureEntry,
   resetEntry,
+  resetProfile,
   duplicateProfile,
   removeProfile,
   setTreatSkillsAsUnlocked,
 } = useOperatorProgression();
 
-const facilityColorEntries = Object.entries(facilityLabels) as Array<
-  [RoomKey, string]
->;
+const facilityColorEntries = ROOM_ORDER.map(
+  (type) => [type, facilityLabels[type]] as [RoomKey, string],
+);
 const productColorEntries = Object.entries(productLabels) as Array<
   ["Pure Gold" | "Orundum" | "Originium Shard", string]
 >;
@@ -71,9 +74,10 @@ const selectedProgressionRarity = ref<number | "">("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
 let skillFileRequestVersion = 0;
 
-const progressionFacilityOptions = Object.entries(facilityLabels).map(
-  ([value, label]) => ({ value, label }),
-);
+const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
+  value,
+  label: facilityLabels[value],
+}));
 const progressionRarityOptions = [1, 2, 3, 4, 5, 6].map((value) => ({
   value,
   label: `${value} 星`,
@@ -102,7 +106,6 @@ const progressionBranchOptions = computed(() => {
 });
 const filteredProgressionOperators = computed(() => {
   const query = progressionSearch.value.trim().toLocaleLowerCase();
-  const profile = activeProfile.value;
   return operators.value
     .filter((operator) => {
       const skillFile = skillFiles.value[operator.id];
@@ -124,15 +127,19 @@ const filteredProgressionOperators = computed(() => {
           `${operator.name} ${operator.id}`.toLocaleLowerCase().includes(query))
       );
     })
+    .map((operator, index) => ({ operator, index }))
     .sort((left, right) => {
-      const leftOwned = profile?.entries[left.id]?.owned === true;
-      const rightOwned = profile?.entries[right.id]?.owned === true;
-      return (
-        Number(rightOwned) - Number(leftOwned) ||
-        right.rarity - left.rarity ||
-        left.name.localeCompare(right.name, "zh-CN")
-      );
-    });
+      const leftOrder = left.operator.implementationOrder;
+      const rightOrder = right.operator.implementationOrder;
+      if (leftOrder === undefined || rightOrder === undefined) {
+        if (leftOrder === undefined && rightOrder === undefined) {
+          return left.index - right.index;
+        }
+        return leftOrder === undefined ? 1 : -1;
+      }
+      return rightOrder - leftOrder || left.index - right.index;
+    })
+    .map(({ operator }) => operator);
 });
 
 function progressionEntry(
@@ -151,7 +158,9 @@ function progressionEntry(
 }
 
 function progressionNodes(operator: Operator): OperatorProgressionNode[] {
-  return nodesForOperator(skillFiles.value[operator.id]);
+  return nodesForOperator(skillFiles.value[operator.id]).filter(
+    (node) => node.type === "elite",
+  );
 }
 
 function nodeIsCurrent(
@@ -159,12 +168,7 @@ function nodeIsCurrent(
   node: OperatorProgressionNode,
 ): boolean {
   const entry = progressionEntry(operator);
-  if (!entry) {
-    return false;
-  }
-  return node.type === "elite"
-    ? entry.elite === node.value
-    : entry.level === node.value;
+  return entry?.owned === true && entry.elite === node.value;
 }
 
 function nodeFacilities(node: OperatorProgressionNode): string {
@@ -180,18 +184,13 @@ function updateProgressionNode(
     return;
   }
   updateEntry(profile.id, operator.id, (entry) => {
-    const isCurrent =
-      node.type === "elite"
-        ? entry.elite === node.value
-        : entry.level === node.value;
-    if (!isCurrent) {
-      if (node.type === "elite") {
-        entry.elite = node.value as 0 | 1 | 2;
-        entry.level = 1;
-      } else {
-        entry.level = node.value;
-      }
+    const isCurrent = entry.owned && entry.elite === node.value;
+    if (isCurrent) {
+      entry.owned = false;
+      return;
     }
+    entry.elite = node.value as 0 | 1 | 2;
+    entry.level = 1;
     entry.owned = true;
   });
 }
@@ -200,6 +199,37 @@ function resetProgressionEntry(operator: Operator): void {
   if (activeProfile.value) {
     resetEntry(activeProfile.value.id, operator.id);
   }
+}
+
+function resetAllProgressionEntries(): void {
+  const profile = activeProfile.value;
+  if (!profile || !window.confirm("确定将所有干员重置为导入时状态吗？")) {
+    return;
+  }
+  resetProfile(profile.id);
+  progressionSuccess.value = "已将所有干员重置为导入时状态。";
+}
+
+function progressionAvatarElite(operator: Operator): 0 | 1 | 2 {
+  const entry = progressionEntry(operator);
+  return entry?.owned ? entry.elite : 0;
+}
+
+function progressionCurrentLabel(operator: Operator): string {
+  const entry = progressionEntry(operator);
+  return entry?.owned ? `精英${entry.elite}` : "—";
+}
+
+function facilityFilterStyle(
+  type: RoomKey,
+  selected: boolean,
+): Record<string, string> {
+  const color = facilityColors.value[type];
+  return {
+    "--facility-filter-color": color,
+    "--facility-filter-background": selected ? color : `${color}1a`,
+    "--facility-filter-text": selected ? "#ffffff" : color,
+  };
 }
 
 function openProgressionFilePicker(): void {
@@ -391,6 +421,10 @@ watch(
           @update:value="(value: string) => setActiveProfile(value)"
         />
         <a-space v-if="activeProfile" :size="6" wrap>
+          <a-button size="small" @click="resetAllProgressionEntries">
+            <template #icon><ReloadOutlined /></template>
+            全部重置
+          </a-button>
           <a-button size="small" @click="handleDuplicateProfile">
             <template #icon><CopyOutlined /></template>
             复制
@@ -409,7 +443,7 @@ watch(
             setTreatSkillsAsUnlocked(event.target.checked)
         "
       >
-        基建技能视为已解锁（模拟器按当前设施所需的最大练度显示）
+        基建技能视为已解锁
       </a-checkbox>
       <template v-if="activeProfile">
         <div class="settings-progression-filters">
@@ -418,43 +452,108 @@ watch(
             allow-clear
             placeholder="搜索干员名称"
           />
-          <a-select
-            v-model:value="selectedProgressionFacility"
-            :options="[
-              { value: '', label: '全部设施' },
-              ...progressionFacilityOptions,
-            ]"
-            allow-clear
-            placeholder="设施"
-          />
-          <a-select
-            v-model:value="selectedProgressionProfession"
-            :options="[
-              { value: '', label: '全部职业' },
-              ...progressionProfessionOptions,
-            ]"
-            allow-clear
-            placeholder="职业"
-          />
-          <a-select
-            v-model:value="selectedProgressionBranch"
-            :disabled="!selectedProgressionProfession"
-            :options="[
-              { value: '', label: '全部分支' },
-              ...progressionBranchOptions,
-            ]"
-            allow-clear
-            placeholder="分支"
-          />
-          <a-select
-            v-model:value="selectedProgressionRarity"
-            :options="[
-              { value: '', label: '全部稀有度' },
-              ...progressionRarityOptions,
-            ]"
-            allow-clear
-            placeholder="稀有度"
-          />
+        </div>
+        <div class="settings-progression-filter-groups">
+          <div class="settings-progression-filter-group">
+            <span class="settings-progression-filter-label">设施</span>
+            <div class="settings-progression-filter-options">
+              <a-button
+                :type="!selectedProgressionFacility ? 'primary' : 'default'"
+                @click="selectedProgressionFacility = ''"
+              >
+                全部
+              </a-button>
+              <a-button
+                v-for="option in progressionFacilityOptions"
+                :key="option.value"
+                class="settings-progression-facility-filter-button"
+                :class="{
+                  'settings-progression-filter-button--selected':
+                    selectedProgressionFacility === option.value,
+                }"
+                :style="
+                  facilityFilterStyle(
+                    option.value,
+                    selectedProgressionFacility === option.value,
+                  )
+                "
+                @click="selectedProgressionFacility = option.value"
+              >
+                {{ option.label }}
+              </a-button>
+            </div>
+          </div>
+          <div class="settings-progression-filter-group">
+            <span class="settings-progression-filter-label">职业</span>
+            <div class="settings-progression-filter-options">
+              <a-button
+                :type="!selectedProgressionProfession ? 'primary' : 'default'"
+                @click="selectedProgressionProfession = ''"
+              >
+                全部
+              </a-button>
+              <a-button
+                v-for="option in progressionProfessionOptions"
+                :key="option.value"
+                :type="
+                  selectedProgressionProfession === option.value
+                    ? 'primary'
+                    : 'default'
+                "
+                @click="selectedProgressionProfession = option.value"
+              >
+                {{ option.label }}
+              </a-button>
+            </div>
+          </div>
+          <div class="settings-progression-filter-group">
+            <span class="settings-progression-filter-label">分支</span>
+            <div class="settings-progression-filter-options">
+              <a-button
+                :disabled="!selectedProgressionProfession"
+                :type="!selectedProgressionBranch ? 'primary' : 'default'"
+                @click="selectedProgressionBranch = ''"
+              >
+                全部
+              </a-button>
+              <a-button
+                v-for="option in progressionBranchOptions"
+                :key="option.value"
+                :disabled="!selectedProgressionProfession"
+                :type="
+                  selectedProgressionBranch === option.value
+                    ? 'primary'
+                    : 'default'
+                "
+                @click="selectedProgressionBranch = option.value"
+              >
+                {{ option.label }}
+              </a-button>
+            </div>
+          </div>
+          <div class="settings-progression-filter-group">
+            <span class="settings-progression-filter-label">稀有度</span>
+            <div class="settings-progression-filter-options">
+              <a-button
+                :type="!selectedProgressionRarity ? 'primary' : 'default'"
+                @click="selectedProgressionRarity = ''"
+              >
+                全部
+              </a-button>
+              <a-button
+                v-for="option in progressionRarityOptions"
+                :key="option.value"
+                :type="
+                  selectedProgressionRarity === option.value
+                    ? 'primary'
+                    : 'default'
+                "
+                @click="selectedProgressionRarity = option.value"
+              >
+                {{ option.label }}
+              </a-button>
+            </div>
+          </div>
         </div>
         <a-spin :spinning="progressionLoading">
           <div class="settings-progression-list">
@@ -465,30 +564,35 @@ watch(
               class="settings-progression-item"
             >
               <div class="settings-progression-item-heading">
-                <div>
+                <OperatorAvatarDisplay
+                  :data-source="selectedDataSource"
+                  :elite-level="progressionAvatarElite(operator)"
+                  :operator-owned="progressionEntry(operator)?.owned === true"
+                  :operator="operator"
+                  :show-elite-level="true"
+                  :show-name="false"
+                  :show-profession="false"
+                  :show-rarity="false"
+                  :size="56"
+                />
+                <div class="settings-progression-item-copy">
                   <strong>{{ operator.name }}</strong>
                   <span
                     >{{ operator.profession }} · {{ operator.branch }} ·
                     {{ operator.rarity }}星</span
                   >
+                  <span class="settings-progression-current"
+                    >当前练度：{{ progressionCurrentLabel(operator) }}</span
+                  >
                 </div>
-                <a-button size="small" @click="resetProgressionEntry(operator)">
+                <a-button
+                  :aria-label="`重置${operator.name}练度`"
+                  size="small"
+                  title="重置为导入时状态"
+                  @click="resetProgressionEntry(operator)"
+                >
                   <template #icon><ReloadOutlined /></template>
-                  重置
                 </a-button>
-              </div>
-              <div class="settings-progression-item-state">
-                <a-tag
-                  :color="
-                    progressionEntry(operator)?.owned ? 'green' : 'default'
-                  "
-                >
-                  {{ progressionEntry(operator)?.owned ? "已拥有" : "未拥有" }}
-                </a-tag>
-                <span
-                  >精英{{ progressionEntry(operator)?.elite }} ·
-                  {{ progressionEntry(operator)?.level }}级</span
-                >
               </div>
               <div
                 v-if="progressionNodes(operator).length"
