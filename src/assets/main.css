@@ -1453,28 +1453,12 @@ a {
 }
 
 .simulator-efficiency-summary-line--total {
-  margin-block-start: 2px;
-  padding-block-start: 5px;
-  border-block-start: 1px dashed #d9e5e1;
+  justify-content: flex-end;
 }
 
 .simulator-efficiency-summary-line--total strong {
   color: #176b68;
   font-size: 16px;
-}
-
-.simulator-efficiency-summary-label {
-  flex: 0 0 auto;
-  color: #879294;
-}
-
-.simulator-efficiency-operators {
-  min-width: 0;
-  overflow: hidden;
-  color: #344447;
-  text-align: end;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .simulator-efficiency-panel {

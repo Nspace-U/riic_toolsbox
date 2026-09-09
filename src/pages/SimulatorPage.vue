@@ -1113,16 +1113,6 @@ function planFacilityResult(
   return plan.facilities.find((result) => result.facility.id === facilityId);
 }
 
-function roomOperatorNames(row: FacilityRow, plan: Plan): string[] {
-  return Array.from(
-    new Set(
-      roomEntries(row, plan).flatMap(({ room }) =>
-        room?.skip ? [] : (room?.operators ?? []),
-      ),
-    ),
-  );
-}
-
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
   const { facility } = result;
   if (facility.type === "power") {
@@ -1839,38 +1829,18 @@ watch(
                       "
                       class="simulator-efficiency-summary"
                     >
-                      <div class="simulator-efficiency-summary-line">
-                        <span class="simulator-efficiency-summary-label"
-                          >干员组合</span
-                        >
-                        <span class="simulator-efficiency-operators">
-                          {{
-                            roomOperatorNames(row, plan).join("、") ||
-                            "暂无进驻"
-                          }}
-                        </span>
-                      </div>
-                      <div class="simulator-efficiency-summary-line">
-                        <span class="simulator-efficiency-summary-label"
-                          >组合效率</span
-                        >
-                        <strong
-                          >+{{
-                            formatNumber(
-                              planFacilityResult(row, planIndex)
-                                ?.combinationEfficiency ?? 0,
-                            )
-                          }}</strong
-                        >
-                      </div>
                       <div
                         class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
                       >
-                        <span class="simulator-efficiency-summary-label"
-                          >设施最终效率</span
-                        >
                         <strong
                           >{{
+                            signedNumber(
+                              planFacilityResult(row, planIndex)
+                                ?.combinationEfficiency ?? 0,
+                            )
+                          }}
+                          /
+                          {{
                             formatNumber(
                               planFacilityResult(row, planIndex)?.efficiency ??
                                 0,
