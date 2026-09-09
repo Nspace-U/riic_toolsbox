@@ -20,6 +20,7 @@ export interface OperatorAvatarRenderOptions {
   showProfession: boolean;
   showName: boolean;
   moodScattered: boolean;
+  operatorOwned: boolean;
 }
 
 export interface OperatorAvatarLayerSources {
@@ -96,6 +97,7 @@ export async function generateOperatorAvatarBlob(
     showProfession: options.showProfession,
     showName: options.showName,
     moodScattered: options.moodScattered,
+    operatorOwned: options.operatorOwned,
   });
 }
 

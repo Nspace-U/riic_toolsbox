@@ -22,6 +22,7 @@ const props = withDefaults(
     showName?: boolean;
     size?: number;
     moodScattered?: boolean;
+    operatorOwned?: boolean;
     plain?: boolean;
   }>(),
   {
@@ -31,6 +32,7 @@ const props = withDefaults(
     showName: false,
     size: 96,
     moodScattered: false,
+    operatorOwned: true,
     plain: false,
   },
 );
@@ -187,6 +189,7 @@ onMounted(updateNameFontSize);
       <img
         v-if="sources.avatarUrl"
         :alt="`${operator.name}头像`"
+        :class="{ 'operator-avatar-base--unowned': !operatorOwned }"
         class="operator-avatar-base"
         :src="sources.avatarUrl"
         decoding="async"
@@ -194,6 +197,7 @@ onMounted(updateNameFontSize);
       <a-avatar
         v-else
         :size="size"
+        :class="{ 'operator-avatar-fallback--unowned': !operatorOwned }"
         class="operator-avatar-fallback"
         shape="square"
       >

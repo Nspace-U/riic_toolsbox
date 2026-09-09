@@ -1665,6 +1665,11 @@ a {
   object-fit: cover;
 }
 
+.operator-avatar-base--unowned,
+.operator-avatar-fallback--unowned {
+  filter: grayscale(1);
+}
+
 .operator-avatar-frame--plain .operator-avatar-base,
 .operator-avatar-frame--plain .operator-avatar-fallback {
   object-fit: fill;

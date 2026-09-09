@@ -15,6 +15,7 @@ export interface OperatorAvatarGenerationOptions {
   showProfession: boolean;
   showName: boolean;
   moodScattered: boolean;
+  operatorOwned: boolean;
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -175,7 +176,10 @@ export async function generateOperatorAvatar(
     throw new Error("当前浏览器不支持头像图片生成");
   }
 
+  context.save();
+  context.filter = options.operatorOwned ? "none" : "grayscale(1)";
   context.drawImage(image, 0, 0);
+  context.restore();
 
   if (options.moodScattered) {
     context.fillStyle = "rgba(255, 0, 0, 0.5)";
