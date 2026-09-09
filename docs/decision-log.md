@@ -30,4 +30,4 @@
 - **决定**：由 Prettier 单独负责格式化，使用 `eslint-config-prettier` 关闭冲突的 ESLint 格式规则；不使用 `eslint-plugin-prettier`，避免将格式化错误混入语义检查。
 - **约束**：不为现有代码增加 ESLint 例外规则或自定义 Prettier 风格；构建产物、依赖、游戏数据快照和生成的干员技能 JSON 不参与检查。
 - **命令**：新增 `npm run lint`、`npm run lint:fix`、`npm run format` 和 `npm run format:check`。
-- **验证**：`npm run format:check`、`npm run type-check` 和 `npm run build` 通过；`npm run lint` 已执行但因既有源码报告 20 个错误和 3 个警告。按用户要求未增加规则例外，也未为消除这些报告修改业务代码。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `npm run generate:operator-skills` 均通过。对默认规则报告的未使用变量、无效赋值、变量声明、空代码块和 Vue 属性顺序问题进行了局部代码修复；未增加规则例外，也未关闭质量检查。

@@ -193,9 +193,8 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   const resolvedPlans = hasLayout
     ? plans
     : completeInferredRooms(plans, resolvedLayout);
-  const { plans: _plans, layout: _layout, ...rest } = root;
   const document: ScheduleDocument = {
-    ...rest,
+    ...root,
     layout: resolvedLayout,
     plans: resolvedPlans,
   };

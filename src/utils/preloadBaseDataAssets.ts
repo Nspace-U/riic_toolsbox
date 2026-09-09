@@ -87,7 +87,10 @@ function loadImage(url: string, entry: AssetPreloadEntry): Promise<boolean> {
     async function finishAfterDecode(): Promise<void> {
       try {
         await image.decode();
-      } catch {}
+      } catch {
+        finish(true);
+        return;
+      }
       finish(true);
     }
 

@@ -38,6 +38,7 @@ const props = withDefaults(
   {
     skills: undefined,
     visibleSkills: undefined,
+    operatorTerms: undefined,
     expanded: false,
     showExpandButton: false,
     showOperatorId: true,
@@ -176,8 +177,8 @@ function isSkillVisible(skill: OperatorSkill): boolean {
     <div class="operator-skills-list">
       <article
         v-for="skill in allSkills"
-        :key="skillKey(skill)"
         v-show="isSkillVisible(skill)"
+        :key="skillKey(skill)"
         :class="{ 'operator-skill-row--replaced': isReplaced(skill) }"
         class="operator-skill-row"
       >
@@ -247,8 +248,8 @@ function isSkillVisible(skill: OperatorSkill): boolean {
     >
       <div
         v-for="term in termsForOperator"
-        :key="`${term.key}-definition`"
         v-show="termDefinition(term)"
+        :key="`${term.key}-definition`"
         class="operator-term-definition"
       >
         <span class="operator-term-definition-name">{{ term.name }}：</span>

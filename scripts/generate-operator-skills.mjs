@@ -563,9 +563,6 @@ function parseDormEffects(text, target, groups, cond, warn) {
   };
   const del = (re, src) => src.replace(re, "");
   let m;
-  const roomMax = { stack: "max", maxGroup: "dormRec-room" };
-  const singleMax = { stack: "max", maxGroup: "dormRec-single" };
-  const NUM = "([+-]?\\d+(?:\\.\\d+)?)";
   const delMaxNote = (s) =>
     s
       .replace(/（[^）]*取最高[^）]*）/g, "")
@@ -903,7 +900,6 @@ function parseManuEffects(text, target, groups, cond, warn) {
     String(label || "")
       .replace(/类配方$/, "")
       .replace(/类$/, "");
-  const replaceText = (re, src) => src.replace(re, "");
 
   // -1) 配方限定的固定效果（须在固定心情/容量之前）：
   //     "生产XX类配方时，仓库容量上限+Y"（稀音·剪辑/圣约送葬人·合理利用）
@@ -2004,8 +2000,7 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
 // 条件文本 → condition 对象（覆盖发电站与会客室全部条件句式）
 function condFromText(cText, groups, warn) {
   let m;
-  if ((m = cText.match(/会客室内只有自身处于工作状态/)))
-    return { type: "onlySelf" }; // 会客室：只有自身工作
+  if (cText.match(/会客室内只有自身处于工作状态/)) return { type: "onlySelf" }; // 会客室：只有自身工作
   if ((m = cText.match(/其他(.+?)进驻在发电站$/))) {
     // 阵营进驻发电站
     return {
@@ -3239,7 +3234,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
     rest = rest.replace(/消除[^；，。]+/, "");
   }
 
-  const termEntries = Object.entries(groups).filter(([label, key]) =>
+  const termEntries = Object.entries(groups).filter(([, key]) =>
     key.startsWith("cc.bd"),
   );
   termEntries.forEach(([label, key]) => {

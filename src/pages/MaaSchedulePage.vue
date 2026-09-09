@@ -21,7 +21,6 @@ import type {
   Plan,
   RoomAssignment,
   RoomKey,
-  StoredDocument,
 } from "@/types/schedule";
 import {
   PRODUCT_OPTIONS,
@@ -30,7 +29,6 @@ import {
   ROOM_LABELS,
   ROOM_ORDER,
   SOURCE_MATERIAL_OPTIONS,
-  ScheduleError,
 } from "@/utils/schedule";
 
 const {

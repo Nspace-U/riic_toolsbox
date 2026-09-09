@@ -337,7 +337,7 @@ function conditionSatisfied(
   catalog: EfficiencyCatalog,
 ): boolean {
   if (!condition) return true;
-  let result = false;
+  let result: boolean;
   const type = conditionFacilityType(condition.facility, owner);
   const members = membersFor(catalog, condition.group);
   switch (condition.type) {
@@ -780,7 +780,7 @@ function effectValue(
   data: EvaluationData,
 ): number {
   const { effect, owner } = item;
-  let value = 0;
+  let value: number;
   if (effect.curve) {
     value = curveAverage(
       effect.curve,
@@ -925,7 +925,7 @@ function resolveMoodRate(
   data: EvaluationData,
 ): number {
   if (!placement.working || !isWorkPlacement(placement)) return 0;
-  let controlWorkers = placementsInRoomType(context, "control").filter(
+  const controlWorkers = placementsInRoomType(context, "control").filter(
     (candidate) => candidate.working,
   ).length;
   let rate = 1 - controlWorkers * 0.05;
@@ -1161,7 +1161,6 @@ function rawAttributeState(
 function zeroedOperators(
   context: PlanContext,
   facility: EfficiencyFacility,
-  catalog: EfficiencyCatalog,
 ): Set<string> {
   const zero = new Set<string>();
   context.active
@@ -1282,7 +1281,7 @@ function collectBonusByFacility(
       capBoosts: attributeStates.get(facility.id)?.capBoosts ?? {},
       bonusByFacility: result,
     };
-    const zeroed = zeroedOperators(context, facility, catalog);
+    const zeroed = zeroedOperators(context, facility);
     const stats = new Set([
       "tradeSpd",
       "manuProd",
@@ -1434,7 +1433,7 @@ function calculateFacility(
     capBoosts: attributeState.capBoosts,
     bonusByFacility,
   };
-  const zeroed = zeroedOperators(context, facility, catalog);
+  const zeroed = zeroedOperators(context, facility);
   const aggregate = aggregateEffectValues(
     context,
     facility,
@@ -1698,7 +1697,7 @@ function calculatePowerGroup(
   );
   const first = powerFacilities[0];
   if (!first) return undefined;
-  let operatorEfficiency =
+  const operatorEfficiency =
     placementsInRoomType(context, "power").filter(
       (placement) => placement.working,
     ).length * 5;
@@ -1856,7 +1855,6 @@ export function calculateEfficiency(
     (total, plan) => total + plan.durationHours,
     0,
   );
-  const facilities = buildFacilities(document.layout);
   return {
     document,
     plans,

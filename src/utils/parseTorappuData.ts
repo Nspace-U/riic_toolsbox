@@ -250,6 +250,8 @@ function buildSkills(
       record.replacement = buildReplacement(records, index);
       record.skillChain = skillChain;
       const { phase: _phase, level: _level, ...skill } = record;
+      void _phase;
+      void _level;
       skills.push(skill);
     });
   }

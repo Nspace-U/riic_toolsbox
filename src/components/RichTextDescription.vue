@@ -2,11 +2,7 @@
 import { computed } from "vue";
 
 import SearchHighlight from "@/components/SearchHighlight.vue";
-import type {
-  RichTextStyles,
-  SkillTerm,
-  SkillTermReference,
-} from "@/types/baseData";
+import type { RichTextStyles, SkillTerm } from "@/types/baseData";
 
 interface RichTextPart {
   text: string;
