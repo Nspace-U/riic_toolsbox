@@ -131,3 +131,14 @@
 - 未做：不提供「三处共用一个宽度」模式；不改头像生成器的导出宽度（仍由该页「输出宽度」单独控制）；不加数值以外的预设档位。
 - 风险：模拟器槽位宽度直接影响设施卡片宽度与横向滚动范围，超过 120 会明显挤压同排设施；技能卡宽度超过 144 会挤压干员名与技能列。基建技能一览与技能生成器共用同一组件，因此技能生成器导出的卡片布局也会随该设置变化。
 - 已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；浏览器界面未在本轮实测。
+
+## 本轮名称栏显示下限
+
+- 背景：等比渲染后名称栏高度随宽度缩小（模拟器槽位 72 时为 14px），头像底边到名字的距离由约 10.75px 降到 2.5px，观感上像名字贴在头像上。
+- 实测：用 Headless Edge 以 4× 渲染模拟器真实 DOM 并逐像素扫描，确认文字在其框内**本来就是居中的**（中心偏差 ≤0.75px，且略偏下）；改用 flex 居中与 `line-height` 居中结果逐像素相同。因此问题在框体高度，不在居中方式。
+- 决定：名称栏高度与字号增加输出空间下限，`OPERATOR_AVATAR_LAYOUT` 新增 `nameOutputMinHeight: 24` 与 `nameOutputMinFontSize: 12`；头像主体仍严格等比，两个下限只作用于名称栏。
+- 实现：共享层新增 `getOperatorAvatarNameMinBandMetrics`（框高与默认字号）与 `getOperatorAvatarNameMaxTextWidth`；`getOperatorAvatarProportionalNameMetrics` 复用前者并对实测字号取下限。Canvas 端由「整体合成后重采样」改为「头像主体等比重采样 + 名称栏按输出尺度单独绘制」，使下限在导出图上同样生效并与 DOM 几何一致；`drawOperatorAvatarName` 改为接收输出空间的名称度量。
+- 数值：输出宽度/槽位 48–120 时名称栏恒为 24px、字号 12–17px；144 时 29px/20px；180（原始尺寸）时 36px/25px，与改动前完全一致。DOM 总高与 Canvas 总高在所有宽度上相等。
+- 兼容性影响：模拟器槽位总高由 86px 变为 96px；头像生成器输出高度随之变化（96 宽由 96×115 变为 96×120），预览元信息标签同步为 `宽 × 高 px`。
+- 已知差异：字号触到 12px 下限后长名字更容易超出可用宽度，此时 Canvas 横向压缩字形、DOM 显示省略号，该既有差异未在本轮处理。
+- 已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；Headless Edge 4× 像素测量确认两条路径文字中心偏差均为 +0.5px，槽位 72 时上下留白 6.75/5.75px（Canvas 7/6px）。

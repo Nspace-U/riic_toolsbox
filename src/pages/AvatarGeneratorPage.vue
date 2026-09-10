@@ -18,7 +18,7 @@ import {
   getOperatorAvatarFile,
 } from "@/utils/operatorAvatar";
 import {
-  getOperatorAvatarNameHeight,
+  getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarScale,
   getScaledOperatorAvatarLength,
   normalizeOperatorAvatarOutputWidth,
@@ -116,19 +116,22 @@ const effectiveOutputWidth = computed(() =>
 );
 
 const outputPixelLabel = computed(() => {
-  const nameHeight =
-    showName.value && selectedOperator.value?.name
-      ? getOperatorAvatarNameHeight(OPERATOR_AVATAR_SOURCE_WIDTH)
-      : 0;
   const scale = getOperatorAvatarScale(
     OPERATOR_AVATAR_SOURCE_WIDTH,
     effectiveOutputWidth.value,
   );
-  const height = getScaledOperatorAvatarLength(
-    OPERATOR_AVATAR_SOURCE_WIDTH + nameHeight,
+  const bodyHeight = getScaledOperatorAvatarLength(
+    OPERATOR_AVATAR_SOURCE_WIDTH,
     scale,
   );
-  return `${effectiveOutputWidth.value} × ${height} px`;
+  const nameHeight =
+    showName.value && selectedOperator.value?.name
+      ? getOperatorAvatarNameMinBandMetrics(
+          OPERATOR_AVATAR_SOURCE_WIDTH,
+          effectiveOutputWidth.value,
+        ).height
+      : 0;
+  return `${effectiveOutputWidth.value} × ${bodyHeight + nameHeight} px`;
 });
 
 const outputWidthHint = computed(

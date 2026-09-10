@@ -7,9 +7,9 @@ import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameFontSizeForWidth,
   getOperatorAvatarNameHeight,
+  getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarProportionalNameMetrics,
   getOperatorAvatarScale,
-  getScaledOperatorAvatarLength,
   OPERATOR_AVATAR_LAYOUT,
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
@@ -80,22 +80,16 @@ const nameHeight = computed(() => {
     return 0;
   }
   if (props.proportionalLayout) {
-    return getScaledOperatorAvatarLength(
-      getOperatorAvatarNameHeight(sourceWidth.value),
-      avatarScale.value,
-    );
+    return getOperatorAvatarNameMinBandMetrics(sourceWidth.value, props.size)
+      .height;
   }
   return getOperatorAvatarNameHeight(props.size);
 });
 
 function defaultNameFontSize(): number {
   if (props.proportionalLayout) {
-    return getScaledOperatorAvatarLength(
-      getOperatorAvatarNameFontSize(
-        getOperatorAvatarNameHeight(sourceWidth.value),
-      ),
-      avatarScale.value,
-    );
+    return getOperatorAvatarNameMinBandMetrics(sourceWidth.value, props.size)
+      .fontSize;
   }
   return getOperatorAvatarNameFontSize(nameHeight.value);
 }

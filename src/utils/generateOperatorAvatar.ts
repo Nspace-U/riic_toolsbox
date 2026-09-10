@@ -1,10 +1,11 @@
 import {
-  getOperatorAvatarNameFontSizeForWidth,
-  getOperatorAvatarNameHeight,
+  getOperatorAvatarNameMaxTextWidth,
+  getOperatorAvatarProportionalNameMetrics,
   getOperatorAvatarScale,
   getScaledOperatorAvatarLength,
   normalizeOperatorAvatarOutputWidth,
   OPERATOR_AVATAR_LAYOUT,
+  type OperatorAvatarNameMetrics,
 } from "@/utils/operatorAvatarLayout";
 
 export interface OperatorAvatarGenerationOptions {
@@ -121,30 +122,18 @@ export function drawOperatorAvatarName(
   operatorName: string,
   width: number,
   nameTop: number,
-  nameHeight: number,
+  metrics: OperatorAvatarNameMetrics,
+  maxTextWidth: number,
 ): void {
-  const maxTextWidth = Math.max(
-    1,
-    width - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding,
-  );
-  const fontSize = getOperatorAvatarNameFontSizeForWidth(
-    operatorName,
-    nameHeight,
-    maxTextWidth,
-    (name, size) => {
-      context.font = `600 ${size}px "Segoe UI", sans-serif`;
-      return context.measureText(name).width;
-    },
-  );
-  context.font = `600 ${fontSize}px "Segoe UI", sans-serif`;
+  context.font = `600 ${metrics.fontSize}px "Segoe UI", sans-serif`;
 
   const fontMetrics = context.measureText("Mg");
   const fontAscent = fontMetrics.fontBoundingBoxAscent;
   const fontDescent = fontMetrics.fontBoundingBoxDescent;
   const baseline =
     Number.isFinite(fontAscent) && Number.isFinite(fontDescent)
-      ? (nameHeight - fontAscent - fontDescent) / 2 + fontAscent
-      : nameHeight / 2;
+      ? (metrics.height - fontAscent - fontDescent) / 2 + fontAscent
+      : metrics.height / 2;
   context.fillStyle = "#000000";
   context.textAlign = "center";
   context.textBaseline = "alphabetic";
@@ -185,72 +174,66 @@ export async function generateOperatorAvatar(
   const image = await loadImage(options.imageUrl);
   const overlayImages = await loadOverlayImages(options);
   const sourceWidth = image.naturalWidth;
-  const nameHeight =
-    options.showName && options.operatorName
-      ? getOperatorAvatarNameHeight(sourceWidth)
-      : 0;
+  const sourceHeight = image.naturalHeight;
   const outputWidth = normalizeOperatorAvatarOutputWidth(
     options.outputWidth,
     sourceWidth,
   );
   const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
 
-  const source = createAvatarCanvas(
-    sourceWidth,
-    image.naturalHeight + nameHeight,
-  );
+  const source = createAvatarCanvas(sourceWidth, sourceHeight);
   const context = source.context;
   context.drawImage(image, 0, 0);
 
   if (!options.operatorOwned) {
     context.fillStyle = "rgba(128, 128, 128, 0.5)";
-    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, sourceHeight);
   }
 
   if (options.operatorTrainingUpgraded) {
     context.fillStyle = "rgba(0, 255, 0, 0.5)";
-    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, sourceHeight);
   }
 
   if (options.moodScattered) {
     context.fillStyle = "rgba(255, 0, 0, 0.5)";
-    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, sourceHeight);
   }
 
-  drawMetadata(
-    context,
-    overlayImages,
-    sourceWidth,
-    image.naturalHeight,
-    options,
-  );
+  drawMetadata(context, overlayImages, sourceWidth, sourceHeight, options);
 
-  if (nameHeight > 0) {
-    drawOperatorAvatarName(
-      context,
-      options.operatorName,
-      sourceWidth,
-      image.naturalHeight,
-      nameHeight,
-    );
-  }
+  const showName = options.showName && Boolean(options.operatorName);
+  const nameMetrics = showName
+    ? getOperatorAvatarProportionalNameMetrics(
+        options.operatorName,
+        sourceWidth,
+        outputWidth,
+        (name, fontSize) => {
+          context.font = `600 ${fontSize}px "Segoe UI", sans-serif`;
+          return context.measureText(name).width;
+        },
+      )
+    : undefined;
 
-  if (scale === 1) {
-    return canvasToBlob(source.canvas);
-  }
-
+  const bodyHeight = getScaledOperatorAvatarLength(sourceHeight, scale);
   const output = createAvatarCanvas(
     outputWidth,
-    getScaledOperatorAvatarLength(source.canvas.height, scale),
+    bodyHeight + (nameMetrics ? nameMetrics.height : 0),
   );
   output.context.imageSmoothingEnabled = true;
   output.context.imageSmoothingQuality = "high";
-  output.context.drawImage(
-    source.canvas,
-    0,
-    0,
-    output.canvas.width,
-    output.canvas.height,
-  );
+  output.context.drawImage(source.canvas, 0, 0, outputWidth, bodyHeight);
+
+  if (nameMetrics) {
+    drawOperatorAvatarName(
+      output.context,
+      options.operatorName,
+      outputWidth,
+      bodyHeight,
+      nameMetrics,
+      getOperatorAvatarNameMaxTextWidth(sourceWidth, outputWidth),
+    );
+  }
+
   return canvasToBlob(output.canvas);
 }
