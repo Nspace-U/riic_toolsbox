@@ -6,6 +6,7 @@ import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import RichTextDescription from "@/components/RichTextDescription.vue";
 import SearchHighlight from "@/components/SearchHighlight.vue";
 import type { DataSourceId } from "@/composables/useDataSource";
+import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import type {
   Operator,
   OperatorSkill,
@@ -51,6 +52,12 @@ const props = withDefaults(
 const emit = defineEmits<{
   "toggle-expanded": [];
 }>();
+
+const { avatarDisplaySizes } = useAvatarDisplaySizes();
+
+const avatarColumnStyle = computed(() => ({
+  "--operator-card-avatar-size": `${avatarDisplaySizes.value.skillCard}px`,
+}));
 
 function assetUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`;
@@ -106,7 +113,7 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
 </script>
 
 <template>
-  <a-card :bordered="false" class="operator-card">
+  <a-card :bordered="false" class="operator-card" :style="avatarColumnStyle">
     <div class="operator-avatar-column">
       <OperatorAvatarDisplay
         v-if="operatorAvatarUrl(operator)"
@@ -120,7 +127,7 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
         :show-name="false"
         :show-profession="false"
         :show-rarity="false"
-        :size="112"
+        :size="avatarDisplaySizes.skillCard"
       />
       <div v-else class="operator-avatar-placeholder">暂无</div>
     </div>

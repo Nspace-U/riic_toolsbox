@@ -576,6 +576,10 @@ a {
   margin-block-start: 16px;
 }
 
+.settings-avatar-sizes-panel {
+  margin-block-start: 16px;
+}
+
 .settings-progression-panel {
   margin-block-start: 16px;
 }
@@ -958,7 +962,9 @@ a {
 
 .operator-card .ant-card-body {
   display: grid;
-  grid-template-columns: 112px minmax(0, 150px) minmax(0, 1fr);
+  grid-template-columns:
+    var(--operator-card-avatar-size, 112px) minmax(0, 150px)
+    minmax(0, 1fr);
   gap: 20px;
   padding: 16px;
 }
@@ -980,7 +986,7 @@ a {
 .operator-avatar-placeholder {
   display: grid;
   place-items: center;
-  width: 112px;
+  width: var(--operator-card-avatar-size, 112px);
   max-width: 100%;
   aspect-ratio: 1;
   color: #aab5b4;
@@ -1762,15 +1768,15 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 72px;
-  min-width: 72px;
+  width: var(--simulator-slot-size, 72px);
+  min-width: var(--simulator-slot-size, 72px);
   gap: 0;
 }
 
 .simulator-slot-input {
-  width: 72px;
-  max-width: 72px;
-  min-width: 72px;
+  width: var(--simulator-slot-size, 72px);
+  max-width: var(--simulator-slot-size, 72px);
+  min-width: var(--simulator-slot-size, 72px);
   font-size: 11px;
   text-align: center;
 }
@@ -2441,7 +2447,7 @@ a {
 
   .operator-avatar-column img,
   .operator-avatar-placeholder {
-    width: 144px;
+    width: var(--operator-card-avatar-size, 112px);
   }
 
   .operator-filter-section {

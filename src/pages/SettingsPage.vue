@@ -10,6 +10,10 @@ import {
 import { computed, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
+import {
+  useAvatarDisplaySizes,
+  type AvatarDisplaySizeTarget,
+} from "@/composables/useAvatarDisplaySizes";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
@@ -47,6 +51,13 @@ const {
   resetFacilityColors,
 } = useFacilityColors();
 const { operators, ready: baseDataReady } = useBaseData();
+const {
+  avatarDisplaySizes,
+  avatarDisplaySizeOptions,
+  avatarDisplaySizeTargets,
+  setAvatarDisplaySize,
+  resetAvatarDisplaySizes,
+} = useAvatarDisplaySizes();
 const {
   profiles,
   activeProfileId,
@@ -397,6 +408,16 @@ function handleClearLocalData(): void {
   }
 }
 
+function handleAvatarDisplaySizeChange(
+  target: AvatarDisplaySizeTarget,
+  value: number | null,
+): void {
+  setAvatarDisplaySize(
+    target,
+    value ?? avatarDisplaySizeOptions[target].defaultSize,
+  );
+}
+
 watch(selectedProgressionProfession, () => {
   selectedProgressionBranch.value = "";
 });
@@ -671,7 +692,7 @@ watch(
                   :show-rarity="true"
                   :plain="true"
                   :proportional-layout="true"
-                  :size="56"
+                  :size="avatarDisplaySizes.progressionCard"
                 />
                 <div class="settings-progression-item-copy">
                   <strong>{{ operator.name }}</strong>
@@ -837,6 +858,36 @@ watch(
       <a-button class="facility-color-reset" @click="resetFacilityColors"
         >恢复默认颜色</a-button
       >
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-avatar-sizes-panel"
+      title="头像显示尺寸"
+    >
+      <p class="settings-panel-description">
+        调整各页面头像的显示宽度，头像与徽标按等比缩放，修改后立即生效并保存在当前浏览器。
+      </p>
+      <a-form layout="vertical">
+        <a-form-item
+          v-for="target in avatarDisplaySizeTargets"
+          :key="target"
+          :extra="`默认 ${avatarDisplaySizeOptions[target].defaultSize}px，可设置 ${avatarDisplaySizeOptions[target].minSize}–${avatarDisplaySizeOptions[target].maxSize}px`"
+          :label="avatarDisplaySizeOptions[target].label"
+        >
+          <a-input-number
+            :max="avatarDisplaySizeOptions[target].maxSize"
+            :min="avatarDisplaySizeOptions[target].minSize"
+            :value="avatarDisplaySizes[target]"
+            addon-after="px"
+            @update:value="
+              (value: number | null) =>
+                handleAvatarDisplaySizeChange(target, value)
+            "
+          />
+        </a-form-item>
+      </a-form>
+      <a-button @click="resetAvatarDisplaySizes">恢复默认尺寸</a-button>
     </a-card>
 
     <a-card

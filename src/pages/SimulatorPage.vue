@@ -11,6 +11,7 @@ import {
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
+import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useDataSource } from "@/composables/useDataSource";
 import {
   isProductColorKey,
@@ -166,9 +167,14 @@ const {
   duplicateDocument,
 } = useScheduleDocuments();
 const { operators, terms, ready: baseDataReady } = useBaseData();
+const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
 const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
+
+const slotGridStyle = computed(() => ({
+  "--simulator-slot-size": `${avatarDisplaySizes.value.simulatorSlot}px`,
+}));
 
 function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
   if (typeof value !== "object" || value === null) {
@@ -1313,14 +1319,14 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   );
 }
 
-const SIMULATOR_SLOT_WIDTH = 72;
 const SIMULATOR_SLOT_GAP = 0;
 const SIMULATOR_FACILITY_MIN_WIDTH = 224;
 
 function facilityCardWidth(row: FacilityRow): string {
   const slotCount = Math.max(1, slotRefs(row).length);
   const contentWidth =
-    slotCount * SIMULATOR_SLOT_WIDTH + (slotCount - 1) * SIMULATOR_SLOT_GAP;
+    slotCount * avatarDisplaySizes.value.simulatorSlot +
+    (slotCount - 1) * SIMULATOR_SLOT_GAP;
   return `${Math.max(SIMULATOR_FACILITY_MIN_WIDTH, contentWidth + 40)}px`;
 }
 
@@ -2553,7 +2559,7 @@ onBeforeUnmount(() => {
                         </div>
                       </div>
                     </div>
-                    <div class="simulator-slot-grid">
+                    <div class="simulator-slot-grid" :style="slotGridStyle">
                       <div
                         v-for="slot in slotRefs(row)"
                         :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`"
@@ -2636,7 +2642,7 @@ onBeforeUnmount(() => {
                             :show-rarity="true"
                             :plain="true"
                             :proportional-layout="true"
-                            :size="72"
+                            :size="avatarDisplaySizes.simulatorSlot"
                             @click.stop="
                               beginOperatorNameEdit(
                                 planIndex,
@@ -2657,7 +2663,7 @@ onBeforeUnmount(() => {
                           />
                           <a-avatar
                             v-else
-                            :size="72"
+                            :size="avatarDisplaySizes.simulatorSlot"
                             class="simulator-empty-avatar"
                             shape="square"
                             @click.stop="

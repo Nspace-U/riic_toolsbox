@@ -217,3 +217,14 @@
 - **未做前提**：将来若要共享宽度或让尺寸可配置，必须先处理 `main.css` 中写死的容器：`.simulator-slot` 72px（`1761-1766`）、`.operator-card .ant-card-body` 网格 112px（`959-961`）、`.operator-avatar-placeholder` 112px（`983`）、窄屏 144px（`2442-2444`）。
 - **提交隔离**：`SimulatorPage.vue`、`CONTEXT.md` 与 `docs/decision-log.md` 的工作区当时还包含其他未提交改动，本次仅用 `git apply --cached` 定向暂存本改动对应的 hunk 后提交，未连带提交他人改动。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 与 `git diff --check` 通过，构建仅保留既有大 chunk 警告。浏览器界面未实测。
+
+## 2026-09-10：头像显示尺寸改为可配置
+
+- **决定**：三处头像显示尺寸从硬编码改为共享可配置值，默认仍为 56 / 72 / 112；每处按容器可容纳范围钳制：练度卡片 40–96、模拟器槽位 48–120、技能卡 72–144。不采用「三处共用一个宽度」模式，保留每处独立配置。
+- **存储**：新增 `src/composables/useAvatarDisplaySizes.ts`，键 `riic-tools:avatar-display-sizes:v1`，沿用仓库既有约定：模块级 `ref` + 模块私有读写函数 + `try/catch` + 逐字段类型与区间校验，改值函数只通过 `useAvatarDisplaySizes()` 暴露；「清除本地数据」按钮会一并清除该键。
+- **入口**：通用设置页在「设施背景颜色」与「本地数据」之间新增「头像显示尺寸」卡片，三个数字输入框加一个「恢复默认尺寸」按钮；清空输入回落到该处默认值，不新增预设档位。
+- **容器同步**：`.operator-card .ant-card-body` 首个网格轨道、`.operator-avatar-placeholder`、窄屏覆盖、`.simulator-slot`、`.simulator-slot-input` 改用 `var(--operator-card-avatar-size, 112px)` 与 `var(--simulator-slot-size, 72px)`；变量由 `OperatorSkillCard.vue` 和 `SimulatorPage.vue` 的 `.simulator-slot-grid` 内联提供，沿用仓库既有的「变量只由 Vue 内联提供、只在 `main.css` 消费」模式。
+- **必须同步的 JS**：模拟器设施卡片宽度由 `facilityCardWidth` 计算并写入 `--simulator-column-width`，而设施卡片是 `overflow: hidden`；原实现使用常量 `SIMULATOR_SLOT_WIDTH = 72`，只改 CSS 会让末尾槽位被裁切而不是滚动。现该函数直接读取设置中的槽位宽度，常量已删除。
+- **顺带修复**：窄屏（≤600px）规则 `.operator-avatar-column img { width: 144px }` 与画框尺寸冲突，导致技能卡头像横向拉伸；现改为跟随配置值，拉伸消失，窄屏默认回到 112px。
+- **未做与风险**：不提供三处共用同一宽度的模式；不改头像生成器的导出宽度（仍由该页「输出宽度」单独控制）；基建技能一览与技能生成器共用同一卡片组件，技能生成器导出的卡片布局会随技能卡宽度设置变化。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过，构建仅保留既有大 chunk 警告；浏览器界面未实测。
