@@ -1328,7 +1328,7 @@ a {
 }
 
 .simulator-editor-toolbar {
-  margin-block-end: 10px;
+  margin-block-end: 14px;
   padding: 8px 10px;
   background: #ffffff;
 }
@@ -1820,7 +1820,7 @@ a {
 }
 
 .simulator-efficiency-panel {
-  margin-block-start: 18px;
+  margin-block-start: 14px;
   border: 1px solid #dce8e4;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
