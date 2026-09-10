@@ -196,3 +196,12 @@
 - **未做与风险**：不提供放大输出（素材仅 180×180）；不修正 `prts`/`yuanyuan3060` 数据源缺失头像目录的问题。页面预览尺寸与界面标签按常量 `OPERATOR_AVATAR_SOURCE_WIDTH = 180` 推算，Canvas 与分层预览本身按真实 `naturalWidth` 缩放，素材尺寸变化时需同步该常量。宽度为 1 至 2 时分层名称栏受最小高度下限影响，与导出高度相差 1px。
 - **环境记录**：本沙箱下 `npm run build` 因 Vite `windowsSafeRealPathSync` 经管道派生 `cmd` 子进程被拒（spawn EPERM），需更宽权限执行；用 PowerShell `Get-Content -Raw` + `Set-Content` 回写仓库文件会破坏中文编码，本轮因此损坏过一次 `AvatarGeneratorPage.vue` 并从 git 恢复，后续请使用编辑工具修改文件。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过，构建仅保留既有大 chunk 警告；等比换算经 Node 脚本核对，宽度 ≥ 3 时 Canvas 输出高度与分层预览高度逐像素相等，宽度 1 至 2 为已知退化区间。浏览器界面未在本轮实测。
+
+## 2026-09-10：统一三处头像显示的等比渲染
+
+- **决定**：在「统一渲染机制」「共用一个输出宽度」「尺寸可配置」三种做法中选择第一种。三处其他头像调用点各增加 `:proportional-layout="true"`：`src/components/OperatorSkillCard.vue`（`size=112`）、`src/pages/SettingsPage.vue`（`size=56`）、`src/pages/SimulatorPage.vue`（`size=72`）。尺寸数字、CSS 与持久化行为全部不变。
+- **理由**：共用宽度值需要一个数字同时适配 72px 的模拟器槽位和 112px 的技能卡网格，且必须推翻此前「宽度参数不持久化」的决定；尺寸可配置需要新增设置入口、存储键和每处区间钳制。等比渲染以 3 行改动获得一致的视觉口径。
+- **可见变化**：技能卡与设置页只显示徽标，仅取整方式变化，视觉几乎无差异；模拟器槽位显示干员名称，名称栏由固定 36px 变为 14px、字号由约 25px 变为约 10px，槽位高度由 72×108 变为 72×86。
+- **未做前提**：将来若要共享宽度或让尺寸可配置，必须先处理 `main.css` 中写死的容器：`.simulator-slot` 72px（`1761-1766`）、`.operator-card .ant-card-body` 网格 112px（`959-961`）、`.operator-avatar-placeholder` 112px（`983`）、窄屏 144px（`2442-2444`）。
+- **提交隔离**：`SimulatorPage.vue`、`CONTEXT.md` 与 `docs/decision-log.md` 的工作区当时还包含其他未提交改动，本次仅用 `git apply --cached` 定向暂存本改动对应的 hunk 后提交，未连带提交他人改动。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 与 `git diff --check` 通过，构建仅保留既有大 chunk 警告。浏览器界面未实测。

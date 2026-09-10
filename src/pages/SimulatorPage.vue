@@ -2585,6 +2585,7 @@ onBeforeUnmount(() => {
                             :show-profession="true"
                             :show-rarity="true"
                             :plain="true"
+                            :proportional-layout="true"
                             :size="72"
                             @click.stop="
                               beginOperatorNameEdit(

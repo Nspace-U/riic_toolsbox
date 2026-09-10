@@ -115,6 +115,7 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
         :mood-scattered="false"
         :operator="operator"
         :plain="true"
+        :proportional-layout="true"
         :show-elite-level="false"
         :show-name="false"
         :show-profession="false"

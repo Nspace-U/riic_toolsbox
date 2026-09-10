@@ -670,6 +670,7 @@ watch(
                   :show-profession="true"
                   :show-rarity="true"
                   :plain="true"
+                  :proportional-layout="true"
                   :size="56"
                 />
                 <div class="settings-progression-item-copy">

@@ -98,9 +98,13 @@
 - 头像生成器新增「输出尺寸 → 输出宽度」数字输入框：留空表示原始尺寸，`:min="1"`、`:max="180"`，输入框下方说明「按原始尺寸 180px 等比缩小，最大 180px；留空表示原始尺寸。」
 - 等比参数落在共享层 `src/utils/operatorAvatarLayout.ts`：新增 `OPERATOR_AVATAR_SOURCE_WIDTH`、`normalizeOperatorAvatarOutputWidth`、`getOperatorAvatarScale`、`getScaledOperatorAvatarLength`、`getOperatorAvatarProportionalNameMetrics`；`OperatorAvatarRenderOptions` 与 `OperatorAvatarGenerationOptions` 新增可选 `outputWidth`，缺省即原始尺寸，当前只有头像生成器传值。
 - 生成语义为严格等比：先在素材原始尺寸合成完整画布（含名称栏、遮罩、职业/精英化/星级徽标），再整块画布按 `outputWidth / naturalWidth` 重采样；目标宽度等于素材宽度时跳过重采样，输出与改动前完全一致。
-- 分层预览与整合预览显示要求完全一致：都按输出宽度 1:1 显示，不再写死 180；`OperatorAvatarDisplay` 新增默认关闭的 `proportionalLayout`，开启时名称栏高度、字号、水平内边距与三类徽标尺寸改为「按素材宽度取整后再乘缩放比」，绕开 `nameMinHeight` 与 `nameMinFontSize` 下限，与 Canvas 结果几何一致；未开启时 4 个既有调用点（设置页 56、模拟器 72、技能卡 112、默认 96）行为不变。
+- 分层预览与整合预览显示要求完全一致：都按输出宽度 1:1 显示，不再写死 180；`OperatorAvatarDisplay` 新增默认关闭的 `proportionalLayout`，开启时名称栏高度、字号、水平内边距与三类徽标尺寸改为「按素材宽度取整后再乘缩放比」，绕开 `nameMinHeight` 与 `nameMinFontSize` 下限，与 Canvas 结果几何一致；该开关默认关闭，未开启时渲染算法与改动前完全一致。
 - 预览元信息新增「输出 宽 × 高 px」；下载文件名在精英化与心情之后追加宽度（如 `能天使-精英2-96.png`），留空时文件名保持原样。
 - 未做：放大输出（素材仅 180×180）、把宽度参数接入技能生成器或其他 DOM 调用方、修正 `prts`/`yuanyuan3060` 数据源缺失头像目录的问题。
 - 风险：页面预览尺寸与界面标签按常量 `OPERATOR_AVATAR_SOURCE_WIDTH = 180` 推算，Canvas 与分层预览本身按真实 `naturalWidth` 缩放；素材尺寸若变化需同步该常量与标签。宽度为 1 至 2 时分层名称栏受最小高度下限影响，与导出高度相差 1px。
 - 已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过（构建仅保留既有大 chunk 警告）；等比换算经 Node 脚本核对，宽度 ≥ 3 时 Canvas 输出高度与分层预览高度逐像素相等。浏览器界面未在本轮实测。
 - 环境记录：本沙箱下 `npm run build` 因 Vite `windowsSafeRealPathSync` 经管道派生 `cmd` 被拒（spawn EPERM），需更宽权限执行；用 PowerShell `Get-Content -Raw` + `Set-Content` 回写文件会破坏中文编码，本轮曾损坏 `AvatarGeneratorPage.vue` 并从 git 恢复，后续统一使用编辑工具修改文件。
+- 三处其他头像显示调用点已统一启用等比渲染（方案 B）：`src/components/OperatorSkillCard.vue`（`size=112`）、`src/pages/SettingsPage.vue`（`size=56`）、`src/pages/SimulatorPage.vue`（`size=72`）各增加 `:proportional-layout="true"`，尺寸数字与 CSS 均未修改。
+- 可见变化：技能卡与设置页只显示徽标，取整方式变化但视觉几乎无差异；模拟器槽位显示干员名称，名称栏由固定 36px 变为 14px、字号由约 25px 变为约 10px，槽位高度由 72×108 变为 72×86。
+- 未采用：三处共用一个输出宽度值会与既有「宽度参数不持久化」决策冲突，且一个值无法同时适配 72px 槽位与 112px 卡片网格；尺寸可配置需要新增设置项、存储与区间钳制。二者将来若实施，必须先处理 `main.css` 中写死的容器：`.simulator-slot` 72px（`1761-1766`）、`.operator-card .ant-card-body` 网格 112px（`959-961`）、`.operator-avatar-placeholder` 112px（`983`）、窄屏 144px（`2442-2444`）。
+- 提交注意：`SimulatorPage.vue` 工作区仍有其他未提交改动，本次仅把本行通过 `git apply --cached` 定向暂存后提交，未连带提交他人改动。
