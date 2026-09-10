@@ -26,6 +26,7 @@ import {
   PRODUCT_OPTIONS,
   UNSUPPORTED_PRODUCT_LABELS,
   DEFAULT_SOURCE_MATERIAL,
+  createDefaultRoomAssignment,
   ROOM_LABELS,
   ROOM_ORDER,
   SOURCE_MATERIAL_OPTIONS,
@@ -256,7 +257,9 @@ function roomsForLayout(
   ROOM_ORDER.forEach((type) => {
     const count = layout.filter((entry) => entry.type === type).length;
     if (count > 0) {
-      rooms[type] = Array.from({ length: count }, () => ({ skip: true }));
+      rooms[type] = Array.from({ length: count }, () =>
+        createDefaultRoomAssignment(type),
+      );
     }
   });
   return rooms;
@@ -277,7 +280,7 @@ function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
       : [];
     nextRooms[type] = Array.from(
       { length: expected },
-      (_, index) => previous[index] ?? { skip: true },
+      (_, index) => previous[index] ?? createDefaultRoomAssignment(type),
     );
   });
   plan.rooms = nextRooms;
@@ -390,9 +393,9 @@ function removeLayoutEntry(index: number): void {
 function planRoom(plan: Plan, type: RoomKey, position: number): RoomAssignment {
   const rooms = plan.rooms[type];
   if (!Array.isArray(rooms)) {
-    return { skip: true };
+    return createDefaultRoomAssignment(type);
   }
-  return rooms[position] ?? { skip: true };
+  return rooms[position] ?? createDefaultRoomAssignment(type);
 }
 
 function updatePlanRoom(
@@ -413,7 +416,7 @@ function updatePlanRoom(
       (entry) => entry.type === type,
     ).length;
     while (rooms.length < expected) {
-      rooms.push({ skip: true });
+      rooms.push(createDefaultRoomAssignment(type));
     }
     const room = rooms[position];
     if (!room) {

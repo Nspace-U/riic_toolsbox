@@ -38,6 +38,7 @@ import type {
 import {
   DEFAULT_SOURCE_MATERIAL,
   BUILD_CHAIN_REQUIRED,
+  createDefaultRoomAssignment,
   LAYOUT_INPUT_ROWS,
   LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
@@ -485,7 +486,9 @@ function roomsForLayout(
   ROOM_ORDER.forEach((type) => {
     const count = layout.filter((entry) => entry.type === type).length;
     if (count > 0) {
-      rooms[type] = Array.from({ length: count }, () => ({ skip: true }));
+      rooms[type] = Array.from({ length: count }, () =>
+        createDefaultRoomAssignment(type),
+      );
     }
   });
   return rooms;
@@ -531,7 +534,7 @@ function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
     const entries = layout.filter((entry) => entry.type === type);
     nextRooms[type] = Array.from({ length: expected }, (_, index) =>
       normalizeRoomCapacity(
-        previous[index] ?? { skip: true },
+        previous[index] ?? createDefaultRoomAssignment(type),
         type,
         entries[index]?.level ?? 1,
       ),
@@ -898,7 +901,7 @@ function updatePlanRoom(
       (entry) => entry.type === type,
     ).length;
     while (rooms.length < expected) {
-      rooms.push({ skip: true });
+      rooms.push(createDefaultRoomAssignment(type));
     }
     const room = rooms[position];
     if (!room) {

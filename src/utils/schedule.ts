@@ -130,6 +130,19 @@ export const UNSUPPORTED_PRODUCT_LABELS: Record<string, string> = {
 
 export const DEFAULT_SOURCE_MATERIAL = "固源岩";
 
+export const DEFAULT_ROOM_PRODUCTS: Partial<Record<RoomKey, string>> = {
+  trading: "LMD",
+  manufacture: "Pure Gold",
+};
+
+export function createDefaultRoomAssignment(type: RoomKey): RoomAssignment {
+  const product = DEFAULT_ROOM_PRODUCTS[type];
+  return {
+    skip: true,
+    ...(product ? { product } : {}),
+  };
+}
+
 export const PRODUCT_OPTIONS = Object.entries(PRODUCT_LABELS).map(
   ([value, label]) => ({
     value,

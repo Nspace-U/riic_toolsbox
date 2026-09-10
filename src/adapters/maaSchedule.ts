@@ -13,6 +13,7 @@ import {
   ROOM_ORDER,
   ScheduleError,
   cloneSchedule,
+  createDefaultRoomAssignment,
   roomLevelRange,
   validateLayout,
   validatePlans,
@@ -137,7 +138,7 @@ function completeInferredRooms(plans: Plan[], layout: LayoutEntry[]): Plan[] {
         }
       }
       while (existing.length < expected) {
-        existing.push({ skip: true });
+        existing.push(createDefaultRoomAssignment(type));
       }
       rooms[type] = existing;
     });
