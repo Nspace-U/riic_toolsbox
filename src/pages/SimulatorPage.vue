@@ -8,11 +8,22 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useDataSource } from "@/composables/useDataSource";
+import {
+  FACILITY_CARD_ICON_STYLE_OPTIONS,
+  useFacilityCardSettings,
+} from "@/composables/useFacilityCardSettings";
 import {
   isProductColorKey,
   useFacilityColors,
@@ -58,6 +69,8 @@ import {
   canAddLayoutEntry,
   cloneSchedule,
   facilityPower,
+  facilityProductIconFile,
+  isFixedLevelRoom,
   orderedLayoutEntries,
   parseLayoutText,
   roomSlotCount,
@@ -65,6 +78,11 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
+import {
+  getOperatorAvatarNameFontSize,
+  getOperatorAvatarNameMinBandMetrics,
+  OPERATOR_AVATAR_SOURCE_WIDTH,
+} from "@/utils/operatorAvatarLayout";
 import {
   progressionNodesForFacility,
   resolveOperatorProgression,
@@ -96,13 +114,35 @@ interface OperatorSlotAddress {
   key: string;
 }
 
-interface OperatorContextMenuState extends OperatorSlotAddress {
+/** 槽位名称输入框的组件实例；在 v-for 内使用模板 ref 时会拿到数组。 */
+interface SlotNameInputInstance {
+  $el?: Element;
+}
+
+interface FacilityContextMenuState extends OperatorSlotAddress {
+  /** 需要在菜单里展示的房间位置；干员右键时只有该干员所在房间。 */
+  positions: number[];
   x: number;
   y: number;
 }
 
+interface FacilityContextMenuItem {
+  key: string;
+  label: string;
+  check?: boolean;
+  disabled?: boolean;
+  divider?: boolean;
+  action?: () => void;
+}
+
+interface FacilityContextMenuSection {
+  key: string;
+  title: string;
+  items: FacilityContextMenuItem[];
+}
+
 interface OperatorContextMenuDetails {
-  menu: OperatorContextMenuState;
+  menu: FacilityContextMenuState;
   name: string;
   operator: Operator;
   room: RoomAssignment;
@@ -159,6 +199,8 @@ const LAYOUT_BUILD_ORDER: RoomKey[] = [
 const {
   documents,
   activeDocumentId,
+  layoutLevelNotice,
+  clearLayoutLevelNotice,
   createDocument,
   getActiveDocument,
   setActiveDocument,
@@ -168,12 +210,37 @@ const {
 } = useScheduleDocuments();
 const { operators, terms, ready: baseDataReady } = useBaseData();
 const { avatarDisplaySizes } = useAvatarDisplaySizes();
+const { facilityCardSettings, facilityCardPadding, facilityCardQueuesPadding } =
+  useFacilityCardSettings();
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
 const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
 
+const simulatorSlotSize = computed(
+  () => avatarDisplaySizes.value.simulatorSlot,
+);
+
 const slotGridStyle = computed(() => ({
-  "--simulator-slot-size": `${avatarDisplaySizes.value.simulatorSlot}px`,
+  "--simulator-slot-size": `${simulatorSlotSize.value}px`,
+}));
+
+const slotNameBandHeight = computed(
+  () =>
+    getOperatorAvatarNameMinBandMetrics(
+      OPERATOR_AVATAR_SOURCE_WIDTH,
+      simulatorSlotSize.value,
+    ).height,
+);
+
+const slotNameBandStyle = computed(() => ({
+  height: `${slotNameBandHeight.value}px`,
+  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize.value)}px`,
+}));
+
+const emptySlotStyle = computed(() => ({
+  width: `${simulatorSlotSize.value}px`,
+  height: `${simulatorSlotSize.value}px`,
+  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize.value)}px`,
 }));
 
 function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
@@ -248,12 +315,18 @@ function persistSimulatorEditSettings(
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
+const layoutLevelFixNotice = layoutLevelNotice.value;
+if (layoutLevelFixNotice) {
+  successMessage.value = layoutLevelFixNotice;
+  clearLayoutLevelNotice();
+}
 const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const editingOperatorSlot = ref<OperatorSlotAddress>();
-const operatorContextMenu = ref<OperatorContextMenuState>();
+const slotNameInput = ref<SlotNameInputInstance | SlotNameInputInstance[]>();
+const contextMenu = ref<FacilityContextMenuState>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 const layoutTextHint =
@@ -310,6 +383,19 @@ const operatorOptions = computed(() =>
     label: operator.name,
   })),
 );
+
+/** 名称补全按已输入文字做子串匹配。 */
+function filterOperatorOption(
+  input: string,
+  option: { value?: string | number | null },
+): boolean {
+  const query = input.trim().toLowerCase();
+  if (!query) {
+    return true;
+  }
+  const value = typeof option.value === "string" ? option.value : "";
+  return value.toLowerCase().includes(query);
+}
 
 const layoutAddOptions = computed(() =>
   ROOM_ORDER.map((type) => {
@@ -1024,23 +1110,6 @@ function productOptions(
   return result;
 }
 
-function productLabel(type: RoomKey, product: string | undefined): string {
-  if (!product) {
-    return "未指定产物";
-  }
-  return (
-    productOptions(type, product).find((option) => option.value === product)
-      ?.label ?? product
-  );
-}
-
-function sourceMaterialLabel(sourceMaterial: string): string {
-  return (
-    SOURCE_MATERIAL_OPTIONS.find((option) => option.value === sourceMaterial)
-      ?.label ?? sourceMaterial
-  );
-}
-
 function sourceValue(room: RoomAssignment | undefined): string {
   return (
     room?.sourceMaterial ??
@@ -1166,6 +1235,18 @@ function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
   return editingOperatorSlot.value?.key === slot.key;
 }
 
+/** 从补全下拉中选中干员后立即提交，避免停留在原地编辑状态。 */
+function selectOperatorName(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+  value: string,
+): void {
+  handleOperatorDraft(planIndex, type, position, slotIndex, value);
+  commitOperatorName(planIndex, type, position, slotIndex);
+}
+
 function finishOperatorNameEdit(key: string): void {
   delete draftOperatorNames.value[key];
   if (editingOperatorSlot.value?.key === key) {
@@ -1207,7 +1288,23 @@ function beginOperatorNameEdit(
         slotIndex,
       )
     : "";
-  operatorContextMenu.value = undefined;
+  contextMenu.value = undefined;
+  void focusSlotNameInput();
+}
+
+/** 原地编辑时把焦点放到槽位输入框，并全选已有名称便于直接替换。 */
+async function focusSlotNameInput(): Promise<void> {
+  await nextTick();
+  const target = slotNameInput.value;
+  const instance = Array.isArray(target) ? target[0] : target;
+  const element = instance?.$el;
+  const input =
+    element instanceof Element ? element.querySelector("input") : null;
+  if (!input) {
+    return;
+  }
+  input.focus();
+  input.select();
 }
 
 function cancelOperatorNameEdit(): void {
@@ -1319,15 +1416,99 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   );
 }
 
-const SIMULATOR_SLOT_GAP = 0;
-const SIMULATOR_FACILITY_MIN_WIDTH = 224;
+const FACILITY_TITLE_HEAD_SPACE = 32;
+const FACILITY_TITLE_LEVEL_TAG_WIDTH = 37;
+const FACILITY_TITLE_MAX_FONT_SIZE = 14;
+const FACILITY_TITLE_MIN_FONT_SIZE = 11;
+const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
+
+function slotRefCount(row: FacilityRow): number {
+  return Math.max(1, slotRefs(row).length);
+}
+
+function facilityCardWidthValue(row: FacilityRow): number {
+  const padding = facilityCardPadding(facilityCardSettings.value.paddingKey);
+  return slotRefCount(row) * avatarDisplaySizes.value.simulatorSlot + padding;
+}
 
 function facilityCardWidth(row: FacilityRow): string {
-  const slotCount = Math.max(1, slotRefs(row).length);
-  const contentWidth =
-    slotCount * avatarDisplaySizes.value.simulatorSlot +
-    (slotCount - 1) * SIMULATOR_SLOT_GAP;
-  return `${Math.max(SIMULATOR_FACILITY_MIN_WIDTH, contentWidth + 40)}px`;
+  return `${facilityCardWidthValue(row)}px`;
+}
+
+/** 设施卡片列宽与队列卡片内边距都由「设施卡片」设置驱动。 */
+function facilityColumnStyle(row: FacilityRow): Record<string, string> {
+  const paddingKey = facilityCardSettings.value.paddingKey;
+  return {
+    "--simulator-column-width": facilityCardWidth(row),
+    "--simulator-facility-queues-padding": `${facilityCardQueuesPadding(
+      paddingKey,
+    )}px`,
+  };
+}
+
+/** 控制中枢与发电站等级固定，卡片标题不再展示等级标签。 */
+function showsFacilityLevelTags(type: RoomKey): boolean {
+  return !isFixedLevelRoom(type);
+}
+
+function estimateTextEm(text: string): number {
+  let em = 0;
+  for (const character of text) {
+    em += /[\u2e80-\u9fff\uff00-\uffef\u3000-\u303f]/.test(character)
+      ? 1
+      : 0.56;
+  }
+  return Math.max(0.5, em);
+}
+
+/** 标题放不下时缩小字号，下限为 11px，再放不下由 CSS 省略号兜底。 */
+function facilityTitleStyle(row: FacilityRow): Record<string, string> {
+  const levelTagWidth = showsFacilityLevelTags(row.type)
+    ? row.entries.length * FACILITY_TITLE_LEVEL_TAG_WIDTH
+    : 0;
+  const availableWidth = Math.max(
+    24,
+    facilityCardWidthValue(row) - FACILITY_TITLE_HEAD_SPACE - levelTagWidth,
+  );
+  const fittedFontSize = Math.floor(availableWidth / estimateTextEm(row.label));
+  const fontSize = Math.min(
+    FACILITY_TITLE_MAX_FONT_SIZE,
+    Math.max(FACILITY_TITLE_MIN_FONT_SIZE, fittedFontSize),
+  );
+  return { "--simulator-facility-title-size": `${fontSize}px` };
+}
+
+function facilityIconUrl(fileName: string | undefined): string | undefined {
+  return fileName
+    ? `${import.meta.env.BASE_URL}${FACILITY_ICON_URL_BASE}${fileName}`
+    : undefined;
+}
+
+/** 队列卡片背景的产物图标；没有产物的设施返回 undefined。 */
+function facilityCardIconUrl(row: FacilityRow, plan: Plan): string | undefined {
+  const products = roomProducts(row, plan);
+  return facilityIconUrl(
+    facilityProductIconFile(
+      row.type,
+      products.length === 1 ? products[0] : undefined,
+    ),
+  );
+}
+
+function facilityIconClasses(): string[] {
+  return [
+    "simulator-facility-icon",
+    `simulator-facility-icon--${facilityCardSettings.value.iconStyle}`,
+  ];
+}
+
+function facilityIconStyle(): Record<string, string> {
+  const option =
+    FACILITY_CARD_ICON_STYLE_OPTIONS[facilityCardSettings.value.iconStyle];
+  const size =
+    option.fixedSize ??
+    Math.round(simulatorSlotSize.value * (option.scale ?? 1));
+  return { "--simulator-facility-icon-size": `${size}px` };
 }
 
 function productAccent(product: string): string | undefined {
@@ -1404,6 +1585,13 @@ function slotOperator(
   slot: FacilitySlotRef,
 ): Operator | undefined {
   return operatorByName(slotName(row, plan, planIndex, slot));
+}
+
+/**
+ * 跳过状态只在房间确实安排了干员时展示，避免默认未排班房间的 skip 覆盖空槽位提示。
+ */
+function roomSkipped(room: RoomAssignment | undefined): boolean {
+  return room?.skip === true && (room.operators?.length ?? 0) > 0;
 }
 
 function commitOperatorName(
@@ -1673,7 +1861,7 @@ function progressionMenuNodes(
 const operatorContextMenuDetails = computed<
   OperatorContextMenuDetails | undefined
 >(() => {
-  const menu = operatorContextMenu.value;
+  const menu = contextMenu.value;
   const document = currentDocument.value;
   if (!menu || !document) {
     return undefined;
@@ -1725,8 +1913,8 @@ function isCurrentProgressionNode(node: OperatorProgressionNode): boolean {
     : details.currentProgression.level === node.value;
 }
 
-function operatorContextMenuStyle(): Record<string, string> {
-  const menu = operatorContextMenu.value;
+function contextMenuStyle(): Record<string, string> {
+  const menu = contextMenu.value;
   if (!menu) {
     return {};
   }
@@ -1736,6 +1924,27 @@ function operatorContextMenuStyle(): Record<string, string> {
   };
 }
 
+function commitPendingOperatorNameEdit(): boolean {
+  const currentEditing = editingOperatorSlot.value;
+  if (!currentEditing) {
+    return true;
+  }
+  return commitOperatorName(
+    currentEditing.planIndex,
+    currentEditing.type,
+    currentEditing.position,
+    currentEditing.slotIndex,
+  );
+}
+
+function contextMenuPosition(event: MouseEvent): { x: number; y: number } {
+  return {
+    x: Math.min(event.clientX, Math.max(8, window.innerWidth - 240)),
+    y: Math.min(event.clientY, Math.max(8, window.innerHeight - 320)),
+  };
+}
+
+/** 干员右键：干员菜单 + 该干员所在房间的设施菜单。 */
 function openOperatorContextMenu(
   event: MouseEvent,
   planIndex: number,
@@ -1743,36 +1952,120 @@ function openOperatorContextMenu(
   position: number,
   slotIndex: number,
 ): void {
-  const currentEditing = editingOperatorSlot.value;
-  if (currentEditing) {
-    if (
-      !commitOperatorName(
-        currentEditing.planIndex,
-        currentEditing.type,
-        currentEditing.position,
-        currentEditing.slotIndex,
-      )
-    ) {
-      return;
-    }
-  }
-  const plan = currentDocument.value?.plans[planIndex];
-  const name = plan ? operatorNameAt(plan, type, position, slotIndex) : "";
-  if (!name) {
-    operatorContextMenu.value = undefined;
+  if (!commitPendingOperatorNameEdit()) {
     return;
   }
-  const slot = operatorSlotAddress(planIndex, type, position, slotIndex);
-  operatorContextMenu.value = {
-    ...slot,
-    x: Math.min(event.clientX, Math.max(8, window.innerWidth - 220)),
-    y: Math.min(event.clientY, Math.max(8, window.innerHeight - 280)),
+  contextMenu.value = {
+    ...operatorSlotAddress(planIndex, type, position, slotIndex),
+    positions: [position],
+    ...contextMenuPosition(event),
   };
 }
 
-function closeOperatorContextMenu(): void {
-  operatorContextMenu.value = undefined;
+/** 设施区右键：按房间展示跳过、产物和原料编辑。 */
+function openFacilityContextMenu(
+  event: MouseEvent,
+  planIndex: number,
+  type: RoomKey,
+  positions: number[],
+): void {
+  if (!commitPendingOperatorNameEdit()) {
+    return;
+  }
+  contextMenu.value = {
+    ...operatorSlotAddress(planIndex, type, positions[0] ?? 0, 0),
+    positions,
+    ...contextMenuPosition(event),
+  };
 }
+
+function closeContextMenu(): void {
+  contextMenu.value = undefined;
+}
+
+function roomContextMenuItems(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+): FacilityContextMenuItem[] {
+  const plan = currentDocument.value?.plans[planIndex];
+  const room = plan ? roomAt(plan, type, position) : undefined;
+  const items: FacilityContextMenuItem[] = [
+    {
+      key: `skip-${position}`,
+      label: "跳过",
+      check: room?.skip === true,
+      action: () => {
+        updateRoomSkip(planIndex, type, position, room?.skip !== true);
+        closeContextMenu();
+      },
+    },
+  ];
+
+  if (!roomHasProduct(type) || !currentSimulatorEditSettings.value.product) {
+    return items;
+  }
+
+  items.push({ key: `product-divider-${position}`, label: "", divider: true });
+  productOptions(type, room?.product).forEach((option) => {
+    items.push({
+      key: `product-${position}-${option.value || "none"}`,
+      label: option.label,
+      check: (room?.product ?? "") === option.value,
+      disabled: option.disabled,
+      action: () => {
+        updateRoomProduct(planIndex, type, position, option.value);
+        closeContextMenu();
+      },
+    });
+  });
+
+  if (!sourceVisible(room)) {
+    return items;
+  }
+
+  const currentSourceMaterial = sourceValue(room);
+  items.push({ key: `source-divider-${position}`, label: "", divider: true });
+  items.push({
+    key: `source-${position}-none`,
+    label: "未指定原料",
+    check: currentSourceMaterial === "",
+    action: () => {
+      updateRoomSource(planIndex, type, position, "");
+      closeContextMenu();
+    },
+  });
+  SOURCE_MATERIAL_OPTIONS.forEach((option) => {
+    items.push({
+      key: `source-${position}-${option.value}`,
+      label: option.label,
+      check: currentSourceMaterial === option.value,
+      action: () => {
+        updateRoomSource(planIndex, type, position, option.value);
+        closeContextMenu();
+      },
+    });
+  });
+
+  return items;
+}
+
+const contextMenuSections = computed<FacilityContextMenuSection[]>(() => {
+  const menu = contextMenu.value;
+  if (!menu) {
+    return [];
+  }
+  const multipleRooms = menu.positions.length > 1;
+  return menu.positions.map((position) => ({
+    key: `${menu.type}-${position}`,
+    title: multipleRooms
+      ? `${ROOM_LABELS[menu.type]} ${position + 1}`
+      : ROOM_LABELS[menu.type],
+    items: roomContextMenuItems(menu.planIndex, menu.type, position),
+  }));
+});
+
+const contextMenuIsFlat = computed(() => contextMenuSections.value.length <= 1);
 
 function updateOperatorMoodQuickly(value: number): void {
   const menu = operatorContextMenuDetails.value;
@@ -1787,7 +2080,7 @@ function updateOperatorMoodQuickly(value: number): void {
     "mood",
     value === 24 ? null : value,
   );
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function updateOperatorProgression(node: OperatorProgressionNode): void {
@@ -1832,7 +2125,7 @@ function updateOperatorProgression(node: OperatorProgressionNode): void {
       node.value,
     );
   }
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function resetOperatorProgression(): void {
@@ -1862,30 +2155,27 @@ function resetOperatorProgression(): void {
       }
     },
   );
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
-  if (
-    target instanceof Element &&
-    target.closest(".simulator-operator-context-menu")
-  ) {
+  if (target instanceof Element && target.closest(".simulator-context-menu")) {
     return;
   }
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function handleWindowWheel() {
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function handleWindowScroll() {
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function handleWindowResize() {
-  closeOperatorContextMenu();
+  closeContextMenu();
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
@@ -1894,7 +2184,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
       event.preventDefault();
       cancelOperatorNameEdit();
     }
-    closeOperatorContextMenu();
+    closeContextMenu();
   }
 }
 
@@ -1987,7 +2277,7 @@ function isStoredDocument(document: StoredDocument): boolean {
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
   editingOperatorSlot.value = undefined;
-  operatorContextMenu.value = undefined;
+  contextMenu.value = undefined;
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
     layoutApplyTimer = undefined;
@@ -2295,9 +2585,15 @@ onBeforeUnmount(() => {
                   {{ ROOM_LABELS[item.entry.type] }}
                 </span>
                 <div class="simulator-layout-card-actions">
+                  <span
+                    v-if="isFixedLevelRoom(item.entry.type)"
+                    class="simulator-layout-card-level-text"
+                    >Lv{{ item.entry.level }}</span
+                  >
                   <a-input-number
+                    v-else
                     :max="layoutEntryLevelMax(item.entry.type)"
-                    :min="1"
+                    :min="roomLevelRange(item.entry.type).min"
                     :value="item.entry.level"
                     addon-after="级"
                     class="simulator-layout-card-level"
@@ -2430,7 +2726,7 @@ onBeforeUnmount(() => {
           <a-col
             v-for="row in facilityRows"
             :key="row.key"
-            :style="{ '--simulator-column-width': facilityCardWidth(row) }"
+            :style="facilityColumnStyle(row)"
             class="simulator-facility-column"
           >
             <a-card
@@ -2439,9 +2735,16 @@ onBeforeUnmount(() => {
               :style="facilityCardStyle(row, currentDocument.plans)"
             >
               <template #title>
-                <div class="simulator-facility-title">
+                <div
+                  :style="facilityTitleStyle(row)"
+                  class="simulator-facility-title"
+                >
                   <span>{{ row.label }}</span>
-                  <a-space :size="4" wrap>
+                  <a-space
+                    v-if="showsFacilityLevelTags(row.type)"
+                    :size="4"
+                    wrap
+                  >
                     <a-tag
                       v-for="entry in row.entries"
                       :key="entry.index"
@@ -2450,9 +2753,6 @@ onBeforeUnmount(() => {
                     >
                   </a-space>
                 </div>
-              </template>
-              <template #extra>
-                <a-tag v-if="row.type === 'power'" color="cyan">合并显示</a-tag>
               </template>
 
               <div class="simulator-facility-queues">
@@ -2464,107 +2764,121 @@ onBeforeUnmount(() => {
                   size="small"
                   :style="facilityQueueStyle(row, plan)"
                 >
-                  <div class="simulator-facility-queue-content">
-                    <div class="simulator-facility-queue-meta">
-                      <div class="simulator-room-controls">
-                        <div
-                          v-for="({ entry, room }, entryIndex) in roomEntries(
-                            row,
-                            plan,
-                          )"
-                          :key="`room-controls-${entryIndex}`"
-                          class="simulator-room-control"
-                        >
-                          <span
-                            v-if="row.entries.length > 1"
-                            class="simulator-room-control-label"
-                          >
-                            {{ ROOM_LABELS[row.type] }} {{ entry.position + 1 }}
-                          </span>
-                          <template
-                            v-if="
-                              roomHasProduct(row.type) &&
-                              currentSimulatorEditSettings.product
-                            "
-                          >
-                            <a-select
-                              :options="productOptions(row.type, room?.product)"
-                              :value="room?.product ?? ''"
-                              class="simulator-room-product"
-                              placeholder="产物"
-                              size="small"
-                              @update:value="
-                                (value: string) =>
-                                  updateRoomProduct(
-                                    planIndex,
-                                    row.type,
-                                    entry.position,
-                                    value,
-                                  )
-                              "
-                            />
-                          </template>
-                          <span
-                            v-else-if="roomHasProduct(row.type)"
-                            class="simulator-room-product simulator-readonly-value"
-                            >{{ productLabel(row.type, room?.product) }}</span
-                          >
-                          <template
-                            v-if="
-                              roomHasProduct(row.type) && sourceVisible(room)
-                            "
-                          >
-                            <a-select
-                              v-if="currentSimulatorEditSettings.product"
-                              :options="[
-                                { value: '', label: '未指定原料' },
-                                ...SOURCE_MATERIAL_OPTIONS,
-                              ]"
-                              :value="sourceValue(room)"
-                              class="simulator-room-source"
-                              placeholder="原料"
-                              size="small"
-                              @update:value="
-                                (value: string) =>
-                                  updateRoomSource(
-                                    planIndex,
-                                    row.type,
-                                    entry.position,
-                                    value,
-                                  )
-                              "
-                            />
-                            <span
-                              v-else
-                              class="simulator-room-source simulator-readonly-value"
-                              >{{
-                                sourceMaterialLabel(sourceValue(room))
-                              }}</span
-                            >
-                          </template>
-                          <a-checkbox
-                            :checked="room?.skip === true"
-                            @change="
-                              (event: { target: { checked: boolean } }) =>
-                                updateRoomSkip(
-                                  planIndex,
-                                  row.type,
-                                  entry.position,
-                                  event.target.checked,
-                                )
-                            "
-                          >
-                            跳过
-                          </a-checkbox>
-                        </div>
-                      </div>
-                    </div>
+                  <img
+                    v-if="facilityCardIconUrl(row, plan)"
+                    :alt="`${row.label}产物图标`"
+                    :class="facilityIconClasses()"
+                    :src="facilityCardIconUrl(row, plan) ?? ''"
+                    :style="facilityIconStyle()"
+                    aria-hidden="true"
+                  />
+                  <div
+                    class="simulator-facility-queue-content"
+                    @contextmenu.stop.prevent="
+                      openFacilityContextMenu(
+                        $event,
+                        planIndex,
+                        row.type,
+                        row.entries.map((item) => item.position),
+                      )
+                    "
+                  >
                     <div class="simulator-slot-grid" :style="slotGridStyle">
                       <div
                         v-for="slot in slotRefs(row)"
                         :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`"
                         class="simulator-slot"
                       >
+                        <OperatorAvatarDisplay
+                          v-if="slotOperator(row, plan, planIndex, slot)"
+                          :data-source="selectedDataSource"
+                          :elite-level="
+                            operatorElite(
+                              slotRoom(plan, slot),
+                              slotName(row, plan, planIndex, slot),
+                              row.type,
+                            )
+                          "
+                          :operator="slotOperator(row, plan, planIndex, slot)!"
+                          :operator-owned="
+                            operatorOwned(
+                              slotRoom(plan, slot),
+                              slotName(row, plan, planIndex, slot),
+                            )
+                          "
+                          :operator-training-upgraded="
+                            operatorTrainingUpgraded(
+                              slotRoom(plan, slot),
+                              slotName(row, plan, planIndex, slot),
+                              row.type,
+                            )
+                          "
+                          :show-elite-level="true"
+                          :show-name="true"
+                          :show-profession="true"
+                          :show-rarity="true"
+                          :name-editing="
+                            isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            )
+                          "
+                          :plain="true"
+                          :proportional-layout="true"
+                          :size="simulatorSlotSize"
+                          :skipped="roomSkipped(slotRoom(plan, slot))"
+                          @click.stop="
+                            beginOperatorNameEdit(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
+                          @contextmenu.stop.prevent="
+                            openOperatorContextMenu(
+                              $event,
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
+                        />
+                        <div
+                          v-else
+                          :style="emptySlotStyle"
+                          class="simulator-empty-avatar"
+                          @click.stop="
+                            beginOperatorNameEdit(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
+                          @contextmenu.stop.prevent="
+                            openFacilityContextMenu(
+                              $event,
+                              planIndex,
+                              row.type,
+                              [slot.entry.position],
+                            )
+                          "
+                        >
+                          <span class="simulator-empty-avatar-label">
+                            {{
+                              roomSkipped(slotRoom(plan, slot))
+                                ? "跳过"
+                                : slotName(row, plan, planIndex, slot) ||
+                                  "空槽位"
+                            }}
+                          </span>
+                        </div>
                         <a-auto-complete
                           v-if="
                             isEditingOperatorSlot(
@@ -2576,12 +2890,12 @@ onBeforeUnmount(() => {
                               ),
                             )
                           "
-                          :autofocus="true"
+                          ref="slotNameInput"
+                          :filter-option="filterOperatorOption"
                           :options="operatorOptions"
+                          :style="slotNameBandStyle"
                           :value="slotName(row, plan, planIndex, slot)"
-                          class="simulator-slot-input"
-                          placeholder="干员名称"
-                          @click.stop
+                          class="simulator-slot-name-input"
                           @blur="
                             commitOperatorName(
                               planIndex,
@@ -2590,6 +2904,7 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             )
                           "
+                          @click.stop
                           @press-enter="
                             commitOperatorName(
                               planIndex,
@@ -2597,6 +2912,16 @@ onBeforeUnmount(() => {
                               slot.entry.position,
                               slot.slotIndex,
                             )
+                          "
+                          @select="
+                            (value: string) =>
+                              selectOperatorName(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                                value,
+                              )
                           "
                           @update:value="
                             (value: string) =>
@@ -2609,77 +2934,6 @@ onBeforeUnmount(() => {
                               )
                           "
                         />
-                        <template v-else>
-                          <OperatorAvatarDisplay
-                            v-if="slotOperator(row, plan, planIndex, slot)"
-                            :data-source="selectedDataSource"
-                            :elite-level="
-                              operatorElite(
-                                slotRoom(plan, slot),
-                                slotName(row, plan, planIndex, slot),
-                                row.type,
-                              )
-                            "
-                            :operator="
-                              slotOperator(row, plan, planIndex, slot)!
-                            "
-                            :operator-owned="
-                              operatorOwned(
-                                slotRoom(plan, slot),
-                                slotName(row, plan, planIndex, slot),
-                              )
-                            "
-                            :operator-training-upgraded="
-                              operatorTrainingUpgraded(
-                                slotRoom(plan, slot),
-                                slotName(row, plan, planIndex, slot),
-                                row.type,
-                              )
-                            "
-                            :show-elite-level="true"
-                            :show-name="true"
-                            :show-profession="true"
-                            :show-rarity="true"
-                            :plain="true"
-                            :proportional-layout="true"
-                            :size="avatarDisplaySizes.simulatorSlot"
-                            @click.stop="
-                              beginOperatorNameEdit(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              )
-                            "
-                            @contextmenu.stop.prevent="
-                              openOperatorContextMenu(
-                                $event,
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              )
-                            "
-                          />
-                          <a-avatar
-                            v-else
-                            :size="avatarDisplaySizes.simulatorSlot"
-                            class="simulator-empty-avatar"
-                            shape="square"
-                            @click.stop="
-                              beginOperatorNameEdit(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              )
-                            "
-                          >
-                            {{
-                              slotName(row, plan, planIndex, slot) || "空槽位"
-                            }}
-                          </a-avatar>
-                        </template>
                       </div>
                     </div>
                     <div
@@ -2717,45 +2971,70 @@ onBeforeUnmount(() => {
         </a-row>
 
         <div
-          v-if="operatorContextMenuDetails"
-          class="simulator-operator-context-menu"
-          :style="operatorContextMenuStyle()"
+          v-if="contextMenu"
+          :class="[
+            'simulator-context-menu',
+            { 'simulator-context-menu--flat': contextMenuIsFlat },
+          ]"
+          :style="contextMenuStyle()"
           @click.stop
         >
           <a-menu :selectable="false">
-            <a-menu-item
-              v-for="mood in INITIAL_MOOD_OPTIONS"
-              :key="`mood-${mood}`"
-              @click="updateOperatorMoodQuickly(mood)"
+            <template v-if="operatorContextMenuDetails">
+              <a-menu-item
+                v-for="mood in INITIAL_MOOD_OPTIONS"
+                :key="`mood-${mood}`"
+                @click="updateOperatorMoodQuickly(mood)"
+              >
+                <template #icon>
+                  <CheckOutlined
+                    v-if="operatorContextMenuDetails.currentMood === mood"
+                  />
+                </template>
+                心情 {{ mood }}<span v-if="mood === 24">（默认）</span>
+              </a-menu-item>
+              <a-menu-divider
+                v-if="operatorContextMenuDetails.progressionNodes.length"
+              />
+              <a-menu-item
+                v-for="node in operatorContextMenuDetails.progressionNodes"
+                :key="node.key"
+                @click="updateOperatorProgression(node)"
+              >
+                <template #icon>
+                  <CheckOutlined v-if="isCurrentProgressionNode(node)" />
+                </template>
+                {{ node.label }}
+              </a-menu-item>
+              <a-menu-item
+                v-if="operatorContextMenuDetails.hasManualProgression"
+                key="reset-progression"
+                danger
+                @click="resetOperatorProgression"
+              >
+                恢复默认练度
+              </a-menu-item>
+              <a-menu-divider v-if="contextMenuSections.length" />
+            </template>
+            <a-menu-item-group
+              v-for="section in contextMenuSections"
+              :key="section.key"
+              :title="section.title"
             >
-              <template #icon>
-                <CheckOutlined
-                  v-if="operatorContextMenuDetails.currentMood === mood"
-                />
+              <template v-for="item in section.items" :key="item.key">
+                <a-menu-divider v-if="item.divider" />
+                <a-menu-item
+                  v-else
+                  :disabled="item.disabled"
+                  @click="item.action?.()"
+                >
+                  <template #icon>
+                    <CheckOutlined v-if="item.check" />
+                  </template>
+                  {{ item.label }}
+                </a-menu-item>
               </template>
-              心情 {{ mood }}<span v-if="mood === 24">（默认）</span>
-            </a-menu-item>
-            <a-menu-divider
-              v-if="operatorContextMenuDetails.progressionNodes.length"
-            />
-            <a-menu-item
-              v-for="node in operatorContextMenuDetails.progressionNodes"
-              :key="node.key"
-              @click="updateOperatorProgression(node)"
-            >
-              <template #icon>
-                <CheckOutlined v-if="isCurrentProgressionNode(node)" />
-              </template>
-              {{ node.label }}
-            </a-menu-item>
-            <a-menu-item
-              v-if="operatorContextMenuDetails.hasManualProgression"
-              key="reset-progression"
-              danger
-              @click="resetOperatorProgression"
-            >
-              恢复默认练度
-            </a-menu-item>
+            </a-menu-item-group>
           </a-menu>
         </div>
 

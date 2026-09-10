@@ -30,6 +30,8 @@ const props = withDefaults(
     operatorTrainingUpgraded?: boolean;
     plain?: boolean;
     proportionalLayout?: boolean;
+    skipped?: boolean;
+    nameEditing?: boolean;
   }>(),
   {
     showRarity: true,
@@ -42,6 +44,8 @@ const props = withDefaults(
     operatorTrainingUpgraded: false,
     plain: false,
     proportionalLayout: false,
+    skipped: false,
+    nameEditing: false,
   },
 );
 
@@ -214,6 +218,10 @@ const displayStyle = computed(() => ({
   ...(props.plain ? { gap: "0" } : {}),
 }));
 
+const skippedLabelStyle = computed(() => ({
+  fontSize: `${Math.max(10, getOperatorAvatarNameFontSize(props.size))}px`,
+}));
+
 const namePaddingInline = computed(() => {
   const scale = props.proportionalLayout ? avatarScale.value : 1;
   return (OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding * scale) / 2;
@@ -310,9 +318,17 @@ onMounted(updateNameFontSize);
         :style="badgeStyle('rarity')"
         @load="handleBadgeLoad('rarity', $event)"
       />
+      <span v-if="skipped" class="operator-avatar-skipped-overlay" />
+      <span
+        v-if="skipped"
+        :style="skippedLabelStyle"
+        class="operator-avatar-skipped-label"
+        >跳过</span
+      >
     </div>
     <span
       v-if="showName"
+      :class="{ 'operator-avatar-display-name--editing': nameEditing }"
       :style="nameStyle"
       class="operator-avatar-display-name"
     >

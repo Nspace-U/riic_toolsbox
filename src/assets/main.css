@@ -580,6 +580,10 @@ a {
   margin-block-start: 16px;
 }
 
+.settings-facility-card-panel {
+  margin-block-start: 16px;
+}
+
 .settings-progression-panel {
   margin-block-start: 16px;
 }
@@ -762,6 +766,12 @@ a {
   margin-block: 0 16px;
   color: #647275;
   font-size: 13px;
+}
+
+.settings-panel-hint {
+  margin-block: 6px 0;
+  color: #8a9698;
+  font-size: 12px;
 }
 
 .facility-color-list {
@@ -1441,6 +1451,12 @@ a {
   width: 0;
 }
 
+.simulator-layout-card-level-text {
+  flex: 1 1 auto;
+  color: #425457;
+  font-size: 12px;
+}
+
 .simulator-layout-add {
   padding-block-end: 14px;
   margin-block-end: 14px;
@@ -1569,7 +1585,7 @@ a {
 .simulator-facility-queues {
   display: grid;
   gap: 8px;
-  padding: 8px;
+  padding: var(--simulator-facility-queues-padding, 8px);
 }
 
 .simulator-queue-info {
@@ -1677,10 +1693,13 @@ a {
 
 .simulator-facility-card .ant-card-head-title {
   min-width: 0;
+  overflow: visible;
+  white-space: normal;
 }
 
 .simulator-facility-title {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   min-width: 0;
   gap: 8px;
@@ -1689,7 +1708,7 @@ a {
 .simulator-facility-title > span:first-child {
   overflow: hidden;
   color: #2e4043;
-  font-size: 14px;
+  font-size: var(--simulator-facility-title-size, 14px);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1700,10 +1719,11 @@ a {
 }
 
 .simulator-facility-queue {
+  position: relative;
   min-width: 0;
   height: auto;
-  min-height: 224px;
   margin: 0;
+  overflow: hidden;
   background: color-mix(in srgb, var(--simulator-facility-accent) 5%, #ffffff);
   border-color: color-mix(
     in srgb,
@@ -1713,47 +1733,53 @@ a {
 }
 
 .simulator-facility-queue .ant-card-body {
+  position: relative;
+  z-index: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .simulator-facility-queue-content {
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 6px;
-}
-
-.simulator-facility-queue-meta {
-  min-height: 24px;
-}
-
-.simulator-room-controls {
-  display: grid;
   gap: 4px;
+  /* 底部留出空白，作为设施右键菜单的可点击区域。 */
+  padding-block-end: 6px;
 }
 
-.simulator-room-control {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+/* 产物图标作为卡片背景水印，层级低于干员槽位内容。 */
+.simulator-facility-icon {
+  position: absolute;
+  z-index: -1;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
-.simulator-room-control-label {
-  color: #72807f;
-  font-size: 11px;
+.simulator-facility-icon--corner {
+  inset-block-end: 6px;
+  inset-inline-end: 6px;
+  width: var(--simulator-facility-icon-size, 58px);
+  height: var(--simulator-facility-icon-size, 58px);
+  opacity: 0.15;
 }
 
-.simulator-room-product,
-.simulator-room-source {
-  width: 112px;
+.simulator-facility-icon--watermark {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  width: var(--simulator-facility-icon-size, 144px);
+  height: var(--simulator-facility-icon-size, 144px);
+  opacity: 0.08;
+  transform: translate(-50%, -50%);
 }
 
-.simulator-room-product.simulator-readonly-value,
-.simulator-room-source.simulator-readonly-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.simulator-facility-icon--compact {
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  width: var(--simulator-facility-icon-size, 24px);
+  height: var(--simulator-facility-icon-size, 24px);
+  opacity: 0.3;
 }
 
 .simulator-slot-grid {
@@ -1765,6 +1791,7 @@ a {
 }
 
 .simulator-slot {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1773,16 +1800,31 @@ a {
   gap: 0;
 }
 
-.simulator-slot-input {
-  width: var(--simulator-slot-size, 72px);
-  max-width: var(--simulator-slot-size, 72px);
-  min-width: var(--simulator-slot-size, 72px);
-  font-size: 11px;
-  text-align: center;
+/* 原地编辑时输入框覆盖在干员名称位置，不替换头像。 */
+.simulator-slot-name-input {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  height: var(--simulator-slot-name-height, 24px);
 }
 
-.simulator-slot-input .ant-select-selector {
+.simulator-slot-name-input .ant-select-selector {
+  height: 100%;
   padding-inline: 4px;
+  background: #ffffff;
+  border-radius: 0;
+}
+
+.simulator-slot-name-input .ant-select-selection-search {
+  inset-inline-start: 4px;
+  inset-inline-end: 4px;
+}
+
+.simulator-slot-name-input .ant-select-selection-search-input,
+.simulator-slot-name-input .ant-select-selection-item {
+  height: 100%;
+  font-size: var(--simulator-slot-name-font-size, 12px);
+  line-height: var(--simulator-slot-name-height, 24px);
   text-align: center;
 }
 
@@ -1791,7 +1833,7 @@ a {
   cursor: pointer;
 }
 
-.simulator-operator-context-menu {
+.simulator-context-menu {
   position: fixed;
   z-index: 1050;
   min-width: 156px;
@@ -1802,21 +1844,34 @@ a {
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.16);
 }
 
-.simulator-operator-context-menu .ant-menu {
+.simulator-context-menu .ant-menu {
   min-width: 154px;
   border-radius: 6px;
 }
 
-.simulator-operator-context-menu .ant-menu-item .anticon {
+.simulator-context-menu .ant-menu-item .anticon {
   min-width: 14px;
+}
+
+.simulator-context-menu .ant-menu-item-group-title {
+  padding-block: 4px 2px;
+  padding-inline: 16px;
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-context-menu .ant-menu-item-group-list .ant-menu-item {
+  padding-inline: 16px;
+}
+
+.simulator-context-menu--flat .ant-menu-item-group-title {
+  display: none;
 }
 
 .simulator-efficiency-summary {
   display: grid;
   gap: 5px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid
-    color-mix(in srgb, var(--simulator-facility-accent) 24%, #e0e8e5);
+  padding-block-start: 2px;
 }
 
 .simulator-efficiency-summary-line {
@@ -1834,7 +1889,7 @@ a {
 }
 
 .simulator-efficiency-summary-line--total {
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .simulator-efficiency-summary-line--total strong {
@@ -2080,12 +2135,17 @@ a {
 .simulator-empty-avatar {
   display: grid;
   place-items: center;
-  padding: 8px;
+  padding-inline: 4px;
   color: #8a9698;
-  font-size: 11px;
-  line-height: 1.2;
-  white-space: normal;
   background: #edf2f0;
+  border-radius: 0;
+}
+
+.simulator-empty-avatar-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .operator-avatar-display {
@@ -2195,6 +2255,28 @@ a {
   background: rgba(0, 255, 0, 0.5);
 }
 
+/* 跳过状态的灰色遮罩覆盖头像主体与徽标，高于徽标的 z-index。 */
+.operator-avatar-skipped-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: rgba(128, 128, 128, 0.5);
+}
+
+.operator-avatar-skipped-label {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  padding-block: 2px;
+  padding-inline: 6px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.55);
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
 .operator-avatar-display-name {
   max-width: 100%;
   overflow: hidden;
@@ -2209,6 +2291,11 @@ a {
 .operator-avatar-display--plain .operator-avatar-display-name {
   display: block;
   text-align: center;
+}
+
+/* 原地编辑干员名称时隐藏名称文字，避免与输入框文字重叠。 */
+.operator-avatar-display-name--editing {
+  visibility: hidden;
 }
 
 .operator-avatar-name-measure {

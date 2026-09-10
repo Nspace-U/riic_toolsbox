@@ -29,6 +29,7 @@ import {
   createDefaultRoomAssignment,
   ROOM_LABELS,
   ROOM_ORDER,
+  roomLevelRange,
   SOURCE_MATERIAL_OPTIONS,
 } from "@/utils/schedule";
 
@@ -340,9 +341,11 @@ function updateLayoutType(index: number, value: string): void {
     });
 
     entry.type = nextType;
-    const maxLevel =
-      entry.type === "control" || entry.type === "dormitory" ? 5 : 3;
-    entry.level = Math.min(entry.level, maxLevel);
+    const levelRange = roomLevelRange(entry.type);
+    entry.level = Math.min(
+      Math.max(entry.level, levelRange.min),
+      levelRange.max,
+    );
     document.plans.forEach((plan) =>
       resizeRoomsForLayout(plan, document.layout),
     );
@@ -772,10 +775,8 @@ watch(activeDocumentId, () => {
                 "
               />
               <a-input-number
-                :max="
-                  entry.type === 'control' || entry.type === 'dormitory' ? 5 : 3
-                "
-                :min="1"
+                :max="roomLevelRange(entry.type).max"
+                :min="roomLevelRange(entry.type).min"
                 :value="entry.level"
                 addon-after="级"
                 @update:value="

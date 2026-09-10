@@ -15,6 +15,7 @@ import {
   type AvatarDisplaySizeTarget,
 } from "@/composables/useAvatarDisplaySizes";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
+import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
@@ -58,6 +59,16 @@ const {
   setAvatarDisplaySize,
   resetAvatarDisplaySizes,
 } = useAvatarDisplaySizes();
+const {
+  facilityCardSettings,
+  facilityCardPaddingKeys,
+  facilityCardPaddingOptions,
+  facilityCardIconStyleKeys,
+  facilityCardIconStyleOptions,
+  setFacilityCardPadding,
+  setFacilityCardIconStyle,
+  resetFacilityCardSettings,
+} = useFacilityCardSettings();
 const {
   profiles,
   activeProfileId,
@@ -888,6 +899,67 @@ watch(
         </a-form-item>
       </a-form>
       <a-button @click="resetAvatarDisplaySizes">恢复默认尺寸</a-button>
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-facility-card-panel"
+      title="设施卡片"
+    >
+      <p class="settings-panel-description">
+        调整排班模拟器中队列卡片的宽度留白与卡片背景的产物图标样式，修改后立即生效并保存在当前浏览器。
+      </p>
+      <a-form layout="vertical">
+        <a-form-item label="卡片宽度留白">
+          <a-radio-group
+            :value="facilityCardSettings.paddingKey"
+            @change="
+              (event: { target: { value: unknown } }) =>
+                setFacilityCardPadding(event.target.value)
+            "
+          >
+            <a-radio
+              v-for="key in facilityCardPaddingKeys"
+              :key="key"
+              :value="key"
+            >
+              {{ facilityCardPaddingOptions[key].label }}（{{
+                facilityCardPaddingOptions[key].padding
+              }}px）
+            </a-radio>
+          </a-radio-group>
+          <p class="settings-panel-hint">
+            {{
+              facilityCardPaddingOptions[facilityCardSettings.paddingKey]
+                .description
+            }}
+          </p>
+        </a-form-item>
+        <a-form-item label="卡片背景产物图标">
+          <a-radio-group
+            :value="facilityCardSettings.iconStyle"
+            @change="
+              (event: { target: { value: unknown } }) =>
+                setFacilityCardIconStyle(event.target.value)
+            "
+          >
+            <a-radio
+              v-for="key in facilityCardIconStyleKeys"
+              :key="key"
+              :value="key"
+            >
+              {{ facilityCardIconStyleOptions[key].label }}
+            </a-radio>
+          </a-radio-group>
+          <p class="settings-panel-hint">
+            {{
+              facilityCardIconStyleOptions[facilityCardSettings.iconStyle]
+                .description
+            }}
+          </p>
+        </a-form-item>
+      </a-form>
+      <a-button @click="resetFacilityCardSettings">恢复默认设置</a-button>
     </a-card>
 
     <a-card

@@ -157,6 +157,32 @@ export const SOURCE_MATERIAL_OPTIONS = [
   { value: "装置", label: "装置" },
 ];
 
+/** 产物图标文件名，取自 `public/assets/raw/item_icon/`。 */
+export const PRODUCT_ITEM_ICONS: Record<string, string> = {
+  LMD: "GOLD.png",
+  Orundum: "DIAMOND_SHD.png",
+  "Pure Gold": "MTL_GOLD3.png",
+  "Battle Record": "sprite_exp_card_t3.png",
+  "Originium Shard": "MTL_DIAMOND_SHD.png",
+};
+
+/** 没有产物字段的设施，按设施类型固定展示的图标文件名。 */
+export const ROOM_ITEM_ICONS: Partial<Record<RoomKey, string>> = {
+  power: "AP_BASE.png",
+  meeting: "SOCIAL_PT.png",
+  hire: "TKT_RECRUIT.png",
+};
+
+export function facilityProductIconFile(
+  type: RoomKey,
+  product: string | undefined,
+): string | undefined {
+  if (type === "trading" || type === "manufacture") {
+    return product ? PRODUCT_ITEM_ICONS[product] : undefined;
+  }
+  return ROOM_ITEM_ICONS[type];
+}
+
 const ROOM_KEY_SET = new Set<string>(ROOM_KEYS);
 
 export class ScheduleError extends Error {
@@ -184,6 +210,37 @@ function isRoomKey(value: unknown): value is RoomKey {
 
 export function roomLevelRange(type: RoomKey): { min: number; max: number } {
   return ROOM_LEVEL_LIMITS[type];
+}
+
+/** 等级上下限相等表示该设施等级固定，例如控制中枢固定 5 级、发电站固定 3 级。 */
+export function isFixedLevelRoom(type: RoomKey): boolean {
+  const range: { min: number; max: number } | undefined =
+    ROOM_LEVEL_LIMITS[type];
+  return range ? range.min === range.max : false;
+}
+
+export interface NormalizedLayoutLevels {
+  changed: boolean;
+  layout: LayoutEntry[];
+}
+
+/** 把固定等级设施的等级归一化为其固定值，用于读取历史排班文档。 */
+export function normalizeLayoutLevels(
+  layout: LayoutEntry[],
+): NormalizedLayoutLevels {
+  let changed = false;
+  const normalizedLayout = layout.map((entry) => {
+    if (!isFixedLevelRoom(entry.type)) {
+      return entry;
+    }
+    const fixedLevel = ROOM_LEVEL_LIMITS[entry.type].max;
+    if (entry.level === fixedLevel) {
+      return entry;
+    }
+    changed = true;
+    return { ...entry, level: fixedLevel };
+  });
+  return { changed, layout: normalizedLayout };
 }
 
 export function parseLayoutText(text: string): LayoutEntry[] {

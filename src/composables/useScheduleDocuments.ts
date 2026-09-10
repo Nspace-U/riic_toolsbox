@@ -3,9 +3,14 @@ import { ref } from "vue";
 import {
   cloneSchedule,
   createEmptySchedule,
+  normalizeLayoutLevels,
   validateSchedule,
 } from "@/utils/schedule";
-import type { ScheduleDocument, StoredDocument } from "@/types/schedule";
+import type {
+  LayoutEntry,
+  ScheduleDocument,
+  StoredDocument,
+} from "@/types/schedule";
 
 const DOCUMENTS_STORAGE_KEY = "riic-tools:schedule-documents:v1";
 const ACTIVE_DOCUMENT_STORAGE_KEY = "riic-tools:schedule-active-document:v1";
@@ -13,6 +18,9 @@ const LEGACY_DOCUMENTS_STORAGE_KEY = "riic-tools:maa-documents:v1";
 const LEGACY_ACTIVE_DOCUMENT_STORAGE_KEY = "riic-tools:maa-active-document:v1";
 
 let legacyStorageUsed = false;
+let layoutLevelsNormalized = false;
+
+const layoutLevelNotice = ref("");
 
 const documents = ref<StoredDocument[]>(readDocuments());
 const activeDocumentId = ref(readActiveDocumentId());
@@ -58,10 +66,63 @@ function readDocuments(): StoredDocument[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isStoredDocument);
+    return normalizeStoredLayoutLevels(parsed).filter(isStoredDocument);
   } catch {
     return [];
   }
+}
+
+/** 取出候选文档中形如 `LayoutEntry[]` 的布局数组，结构不符时返回 undefined。 */
+function storedLayout(value: unknown): LayoutEntry[] | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+  const document = (value as { document?: unknown }).document;
+  if (typeof document !== "object" || document === null) {
+    return undefined;
+  }
+  const layout = (document as { layout?: unknown }).layout;
+  if (!Array.isArray(layout) || layout.length === 0) {
+    return undefined;
+  }
+  const entries = layout.filter(
+    (entry): entry is LayoutEntry =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as LayoutEntry).type === "string" &&
+      typeof (entry as LayoutEntry).level === "number",
+  );
+  return entries.length === layout.length ? entries : undefined;
+}
+
+/**
+ * 读取历史文档时先把固定等级设施（控制中枢、发电站）的等级修正为固定值，
+ * 否则这些文档会因等级校验失败被丢弃。
+ */
+function normalizeStoredLayoutLevels(storedValues: unknown[]): unknown[] {
+  let correctedCount = 0;
+  const normalizedValues = storedValues.map((storedValue) => {
+    const layout = storedLayout(storedValue);
+    if (!layout) {
+      return storedValue;
+    }
+    const { changed, layout: normalizedLayout } = normalizeLayoutLevels(layout);
+    if (!changed) {
+      return storedValue;
+    }
+    correctedCount += 1;
+    const stored = storedValue as { document: ScheduleDocument };
+    return {
+      ...(storedValue as object),
+      document: { ...stored.document, layout: normalizedLayout },
+    };
+  });
+
+  if (correctedCount > 0) {
+    layoutLevelsNormalized = true;
+    layoutLevelNotice.value = `已把 ${correctedCount} 份排班表中控制中枢、发电站的等级修正为固定等级（控制中枢 5 级、发电站 3 级）。`;
+  }
+  return normalizedValues;
 }
 
 function readActiveDocumentId(): string {
@@ -231,14 +292,20 @@ function duplicateDocument(id: string): StoredDocument | undefined {
 }
 
 normalizeActiveDocument();
-if (legacyStorageUsed) {
+if (legacyStorageUsed || layoutLevelsNormalized) {
   persist();
+}
+
+function clearLayoutLevelNotice(): void {
+  layoutLevelNotice.value = "";
 }
 
 export function useScheduleDocuments() {
   return {
     documents,
     activeDocumentId,
+    layoutLevelNotice,
+    clearLayoutLevelNotice,
     createDocument,
     getDocument,
     getActiveDocument,

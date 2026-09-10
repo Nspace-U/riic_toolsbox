@@ -238,6 +238,24 @@
 - **数值**：输出宽度/槽位 48–120 时名称栏恒为 24px、字号 12–17px；144 时 29px/20px；180（原始尺寸）时 36px/25px，与改动前完全一致，即原始尺寸下零行为变化。DOM 总高与 Canvas 总高在所有宽度上相等（`domTotal === canvasTotal`）。
 - **兼容性影响**：模拟器槽位总高 86 → 96px；头像生成器输出高度随之变化（96 宽由 96×115 变为 96×120px），预览元信息标签同步。
 - **已知差异**：字号触到 12px 下限后长名字更容易超出可用宽度，此时 Canvas 横向压缩字形、DOM 显示省略号，该既有差异未在本轮处理。
+
+## 2026-09-10：重做排班模拟器设施区队列卡片与干员槽位
+
+- **卡片结构**：队列小卡片改为只保留「干员头像 + 名称 + 效率」，产物下拉、源石碎片原料下拉与「跳过」勾选框全部移入右键菜单；删除 `.simulator-facility-queue` 的 `min-height: 224px`，卡片高度贴合内容，各行内容一致因此天然等高。
+- **右键菜单**：合并成一个浮层（`.simulator-context-menu`）。干员槽位右键显示干员项（心情 `0/12/24（默认）`、练度档位、恢复默认练度），随后用 `a-menu-divider` 接上该槽位所在房间的设施项；设施区空白处与空槽位右键只显示设施项。菜单项由 `contextMenuSections` 计算（`skipped` / `divider` / `disabled` 标志），发电站合并卡片按房间分组，组标题为「发电站 N」，只有一个房间时由 `.simulator-context-menu--flat` 隐藏组标题。`a-card` 是 `inheritAttrs: false`，因此右键监听挂在 `.simulator-facility-queue-content`（并补 `padding-block-end: 6px` 作为可点击区域），不能挂在外层卡片上。
+- **开关边界**：设施项里的产物与原料编辑受既有「编辑产物」开关约束（关闭时不显示这两组项，只保留「跳过」）；「跳过」不受开关限制。原料项沿用「产物为源石碎片才出现」的既有规则。
+- **卡片宽度**：删除 `SIMULATOR_FACILITY_MIN_WIDTH = 224`，宽度改为「干员槽位总宽 + 留白」，留白由通用设置新增的「设施卡片」卡片控制（`riic-tools:facility-card-settings:v1`，宽松 40px 默认 / 紧凑 24px）。紧凑档位同时通过 `--simulator-facility-queues-padding` 把 `.simulator-facility-queues` 内边距收到 2px：卡片本身是 `overflow: hidden`，只缩宽度会让末尾槽位被裁切。
+- **产物图标**：卡片背景按房间产物显示水印图标，三种呈现（右下角 0.8 × 槽位 15%、居中水印 2 × 槽位 8%、左上角固定 24px 30%）在通用设置选择。图标映射放在 `src/utils/schedule.ts`：`PRODUCT_ITEM_ICONS`（5 个产物 → `public/assets/raw/item_icon/` 文件名）与 `ROOM_ITEM_ICONS`（发电站 无人机、会客室 信用、办公室 招聘许可）；未接入 `item_table.json` 与资源预载，因为 `Battle Record` 与快照物品名「中级作战记录」无法自动对齐，人工表无论如何都需要。宿舍与控制中枢不显示，`product` 为「未指定」时不显示。
+- **跳过表现**：`OperatorAvatarDisplay` 新增 `skipped`，覆盖层 `z-index: 3` 高于徽标（`z-index: 2`），因此星级、精英化、职业徽标一起变灰，头像中央显示白字黑底「跳过」。**展示条件是「房间 `skip` 且该房间至少一名干员」**：默认新建房间本身带 `skip: true`，若只看 `skip` 会让新文档的空槽位全部显示「跳过」，丢失空槽位提示；该细化由实现的 UI 事实决定，需用户确认。
+- **效率行**：改为卡片内居中，去掉右对齐与上方分割线，上内边距 8px → 2px；`+x / y%` 写法与 16px 字号不变。
+- **原地名称编辑**：点击槽位后头像保持显示，名称位置叠加无圆角输入框（`a-auto-complete` 白底 1px 边框，高度与名称栏一致），自动聚焦并全选现有名称；补全改为按已输入文字子串过滤（`filterOperatorOption`），并新增 `selectOperatorName` 在点选补全项后立即提交（原实现只写 draft，点选补全项不提交，需再点击别处才落库）。`OperatorAvatarDisplay` 新增 `nameEditing` 隐藏名称文字。模板 ref 在 `v-for` 内会拿到数组，`focusSlotNameInput` 需兼容数组形态。
+- **空槽位**：不再使用 `a-avatar`（`shape="square"` 的默认圆角与换行导致「空槽位」被拆行并裁切），改成普通容器：无圆角、`padding-inline: 4px`、灰色底、单行省略号，字号与干员名一致（`getOperatorAvatarNameFontSize`，72px 槽位为 12px）。
+- **设施卡标题**：控制中枢与发电站不再显示等级标签（等级固定 5/3），发电站「合并显示」标签删除，其他设施保留 Lv 标签。标题按可用宽度估算字号（下限 11px），仍放不下时允许标题行换行（标签折到下一行）再由省略号兜底；`FACILITY_TITLE_HEAD_SPACE = 32`、`FACILITY_TITLE_LEVEL_TAG_WIDTH = 37` 依据浏览器实测（卡头 `padding-inline: 12px`、`Lv 3` 标签宽 37px）。
+- **固定等级落地**：`ROOM_LEVEL_LIMITS` 早已用 `min === max` 表达「控制中枢固定 5 级、发电站固定 3 级」，但布局编辑的 `a-input-number` 硬编码 `:min="1"`，可点出非法等级再由校验报错。现控制中枢、发电站改为只读文本「Lv5」「Lv3」，其他设施 `:min` 改用 `roomLevelRange().min`；`MaaSchedulePage.vue` 两处硬编码 `control/dormitory ? 5 : 3` 统一到 `roomLevelRange()`。
+- **历史文档等级归一化**：`useScheduleDocuments` 读取时先按固定等级归一化再校验（原顺序会把 `control≠5` 的旧文档静默丢弃），并通过 `layoutLevelNotice` 在模拟器页提示修正数量。
+- **明确未修（用户决定）**：产物↔设施约束仍只在 UI 层；计算层不校验，手改或导入 JSON 造成失配时贸易站会静默按龙门币计算、制造站会静默无产出。已记录，不在本轮修复。
+- **已知不一致**：`MaaSchedulePage.vue` 切换产物时不清残留 `sourceMaterial`、`productOptions` 缺少「未指定产物」空选项（对非源石碎片产物的计算无影响）。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过，构建仅保留既有大 chunk 警告；Playwright 浏览器实测覆盖卡片宽度与标题字号、效率居中、空槽位外观、三种图标档位、合并右键菜单、发电站分组菜单、原地编辑与补全过滤、跳过灰显、编辑产物开关联动、固定等级归一化提示。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过；Headless Edge 4× 像素测量确认 DOM 与 Canvas 的文字中心偏差均为 +0.5px，槽位 72 时上下留白 6.75/5.75px（Canvas 7/6px）。
 
 ## 2026-09-10：名称最大字号改为按宽度与字符数决定
