@@ -210,16 +210,47 @@ export interface FacilityAttributeValue {
   total: number;
 }
 
+export interface FacilityCapacity {
+  label: string;
+  unit: string;
+  base: number;
+  skill: number;
+  total: number;
+  itemVolume?: number;
+}
+
 export interface FacilityAttributes {
   orderLimit?: FacilityAttributeValue;
   storageCap?: FacilityAttributeValue;
 }
 
+export interface TradeOrderSummary {
+  name: string;
+  probability: number;
+  quantity: number;
+  time: number;
+  material?: string | null;
+  amount?: number;
+  note?: string;
+  ignoreEfficiency?: boolean;
+}
+
 export interface ProductionValue {
   product: string;
+  baseAmountPerHour?: number;
+  baseAmountPerDay?: number;
   amountPerHour: number;
   amountPerDay: number;
+  effectiveAmountPerHour?: number;
+  effectiveAmountPerDay?: number;
+  itemRate?: number;
+  breachTime?: number;
+  overflowed?: boolean;
+  dailyContribution?: number;
+  orderRule?: string;
+  orders?: TradeOrderSummary[];
   materialPerHour?: Record<string, number>;
+  effectiveMaterialPerHour?: Record<string, number>;
 }
 
 export interface OperatorEfficiencyDetail {
@@ -228,6 +259,8 @@ export interface OperatorEfficiencyDetail {
   stat: string;
   value: number;
   facility: RoomKey;
+  ownerFacility?: RoomKey;
+  category?: "base" | "combination";
 }
 
 export interface OperatorEfficiencyContribution {
@@ -235,18 +268,26 @@ export interface OperatorEfficiencyContribution {
   baseEfficiency: number;
   skillEfficiency: number;
   efficiency: number;
+  sourceFacility?: RoomKey;
 }
 
 export interface FacilityEfficiencyResult {
   facility: EfficiencyFacility;
+  inherited?: boolean;
+  inheritedFromPlanIndex?: number;
   baseEfficiency: number;
+  moodEfficiency: number;
   operatorEfficiency: number;
   skillEfficiency: number;
   combinationEfficiency: number;
   efficiency: number;
   attributes: FacilityAttributes;
+  capacity?: FacilityCapacity;
   production?: ProductionValue;
   details: OperatorEfficiencyDetail[];
+  baseDetails: OperatorEfficiencyDetail[];
+  combinationDetails: OperatorEfficiencyDetail[];
+  moodDetails: OperatorEfficiencyDetail[];
   operatorContributions: OperatorEfficiencyContribution[];
 }
 

@@ -1,9 +1,11 @@
 import {
   ROOM_KEYS,
   type LayoutEntry,
+  type OperatorState,
   type Plan,
   type RoomAssignment,
   type RoomKey,
+  type ResolvedRoomAssignment,
   type ScheduleSettings,
   type ScheduleDocument,
 } from "@/types/schedule";
@@ -480,14 +482,29 @@ function validateSettings(settings: unknown): ScheduleSettings {
     );
   }
   if (hasOwn(settings, "firstItemProgress")) {
-    validateNumberMap(settings.firstItemProgress, "settings.firstItemProgress");
-    Object.entries(
-      settings.firstItemProgress as Record<string, number>,
-    ).forEach(([key, value]) => {
-      if (value > 1) {
-        fail(`settings.firstItemProgress.${key}`, "必须在 0 到 1 之间");
+    if (typeof settings.firstItemProgress === "number") {
+      if (
+        !Number.isFinite(settings.firstItemProgress) ||
+        settings.firstItemProgress < 0 ||
+        settings.firstItemProgress > 1
+      ) {
+        fail("settings.firstItemProgress", "必须在 0 到 1 之间");
       }
-    });
+    } else if (isRecord(settings.firstItemProgress)) {
+      validateNumberMap(
+        settings.firstItemProgress,
+        "settings.firstItemProgress",
+      );
+      Object.entries(
+        settings.firstItemProgress as Record<string, number>,
+      ).forEach(([key, value]) => {
+        if (value > 1) {
+          fail(`settings.firstItemProgress.${key}`, "必须在 0 到 1 之间");
+        }
+      });
+    } else {
+      fail("settings.firstItemProgress", "必须是 0 到 1 之间的数字");
+    }
   }
   return settings as ScheduleSettings;
 }
@@ -643,6 +660,7 @@ export function createEmptySchedule(): ScheduleDocument {
       featherFixedOps: [],
       preferMaxJieEfficiency: true,
       overflowMode: "continue",
+      firstItemProgress: 0,
     },
     layout: [{ type: "control", level: 5 }],
     plans: [
@@ -659,4 +677,77 @@ export function createEmptySchedule(): ScheduleDocument {
 
 export function roomCount(document: ScheduleDocument, type: RoomKey): number {
   return document.layout.filter((entry) => entry.type === type).length;
+}
+
+function roomAssignmentAt(
+  plan: Plan,
+  type: RoomKey,
+  position: number,
+): RoomAssignment {
+  const rooms = plan.rooms[type];
+  if (!Array.isArray(rooms)) {
+    return {};
+  }
+  const room = rooms[position];
+  return isRecord(room) ? (room as RoomAssignment) : {};
+}
+
+function inheritedOperatorStates(
+  states: Record<string, OperatorState> | undefined,
+): Record<string, OperatorState> | undefined {
+  if (!states) {
+    return undefined;
+  }
+  const result = Object.fromEntries(
+    Object.entries(states).map(([name, state]) => {
+      const progressionState = { ...state };
+      delete progressionState.mood;
+      return [name, progressionState];
+    }),
+  );
+  return Object.keys(result).length > 0 ? result : undefined;
+}
+
+export function resolveRoomAssignment(
+  document: ScheduleDocument,
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+): ResolvedRoomAssignment {
+  const plan = document.plans[planIndex];
+  const current = plan ? roomAssignmentAt(plan, type, position) : {};
+  if (!current.skip || document.plans.length === 0) {
+    return { assignment: current, inherited: false };
+  }
+
+  for (let offset = 1; offset <= document.plans.length; offset += 1) {
+    const sourcePlanIndex =
+      (planIndex - offset + document.plans.length) % document.plans.length;
+    const sourcePlan = document.plans[sourcePlanIndex];
+    if (!sourcePlan) {
+      continue;
+    }
+    const source = roomAssignmentAt(sourcePlan, type, position);
+    if (source.skip || !source.operators?.length) {
+      continue;
+    }
+    const operatorStates = inheritedOperatorStates(source.operatorStates);
+    return {
+      inherited: true,
+      sourcePlanIndex,
+      assignment: {
+        ...current,
+        skip: false,
+        operators: source.operators ? [...source.operators] : undefined,
+        ...(operatorStates
+          ? { operatorStates }
+          : { operatorStates: undefined }),
+      },
+    };
+  }
+
+  return {
+    assignment: { ...current, operators: undefined, operatorStates: undefined },
+    inherited: false,
+  };
 }

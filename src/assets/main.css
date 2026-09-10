@@ -1903,6 +1903,11 @@ a {
   font-size: 11px;
 }
 
+.simulator-daily-output-rate--effective,
+.simulator-daily-output-material--effective {
+  color: #a06b27;
+}
+
 .simulator-daily-output-material {
   color: #8c6b35;
 }
@@ -1924,6 +1929,12 @@ a {
 
 .simulator-step-header strong {
   color: #176b68;
+}
+
+.simulator-step-header small {
+  color: #879294;
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .simulator-step-content {
@@ -1956,6 +1967,65 @@ a {
 }
 
 .simulator-step-stat-grid strong {
+  color: #344447;
+  text-align: end;
+}
+
+.simulator-inherited-note {
+  padding: 8px 10px;
+  color: #6f5b35;
+  background: #fff8e8;
+  border: 1px solid #ead8bd;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.simulator-production-panel {
+  display: grid;
+  gap: 8px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-production-summary {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
+  align-items: center;
+  gap: 7px 12px;
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-production-summary strong {
+  min-width: 0;
+  color: #344447;
+  font-weight: 600;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
+.simulator-production-summary small {
+  color: #879294;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.simulator-order-list {
+  padding-block-start: 8px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-order-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 3px;
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-order-row span:last-child {
   color: #344447;
   text-align: end;
 }
@@ -1995,6 +2065,10 @@ a {
 
 .simulator-efficiency-source-alert {
   margin-block-start: 18px;
+}
+
+.simulator-efficiency-scope-alert {
+  margin-block-end: 16px;
 }
 
 .simulator-empty-avatar {
@@ -2437,9 +2511,19 @@ a {
   }
 
   .simulator-operator-contribution,
-  .simulator-detail-row {
+  .simulator-detail-row,
+  .simulator-order-row {
     align-items: flex-start;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .simulator-production-summary {
+    grid-template-columns: minmax(90px, 1fr) minmax(0, 1.6fr);
+  }
+
+  .simulator-production-summary strong,
+  .simulator-order-row span:last-child {
+    text-align: end;
   }
 }

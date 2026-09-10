@@ -279,6 +279,21 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   });
 });
 
+const calculationSteps = computed(
+  () =>
+    efficiencyResult.value?.plans.flatMap((plan, planIndex) =>
+      plan.facilities
+        .filter(
+          (facility) =>
+            facility.production !== undefined ||
+            facility.capacity !== undefined ||
+            facility.details.length > 0 ||
+            facility.operatorContributions.length > 0,
+        )
+        .map((facility) => ({ plan, planIndex, facility })),
+    ) ?? [],
+);
+
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
 );
@@ -1540,10 +1555,45 @@ function efficiencyStatLabel(stat: string): string {
   return efficiencyStatLabels[stat] ?? stat;
 }
 
-function productionMaterials(value: ProductionValue): string[] {
-  return Object.entries(value.materialPerHour ?? {}).map(
+function effectiveProductionRate(value: ProductionValue): number {
+  return value.effectiveAmountPerHour ?? value.amountPerHour;
+}
+
+function productionMaterialsForDisplay(
+  value: ProductionValue,
+  effective = false,
+): string[] {
+  const materials = effective
+    ? (value.effectiveMaterialPerHour ?? value.materialPerHour)
+    : value.materialPerHour;
+  return Object.entries(materials ?? {}).map(
     ([material, amount]) => `${material} ${signedNumber(amount)}/小时`,
   );
+}
+
+function formatDurationHours(value: number): string {
+  return `${formatNumber(value)} 小时`;
+}
+
+function productionRateLabel(value: ProductionValue): string {
+  return value.itemRate === undefined
+    ? ""
+    : `${formatProduction(value.itemRate)} / 小时`;
+}
+
+function facilityOverflowLabel(value: ProductionValue): string {
+  if (value.overflowed === undefined) {
+    return "未启用容量模拟";
+  }
+  return value.overflowed ? "计划内会爆仓" : "计划内不爆仓";
+}
+
+function inheritedSourceLabel(result: FacilityEfficiencyResult): string {
+  if (!result.inherited || result.inheritedFromPlanIndex === undefined) {
+    return "";
+  }
+  const source = efficiencyResult.value?.plans[result.inheritedFromPlanIndex];
+  return `继承自 ${source?.name || `队列${result.inheritedFromPlanIndex + 1}`}`;
 }
 
 async function refreshEfficiencyCatalog(): Promise<void> {
@@ -2722,6 +2772,12 @@ onBeforeUnmount(() => {
             type="error"
           />
           <template v-else-if="efficiencyResult">
+            <a-alert
+              class="simulator-efficiency-scope-alert"
+              message="当前版本暂不模拟精 0 孑订单逐单衰减与 orderProgress；爆仓展示仅按容量速率和首件进度设置计算。"
+              show-icon
+              type="info"
+            />
             <div class="simulator-daily-output">
               <div class="simulator-result-section-heading">
                 <div>
@@ -2749,14 +2805,47 @@ onBeforeUnmount(() => {
                     天</strong
                   >
                   <span class="simulator-daily-output-rate">
-                    {{ formatProduction(production.amountPerHour) }} / 小时
+                    实际 {{ formatProduction(production.amountPerHour) }} / 小时
+                  </span>
+                  <span class="simulator-daily-output-rate">
+                    基础
+                    {{
+                      formatProduction(
+                        production.baseAmountPerHour ??
+                          production.amountPerHour,
+                      )
+                    }}
+                    / 小时
                   </span>
                   <span
-                    v-for="material in productionMaterials(production)"
+                    v-if="production.effectiveAmountPerHour !== undefined"
+                    class="simulator-daily-output-rate simulator-daily-output-rate--effective"
+                  >
+                    有效
+                    {{ formatProduction(effectiveProductionRate(production)) }}
+                    / 小时
+                  </span>
+                  <span
+                    v-for="material in productionMaterialsForDisplay(
+                      production,
+                    )"
                     :key="material"
                     class="simulator-daily-output-material"
                     >{{ material }}</span
                   >
+                  <template
+                    v-if="production.effectiveAmountPerHour !== undefined"
+                  >
+                    <span
+                      v-for="material in productionMaterialsForDisplay(
+                        production,
+                        true,
+                      )"
+                      :key="`effective-${material}`"
+                      class="simulator-daily-output-material simulator-daily-output-material--effective"
+                      >有效 {{ material }}</span
+                    >
+                  </template>
                 </div>
               </div>
               <a-empty
@@ -2778,23 +2867,18 @@ onBeforeUnmount(() => {
               </div>
               <a-collapse ghost>
                 <a-collapse-panel
-                  v-for="(
-                    result, resultIndex
-                  ) in efficiencyResult.plans.flatMap((plan, planIndex) =>
-                    plan.facilities.map((facility) => ({
-                      plan,
-                      planIndex,
-                      facility,
-                    })),
-                  )"
+                  v-for="(result, resultIndex) in calculationSteps"
                   :key="`${result.planIndex}-${result.facility.facility.id}-${resultIndex}`"
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span
-                        >{{ result.plan.name }} ·
-                        {{ facilityResultLabel(result.facility) }}</span
-                      >
+                      <span>
+                        {{ result.plan.name }} ·
+                        {{ facilityResultLabel(result.facility) }}
+                        <small v-if="inheritedSourceLabel(result.facility)">
+                          · {{ inheritedSourceLabel(result.facility) }}
+                        </small>
+                      </span>
                       <strong
                         >{{ formatNumber(result.facility.efficiency) }}%</strong
                       >
@@ -2802,9 +2886,9 @@ onBeforeUnmount(() => {
                   </template>
                   <div class="simulator-step-content">
                     <div class="simulator-step-formula">
-                      {{ formatNumber(result.facility.baseEfficiency) }} +
-                      {{ formatNumber(result.facility.operatorEfficiency) }} +
-                      {{ formatNumber(result.facility.skillEfficiency) }} =
+                      基础 {{ formatNumber(result.facility.baseEfficiency) }} +
+                      心情 {{ formatNumber(result.facility.moodEfficiency) }} +
+                      组合 {{ formatNumber(result.facility.skillEfficiency) }} =
                       <strong
                         >{{ formatNumber(result.facility.efficiency) }}%</strong
                       >
@@ -2816,7 +2900,7 @@ onBeforeUnmount(() => {
                       }}</strong>
                       <span>干员效率</span>
                       <strong>{{
-                        formatNumber(result.facility.operatorEfficiency)
+                        formatNumber(result.facility.moodEfficiency)
                       }}</strong>
                       <span>技能/组合效率</span>
                       <strong>{{
@@ -2826,6 +2910,120 @@ onBeforeUnmount(() => {
                       <strong>{{
                         signedNumber(result.facility.combinationEfficiency)
                       }}</strong>
+                    </div>
+                    <div
+                      v-if="result.facility.inherited"
+                      class="simulator-inherited-note"
+                    >
+                      本队列为跳过队列，已继承
+                      {{
+                        inheritedSourceLabel(result.facility).replace(
+                          /^继承自 /,
+                          "",
+                        )
+                      }}
+                      的干员与练度；心情按当前队列重新计算。
+                    </div>
+                    <div
+                      v-if="
+                        result.facility.capacity || result.facility.production
+                      "
+                      class="simulator-production-panel"
+                    >
+                      <span class="simulator-step-subheading">产出与容量</span>
+                      <div class="simulator-production-summary">
+                        <template v-if="result.facility.production">
+                          <span>产物</span>
+                          <strong>{{
+                            result.facility.production.product
+                          }}</strong>
+                          <span>基础速率</span>
+                          <strong>
+                            {{
+                              formatProduction(
+                                result.facility.production.baseAmountPerHour ??
+                                  result.facility.production.amountPerHour,
+                              )
+                            }}/小时
+                          </strong>
+                          <span>实际速率</span>
+                          <strong>
+                            {{
+                              formatProduction(
+                                result.facility.production.amountPerHour,
+                              )
+                            }}/小时
+                          </strong>
+                          <span>容量单位速率</span>
+                          <strong>{{
+                            productionRateLabel(result.facility.production)
+                          }}</strong>
+                          <template v-if="result.facility.production.orderRule">
+                            <span>订单规则</span>
+                            <strong>{{
+                              result.facility.production.orderRule
+                            }}</strong>
+                          </template>
+                        </template>
+                        <template v-if="result.facility.capacity">
+                          <span>{{ result.facility.capacity.label }}</span>
+                          <strong>
+                            {{ formatNumber(result.facility.capacity.total) }}
+                            {{ result.facility.capacity.unit }}
+                            <small>
+                              （基础
+                              {{
+                                formatNumber(result.facility.capacity.base)
+                              }}，技能
+                              {{
+                                signedNumber(result.facility.capacity.skill)
+                              }}）
+                            </small>
+                          </strong>
+                        </template>
+                        <template
+                          v-if="
+                            result.facility.production?.breachTime !== undefined
+                          "
+                        >
+                          <span>爆仓</span>
+                          <strong>
+                            {{
+                              facilityOverflowLabel(result.facility.production)
+                            }}
+                            ·
+                            {{
+                              formatDurationHours(
+                                result.facility.production.breachTime,
+                              )
+                            }}
+                          </strong>
+                        </template>
+                      </div>
+                      <div
+                        v-if="result.facility.production?.orders?.length"
+                        class="simulator-order-list"
+                      >
+                        <span class="simulator-step-subheading">订单摘要</span>
+                        <div
+                          v-for="order in result.facility.production.orders"
+                          :key="`${order.name}-${order.time}-${order.quantity}`"
+                          class="simulator-order-row"
+                        >
+                          <span>
+                            {{ order.name }} ·
+                            {{ formatNumber(order.probability * 100) }}%
+                          </span>
+                          <span>
+                            {{ formatNumber(order.quantity) }} /
+                            {{ formatNumber(order.time) }} 小时
+                            <template v-if="order.material">
+                              · {{ order.material }} ×
+                              {{ formatNumber(order.amount ?? 0) }}
+                            </template>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                     <div
                       v-if="result.facility.operatorContributions.length"
@@ -2871,6 +3069,31 @@ onBeforeUnmount(() => {
                         <span
                           >{{ efficiencyStatLabel(detail.stat) }}
                           {{ signedNumber(detail.value) }}</span
+                        >
+                      </div>
+                    </div>
+                    <div
+                      v-if="result.facility.moodDetails.length"
+                      class="simulator-detail-list"
+                    >
+                      <span class="simulator-step-subheading"
+                        >心情修正明细</span
+                      >
+                      <div
+                        v-for="(detail, detailIndex) in result.facility
+                          .moodDetails"
+                        :key="`mood-${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
+                        class="simulator-detail-row"
+                      >
+                        <span
+                          >{{ detail.operator
+                          }}<template v-if="detail.skill">
+                            · {{ detail.skill }}</template
+                          ></span
+                        >
+                        <span
+                          >{{ efficiencyStatLabel(detail.stat) }}
+                          {{ signedNumber(detail.value) }}/小时</span
                         >
                       </div>
                     </div>

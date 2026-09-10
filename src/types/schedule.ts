@@ -60,7 +60,7 @@ export interface ScheduleSettings {
   preferMaxJieEfficiency?: boolean;
   orderProgress?: Record<string, number>;
   overflowMode?: OverflowMode;
-  firstItemProgress?: Record<string, number>;
+  firstItemProgress?: number | Record<string, number>;
 }
 
 export interface ScheduleDocument {
@@ -84,4 +84,10 @@ export interface StoredDocument {
   sourceFileName: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ResolvedRoomAssignment {
+  assignment: RoomAssignment;
+  inherited: boolean;
+  sourcePlanIndex?: number;
 }
