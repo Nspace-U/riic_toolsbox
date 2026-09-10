@@ -78,6 +78,7 @@ import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
 import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
+  getOperatorAvatarSkippedLabelFontSize,
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
 import {
@@ -243,6 +244,11 @@ const slotNameBandStyle = computed(() => ({
 const emptySlotFrameStyle = computed(() => ({
   width: `${simulatorSlotSize.value}px`,
   height: `${simulatorSlotSize.value}px`,
+  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize.value)}px`,
+}));
+
+const skippedLabelStyle = computed(() => ({
+  fontSize: `${getOperatorAvatarSkippedLabelFontSize(simulatorSlotSize.value)}px`,
 }));
 
 function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
@@ -1437,8 +1443,8 @@ const FACILITY_TITLE_TAG_PRESETS: [
 ];
 /** 卡片宽度固定开销：列 gutter 10 + 设施卡边框 + 队列区 16px 内边距 + 队列卡边框。 */
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
-/** 队列卡片最小高度相对槽位高度的额外高度：名称栏 24 + 间隙 4 + 效率行 27 + 底留白 6 + 边框 2。 */
-const QUEUE_MIN_HEIGHT_EXTRA = 39;
+/** 队列卡片最小高度相对槽位高度的额外高度：间隙 2 + 效率行 20 + 底留白 6 + 边框 2。 */
+const QUEUE_MIN_HEIGHT_EXTRA = 30;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
 
 function slotRefCount(row: FacilityRow): number {
@@ -2947,7 +2953,19 @@ onBeforeUnmount(() => {
                                 [slot.entry.position],
                               )
                             "
-                          />
+                          >
+                            <span class="simulator-empty-slot-frame-text">
+                              空槽位
+                            </span>
+                            <template v-if="roomSkipped(slotRoom(plan, slot))">
+                              <span class="operator-avatar-skipped-overlay" />
+                              <span
+                                :style="skippedLabelStyle"
+                                class="operator-avatar-skipped-label"
+                                >跳过</span
+                              >
+                            </template>
+                          </div>
                           <span
                             :class="{
                               'simulator-empty-slot-name--editing':
@@ -2980,10 +2998,7 @@ onBeforeUnmount(() => {
                             "
                           >
                             {{
-                              roomSkipped(slotRoom(plan, slot))
-                                ? "跳过"
-                                : slotName(row, plan, planIndex, slot) ||
-                                  "空槽位"
+                              slotName(row, plan, planIndex, slot) || "空槽位"
                             }}
                           </span>
                         </template>

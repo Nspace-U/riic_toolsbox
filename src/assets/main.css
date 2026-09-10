@@ -1592,8 +1592,8 @@ a {
   display: grid;
   min-height: var(--simulator-queue-min-height, 135px);
   align-content: start;
-  padding: 10px;
-  gap: 6px;
+  padding: 8px;
+  gap: 5px;
   background: #f8fbfa;
   border: 1px solid #e0e8e5;
   border-radius: 5px;
@@ -1750,7 +1750,7 @@ a {
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 4px;
+  gap: 2px;
   /* 底部留出空白，作为设施右键菜单的可点击区域。 */
   padding-block-end: 6px;
 }
@@ -1888,18 +1888,19 @@ a {
 
 .simulator-efficiency-summary {
   display: grid;
-  gap: 5px;
-  padding-block-start: 2px;
+  gap: 4px;
+  padding-block-start: 0;
 }
 
 .simulator-efficiency-summary-line {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  min-height: 25px;
+  min-height: 20px;
   gap: 8px;
   color: #425457;
   font-size: 11px;
+  line-height: 1.2;
 }
 
 .simulator-efficiency-summary-line strong {
@@ -2152,9 +2153,19 @@ a {
 }
 
 .simulator-empty-slot-frame {
+  position: relative;
+  display: grid;
+  place-items: center;
   background: #edf2f0;
   border-radius: 0;
   cursor: pointer;
+  overflow: hidden;
+}
+
+.simulator-empty-slot-frame-text {
+  color: #8a9698;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .simulator-empty-slot-name {

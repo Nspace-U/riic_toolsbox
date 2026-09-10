@@ -291,3 +291,12 @@
 - **标题不换行**：`flex-wrap: nowrap`，可用宽度改为 `卡片宽度 − 34`（卡头内边距 24 + 列 gutter 10，上一轮漏算 gutter 导致窄卡仍截断）；放不下时依次缩小字号（下限 11px）、压缩与等级标签的间距（下限 4px）、把等级标签逐档缩小（12/10/9px），并清除 antd tag 自带的 `margin-inline-end: 8px`（否则宽度永远差 8px）。实测办公室、加工站为 11px 标题 + 9px 标签，无截断。
 - **图标档位**：删除「左上角」档位与 `fixedSize` 参数，`useFacilityCardSettings` 只保留 `iconStyle`（右下角小图标 / 居中水印）。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；Playwright 实测卡片宽度/高度/标题截断、空槽位点击进入编辑、菜单项集合与行首对齐、菜单底部夹取、通用设置只剩两档图标样式、新建设施房间不含 `skip`。
+
+## 2026-09-10：空槽位跳过表现与卡片高度再压缩
+
+- **空槽位框内文字**：框体内显示「空槽位」（字号跟随槽位尺寸，与名称栏一致），不再只靠下方名称栏表达。
+- **跳过表现统一**：房间被跳过的空槽位框体复用 `OperatorAvatarDisplay` 的 `.operator-avatar-skipped-overlay` 与 `.operator-avatar-skipped-label`（白字黑底「跳过」），与干员槽位完全一致；名称栏统一显示「空槽位」，与干员「头像显示跳过、名称显示姓名」的结构保持一致（不再把名称栏替换成「跳过」）。
+- **跳过标签字号共享**：新增 `getOperatorAvatarSkippedLabelFontSize`（`src/utils/operatorAvatarLayout.ts`），`OperatorAvatarDisplay` 与模拟器空槽位共用，去掉重复的 `Math.max(10, …)` 公式。
+- **效率行与卡片高度**：`.simulator-efficiency-summary` 上内边距 2px → 0、`.simulator-efficiency-summary-line` 的 `min-height` 25px → 20px 且 `line-height: 1.2`、队列卡内容 gap 4px → 2px；`QUEUE_MIN_HEIGHT_EXTRA` 39 → 30，队列卡 135px → 126px、设施卡 197.33px → 188.33px。
+- **行高不一致根因**：左侧「队列信息」内卡片的内容天生比设施队列卡高 5.28px，而 `align-items: stretch` 会把同排设施卡撑到它的高度（实测控制中枢卡 193.61px、其他排 188.33px）。把 `.simulator-queue-info` 的内边距 10px → 8px、gap 6px → 5px，使内容回到共用的 `--simulator-queue-min-height` 之内；实测队列信息卡与 7 张设施队列卡全部 126px、所有外层卡片 188.33px。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；浏览器实测点击框内「空槽位」文字与被跳过空槽位的「跳过」标签都能进入原地编辑。

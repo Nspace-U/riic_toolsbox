@@ -19,6 +19,7 @@
 - 使用基于语义方向的 css 属性，如 margin-inline、margin-block，而不是物理方向的属性，如 margin-left、margin-top
 - 总是为具名函数参数和返回值添加类型注解，返回 void 的函数不写返回类型
 - 优先使用 function 关键字来定义有名字的函数，而不是使用箭头函数赋值
+- 不要在代码中写注释
 
 ## 提交
 

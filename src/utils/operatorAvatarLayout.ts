@@ -30,6 +30,13 @@ export function getOperatorAvatarNameFontSize(imageWidth: number): number {
   );
 }
 
+/** 跳过标签字号：与名称同规则，但不小于 10px，避免小槽位看不清。 */
+export function getOperatorAvatarSkippedLabelFontSize(
+  imageWidth: number,
+): number {
+  return Math.max(10, getOperatorAvatarNameFontSize(imageWidth));
+}
+
 export function getOperatorAvatarNameFontSizeForWidth(
   name: string,
   imageWidth: number,

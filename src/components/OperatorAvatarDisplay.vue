@@ -10,6 +10,7 @@ import {
   getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarProportionalNameMetrics,
   getOperatorAvatarScale,
+  getOperatorAvatarSkippedLabelFontSize,
   OPERATOR_AVATAR_LAYOUT,
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
@@ -219,7 +220,7 @@ const displayStyle = computed(() => ({
 }));
 
 const skippedLabelStyle = computed(() => ({
-  fontSize: `${Math.max(10, getOperatorAvatarNameFontSize(props.size))}px`,
+  fontSize: `${getOperatorAvatarSkippedLabelFontSize(props.size)}px`,
 }));
 
 const namePaddingInline = computed(() => {
