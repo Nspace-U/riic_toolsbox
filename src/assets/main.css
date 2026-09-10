@@ -1585,12 +1585,12 @@ a {
 .simulator-facility-queues {
   display: grid;
   gap: 8px;
-  padding: var(--simulator-facility-queues-padding, 8px);
+  padding: 8px;
 }
 
 .simulator-queue-info {
   display: grid;
-  min-height: 224px;
+  min-height: var(--simulator-queue-min-height, 135px);
   align-content: start;
   padding: 10px;
   gap: 6px;
@@ -1699,10 +1699,10 @@ a {
 
 .simulator-facility-title {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   min-width: 0;
-  gap: 8px;
+  gap: var(--simulator-facility-title-gap, 8px);
 }
 
 .simulator-facility-title > span:first-child {
@@ -1714,6 +1714,12 @@ a {
   white-space: nowrap;
 }
 
+.simulator-facility-title .ant-tag {
+  padding-inline: var(--simulator-facility-tag-padding, 7px);
+  margin-inline-end: 0;
+  font-size: var(--simulator-facility-tag-font-size, 12px);
+}
+
 .simulator-facility-queues {
   min-width: 0;
 }
@@ -1722,6 +1728,7 @@ a {
   position: relative;
   min-width: 0;
   height: auto;
+  min-height: var(--simulator-queue-min-height, 135px);
   margin: 0;
   overflow: hidden;
   background: color-mix(in srgb, var(--simulator-facility-accent) 5%, #ffffff);
@@ -1774,14 +1781,6 @@ a {
   transform: translate(-50%, -50%);
 }
 
-.simulator-facility-icon--compact {
-  inset-block-start: 6px;
-  inset-inline-start: 6px;
-  width: var(--simulator-facility-icon-size, 24px);
-  height: var(--simulator-facility-icon-size, 24px);
-  opacity: 0.3;
-}
-
 .simulator-slot-grid {
   display: flex;
   grid-auto-flow: column;
@@ -1828,15 +1827,14 @@ a {
   text-align: center;
 }
 
-.simulator-slot > .operator-avatar-display,
-.simulator-slot > .simulator-empty-avatar {
+.simulator-slot > .operator-avatar-display {
   cursor: pointer;
 }
 
 .simulator-context-menu {
   position: fixed;
   z-index: 1050;
-  min-width: 156px;
+  min-width: 140px;
   overflow: visible;
   background: #ffffff;
   border: 1px solid #dce8e4;
@@ -1845,23 +1843,43 @@ a {
 }
 
 .simulator-context-menu .ant-menu {
-  min-width: 154px;
+  min-width: 138px;
   border-radius: 6px;
 }
 
-.simulator-context-menu .ant-menu-item .anticon {
-  min-width: 14px;
+/* 干员项与设施项使用同一行高、内边距与行首标记宽度。 */
+.simulator-context-menu .ant-menu-item {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding-inline: 10px;
+  font-size: 12px;
+  line-height: 28px;
+}
+
+.simulator-context-menu .ant-menu .ant-menu-item-group-list .ant-menu-item {
+  padding-inline: 10px;
+}
+
+.simulator-context-menu .ant-menu-item-divider {
+  min-height: 1px;
+  margin-block: 3px;
 }
 
 .simulator-context-menu .ant-menu-item-group-title {
-  padding-block: 4px 2px;
-  padding-inline: 16px;
+  padding-block: 3px 1px;
+  padding-inline: 10px;
   color: #72807f;
   font-size: 11px;
+  line-height: 18px;
 }
 
-.simulator-context-menu .ant-menu-item-group-list .ant-menu-item {
-  padding-inline: 16px;
+.simulator-context-menu-marker {
+  display: inline-block;
+  min-width: 14px;
+  margin-inline-end: 6px;
+  color: #176b68;
+  text-align: center;
 }
 
 .simulator-context-menu--flat .ant-menu-item-group-title {
@@ -1878,6 +1896,7 @@ a {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  min-height: 25px;
   gap: 8px;
   color: #425457;
   font-size: 11px;
@@ -2132,20 +2151,25 @@ a {
   margin-block-end: 16px;
 }
 
-.simulator-empty-avatar {
-  display: grid;
-  place-items: center;
-  padding-inline: 4px;
-  color: #8a9698;
+.simulator-empty-slot-frame {
   background: #edf2f0;
   border-radius: 0;
+  cursor: pointer;
 }
 
-.simulator-empty-avatar-label {
-  max-width: 100%;
+.simulator-empty-slot-name {
+  display: block;
+  width: 100%;
   overflow: hidden;
+  color: #8a9698;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.simulator-empty-slot-name--editing {
+  visibility: hidden;
 }
 
 .operator-avatar-display {

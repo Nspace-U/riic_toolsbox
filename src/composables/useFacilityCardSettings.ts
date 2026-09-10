@@ -1,46 +1,11 @@
 import { ref } from "vue";
 
-export type FacilityCardPaddingKey = "wide" | "tight";
-
-export interface FacilityCardPaddingOption {
-  label: string;
-  description: string;
-  padding: number;
-  queuesPadding: number;
-}
-
-export const FACILITY_CARD_PADDING_OPTIONS: Record<
-  FacilityCardPaddingKey,
-  FacilityCardPaddingOption
-> = {
-  wide: {
-    label: "宽松",
-    description:
-      "卡片宽度 = 干员槽位总宽 + 40px，队列卡片内边距 8px，内容与卡片边缘留有余量",
-    padding: 40,
-    queuesPadding: 8,
-  },
-  tight: {
-    label: "紧凑",
-    description:
-      "卡片宽度 = 干员槽位总宽 + 24px，队列卡片内边距收到 2px，卡片更窄、更贴近干员槽位",
-    padding: 24,
-    queuesPadding: 2,
-  },
-};
-
-export const FACILITY_CARD_PADDING_KEYS: FacilityCardPaddingKey[] = [
-  "wide",
-  "tight",
-];
-
-export type FacilityCardIconStyleKey = "corner" | "watermark" | "compact";
+export type FacilityCardIconStyleKey = "corner" | "watermark";
 
 export interface FacilityCardIconStyleOption {
   label: string;
   description: string;
-  scale?: number;
-  fixedSize?: number;
+  scale: number;
 }
 
 export const FACILITY_CARD_ICON_STYLE_OPTIONS: Record<
@@ -57,21 +22,14 @@ export const FACILITY_CARD_ICON_STYLE_OPTIONS: Record<
     description: "居中显示产物图标水印，尺寸为槽位的 2 倍，透明度 8%",
     scale: 2,
   },
-  compact: {
-    label: "左上角图标",
-    description: "左上角显示固定 24px 的产物图标，透明度 30%",
-    fixedSize: 24,
-  },
 };
 
 export const FACILITY_CARD_ICON_STYLE_KEYS: FacilityCardIconStyleKey[] = [
   "corner",
   "watermark",
-  "compact",
 ];
 
 export interface FacilityCardSettings {
-  paddingKey: FacilityCardPaddingKey;
   iconStyle: FacilityCardIconStyleKey;
 }
 
@@ -79,16 +37,8 @@ export const FACILITY_CARD_SETTINGS_STORAGE_KEY =
   "riic-tools:facility-card-settings:v1";
 
 const DEFAULT_FACILITY_CARD_SETTINGS: FacilityCardSettings = {
-  paddingKey: "wide",
   iconStyle: "corner",
 };
-
-function isPaddingKey(value: unknown): value is FacilityCardPaddingKey {
-  return (
-    typeof value === "string" &&
-    FACILITY_CARD_PADDING_KEYS.includes(value as FacilityCardPaddingKey)
-  );
-}
 
 function isIconStyleKey(value: unknown): value is FacilityCardIconStyleKey {
   return (
@@ -115,9 +65,6 @@ function readFacilityCardSettings(): FacilityCardSettings {
     }
     const candidate = parsedValue as Partial<FacilityCardSettings>;
     return {
-      paddingKey: isPaddingKey(candidate.paddingKey)
-        ? candidate.paddingKey
-        : DEFAULT_FACILITY_CARD_SETTINGS.paddingKey,
       iconStyle: isIconStyleKey(candidate.iconStyle)
         ? candidate.iconStyle
         : DEFAULT_FACILITY_CARD_SETTINGS.iconStyle,
@@ -146,25 +93,11 @@ function persistFacilityCardSettings(): void {
   }
 }
 
-function setFacilityCardPadding(value: unknown): void {
-  if (!isPaddingKey(value)) {
-    return;
-  }
-  facilityCardSettings.value = {
-    ...facilityCardSettings.value,
-    paddingKey: value,
-  };
-  persistFacilityCardSettings();
-}
-
 function setFacilityCardIconStyle(value: unknown): void {
   if (!isIconStyleKey(value)) {
     return;
   }
-  facilityCardSettings.value = {
-    ...facilityCardSettings.value,
-    iconStyle: value,
-  };
+  facilityCardSettings.value = { iconStyle: value };
   persistFacilityCardSettings();
 }
 
@@ -173,24 +106,16 @@ function resetFacilityCardSettings(): void {
   persistFacilityCardSettings();
 }
 
-function facilityCardPadding(key: FacilityCardPaddingKey): number {
-  return FACILITY_CARD_PADDING_OPTIONS[key].padding;
-}
-
-function facilityCardQueuesPadding(key: FacilityCardPaddingKey): number {
-  return FACILITY_CARD_PADDING_OPTIONS[key].queuesPadding;
+function facilityCardIconScale(key: FacilityCardIconStyleKey): number {
+  return FACILITY_CARD_ICON_STYLE_OPTIONS[key].scale;
 }
 
 export function useFacilityCardSettings() {
   return {
     facilityCardSettings,
-    facilityCardPadding,
-    facilityCardQueuesPadding,
-    facilityCardPaddingKeys: FACILITY_CARD_PADDING_KEYS,
-    facilityCardPaddingOptions: FACILITY_CARD_PADDING_OPTIONS,
+    facilityCardIconScale,
     facilityCardIconStyleKeys: FACILITY_CARD_ICON_STYLE_KEYS,
     facilityCardIconStyleOptions: FACILITY_CARD_ICON_STYLE_OPTIONS,
-    setFacilityCardPadding,
     setFacilityCardIconStyle,
     resetFacilityCardSettings,
   };

@@ -278,3 +278,16 @@
 - **补充确认**：用户接受「名字很长时字号很小」的表现，名称栏高度下限维持 `nameOutputMinHeight: 24` 不跟随字号，小宽度下长名字的上下留白保持现状，不再作为待确认项。
 - **实测**：Headless Edge 4× 像素扫描，180px 输出 8 字（DOM 18.25px 高、Canvas 18px 高；宽 151 / 150.25；左右留白 14.5/14.5 与 14.75/15）与 72px 槽位 7 字（8px 字号、留白 8.25/8.5）均无省略号；对照组（180px 下 8 字用 22px）出现 12.75/19.5 的不对称留白与 271.5px 处的空隙，验证检测方法有效。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过。
+
+## 2026-09-10：设施区队列卡片尺寸校正与右键菜单收敛
+
+- **新建房间默认不再跳过**：`createDefaultRoomAssignment` 只保留产物、`createEmptySchedule` 的控制中枢房间改为 `{}`、`MaaSchedulePage` 房间类型切换回退改为 `{}`；因此跳过状态的展示条件回归为 `room.skip === true`，删除上一轮为规避默认 `skip` 加上的「且房间至少一名干员」补丁。清空某设施全部干员时仍会写 `skip: true`（既有逻辑），该房间空槽位显示「跳过」。
+- **右键菜单内容**：移除「未指定产物」与「未指定原料」，产物只列该设施可选项（过滤 `productOptions()` 的空值项）；原料仅在产物为源石碎片时出现，选项为固源岩/装置。
+- **右键菜单尺寸与行首对齐**：菜单项 40px → 28px、字号 14px → 12px、去掉 antd 的 4px 外边距、菜单最小宽度 156px → 140px；干员项与设施项统一改用 `.simulator-context-menu-marker`（固定 14px + 6px 间隔）作为行首，内边距统一 10px。分组项需要 `.simulator-context-menu .ant-menu .ant-menu-item-group-list .ant-menu-item` 才能覆盖 antd 运行时的 `padding-inline-start: 28px`（同级特异性会被运行时样式覆盖）。
+- **菜单不超出视口底部**：新增 `clampContextMenuPosition()`，菜单渲染后按 `offsetHeight` 把顶部夹到 `innerHeight - height - 8`（实测 562px 高菜单顶部被夹到 224px，底部 786 ≤ 794 − 8）。
+- **卡片宽度**：删除「卡片宽度留白」设置与其 `paddingKey`/`queuesPadding` 参数、`--simulator-facility-queues-padding` 变量，改为固定开销 `FACILITY_CARD_HORIZONTAL_OVERHEAD = 29`（列 gutter 10 + 队列区 16px 内边距 + 边框）；右侧空白条由 11.33px 收到 0.33px。
+- **卡片等高**：新增 `--simulator-queue-min-height`（槽位高度 + 名称栏 24 + 39）同时作用于 `.simulator-facility-queue` 与 `.simulator-queue-info`，替换 224px 最小高度；效率行改为始终渲染并给 `.simulator-efficiency-summary-line` 加 `min-height: 25px`，让没有计算结果的卡片也保持同高。实测队列信息卡与所有设施队列卡 135px、设施卡 197.33px。
+- **空槽位结构**：由「单个灰色方块内嵌文字」改为「方形框体 + 下方名称栏」，框体 72×72、无圆角、取消内边距，名称栏与干员名同高（24px）同字号（12px）并与原地编辑输入框几何一致；点击框体或名称栏都可进入编辑，修掉「点击空槽位下方无法编辑」。
+- **标题不换行**：`flex-wrap: nowrap`，可用宽度改为 `卡片宽度 − 34`（卡头内边距 24 + 列 gutter 10，上一轮漏算 gutter 导致窄卡仍截断）；放不下时依次缩小字号（下限 11px）、压缩与等级标签的间距（下限 4px）、把等级标签逐档缩小（12/10/9px），并清除 antd tag 自带的 `margin-inline-end: 8px`（否则宽度永远差 8px）。实测办公室、加工站为 11px 标题 + 9px 标签，无截断。
+- **图标档位**：删除「左上角」档位与 `fixedSize` 参数，`useFacilityCardSettings` 只保留 `iconStyle`（右下角小图标 / 居中水印）。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；Playwright 实测卡片宽度/高度/标题截断、空槽位点击进入编辑、菜单项集合与行首对齐、菜单底部夹取、通用设置只剩两档图标样式、新建设施房间不含 `skip`。

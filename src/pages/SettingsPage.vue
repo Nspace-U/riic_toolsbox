@@ -61,11 +61,8 @@ const {
 } = useAvatarDisplaySizes();
 const {
   facilityCardSettings,
-  facilityCardPaddingKeys,
-  facilityCardPaddingOptions,
   facilityCardIconStyleKeys,
   facilityCardIconStyleOptions,
-  setFacilityCardPadding,
   setFacilityCardIconStyle,
   resetFacilityCardSettings,
 } = useFacilityCardSettings();
@@ -907,34 +904,9 @@ watch(
       title="设施卡片"
     >
       <p class="settings-panel-description">
-        调整排班模拟器中队列卡片的宽度留白与卡片背景的产物图标样式，修改后立即生效并保存在当前浏览器。
+        调整排班模拟器中队列卡片背景的产物图标样式，修改后立即生效并保存在当前浏览器。
       </p>
       <a-form layout="vertical">
-        <a-form-item label="卡片宽度留白">
-          <a-radio-group
-            :value="facilityCardSettings.paddingKey"
-            @change="
-              (event: { target: { value: unknown } }) =>
-                setFacilityCardPadding(event.target.value)
-            "
-          >
-            <a-radio
-              v-for="key in facilityCardPaddingKeys"
-              :key="key"
-              :value="key"
-            >
-              {{ facilityCardPaddingOptions[key].label }}（{{
-                facilityCardPaddingOptions[key].padding
-              }}px）
-            </a-radio>
-          </a-radio-group>
-          <p class="settings-panel-hint">
-            {{
-              facilityCardPaddingOptions[facilityCardSettings.paddingKey]
-                .description
-            }}
-          </p>
-        </a-form-item>
         <a-form-item label="卡片背景产物图标">
           <a-radio-group
             :value="facilityCardSettings.iconStyle"

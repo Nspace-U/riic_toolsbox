@@ -324,9 +324,7 @@ function updateLayoutType(index: number, value: string): void {
       const previousRooms = Array.isArray(plan.rooms[previousType])
         ? [...(plan.rooms[previousType] as RoomAssignment[])]
         : [];
-      const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? {
-        skip: true,
-      };
+      const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? {};
       if (previousRooms.length > 0) {
         plan.rooms[previousType] = previousRooms;
       } else {

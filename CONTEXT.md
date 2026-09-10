@@ -181,3 +181,17 @@
 - 已知差异：`MaaSchedulePage.vue` 切换产物时不清 `sourceMaterial`、`productOptions` 缺少「未指定产物」空选项，与模拟器页不一致（对非源石碎片产物的计算无影响）。
 - 风险：产物图标是背景水印，「右下角小图标」档位会被不透明的空槽位方块遮住大半，需要「居中水印」档位才能看清全貌。
 - 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；Playwright 浏览器实测覆盖卡片宽度与标题字号、效率居中、空槽位外观、三种图标档位、合并右键菜单、发电站分组菜单、原地编辑与补全过滤、跳过灰显、编辑产物开关联动、固定等级归一化提示。
+
+## 本轮设施区卡片尺寸校正与右键菜单收敛
+
+- 新建房间不再写 `skip: true`：`createDefaultRoomAssignment` 只保留产物、`createEmptySchedule` 的控制中枢房间改为 `{}`、`MaaSchedulePage` 房间类型切换回退改为 `{}`；因此「跳过」展示条件回归为 `room.skip === true`，删除了上一轮为规避默认 `skip` 而加的「且房间有干员」补丁。
+- 右键菜单移除「未指定产物」与「未指定原料」两项，产物只列该设施可选项（`productOptions()` 过滤掉空值项）。
+- 右键菜单尺寸与对齐：菜单项 40px → 28px、字号 14px → 12px、去掉 antd 的 4px 外边距、菜单宽度 156px → 140px；干员项与设施项统一使用 `.simulator-context-menu-marker`（固定 14px + 6px 间隔）作为行首，内边距统一 10px，分组项内边距需用 `.simulator-context-menu .ant-menu .ant-menu-item-group-list .ant-menu-item` 覆盖 antd 的 `padding-inline-start: 28px`（同级特异性会被 antd 运行时样式覆盖）。
+- 右键菜单不再超出视口底部：`clampContextMenuPosition()` 在菜单渲染后按真实高度把顶部夹到 `innerHeight - height - 8`（实测 562px 高菜单顶部被正确夹到 224px）。
+- 卡片宽度改为固定开销：`FACILITY_CARD_HORIZONTAL_OVERHEAD = 29`（列 gutter 10 + 队列区 16px 内边距 + 边框），删除「卡片宽度留白」设置与 `paddingKey`/`queuesPadding` 参数及 `--simulator-facility-queues-padding` 变量；右侧空白条由 11.33px 收到 0.33px。
+- 卡片等高：新增 `--simulator-queue-min-height`（槽位高度 + 名称栏 24 + 39）同时作用于 `.simulator-facility-queue` 与 `.simulator-queue-info`，删除 224px 最小高度；效率行改为始终渲染并给 `.simulator-efficiency-summary-line` 加 `min-height: 25px`，使无计算结果的卡片也有同样高度。实测队列信息卡与所有设施队列卡均为 135px、设施卡均为 197.33px。
+- 空槽位改为「方形框体 + 下方名称栏」：框体 72×72、无圆角、`padding` 取消；名称栏与干员名同高（24px）同字号（12px）并与名称输入框几何一致；点击框体或名称栏都可进入原地编辑，修掉「点击空槽位下方无法编辑」的问题。
+- 设施卡标题不再换行：`flex-wrap: nowrap`，可用宽度改为 `卡片宽度 − 34`（卡头内边距 24 + 列 gutter 10，上一轮漏算 gutter 导致窄卡仍被截断）；放不下时依次缩小字号（下限 11px）、压缩与等级标签的间距（下限 4px）、把等级标签从 12px/10px/9px 逐档缩小；同时清除 antd tag 自带的 `margin-inline-end: 8px`（否则宽度永远差 8px 被截断）。实测办公室、加工站为 11px 标题 + 9px 标签，恰好放下且无截断。
+- 删除产物图标「左上角」档位与 `fixedSize` 参数，剩余「右下角小图标」「居中水印」两档（`useFacilityCardSettings` 只保留 `iconStyle`）。
+- 已知行为：清空某设施全部干员时仍会写 `skip: true`（既有逻辑），此时该房间空槽位显示「跳过」。
+- 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；Playwright 实测卡片宽度/高度/标题截断、空槽位点击进入编辑、菜单项集合与行首对齐、菜单底部夹取、通用设置只剩两档图标样式、新建设施房间不含 `skip`。

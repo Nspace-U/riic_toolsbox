@@ -139,10 +139,7 @@ export const DEFAULT_ROOM_PRODUCTS: Partial<Record<RoomKey, string>> = {
 
 export function createDefaultRoomAssignment(type: RoomKey): RoomAssignment {
   const product = DEFAULT_ROOM_PRODUCTS[type];
-  return {
-    skip: true,
-    ...(product ? { product } : {}),
-  };
+  return product ? { product } : {};
 }
 
 export const PRODUCT_OPTIONS = Object.entries(PRODUCT_LABELS).map(
@@ -725,7 +722,7 @@ export function createEmptySchedule(): ScheduleDocument {
         name: "队列1",
         duration: 720,
         rooms: {
-          control: [{ skip: true }],
+          control: [{}],
         },
       },
     ],
