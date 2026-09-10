@@ -48,6 +48,7 @@ import {
   canAddLayoutEntry,
   cloneSchedule,
   facilityPower,
+  orderedLayoutEntries,
   roomSlotCount,
   roomLevelRange,
   validateSchedule,
@@ -186,7 +187,6 @@ const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
-const newLayoutType = ref<RoomKey>("trading");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 let catalogRequestVersion = 0;
 
@@ -229,12 +229,18 @@ const layoutAddOptions = computed(() =>
       ? canAddLayoutEntry(currentDocument.value.layout, type)
       : { ok: false, reason: "暂无排班表" };
     return {
-      value: type,
+      type,
       label: ROOM_LABELS[type],
       disabled: !result.ok,
+      reason: result.ok ? "点击添加" : result.reason,
     };
   }),
 );
+
+const layoutEntries = computed(() => {
+  const document = currentDocument.value;
+  return document ? orderedLayoutEntries(document.layout) : [];
+});
 
 const powerSummary = computed<PowerSummary>(() => {
   const document = currentDocument.value;
@@ -484,29 +490,14 @@ function layoutEntryLevelMax(type: RoomKey): number {
   return roomLevelRange(type).max;
 }
 
-function layoutTypeOptions(
-  index: number,
-): Array<{ value: string; label: string; disabled?: boolean }> {
-  const layout = currentDocument.value?.layout;
-  if (!layout) {
-    return [];
-  }
-
-  const baseLayout = layout.filter(
-    (_entry, entryIndex) => entryIndex !== index,
-  );
-  return ROOM_ORDER.map((type) => {
-    const result = canAddLayoutEntry(baseLayout, type);
-    return {
-      value: type,
-      label: ROOM_LABELS[type],
-      disabled: !result.ok,
-    };
-  });
+function layoutFacilityStyle(type: RoomKey): Record<string, string> {
+  return {
+    "--simulator-facility-accent":
+      facilityColors.value[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
+  };
 }
 
-function addLayoutEntry(): void {
-  const type = newLayoutType.value;
+function addLayoutEntry(type: RoomKey): void {
   const document = currentDocument.value;
   if (!document) {
     return;
@@ -546,93 +537,6 @@ function updateLayoutLevel(index: number, value: number | null): void {
   );
 }
 
-function normalizeRoomProduct(type: RoomKey, room: RoomAssignment): void {
-  const product = room.product;
-  if (type !== "trading" && type !== "manufacture") {
-    delete room.product;
-    delete room.sourceMaterial;
-    return;
-  }
-  const isValid =
-    type === "trading"
-      ? product === "LMD" || product === "Orundum"
-      : type === "manufacture"
-        ? product === "Pure Gold" ||
-          product === "Battle Record" ||
-          product === "Originium Shard"
-        : false;
-  if (!isValid) {
-    delete room.product;
-    delete room.sourceMaterial;
-  }
-}
-
-function updateLayoutType(index: number, value: string): void {
-  if (!ROOM_ORDER.includes(value as RoomKey)) {
-    return;
-  }
-
-  updateCurrent(
-    (document) => {
-      const entry = document.layout[index];
-      if (!entry) {
-        return;
-      }
-      const nextType = value as RoomKey;
-      if (entry.type === nextType) {
-        return;
-      }
-      if (entry.type === "control") {
-        throw new ScheduleError("控制中枢不可更换设施类型");
-      }
-
-      const baseLayout = document.layout.filter(
-        (_layoutEntry, entryIndex) => entryIndex !== index,
-      );
-      const result = canAddLayoutEntry(baseLayout, nextType);
-      if (!result.ok) {
-        throw new ScheduleError(result.reason);
-      }
-
-      const previousType = entry.type;
-      const previousPosition = document.layout
-        .slice(0, index)
-        .filter((layoutEntry) => layoutEntry.type === previousType).length;
-      const nextPosition = document.layout
-        .slice(0, index)
-        .filter((layoutEntry) => layoutEntry.type === nextType).length;
-
-      document.plans.forEach((plan) => {
-        const previousRooms = Array.isArray(plan.rooms[previousType])
-          ? [...(plan.rooms[previousType] as RoomAssignment[])]
-          : [];
-        const movedRoom = previousRooms.splice(previousPosition, 1)[0] ?? {
-          skip: true,
-        };
-        if (previousRooms.length > 0) {
-          plan.rooms[previousType] = previousRooms;
-        } else {
-          delete plan.rooms[previousType];
-        }
-
-        const nextRooms = Array.isArray(plan.rooms[nextType])
-          ? [...(plan.rooms[nextType] as RoomAssignment[])]
-          : [];
-        normalizeRoomProduct(nextType, movedRoom);
-        nextRooms.splice(nextPosition, 0, movedRoom);
-        plan.rooms[nextType] = nextRooms;
-      });
-
-      entry.type = nextType;
-      entry.level = Math.min(entry.level, layoutEntryLevelMax(nextType));
-      document.plans.forEach((plan) =>
-        resizeRoomsForLayout(plan, document.layout),
-      );
-    },
-    { markLayoutExplicit: true },
-  );
-}
-
 function cascadeLayoutTypes(type: RoomKey): RoomKey[] {
   if (type === "meeting") {
     return ["processing", "hire", "training"];
@@ -655,6 +559,24 @@ function removeLayoutEntry(index: number): void {
   if (entry.type === "control") {
     setError(new ScheduleError("控制中枢不可删除"));
     return;
+  }
+
+  const cascadedEntries = cascadeLayoutTypes(entry.type).flatMap((type) =>
+    document.layout.filter((layoutEntry) => layoutEntry.type === type),
+  );
+  if (cascadedEntries.length > 0) {
+    const cascadedLabels = Array.from(
+      new Set(
+        cascadedEntries.map((layoutEntry) => ROOM_LABELS[layoutEntry.type]),
+      ),
+    ).join("、");
+    if (
+      !window.confirm(
+        `删除${ROOM_LABELS[entry.type]}后，将同时删除${cascadedLabels}，确定吗？`,
+      )
+    ) {
+      return;
+    }
   }
 
   const removedTypes = new Set<RoomKey>([
@@ -1679,63 +1601,65 @@ watch(
           class="simulator-layout-panel"
           title="设施布局"
         >
-          <template #extra>
-            <a-space :size="6">
-              <a-select
-                v-model:value="newLayoutType"
-                :options="layoutAddOptions"
-                class="simulator-layout-add-select"
-                placeholder="选择设施"
-                size="small"
-              />
-              <a-button
-                :disabled="
-                  !currentDocument ||
-                  !canAddLayoutEntry(currentDocument.layout, newLayoutType).ok
-                "
-                size="small"
-                @click="addLayoutEntry"
-              >
-                <template #icon><PlusOutlined /></template>
-                添加设施
-              </a-button>
-            </a-space>
-          </template>
           <div class="simulator-layout-list">
             <div
-              v-for="(entry, index) in currentDocument.layout"
-              :key="`${entry.type}-${index}`"
-              class="simulator-layout-row"
+              v-for="item in layoutEntries"
+              :key="item.index"
+              class="simulator-layout-card"
+              :style="layoutFacilityStyle(item.entry.type)"
             >
-              <span class="simulator-layout-order">{{ index + 1 }}</span>
-              <a-select
-                :disabled="entry.type === 'control'"
-                :options="layoutTypeOptions(index)"
-                :value="entry.type"
-                class="simulator-layout-type"
-                @update:value="
-                  (value: string) => updateLayoutType(index, value)
-                "
-              />
+              <span class="simulator-layout-card-name">
+                {{ ROOM_LABELS[item.entry.type] }}
+              </span>
               <a-input-number
-                :max="layoutEntryLevelMax(entry.type)"
+                :max="layoutEntryLevelMax(item.entry.type)"
                 :min="1"
-                :value="entry.level"
+                :value="item.entry.level"
                 addon-after="级"
-                class="simulator-layout-level"
+                class="simulator-layout-card-level"
                 @update:value="
-                  (value: number | null) => updateLayoutLevel(index, value)
+                  (value: number | null) => updateLayoutLevel(item.index, value)
                 "
               />
               <a-button
-                :disabled="entry.type === 'control'"
+                :disabled="item.entry.type === 'control'"
                 aria-label="删除设施"
                 danger
-                title="删除设施"
+                :title="
+                  item.entry.type === 'control'
+                    ? '控制中枢不可删除'
+                    : '删除设施'
+                "
                 type="text"
-                @click="removeLayoutEntry(index)"
+                @click="removeLayoutEntry(item.index)"
               >
                 <template #icon><DeleteOutlined /></template>
+              </a-button>
+            </div>
+          </div>
+          <div class="simulator-layout-add">
+            <div class="simulator-layout-add-heading">
+              <span class="simulator-summary-label">添加设施</span>
+              <span class="simulator-layout-add-hint"
+                >点击设施卡片直接添加</span
+              >
+            </div>
+            <div class="simulator-layout-add-grid">
+              <a-button
+                v-for="option in layoutAddOptions"
+                :key="option.type"
+                :class="[
+                  'simulator-layout-add-card',
+                  {
+                    'simulator-layout-add-card--disabled': option.disabled,
+                  },
+                ]"
+                :disabled="option.disabled"
+                :style="layoutFacilityStyle(option.type)"
+                :title="option.reason"
+                @click="addLayoutEntry(option.type)"
+              >
+                {{ option.label }}
               </a-button>
             </div>
           </div>

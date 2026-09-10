@@ -39,6 +39,18 @@ export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
 };
 
 export const ROOM_ORDER: RoomKey[] = [...ROOM_KEYS];
+export function orderedLayoutEntries<T extends LayoutEntry>(
+  layout: T[],
+): Array<{ entry: T; index: number }> {
+  return layout
+    .map((entry, index) => ({ entry, index }))
+    .sort((left, right) => {
+      const orderDifference =
+        ROOM_ORDER.indexOf(left.entry.type) -
+        ROOM_ORDER.indexOf(right.entry.type);
+      return orderDifference || left.index - right.index;
+    });
+}
 
 export const ROOM_LEVEL_LIMITS: Record<RoomKey, { min: number; max: number }> =
   {

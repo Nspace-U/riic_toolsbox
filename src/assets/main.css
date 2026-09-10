@@ -1377,31 +1377,95 @@ a {
   padding: 12px 14px;
 }
 
-.simulator-layout-add-select {
-  width: 128px;
-}
-
 .simulator-layout-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 8px;
 }
 
-.simulator-layout-row {
+.simulator-layout-card {
   display: grid;
-  grid-template-columns: 28px minmax(150px, 1fr) 104px 32px;
+  grid-template-columns: minmax(0, 1fr) 92px 32px;
   align-items: center;
   gap: 8px;
+  min-height: 48px;
+  padding: 7px 8px 7px 10px;
+  background: color-mix(in srgb, var(--simulator-facility-accent) 8%, #ffffff);
+  border: 1px solid
+    color-mix(in srgb, var(--simulator-facility-accent) 40%, #e0e8e5);
+  border-inline-start: 4px solid var(--simulator-facility-accent);
+  border-radius: 5px;
 }
 
-.simulator-layout-order {
-  color: #8a9698;
-  font-size: 12px;
-  text-align: center;
+.simulator-layout-card-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #2e4043;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.simulator-layout-type,
-.simulator-layout-level {
+.simulator-layout-card-level {
   width: 100%;
+}
+
+.simulator-layout-add {
+  margin-block-start: 14px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-layout-add-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-end: 8px;
+}
+
+.simulator-layout-add-hint {
+  color: #8a9698;
+  font-size: 11px;
+}
+
+.simulator-layout-add-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.ant-btn.simulator-layout-add-card {
+  height: 36px;
+  overflow: hidden;
+  padding-inline: 10px;
+  color: color-mix(in srgb, var(--simulator-facility-accent) 72%, #253238);
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--simulator-facility-accent) 7%, #ffffff);
+  border-color: color-mix(
+    in srgb,
+    var(--simulator-facility-accent) 38%,
+    #d9e2df
+  );
+}
+
+.ant-btn.simulator-layout-add-card:hover,
+.ant-btn.simulator-layout-add-card:focus {
+  color: color-mix(in srgb, var(--simulator-facility-accent) 82%, #253238);
+  background: color-mix(in srgb, var(--simulator-facility-accent) 15%, #ffffff);
+  border-color: var(--simulator-facility-accent);
+}
+
+.ant-btn.simulator-layout-add-card.simulator-layout-add-card--disabled,
+.ant-btn.simulator-layout-add-card.simulator-layout-add-card--disabled:hover,
+.ant-btn.simulator-layout-add-card.simulator-layout-add-card--disabled:focus {
+  color: #9aa5a5;
+  background: #f3f6f5;
+  border-color: #e0e8e5;
+  cursor: not-allowed;
 }
 
 .simulator-column-card {
@@ -2288,12 +2352,12 @@ a {
     max-width: 100%;
   }
 
-  .simulator-layout-row {
-    grid-template-columns: 24px minmax(0, 1fr) 96px 32px;
+  .simulator-layout-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .simulator-layout-add-select {
-    width: 112px;
+  .simulator-layout-add-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .simulator-result-section-heading {
