@@ -26,7 +26,10 @@ import {
   sortProfessionValues,
 } from "@/utils/operatorOrdering";
 import { ROOM_ORDER } from "@/utils/schedule";
-import { nodesForOperator } from "@/utils/operatorProgression";
+import {
+  fixedProgressionNodes,
+  nodesForOperator,
+} from "@/utils/operatorProgression";
 
 const {
   dataSourceOptions,
@@ -171,26 +174,7 @@ function progressionEntry(
 }
 
 function progressionNodes(operator: Operator): OperatorProgressionNode[] {
-  const nodes = nodesForOperator(skillFiles.value[operator.id]);
-  const eliteNodes = nodes.filter((node) => node.type === "elite");
-  if (eliteNodes.some((node) => node.value > 0)) {
-    return eliteNodes;
-  }
-
-  const levelNodes = nodes.filter((node) => node.type === "level");
-  if (levelNodes.length === 0 || levelNodes.some((node) => node.value === 0)) {
-    return levelNodes;
-  }
-  return [
-    {
-      key: "level-0",
-      type: "level",
-      value: 0,
-      label: "0级",
-      facilities: [...new Set(levelNodes.flatMap((node) => node.facilities))],
-    },
-    ...levelNodes,
-  ];
+  return nodesForOperator(skillFiles.value[operator.id]);
 }
 
 function nodeIsCurrent(
@@ -207,7 +191,9 @@ function nodeIsCurrent(
 }
 
 function nodeFacilities(node: OperatorProgressionNode): string {
-  return node.facilities.map((facility) => facilityLabels[facility]).join("、");
+  return node.facilities.length
+    ? node.facilities.map((facility) => facilityLabels[facility]).join("、")
+    : "按干员稀有度提供的固定练度档位";
 }
 
 function updateProgressionNode(
@@ -232,6 +218,9 @@ function updateProgressionNode(
       entry.elite = node.value as 0 | 1 | 2;
       entry.level = 1;
     } else {
+      if (operator.rarity <= 2) {
+        entry.elite = 0;
+      }
       entry.level = node.value;
     }
     entry.owned = true;
@@ -487,7 +476,7 @@ watch(
         @close="progressionSuccess = ''"
       />
       <p class="settings-panel-description">
-        导入干员练度后，可按基建技能节点设置干员状态。未选择档案时，排班模拟器会使用设施默认练度。
+        导入干员练度后，可按干员稀有度提供的固定档位设置干员状态；列表筛选仍依据基建技能节点。未选择档案时，排班模拟器会使用设施默认练度。
       </p>
       <div class="settings-progression-toolbar">
         <a-select
@@ -708,7 +697,7 @@ watch(
                   class="settings-progression-nodes"
                 >
                   <a-button
-                    v-for="node in progressionNodes(operator)"
+                    v-for="node in fixedProgressionNodes(operator.rarity)"
                     :key="node.key"
                     :class="{
                       'settings-progression-node--current': nodeIsCurrent(

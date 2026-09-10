@@ -173,7 +173,18 @@ export function maximumProgressionForFacility(
   maxEliteLevel: EliteLevel = 0,
 ): Pick<OperatorProgressionEntry, "elite" | "level"> {
   if (facility === "meeting") {
-    return { elite: maxEliteLevel, level: 1 };
+    const nodes = progressionNodes(operatorSkillFile).filter((node) =>
+      node.facilities.includes(facility),
+    );
+    return {
+      elite: maxEliteLevel,
+      level: Math.max(
+        1,
+        ...nodes
+          .filter((node) => node.type === "level")
+          .map((node) => node.value),
+      ),
+    };
   }
   if (NON_WORK_ROOMS.has(facility)) {
     return { elite: 0, level: 0 };
@@ -247,6 +258,89 @@ export function nodesForOperator(
   operatorSkillFile: OperatorSkillFile | undefined,
 ): OperatorProgressionNode[] {
   return progressionNodes(operatorSkillFile);
+}
+
+export function fixedProgressionNodes(
+  rarity: number,
+): OperatorProgressionNode[] {
+  if (rarity <= 2) {
+    return [
+      {
+        key: "level-1",
+        type: "level",
+        value: 1,
+        label: "0级",
+        facilities: [],
+      },
+      {
+        key: "level-30",
+        type: "level",
+        value: 30,
+        label: "30级",
+        facilities: [],
+      },
+    ];
+  }
+
+  const maxEliteLevel = rarity === 3 ? 1 : 2;
+  return Array.from({ length: maxEliteLevel + 1 }, (_, value) => ({
+    key: `elite-${value}`,
+    type: "elite" as const,
+    value,
+    label: `精英${value}`,
+    facilities: [],
+  }));
+}
+
+export function progressionNodesForFacility(
+  operatorSkillFile: OperatorSkillFile | undefined,
+  facility: RoomKey,
+  rarity: number,
+): OperatorProgressionNode[] {
+  const nodes = progressionNodes(operatorSkillFile).filter((node) =>
+    node.facilities.includes(facility),
+  );
+  const relevantNodes = nodes.filter((node) => {
+    if (node.type === "level") {
+      return node.value === 30;
+    }
+    if (rarity <= 2) {
+      return node.value === 0;
+    }
+    const maxEliteLevel = rarity === 3 ? 1 : 2;
+    return node.value <= maxEliteLevel;
+  });
+  if (relevantNodes.length === 0) {
+    return [];
+  }
+
+  const fixedNodes = fixedProgressionNodes(rarity);
+  const baseNode = fixedNodes[0];
+  const grouped = new Map<string, OperatorProgressionNode>();
+  if (baseNode) {
+    grouped.set(baseNode.key, { ...baseNode });
+  }
+  relevantNodes.forEach((node) => {
+    const projectedNode =
+      rarity <= 2 && node.type === "elite"
+        ? fixedNodes[0]
+        : rarity <= 2 && node.type === "level"
+          ? fixedNodes[1]
+          : node;
+    if (projectedNode) {
+      grouped.set(projectedNode.key, {
+        ...projectedNode,
+        facilities: [...node.facilities],
+      });
+    }
+  });
+
+  return [...grouped.values()].sort((left, right) => {
+    if (left.type !== right.type) {
+      return left.type === "elite" ? -1 : 1;
+    }
+    return left.value - right.value;
+  });
 }
 
 export function entryHasNode(

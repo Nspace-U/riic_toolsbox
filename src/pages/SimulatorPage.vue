@@ -7,7 +7,7 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useDataSource } from "@/composables/useDataSource";
@@ -35,6 +35,7 @@ import type {
   ScheduleDocument,
   StoredDocument,
 } from "@/types/schedule";
+import type { OperatorProgressionNode } from "@/types/operatorProgression";
 import {
   DEFAULT_SOURCE_MATERIAL,
   BUILD_CHAIN_REQUIRED,
@@ -59,7 +60,10 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
-import { resolveOperatorProgression } from "@/utils/operatorProgression";
+import {
+  progressionNodesForFacility,
+  resolveOperatorProgression,
+} from "@/utils/operatorProgression";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -77,6 +81,28 @@ interface FacilityRow {
 interface FacilitySlotRef {
   entry: FacilityEntry;
   slotIndex: number;
+}
+
+interface OperatorSlotAddress {
+  planIndex: number;
+  type: RoomKey;
+  position: number;
+  slotIndex: number;
+  key: string;
+}
+
+interface OperatorContextMenuState extends OperatorSlotAddress {
+  x: number;
+  y: number;
+}
+
+interface OperatorContextMenuDetails {
+  menu: OperatorContextMenuState;
+  name: string;
+  operator: Operator;
+  room: RoomAssignment;
+  progressionNodes: OperatorProgressionNode[];
+  hasManualProgression: boolean;
 }
 
 interface LayoutDisplayRow {
@@ -214,12 +240,16 @@ const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
+const editingOperatorSlot = ref<OperatorSlotAddress>();
+const operatorContextMenu = ref<OperatorContextMenuState>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 const layoutTextHint =
   "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
+
+const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
 
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
@@ -1055,6 +1085,21 @@ function operatorSlotKey(
   return `${planIndex}-${type}-${position}-${slotIndex}`;
 }
 
+function operatorSlotAddress(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): OperatorSlotAddress {
+  return {
+    planIndex,
+    type,
+    position,
+    slotIndex,
+    key: operatorSlotKey(planIndex, type, position, slotIndex),
+  };
+}
+
 function operatorNameAt(
   plan: Plan,
   type: RoomKey,
@@ -1088,6 +1133,62 @@ function handleOperatorDraft(
   draftOperatorNames.value[
     operatorSlotKey(planIndex, type, position, slotIndex)
   ] = value;
+}
+
+function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
+  return editingOperatorSlot.value?.key === slot.key;
+}
+
+function finishOperatorNameEdit(key: string): void {
+  delete draftOperatorNames.value[key];
+  if (editingOperatorSlot.value?.key === key) {
+    editingOperatorSlot.value = undefined;
+  }
+}
+
+function beginOperatorNameEdit(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): void {
+  const nextSlot = operatorSlotAddress(planIndex, type, position, slotIndex);
+  if (
+    editingOperatorSlot.value &&
+    editingOperatorSlot.value.key !== nextSlot.key
+  ) {
+    const previous = editingOperatorSlot.value;
+    if (
+      !commitOperatorName(
+        previous.planIndex,
+        previous.type,
+        previous.position,
+        previous.slotIndex,
+      )
+    ) {
+      return;
+    }
+  }
+  editingOperatorSlot.value = nextSlot;
+  draftOperatorNames.value[nextSlot.key] = currentDocument.value?.plans[
+    planIndex
+  ]
+    ? operatorNameAt(
+        currentDocument.value.plans[planIndex],
+        type,
+        position,
+        slotIndex,
+      )
+    : "";
+  operatorContextMenu.value = undefined;
+}
+
+function cancelOperatorNameEdit(): void {
+  const slot = editingOperatorSlot.value;
+  if (!slot) {
+    return;
+  }
+  finishOperatorNameEdit(slot.key);
 }
 
 function operatorElite(
@@ -1147,27 +1248,6 @@ function operatorTrainingUpgraded(
   }).upgraded;
 }
 
-function operatorMood(
-  room: RoomAssignment | undefined,
-  name: string,
-): number | undefined {
-  return operatorState(room, name).mood;
-}
-
-function operatorEliteValue(
-  room: RoomAssignment | undefined,
-  name: string,
-): number | undefined {
-  return operatorState(room, name).elite;
-}
-
-function operatorLevelValue(
-  room: RoomAssignment | undefined,
-  name: string,
-): number | undefined {
-  return operatorState(room, name).level;
-}
-
 function updateOperatorState(
   planIndex: number,
   type: RoomKey,
@@ -1212,8 +1292,8 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   );
 }
 
-const SIMULATOR_SLOT_WIDTH = 112;
-const SIMULATOR_SLOT_GAP = 8;
+const SIMULATOR_SLOT_WIDTH = 72;
+const SIMULATOR_SLOT_GAP = 0;
 const SIMULATOR_FACILITY_MIN_WIDTH = 224;
 
 function facilityCardWidth(row: FacilityRow): string {
@@ -1304,19 +1384,22 @@ function commitOperatorName(
   type: RoomKey,
   position: number,
   slotIndex: number,
-): void {
+): boolean {
   const document = currentDocument.value;
   const plan = document?.plans[planIndex];
   if (!document || !plan) {
-    return;
+    return false;
   }
 
   const key = operatorSlotKey(planIndex, type, position, slotIndex);
+  if (editingOperatorSlot.value?.key !== key) {
+    return false;
+  }
   const nextName = draftOperatorNames.value[key]?.trim() ?? "";
   const previousName = operatorNameAt(plan, type, position, slotIndex);
   if (nextName === previousName) {
-    delete draftOperatorNames.value[key];
-    return;
+    finishOperatorNameEdit(key);
+    return true;
   }
 
   const updated = updateCurrent((candidate) => {
@@ -1383,8 +1466,9 @@ function commitOperatorName(
     candidatePlan.rooms[type] = rooms;
   });
   if (updated) {
-    delete draftOperatorNames.value[key];
+    finishOperatorNameEdit(key);
   }
+  return updated;
 }
 
 function planDurationHours(plan: Plan): string {
@@ -1503,6 +1587,208 @@ function operatorState(
   return room?.operatorStates?.[name] ?? {};
 }
 
+function progressionMenuNodes(
+  operator: Operator,
+  type: RoomKey,
+): OperatorProgressionNode[] {
+  return progressionNodesForFacility(
+    efficiencyCatalog.value?.operators[operator.name]?.skillFile,
+    type,
+    operator.rarity,
+  );
+}
+
+const operatorContextMenuDetails = computed<
+  OperatorContextMenuDetails | undefined
+>(() => {
+  const menu = operatorContextMenu.value;
+  const document = currentDocument.value;
+  if (!menu || !document) {
+    return undefined;
+  }
+  const plan = document.plans[menu.planIndex];
+  const room = plan ? roomAt(plan, menu.type, menu.position) : undefined;
+  const name = plan
+    ? operatorNameAt(plan, menu.type, menu.position, menu.slotIndex)
+    : "";
+  const operator = operatorByName(name);
+  if (!room || !name || !operator) {
+    return undefined;
+  }
+  const state = operatorState(room, name);
+  return {
+    menu,
+    name,
+    operator,
+    room,
+    progressionNodes: progressionMenuNodes(operator, menu.type),
+    hasManualProgression:
+      state.elite !== undefined || state.level !== undefined,
+  };
+});
+
+function operatorContextMenuStyle(): Record<string, string> {
+  const menu = operatorContextMenu.value;
+  if (!menu) {
+    return {};
+  }
+  return {
+    insetInlineStart: `${menu.x}px`,
+    insetBlockStart: `${menu.y}px`,
+  };
+}
+
+function openOperatorContextMenu(
+  event: MouseEvent,
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): void {
+  const currentEditing = editingOperatorSlot.value;
+  if (currentEditing) {
+    if (
+      !commitOperatorName(
+        currentEditing.planIndex,
+        currentEditing.type,
+        currentEditing.position,
+        currentEditing.slotIndex,
+      )
+    ) {
+      return;
+    }
+  }
+  const plan = currentDocument.value?.plans[planIndex];
+  const name = plan ? operatorNameAt(plan, type, position, slotIndex) : "";
+  if (!name) {
+    operatorContextMenu.value = undefined;
+    return;
+  }
+  const slot = operatorSlotAddress(planIndex, type, position, slotIndex);
+  operatorContextMenu.value = {
+    ...slot,
+    x: Math.min(event.clientX, Math.max(8, window.innerWidth - 220)),
+    y: Math.min(event.clientY, Math.max(8, window.innerHeight - 280)),
+  };
+}
+
+function closeOperatorContextMenu(): void {
+  operatorContextMenu.value = undefined;
+}
+
+function updateOperatorMoodQuickly(value: number): void {
+  const menu = operatorContextMenuDetails.value;
+  if (!menu) {
+    return;
+  }
+  updateOperatorState(
+    menu.menu.planIndex,
+    menu.menu.type,
+    menu.menu.position,
+    menu.menu.slotIndex,
+    "mood",
+    value === 24 ? null : value,
+  );
+  closeOperatorContextMenu();
+}
+
+function updateOperatorProgression(node: OperatorProgressionNode): void {
+  const menu = operatorContextMenuDetails.value;
+  if (!menu) {
+    return;
+  }
+  if (node.type === "elite") {
+    updateOperatorState(
+      menu.menu.planIndex,
+      menu.menu.type,
+      menu.menu.position,
+      menu.menu.slotIndex,
+      "elite",
+      node.value,
+    );
+    updateOperatorState(
+      menu.menu.planIndex,
+      menu.menu.type,
+      menu.menu.position,
+      menu.menu.slotIndex,
+      "level",
+      1,
+    );
+  } else {
+    if (menu.operator.rarity <= 2) {
+      updateOperatorState(
+        menu.menu.planIndex,
+        menu.menu.type,
+        menu.menu.position,
+        menu.menu.slotIndex,
+        "elite",
+        0,
+      );
+    }
+    updateOperatorState(
+      menu.menu.planIndex,
+      menu.menu.type,
+      menu.menu.position,
+      menu.menu.slotIndex,
+      "level",
+      node.value,
+    );
+  }
+  closeOperatorContextMenu();
+}
+
+function resetOperatorProgression(): void {
+  const menu = operatorContextMenuDetails.value;
+  if (!menu) {
+    return;
+  }
+  updatePlanRoom(
+    menu.menu.planIndex,
+    menu.menu.type,
+    menu.menu.position,
+    (room) => {
+      const state = room.operatorStates?.[menu.name];
+      if (!state) {
+        return;
+      }
+      delete state.elite;
+      delete state.level;
+      if (Object.keys(state).length === 0) {
+        delete room.operatorStates?.[menu.name];
+      }
+      if (
+        room.operatorStates &&
+        Object.keys(room.operatorStates).length === 0
+      ) {
+        delete room.operatorStates;
+      }
+    },
+  );
+  closeOperatorContextMenu();
+}
+
+function handleWindowClick(event: MouseEvent): void {
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    (target.closest(".simulator-operator-context-menu") ||
+      target.closest(".ant-menu-submenu-popup"))
+  ) {
+    return;
+  }
+  closeOperatorContextMenu();
+}
+
+function handleWindowKeydown(event: KeyboardEvent): void {
+  if (event.key === "Escape") {
+    if (editingOperatorSlot.value) {
+      event.preventDefault();
+      cancelOperatorNameEdit();
+    }
+    closeOperatorContextMenu();
+  }
+}
+
 function handleCreate(): void {
   clearMessages();
   createDocument();
@@ -1591,6 +1877,8 @@ function isStoredDocument(document: StoredDocument): boolean {
 
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
+  editingOperatorSlot.value = undefined;
+  operatorContextMenu.value = undefined;
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
     layoutApplyTimer = undefined;
@@ -1617,7 +1905,14 @@ watch(
   { immediate: true },
 );
 
+onMounted(() => {
+  window.addEventListener("click", handleWindowClick);
+  window.addEventListener("keydown", handleWindowKeydown);
+});
+
 onBeforeUnmount(() => {
+  window.removeEventListener("click", handleWindowClick);
+  window.removeEventListener("keydown", handleWindowKeydown);
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
   }
@@ -2152,50 +2447,23 @@ onBeforeUnmount(() => {
                         :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`"
                         class="simulator-slot"
                       >
-                        <OperatorAvatarDisplay
-                          v-if="slotOperator(row, plan, planIndex, slot)"
-                          :data-source="selectedDataSource"
-                          :elite-level="
-                            operatorElite(
-                              slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
-                              row.type,
-                            )
-                          "
-                          :operator="slotOperator(row, plan, planIndex, slot)!"
-                          :operator-owned="
-                            operatorOwned(
-                              slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
-                            )
-                          "
-                          :operator-training-upgraded="
-                            operatorTrainingUpgraded(
-                              slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
-                              row.type,
-                            )
-                          "
-                          :show-elite-level="true"
-                          :show-name="false"
-                          :show-profession="true"
-                          :show-rarity="true"
-                          :plain="true"
-                          :size="72"
-                        />
-                        <a-avatar
-                          v-else
-                          :size="72"
-                          class="simulator-empty-avatar"
-                          shape="square"
-                        >
-                          {{ slotName(row, plan, planIndex, slot) || "空槽位" }}
-                        </a-avatar>
                         <a-auto-complete
+                          v-if="
+                            isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            )
+                          "
+                          :autofocus="true"
                           :options="operatorOptions"
                           :value="slotName(row, plan, planIndex, slot)"
                           class="simulator-slot-input"
                           placeholder="干员名称"
+                          @click.stop
                           @blur="
                             commitOperatorName(
                               planIndex,
@@ -2223,83 +2491,76 @@ onBeforeUnmount(() => {
                               )
                           "
                         />
-                        <div class="simulator-slot-state">
-                          <a-input-number
-                            :disabled="!slotName(row, plan, planIndex, slot)"
-                            :max="24"
-                            :min="0"
-                            :value="
-                              operatorMood(
+                        <template v-else>
+                          <OperatorAvatarDisplay
+                            v-if="slotOperator(row, plan, planIndex, slot)"
+                            :data-source="selectedDataSource"
+                            :elite-level="
+                              operatorElite(
+                                slotRoom(plan, slot),
+                                slotName(row, plan, planIndex, slot),
+                                row.type,
+                              )
+                            "
+                            :operator="
+                              slotOperator(row, plan, planIndex, slot)!
+                            "
+                            :operator-owned="
+                              operatorOwned(
                                 slotRoom(plan, slot),
                                 slotName(row, plan, planIndex, slot),
                               )
                             "
-                            class="simulator-slot-state-input"
-                            placeholder="心情"
-                            size="small"
-                            @update:value="
-                              (value: number | null) =>
-                                updateOperatorState(
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                  'mood',
-                                  value,
-                                )
-                            "
-                          />
-                          <a-input-number
-                            :disabled="!slotName(row, plan, planIndex, slot)"
-                            :max="2"
-                            :min="0"
-                            :value="
-                              operatorEliteValue(
+                            :operator-training-upgraded="
+                              operatorTrainingUpgraded(
                                 slotRoom(plan, slot),
                                 slotName(row, plan, planIndex, slot),
+                                row.type,
                               )
                             "
-                            class="simulator-slot-state-input"
-                            placeholder="精英"
-                            size="small"
-                            @update:value="
-                              (value: number | null) =>
-                                updateOperatorState(
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                  'elite',
-                                  value,
-                                )
-                            "
-                          />
-                          <a-input-number
-                            :disabled="!slotName(row, plan, planIndex, slot)"
-                            :max="90"
-                            :min="1"
-                            :value="
-                              operatorLevelValue(
-                                slotRoom(plan, slot),
-                                slotName(row, plan, planIndex, slot),
+                            :show-elite-level="true"
+                            :show-name="true"
+                            :show-profession="true"
+                            :show-rarity="true"
+                            :plain="true"
+                            :size="72"
+                            @click.stop="
+                              beginOperatorNameEdit(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
                               )
                             "
-                            class="simulator-slot-state-input"
-                            placeholder="等级"
-                            size="small"
-                            @update:value="
-                              (value: number | null) =>
-                                updateOperatorState(
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                  'level',
-                                  value,
-                                )
+                            @contextmenu.stop.prevent="
+                              openOperatorContextMenu(
+                                $event,
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              )
                             "
                           />
-                        </div>
+                          <a-avatar
+                            v-else
+                            :size="72"
+                            class="simulator-empty-avatar"
+                            shape="square"
+                            @click.stop="
+                              beginOperatorNameEdit(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              )
+                            "
+                          >
+                            {{
+                              slotName(row, plan, planIndex, slot) || "空槽位"
+                            }}
+                          </a-avatar>
+                        </template>
                       </div>
                     </div>
                     <div
@@ -2335,6 +2596,47 @@ onBeforeUnmount(() => {
             </a-card>
           </a-col>
         </a-row>
+
+        <div
+          v-if="operatorContextMenuDetails"
+          class="simulator-operator-context-menu"
+          :style="operatorContextMenuStyle()"
+          @click.stop
+        >
+          <a-menu :selectable="false">
+            <a-sub-menu key="mood">
+              <template #title>初始心情</template>
+              <a-menu-item
+                v-for="mood in INITIAL_MOOD_OPTIONS"
+                :key="`mood-${mood}`"
+                @click="updateOperatorMoodQuickly(mood)"
+              >
+                {{ mood }}<span v-if="mood === 24">（默认）</span>
+              </a-menu-item>
+            </a-sub-menu>
+            <a-sub-menu
+              v-if="operatorContextMenuDetails.progressionNodes.length"
+              key="progression"
+            >
+              <template #title>练度</template>
+              <a-menu-item
+                v-for="node in operatorContextMenuDetails.progressionNodes"
+                :key="node.key"
+                @click="updateOperatorProgression(node)"
+              >
+                {{ node.label }}
+              </a-menu-item>
+            </a-sub-menu>
+            <a-menu-item
+              v-if="operatorContextMenuDetails.hasManualProgression"
+              key="reset-progression"
+              danger
+              @click="resetOperatorProgression"
+            >
+              恢复默认练度
+            </a-menu-item>
+          </a-menu>
+        </div>
 
         <a-card
           v-if="efficiencySupported"

@@ -1751,41 +1751,54 @@ a {
 }
 
 .simulator-slot-grid {
-  display: grid;
-  grid-auto-columns: 112px;
+  display: flex;
   grid-auto-flow: column;
-  grid-template-columns: none;
   justify-content: start;
-  gap: 8px;
+  gap: 0;
   min-width: max-content;
 }
 
 .simulator-slot {
-  display: grid;
-  justify-items: center;
-  width: 112px;
-  min-width: 112px;
-  gap: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 72px;
+  min-width: 72px;
+  gap: 0;
 }
 
 .simulator-slot-input {
-  width: 112px;
-  max-width: 112px;
-  min-width: 112px;
+  width: 72px;
+  max-width: 72px;
+  min-width: 72px;
   font-size: 11px;
   text-align: center;
 }
 
-.simulator-slot-state {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  width: 112px;
-  gap: 4px;
+.simulator-slot-input .ant-select-selector {
+  padding-inline: 4px;
+  text-align: center;
 }
 
-.simulator-slot-state-input {
-  width: 100%;
-  min-width: 0;
+.simulator-slot > .operator-avatar-display,
+.simulator-slot > .simulator-empty-avatar {
+  cursor: pointer;
+}
+
+.simulator-operator-context-menu {
+  position: fixed;
+  z-index: 1050;
+  min-width: 156px;
+  overflow: visible;
+  background: #ffffff;
+  border: 1px solid #dce8e4;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.16);
+}
+
+.simulator-operator-context-menu .ant-menu {
+  min-width: 154px;
+  border-radius: 6px;
 }
 
 .simulator-efficiency-summary {
