@@ -7,7 +7,11 @@ import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameFontSizeForWidth,
   getOperatorAvatarNameHeight,
+  getOperatorAvatarProportionalNameMetrics,
+  getOperatorAvatarScale,
+  getScaledOperatorAvatarLength,
   OPERATOR_AVATAR_LAYOUT,
+  OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
 import type { DataSourceId } from "@/composables/useDataSource";
 
@@ -25,6 +29,7 @@ const props = withDefaults(
     operatorOwned?: boolean;
     operatorTrainingUpgraded?: boolean;
     plain?: boolean;
+    proportionalLayout?: boolean;
   }>(),
   {
     showRarity: true,
@@ -36,6 +41,7 @@ const props = withDefaults(
     operatorOwned: true,
     operatorTrainingUpgraded: false,
     plain: false,
+    proportionalLayout: false,
   },
 );
 
@@ -59,10 +65,42 @@ const frameStyle = computed(() => ({
   height: `${props.size}px`,
 }));
 
-const nameHeight = computed(() =>
-  props.plain && props.showName ? getOperatorAvatarNameHeight(props.size) : 0,
+const baseNaturalSize = ref<NaturalImageSize>();
+
+const sourceWidth = computed(
+  () => baseNaturalSize.value?.width ?? OPERATOR_AVATAR_SOURCE_WIDTH,
 );
-const nameFontSize = ref(getOperatorAvatarNameFontSize(nameHeight.value));
+
+const avatarScale = computed(() =>
+  getOperatorAvatarScale(sourceWidth.value, props.size),
+);
+
+const nameHeight = computed(() => {
+  if (!props.plain || !props.showName) {
+    return 0;
+  }
+  if (props.proportionalLayout) {
+    return getScaledOperatorAvatarLength(
+      getOperatorAvatarNameHeight(sourceWidth.value),
+      avatarScale.value,
+    );
+  }
+  return getOperatorAvatarNameHeight(props.size);
+});
+
+function defaultNameFontSize(): number {
+  if (props.proportionalLayout) {
+    return getScaledOperatorAvatarLength(
+      getOperatorAvatarNameFontSize(
+        getOperatorAvatarNameHeight(sourceWidth.value),
+      ),
+      avatarScale.value,
+    );
+  }
+  return getOperatorAvatarNameFontSize(nameHeight.value);
+}
+
+const nameFontSize = ref(defaultNameFontSize());
 const nameMeasureRef = ref<HTMLSpanElement>();
 const badgeNaturalSizes = reactive<
   Partial<Record<AvatarBadgeKind, NaturalImageSize>>
@@ -76,7 +114,21 @@ function updateNameFontSize(): void {
     !props.operator.name ||
     !measureElement
   ) {
-    nameFontSize.value = getOperatorAvatarNameFontSize(nameHeight.value);
+    nameFontSize.value = defaultNameFontSize();
+    return;
+  }
+
+  if (props.proportionalLayout) {
+    nameFontSize.value = getOperatorAvatarProportionalNameMetrics(
+      props.operator.name,
+      sourceWidth.value,
+      props.size,
+      (name, fontSize) => {
+        measureElement.textContent = name;
+        measureElement.style.fontSize = `${fontSize}px`;
+        return measureElement.getBoundingClientRect().width;
+      },
+    ).fontSize;
     return;
   }
 
@@ -97,6 +149,16 @@ function updateNameFontSize(): void {
   nameFontSize.value = fontSize;
 }
 
+function handleBaseImageLoad(event: Event): void {
+  const image = event.currentTarget;
+  if (image instanceof HTMLImageElement) {
+    baseNaturalSize.value = {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+    };
+  }
+}
+
 function handleBadgeLoad(kind: AvatarBadgeKind, event: Event): void {
   const image = event.currentTarget;
   if (image instanceof HTMLImageElement) {
@@ -107,38 +169,50 @@ function handleBadgeLoad(kind: AvatarBadgeKind, event: Event): void {
   }
 }
 
+function badgeLength(length: number, scale: number): string {
+  return `${Math.round(length * scale * 100) / 100}px`;
+}
+
 function badgeStyle(kind: AvatarBadgeKind): Record<string, string> {
   if (!props.plain) {
     return {};
   }
 
   const naturalSize = badgeNaturalSizes[kind];
+  const layoutWidth = props.proportionalLayout ? sourceWidth.value : props.size;
+  const scale = props.proportionalLayout ? avatarScale.value : 1;
   if (kind === "profession") {
     const professionSize = Math.round(
-      props.size * OPERATOR_AVATAR_LAYOUT.professionSizeRatio,
+      layoutWidth * OPERATOR_AVATAR_LAYOUT.professionSizeRatio,
     );
     return {
-      width: `${professionSize}px`,
-      height: `${professionSize}px`,
+      width: badgeLength(professionSize, scale),
+      height: badgeLength(professionSize, scale),
     };
   }
 
   if (kind === "elite") {
     const eliteWidth = Math.round(
-      props.size * OPERATOR_AVATAR_LAYOUT.eliteWidthRatio,
+      layoutWidth * OPERATOR_AVATAR_LAYOUT.eliteWidthRatio,
     );
+    const eliteHeight = naturalSize
+      ? Math.round((eliteWidth * naturalSize.height) / naturalSize.width)
+      : eliteWidth;
     return {
-      width: `${eliteWidth}px`,
-      height: `${naturalSize ? Math.round((eliteWidth * naturalSize.height) / naturalSize.width) : eliteWidth}px`,
+      width: badgeLength(eliteWidth, scale),
+      height: badgeLength(eliteHeight, scale),
     };
   }
 
   const rarityHeight = Math.round(
-    props.size * OPERATOR_AVATAR_LAYOUT.rarityHeightRatio,
+    layoutWidth * OPERATOR_AVATAR_LAYOUT.rarityHeightRatio,
   );
+  const rarityWidth = naturalSize
+    ? Math.round((rarityHeight * naturalSize.width) / naturalSize.height)
+    : rarityHeight;
   return {
-    width: `${naturalSize ? Math.round((rarityHeight * naturalSize.width) / naturalSize.height) : rarityHeight}px`,
-    height: `${rarityHeight}px`,
+    width: badgeLength(rarityWidth, scale),
+    height: badgeLength(rarityHeight, scale),
   };
 }
 
@@ -167,6 +241,8 @@ watch(
     () => props.showName,
     () => props.size,
     () => props.plain,
+    () => props.proportionalLayout,
+    () => sourceWidth.value,
   ],
   () => {
     void nextTick(updateNameFontSize);
@@ -194,6 +270,7 @@ onMounted(updateNameFontSize);
         class="operator-avatar-base"
         :src="sources.avatarUrl"
         decoding="async"
+        @load="handleBaseImageLoad"
       />
       <a-avatar
         v-else

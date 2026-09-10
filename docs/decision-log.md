@@ -185,3 +185,14 @@
 - **关闭行为**：沿用普通菜单点击外部关闭和 Escape 关闭，并新增菜单项点击后关闭、鼠标滚轮关闭、页面/嵌套滚动容器滚动关闭、窗口尺寸变化关闭；滚动监听使用捕获阶段。
 - **状态与兼容**：心情 `24` 仍删除房间心情覆盖；当前状态标记基于最终解析的有效心情与练度；练度恢复只清除房间 `operatorStates[name]` 的 `elite/level`，不主动迁移既有档案或排班数据。
 - **验证**：类型检查、本轮文件定向 ESLint、Prettier、`git diff --check` 通过；浏览器通过 DOM 事件验证一级菜单、分割线、当前项勾选和滚轮关闭。全仓检查仍受其他未提交效率计算文件的既有 Lint/格式问题影响。
+
+## 2026-09-10：头像生成器支持等比缩小输出宽度
+
+- **语义**：新增“输出宽度”参数。先在素材原始尺寸（Torappu 头像统一 180×180）按现有规则合成完整画布，再整块等比重采样到目标宽度；目标宽度等于素材宽度时跳过重采样，保证既有输出零变化。参数只允许缩小，上限为素材宽度。
+- **参数落点**：等比换算集中在 `src/utils/operatorAvatarLayout.ts`；`OperatorAvatarRenderOptions` 与 `OperatorAvatarGenerationOptions` 增加可选 `outputWidth`，缺省为原始尺寸。目前只有头像生成器传值，其他 Canvas 导出方可直接复用，不接入技能生成器与其他 DOM 调用方。
+- **两个预览一致**：分层与整合预览都按输出宽度 1:1 显示，不再写死 180。`OperatorAvatarDisplay` 增加默认关闭的 `proportionalLayout`：开启时名称栏高度、字号、水平内边距与职业/精英化/星级徽标尺寸改为“按素材宽度取整后再乘缩放比”，绕开 `nameMinHeight`、`nameMinFontSize` 两个下限，使 DOM 重绘与 Canvas 结果几何一致；关闭时设置页 56、模拟器 72、技能卡 112、默认 96 四个既有调用点行为不变。
+- **控件取舍**：只提供数字输入框（`:min="1"`、`:max="180"`、`:placeholder="'原始尺寸'"`、`addon-after="px"`），不加预设档位按钮。清空时写入 `undefined` 让空白保持，避免使用会吞掉 `null` 的写法。预览不修改 `main.css`，改用内联宽度绑定，以免与工作区中其他未提交的样式改动混入同一提交。
+- **导出与元信息**：导出与复制始终使用 Canvas 结果，两种模式只是预览方式；预览元信息显示“输出 宽 × 高 px”；文件名在精英化与心情之后追加宽度，留空时保持原名。
+- **未做与风险**：不提供放大输出（素材仅 180×180）；不修正 `prts`/`yuanyuan3060` 数据源缺失头像目录的问题。页面预览尺寸与界面标签按常量 `OPERATOR_AVATAR_SOURCE_WIDTH = 180` 推算，Canvas 与分层预览本身按真实 `naturalWidth` 缩放，素材尺寸变化时需同步该常量。宽度为 1 至 2 时分层名称栏受最小高度下限影响，与导出高度相差 1px。
+- **环境记录**：本沙箱下 `npm run build` 因 Vite `windowsSafeRealPathSync` 经管道派生 `cmd` 子进程被拒（spawn EPERM），需更宽权限执行；用 PowerShell `Get-Content -Raw` + `Set-Content` 回写仓库文件会破坏中文编码，本轮因此损坏过一次 `AvatarGeneratorPage.vue` 并从 git 恢复，后续请使用编辑工具修改文件。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过，构建仅保留既有大 chunk 警告；等比换算经 Node 脚本核对，宽度 ≥ 3 时 Canvas 输出高度与分层预览高度逐像素相等，宽度 1 至 2 为已知退化区间。浏览器界面未在本轮实测。

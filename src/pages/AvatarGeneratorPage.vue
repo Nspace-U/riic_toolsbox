@@ -17,6 +17,13 @@ import {
   generateOperatorAvatarUrl,
   getOperatorAvatarFile,
 } from "@/utils/operatorAvatar";
+import {
+  getOperatorAvatarNameHeight,
+  getOperatorAvatarScale,
+  getScaledOperatorAvatarLength,
+  normalizeOperatorAvatarOutputWidth,
+  OPERATOR_AVATAR_SOURCE_WIDTH,
+} from "@/utils/operatorAvatarLayout";
 
 interface EliteOption {
   value: EliteLevel;
@@ -42,6 +49,7 @@ const showName = ref(false);
 const moodScattered = ref(false);
 const operatorOwned = ref(true);
 const operatorTrainingUpgraded = ref(false);
+const outputWidth = ref<number>();
 const generating = ref(false);
 const generationError = ref("");
 const generatedImageUrl = ref("");
@@ -100,6 +108,42 @@ const showLayeredPreview = computed(
   () => avatarDisplayMode.value === "layered",
 );
 
+const effectiveOutputWidth = computed(() =>
+  normalizeOperatorAvatarOutputWidth(
+    outputWidth.value,
+    OPERATOR_AVATAR_SOURCE_WIDTH,
+  ),
+);
+
+const outputPixelLabel = computed(() => {
+  const nameHeight =
+    showName.value && selectedOperator.value?.name
+      ? getOperatorAvatarNameHeight(OPERATOR_AVATAR_SOURCE_WIDTH)
+      : 0;
+  const scale = getOperatorAvatarScale(
+    OPERATOR_AVATAR_SOURCE_WIDTH,
+    effectiveOutputWidth.value,
+  );
+  const height = getScaledOperatorAvatarLength(
+    OPERATOR_AVATAR_SOURCE_WIDTH + nameHeight,
+    scale,
+  );
+  return `${effectiveOutputWidth.value} × ${height} px`;
+});
+
+const outputWidthHint = computed(
+  () =>
+    `按原始尺寸 ${OPERATOR_AVATAR_SOURCE_WIDTH}px 等比缩小，最大 ${OPERATOR_AVATAR_SOURCE_WIDTH}px；留空表示原始尺寸。`,
+);
+
+const generatedImageStyle = computed(() => ({
+  width: `${effectiveOutputWidth.value}px`,
+}));
+
+function handleOutputWidthChange(value: number | null): void {
+  outputWidth.value = value === null ? undefined : value;
+}
+
 function updateSelectedOperator(value: Operator[]): void {
   if (!value.some((operator) => operator.id === selectedOperatorId.value)) {
     selectedOperatorId.value = value[0]?.id ?? "";
@@ -133,6 +177,7 @@ function avatarGenerationOptions(): Parameters<
     moodScattered: moodScattered.value,
     operatorOwned: operatorOwned.value,
     operatorTrainingUpgraded: operatorTrainingUpgraded.value,
+    outputWidth: outputWidth.value,
   };
 }
 
@@ -221,9 +266,11 @@ async function handleDownload(): Promise<void> {
     selectedEliteOption.value?.label.replace(/\s/g, "") ??
     `精${selectedEliteLevel.value}`;
   const moodLabel = moodScattered.value ? "-心情涣散" : "";
+  const widthLabel =
+    outputWidth.value === undefined ? "" : `-${effectiveOutputWidth.value}`;
   const link = document.createElement("a");
   link.href = image.url;
-  link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}.png`;
+  link.download = `${selectedOperator.value.name}-${eliteLabel}${moodLabel}${widthLabel}.png`;
   link.click();
   if (image.temporary) {
     URL.revokeObjectURL(image.url);
@@ -279,6 +326,7 @@ watch(
     moodScattered,
     operatorOwned,
     operatorTrainingUpgraded,
+    outputWidth,
     selectedDataSource,
   ],
   () => {
@@ -385,6 +433,18 @@ onBeforeUnmount(() => {
               </a-radio-group>
             </a-form-item>
 
+            <a-divider orientation="left">输出尺寸</a-divider>
+            <a-form-item :extra="outputWidthHint" label="输出宽度">
+              <a-input-number
+                :max="OPERATOR_AVATAR_SOURCE_WIDTH"
+                :min="1"
+                :placeholder="'原始尺寸'"
+                :value="outputWidth"
+                addon-after="px"
+                @update:value="handleOutputWidthChange"
+              />
+            </a-form-item>
+
             <a-divider orientation="left">头像信息</a-divider>
             <div class="avatar-checkboxes">
               <a-checkbox v-model:checked="operatorOwned">已拥有</a-checkbox>
@@ -436,6 +496,7 @@ onBeforeUnmount(() => {
               :alt="`${selectedOperator?.name ?? ''}生成头像`"
               class="avatar-generated-image"
               :src="generatedImageUrl"
+              :style="generatedImageStyle"
             />
             <OperatorAvatarDisplay
               v-else-if="
@@ -452,7 +513,8 @@ onBeforeUnmount(() => {
               :show-profession="showProfession"
               :show-rarity="showRarity"
               :plain="true"
-              :size="180"
+              :proportional-layout="true"
+              :size="effectiveOutputWidth"
             />
             <div v-else class="avatar-preview-empty">
               <PictureOutlined />
@@ -470,6 +532,7 @@ onBeforeUnmount(() => {
                 >{{ rarityLabel(selectedOperator) }} ·
                 {{ selectedOperator.profession || "未知职业" }}</span
               >
+              <span v-if="selectedOperator">输出 {{ outputPixelLabel }}</span>
             </div>
             <div
               v-if="

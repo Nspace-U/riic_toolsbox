@@ -1,6 +1,9 @@
 import {
   getOperatorAvatarNameFontSizeForWidth,
   getOperatorAvatarNameHeight,
+  getOperatorAvatarScale,
+  getScaledOperatorAvatarLength,
+  normalizeOperatorAvatarOutputWidth,
   OPERATOR_AVATAR_LAYOUT,
 } from "@/utils/operatorAvatarLayout";
 
@@ -17,6 +20,7 @@ export interface OperatorAvatarGenerationOptions {
   moodScattered: boolean;
   operatorOwned: boolean;
   operatorTrainingUpgraded: boolean;
+  outputWidth?: number;
 }
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -159,45 +163,64 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+interface AvatarCanvas {
+  canvas: HTMLCanvasElement;
+  context: CanvasRenderingContext2D;
+}
+
+function createAvatarCanvas(width: number, height: number): AvatarCanvas {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("当前浏览器不支持头像图片生成");
+  }
+  return { canvas, context };
+}
+
 export async function generateOperatorAvatar(
   options: OperatorAvatarGenerationOptions,
 ): Promise<Blob> {
   const image = await loadImage(options.imageUrl);
   const overlayImages = await loadOverlayImages(options);
+  const sourceWidth = image.naturalWidth;
   const nameHeight =
     options.showName && options.operatorName
-      ? getOperatorAvatarNameHeight(image.naturalWidth)
+      ? getOperatorAvatarNameHeight(sourceWidth)
       : 0;
-  const canvas = document.createElement("canvas");
-  canvas.width = image.naturalWidth;
-  canvas.height = image.naturalHeight + nameHeight;
+  const outputWidth = normalizeOperatorAvatarOutputWidth(
+    options.outputWidth,
+    sourceWidth,
+  );
+  const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
 
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("当前浏览器不支持头像图片生成");
-  }
-
+  const source = createAvatarCanvas(
+    sourceWidth,
+    image.naturalHeight + nameHeight,
+  );
+  const context = source.context;
   context.drawImage(image, 0, 0);
 
   if (!options.operatorOwned) {
     context.fillStyle = "rgba(128, 128, 128, 0.5)";
-    context.fillRect(0, 0, image.naturalWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
   }
 
   if (options.operatorTrainingUpgraded) {
     context.fillStyle = "rgba(0, 255, 0, 0.5)";
-    context.fillRect(0, 0, image.naturalWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
   }
 
   if (options.moodScattered) {
     context.fillStyle = "rgba(255, 0, 0, 0.5)";
-    context.fillRect(0, 0, image.naturalWidth, image.naturalHeight);
+    context.fillRect(0, 0, sourceWidth, image.naturalHeight);
   }
 
   drawMetadata(
     context,
     overlayImages,
-    image.naturalWidth,
+    sourceWidth,
     image.naturalHeight,
     options,
   );
@@ -206,11 +229,28 @@ export async function generateOperatorAvatar(
     drawOperatorAvatarName(
       context,
       options.operatorName,
-      image.naturalWidth,
+      sourceWidth,
       image.naturalHeight,
       nameHeight,
     );
   }
 
-  return canvasToBlob(canvas);
+  if (scale === 1) {
+    return canvasToBlob(source.canvas);
+  }
+
+  const output = createAvatarCanvas(
+    outputWidth,
+    getScaledOperatorAvatarLength(source.canvas.height, scale),
+  );
+  output.context.imageSmoothingEnabled = true;
+  output.context.imageSmoothingQuality = "high";
+  output.context.drawImage(
+    source.canvas,
+    0,
+    0,
+    output.canvas.width,
+    output.canvas.height,
+  );
+  return canvasToBlob(output.canvas);
 }

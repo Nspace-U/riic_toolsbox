@@ -91,4 +91,16 @@
 - 设施区移除常驻心情、精英和等级输入框；头像右键提供初始心情 `0/12/24` 快捷项、当前设施真实技能节点对应的练度档位和“恢复默认练度”。24 表示删除房间心情覆盖，恢复默认练度只删除房间 `elite/level` 覆盖。
 - 通用设置保留设施筛选和“显示无可用技能干员”开关，有技能节点干员改用固定档位按钮：1/2 星为 `1级/30级`，3 星为 `精英0/精英1`，4-6 星为 `精英0/精英1/精英2`；当前练度文字和无节点提示保持原样。
 - 共享练度工具按当前设施技能链节点生成模拟器菜单；低星精0节点投影为 `1级`，真实等级节点投影为 `30级`，会客室等级节点不再被特殊逻辑排除。既有档案和房间状态不主动迁移。
-- 本轮验证通过 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check`；浏览器验证了空槽位/头像名称编辑、旧状态输入移除和右键菜单打开。开发环境视口异常导致子菜单无法用真实坐标 hover，已用 DOM 事件验证菜单渲染。
+- 本轮验证通过 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check`；浏览器验证了空槽位/头像名称编辑、旧状态输入移除和右键菜单打开。开发环境视口异常导致子菜单无法用真实坐标 hover，已用 DOM 事件验证渲染。
+
+## 本轮头像等比缩小输出宽度
+
+- 头像生成器新增「输出尺寸 → 输出宽度」数字输入框：留空表示原始尺寸，`:min="1"`、`:max="180"`，输入框下方说明「按原始尺寸 180px 等比缩小，最大 180px；留空表示原始尺寸。」
+- 等比参数落在共享层 `src/utils/operatorAvatarLayout.ts`：新增 `OPERATOR_AVATAR_SOURCE_WIDTH`、`normalizeOperatorAvatarOutputWidth`、`getOperatorAvatarScale`、`getScaledOperatorAvatarLength`、`getOperatorAvatarProportionalNameMetrics`；`OperatorAvatarRenderOptions` 与 `OperatorAvatarGenerationOptions` 新增可选 `outputWidth`，缺省即原始尺寸，当前只有头像生成器传值。
+- 生成语义为严格等比：先在素材原始尺寸合成完整画布（含名称栏、遮罩、职业/精英化/星级徽标），再整块画布按 `outputWidth / naturalWidth` 重采样；目标宽度等于素材宽度时跳过重采样，输出与改动前完全一致。
+- 分层预览与整合预览显示要求完全一致：都按输出宽度 1:1 显示，不再写死 180；`OperatorAvatarDisplay` 新增默认关闭的 `proportionalLayout`，开启时名称栏高度、字号、水平内边距与三类徽标尺寸改为「按素材宽度取整后再乘缩放比」，绕开 `nameMinHeight` 与 `nameMinFontSize` 下限，与 Canvas 结果几何一致；未开启时 4 个既有调用点（设置页 56、模拟器 72、技能卡 112、默认 96）行为不变。
+- 预览元信息新增「输出 宽 × 高 px」；下载文件名在精英化与心情之后追加宽度（如 `能天使-精英2-96.png`），留空时文件名保持原样。
+- 未做：放大输出（素材仅 180×180）、把宽度参数接入技能生成器或其他 DOM 调用方、修正 `prts`/`yuanyuan3060` 数据源缺失头像目录的问题。
+- 风险：页面预览尺寸与界面标签按常量 `OPERATOR_AVATAR_SOURCE_WIDTH = 180` 推算，Canvas 与分层预览本身按真实 `naturalWidth` 缩放；素材尺寸若变化需同步该常量与标签。宽度为 1 至 2 时分层名称栏受最小高度下限影响，与导出高度相差 1px。
+- 已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过（构建仅保留既有大 chunk 警告）；等比换算经 Node 脚本核对，宽度 ≥ 3 时 Canvas 输出高度与分层预览高度逐像素相等。浏览器界面未在本轮实测。
+- 环境记录：本沙箱下 `npm run build` 因 Vite `windowsSafeRealPathSync` 经管道派生 `cmd` 被拒（spawn EPERM），需更宽权限执行；用 PowerShell `Get-Content -Raw` + `Set-Content` 回写文件会破坏中文编码，本轮曾损坏 `AvatarGeneratorPage.vue` 并从 git 恢复，后续统一使用编辑工具修改文件。
