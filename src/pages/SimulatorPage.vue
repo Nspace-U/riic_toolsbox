@@ -79,6 +79,22 @@ interface PowerSummary {
   net: number;
 }
 
+type SimulatorEditSetting = "layout" | "queue" | "product";
+
+interface SimulatorEditSettings {
+  layout: boolean;
+  queue: boolean;
+  product: boolean;
+}
+
+const SIMULATOR_EDIT_SETTINGS_STORAGE_KEY =
+  "riic-tools:simulator-edit-settings:v1";
+const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
+  layout: true,
+  queue: true,
+  product: true,
+};
+
 const {
   documents,
   activeDocumentId,
@@ -94,6 +110,75 @@ const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
 const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
 
+function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
+  if (typeof value !== "object" || value === null) {
+    return { ...DEFAULT_SIMULATOR_EDIT_SETTINGS };
+  }
+  const candidate = value as Partial<SimulatorEditSettings>;
+  return {
+    layout:
+      typeof candidate.layout === "boolean"
+        ? candidate.layout
+        : DEFAULT_SIMULATOR_EDIT_SETTINGS.layout,
+    queue:
+      typeof candidate.queue === "boolean"
+        ? candidate.queue
+        : DEFAULT_SIMULATOR_EDIT_SETTINGS.queue,
+    product:
+      typeof candidate.product === "boolean"
+        ? candidate.product
+        : DEFAULT_SIMULATOR_EDIT_SETTINGS.product,
+  };
+}
+
+function readSimulatorEditSettings(): Record<string, SimulatorEditSettings> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      SIMULATOR_EDIT_SETTINGS_STORAGE_KEY,
+    );
+    if (!raw) {
+      return {};
+    }
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).map(([id, value]) => [
+        id,
+        normalizeSimulatorEditSettings(value),
+      ]),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function persistSimulatorEditSettings(
+  settings: Record<string, SimulatorEditSettings>,
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      SIMULATOR_EDIT_SETTINGS_STORAGE_KEY,
+      JSON.stringify(settings),
+    );
+  } catch {
+    // localStorage 不可用时保留内存中的页面状态。
+  }
+}
+
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
@@ -102,10 +187,18 @@ const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const newLayoutType = ref<RoomKey>("trading");
+const simulatorEditSettings = ref(readSimulatorEditSettings());
 let catalogRequestVersion = 0;
 
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
+const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
+  const documentId = activeDocumentId.value;
+  return documentId
+    ? (simulatorEditSettings.value[documentId] ??
+        DEFAULT_SIMULATOR_EDIT_SETTINGS)
+    : DEFAULT_SIMULATOR_EDIT_SETTINGS;
+});
 
 const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   const document = currentDocument.value;
@@ -250,6 +343,24 @@ function clearMessages(): void {
 function setError(error: unknown): void {
   errorMessage.value = error instanceof Error ? error.message : "操作失败";
   successMessage.value = "";
+}
+
+function updateSimulatorEditSetting(
+  setting: SimulatorEditSetting,
+  enabled: boolean,
+): void {
+  const documentId = activeDocumentId.value;
+  if (!documentId) {
+    return;
+  }
+  simulatorEditSettings.value = {
+    ...simulatorEditSettings.value,
+    [documentId]: {
+      ...currentSimulatorEditSettings.value,
+      [setting]: enabled,
+    },
+  };
+  persistSimulatorEditSettings(simulatorEditSettings.value);
 }
 
 function updateCurrent(
@@ -734,6 +845,23 @@ function productOptions(
     });
   }
   return result;
+}
+
+function productLabel(type: RoomKey, product: string | undefined): string {
+  if (!product) {
+    return "未指定产物";
+  }
+  return (
+    productOptions(type, product).find((option) => option.value === product)
+      ?.label ?? product
+  );
+}
+
+function sourceMaterialLabel(sourceMaterial: string): string {
+  return (
+    SOURCE_MATERIAL_OPTIONS.find((option) => option.value === sourceMaterial)
+      ?.label ?? sourceMaterial
+  );
 }
 
 function sourceValue(room: RoomAssignment | undefined): string {
@@ -1308,6 +1436,10 @@ function handleDelete(): void {
     return;
   }
   removeDocument(document.id);
+  const nextSettings = { ...simulatorEditSettings.value };
+  delete nextSettings[document.id];
+  simulatorEditSettings.value = nextSettings;
+  persistSimulatorEditSettings(nextSettings);
   successMessage.value = "已删除排班表。";
 }
 
@@ -1456,6 +1588,36 @@ watch(
               删除
             </a-button>
           </div>
+          <div aria-label="编辑选项" class="simulator-edit-settings">
+            <span class="simulator-summary-label">编辑</span>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.layout"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('layout', event.target.checked)
+              "
+            >
+              编辑布局
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.queue"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('queue', event.target.checked)
+              "
+            >
+              编辑队列
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.product"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('product', event.target.checked)
+              "
+            >
+              编辑产物
+            </a-checkbox>
+          </div>
           <a-button type="primary" @click="handleExport">
             <template #icon><DownloadOutlined /></template>
             导出 JSON
@@ -1512,6 +1674,7 @@ watch(
         </a-card>
 
         <a-card
+          v-if="currentSimulatorEditSettings.layout"
           :bordered="false"
           class="simulator-layout-panel"
           title="设施布局"
@@ -1586,7 +1749,11 @@ watch(
               title="队列信息"
             >
               <template #extra>
-                <a-button size="small" @click="addPlan">
+                <a-button
+                  v-if="currentSimulatorEditSettings.queue"
+                  size="small"
+                  @click="addPlan"
+                >
                   <template #icon><PlusOutlined /></template>
                   新增
                 </a-button>
@@ -1598,33 +1765,46 @@ watch(
                   class="simulator-queue-info"
                 >
                   <div class="simulator-queue-info-main">
-                    <a-input
-                      :value="plan.name ?? ''"
-                      class="simulator-queue-entry-title"
-                      placeholder="队列名称"
-                      size="small"
-                      @update:value="
-                        (value: string) =>
-                          updatePlanMeta(planIndex, 'name', value)
-                      "
-                    />
-                    <a-input-number
-                      :max="1440"
-                      :min="60"
-                      :value="plan.duration ?? 720"
-                      addon-after="分钟"
-                      class="simulator-queue-duration"
-                      size="small"
-                      @update:value="
-                        (value: number | null) =>
-                          updatePlanDuration(planIndex, value)
-                      "
-                    />
+                    <template v-if="currentSimulatorEditSettings.queue">
+                      <a-input
+                        :value="plan.name ?? ''"
+                        class="simulator-queue-entry-title"
+                        placeholder="队列名称"
+                        size="small"
+                        @update:value="
+                          (value: string) =>
+                            updatePlanMeta(planIndex, 'name', value)
+                        "
+                      />
+                      <a-input-number
+                        :max="1440"
+                        :min="60"
+                        :value="plan.duration ?? 720"
+                        addon-after="分钟"
+                        class="simulator-queue-duration"
+                        size="small"
+                        @update:value="
+                          (value: number | null) =>
+                            updatePlanDuration(planIndex, value)
+                        "
+                      />
+                    </template>
+                    <template v-else>
+                      <span
+                        class="simulator-queue-entry-title simulator-readonly-value"
+                        >{{ plan.name?.trim() || "未命名队列" }}</span
+                      >
+                      <span
+                        class="simulator-queue-duration simulator-readonly-value"
+                        >{{ plan.duration ?? 720 }} 分钟</span
+                      >
+                    </template>
                   </div>
                   <span class="simulator-queue-duration-summary">{{
                     planDurationHours(plan)
                   }}</span>
                   <a-input
+                    v-if="currentSimulatorEditSettings.queue"
                     :value="plan.description ?? ''"
                     class="simulator-queue-description"
                     placeholder="队列描述（可选）"
@@ -1634,7 +1814,15 @@ watch(
                         updatePlanMeta(planIndex, 'description', value)
                     "
                   />
-                  <div class="simulator-queue-info-actions">
+                  <span
+                    v-else
+                    class="simulator-queue-description simulator-readonly-value"
+                    >{{ plan.description?.trim() || "未填写描述" }}</span
+                  >
+                  <div
+                    v-if="currentSimulatorEditSettings.queue"
+                    class="simulator-queue-info-actions"
+                  >
                     <a-button size="small" @click="duplicatePlan(planIndex)">
                       <template #icon><CopyOutlined /></template>
                       复制队列
@@ -1708,45 +1896,67 @@ watch(
                           >
                             {{ ROOM_LABELS[row.type] }} {{ entry.position + 1 }}
                           </span>
-                          <a-select
-                            v-if="roomHasProduct(row.type)"
-                            :options="productOptions(row.type, room?.product)"
-                            :value="room?.product ?? ''"
-                            class="simulator-room-product"
-                            placeholder="产物"
-                            size="small"
-                            @update:value="
-                              (value: string) =>
-                                updateRoomProduct(
-                                  planIndex,
-                                  row.type,
-                                  entry.position,
-                                  value,
-                                )
+                          <template
+                            v-if="
+                              roomHasProduct(row.type) &&
+                              currentSimulatorEditSettings.product
                             "
-                          />
-                          <a-select
+                          >
+                            <a-select
+                              :options="productOptions(row.type, room?.product)"
+                              :value="room?.product ?? ''"
+                              class="simulator-room-product"
+                              placeholder="产物"
+                              size="small"
+                              @update:value="
+                                (value: string) =>
+                                  updateRoomProduct(
+                                    planIndex,
+                                    row.type,
+                                    entry.position,
+                                    value,
+                                  )
+                              "
+                            />
+                          </template>
+                          <span
+                            v-else-if="roomHasProduct(row.type)"
+                            class="simulator-room-product simulator-readonly-value"
+                            >{{ productLabel(row.type, room?.product) }}</span
+                          >
+                          <template
                             v-if="
                               roomHasProduct(row.type) && sourceVisible(room)
                             "
-                            :options="[
-                              { value: '', label: '未指定原料' },
-                              ...SOURCE_MATERIAL_OPTIONS,
-                            ]"
-                            :value="sourceValue(room)"
-                            class="simulator-room-source"
-                            placeholder="原料"
-                            size="small"
-                            @update:value="
-                              (value: string) =>
-                                updateRoomSource(
-                                  planIndex,
-                                  row.type,
-                                  entry.position,
-                                  value,
-                                )
-                            "
-                          />
+                          >
+                            <a-select
+                              v-if="currentSimulatorEditSettings.product"
+                              :options="[
+                                { value: '', label: '未指定原料' },
+                                ...SOURCE_MATERIAL_OPTIONS,
+                              ]"
+                              :value="sourceValue(room)"
+                              class="simulator-room-source"
+                              placeholder="原料"
+                              size="small"
+                              @update:value="
+                                (value: string) =>
+                                  updateRoomSource(
+                                    planIndex,
+                                    row.type,
+                                    entry.position,
+                                    value,
+                                  )
+                              "
+                            />
+                            <span
+                              v-else
+                              class="simulator-room-source simulator-readonly-value"
+                              >{{
+                                sourceMaterialLabel(sourceValue(room))
+                              }}</span
+                            >
+                          </template>
                           <a-checkbox
                             :checked="room?.skip === true"
                             @change="

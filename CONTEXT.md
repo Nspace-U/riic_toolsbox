@@ -62,3 +62,6 @@
 - 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
 - 当前验证中，`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和技能生成命令均已通过；ESLint 报告的未使用变量、无效赋值、变量声明和 Vue 属性顺序问题已按默认规则修复。
 - 本次 UI 修复已验证 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build` 通过；构建仍仅提示既有的大 chunk 警告。
+- 排班模拟器新增“编辑布局”“编辑队列”“编辑产物”三个页面开关；开关按排班表文档 ID 独立持久化，不写入排班 JSON，未记录的新文档默认全部开启。
+- 关闭编辑布局时仅隐藏设施布局编辑窗口；关闭编辑队列时队列名称、持续时间、描述改为只读并隐藏队列新增/删除/复制；关闭编辑产物时产物和源石碎片原料改为只读。干员、干员练度、心情、跳过状态仍可编辑。
+- 本轮排班模拟器编辑开关已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；构建仍仅提示既有的大 chunk 警告。

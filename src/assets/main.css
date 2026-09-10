@@ -1334,6 +1334,16 @@ a {
   gap: 8px;
 }
 
+.simulator-edit-settings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-inline: auto;
+  color: #526164;
+}
+
 .simulator-meta-panel .ant-card-body {
   padding: 14px;
 }
@@ -1491,6 +1501,31 @@ a {
   width: 100%;
 }
 
+.simulator-readonly-value {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding-inline: 7px;
+  color: #526164;
+  background: #f1f5f4;
+  border: 1px solid #e0e8e5;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.simulator-queue-entry-title.simulator-readonly-value {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-queue-description.simulator-readonly-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .simulator-queue-info-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1596,6 +1631,13 @@ a {
 .simulator-room-product,
 .simulator-room-source {
   width: 112px;
+}
+
+.simulator-room-product.simulator-readonly-value,
+.simulator-room-source.simulator-readonly-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .simulator-slot-grid {
