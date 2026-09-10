@@ -1751,11 +1751,9 @@ a {
   min-width: 0;
   align-content: start;
   gap: 2px;
-  /* 底部留出空白，作为设施右键菜单的可点击区域。 */
   padding-block-end: 6px;
 }
 
-/* 产物图标作为卡片背景水印，层级低于干员槽位内容。 */
 .simulator-facility-icon {
   position: absolute;
   z-index: -1;
@@ -1799,7 +1797,6 @@ a {
   gap: 0;
 }
 
-/* 原地编辑时输入框覆盖在干员名称位置，不替换头像。 */
 .simulator-slot-name-input {
   position: absolute;
   inset-block-end: 0;
@@ -1847,7 +1844,6 @@ a {
   border-radius: 6px;
 }
 
-/* 干员项与设施项使用同一行高、内边距与行首标记宽度。 */
 .simulator-context-menu .ant-menu-item {
   width: 100%;
   height: 28px;
@@ -2290,7 +2286,6 @@ a {
   background: rgba(0, 255, 0, 0.5);
 }
 
-/* 跳过状态的灰色遮罩覆盖头像主体与徽标，高于徽标的 z-index。 */
 .operator-avatar-skipped-overlay {
   position: absolute;
   z-index: 3;
@@ -2328,7 +2323,6 @@ a {
   text-align: center;
 }
 
-/* 原地编辑干员名称时隐藏名称文字，避免与输入框文字重叠。 */
 .operator-avatar-display-name--editing {
   visibility: hidden;
 }

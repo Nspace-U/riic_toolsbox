@@ -72,7 +72,6 @@ function readDocuments(): StoredDocument[] {
   }
 }
 
-/** 取出候选文档中形如 `LayoutEntry[]` 的布局数组，结构不符时返回 undefined。 */
 function storedLayout(value: unknown): LayoutEntry[] | undefined {
   if (typeof value !== "object" || value === null) {
     return undefined;
@@ -95,10 +94,6 @@ function storedLayout(value: unknown): LayoutEntry[] | undefined {
   return entries.length === layout.length ? entries : undefined;
 }
 
-/**
- * 读取历史文档时先把固定等级设施（控制中枢、发电站）的等级修正为固定值，
- * 否则这些文档会因等级校验失败被丢弃。
- */
 function normalizeStoredLayoutLevels(storedValues: unknown[]): unknown[] {
   let correctedCount = 0;
   const normalizedValues = storedValues.map((storedValue) => {

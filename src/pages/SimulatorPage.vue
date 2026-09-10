@@ -112,7 +112,6 @@ interface OperatorSlotAddress {
   key: string;
 }
 
-/** 槽位名称输入框的组件实例；在 v-for 内使用模板 ref 时会拿到数组。 */
 interface SlotNameInputInstance {
   $el?: Element;
 }
@@ -123,7 +122,6 @@ interface FacilityTitleTagPreset {
 }
 
 interface FacilityContextMenuState extends OperatorSlotAddress {
-  /** 需要在菜单里展示的房间位置；干员右键时只有该干员所在房间。 */
   positions: number[];
   x: number;
   y: number;
@@ -393,7 +391,6 @@ const operatorOptions = computed(() =>
   })),
 );
 
-/** 名称补全按已输入文字做子串匹配。 */
 function filterOperatorOption(
   input: string,
   option: { value?: string | number | null },
@@ -1244,7 +1241,6 @@ function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
   return editingOperatorSlot.value?.key === slot.key;
 }
 
-/** 从补全下拉中选中干员后立即提交，避免停留在原地编辑状态。 */
 function selectOperatorName(
   planIndex: number,
   type: RoomKey,
@@ -1301,7 +1297,6 @@ function beginOperatorNameEdit(
   void focusSlotNameInput();
 }
 
-/** 原地编辑时把焦点放到槽位输入框，并全选已有名称便于直接替换。 */
 async function focusSlotNameInput(): Promise<void> {
   await nextTick();
   const target = slotNameInput.value;
@@ -1432,7 +1427,6 @@ const FACILITY_TITLE_MAX_FONT_SIZE = 14;
 const FACILITY_TITLE_MIN_FONT_SIZE = 11;
 const FACILITY_TITLE_MAX_GAP = 8;
 const FACILITY_TITLE_MIN_GAP = 4;
-/** 等级标签由大到小尝试，窄卡片用更小的标签让设施名称仍然完整显示。 */
 const FACILITY_TITLE_TAG_PRESETS: [
   FacilityTitleTagPreset,
   ...FacilityTitleTagPreset[],
@@ -1441,9 +1435,7 @@ const FACILITY_TITLE_TAG_PRESETS: [
   { fontSize: 10, padding: 5 },
   { fontSize: 9, padding: 4 },
 ];
-/** 卡片宽度固定开销：列 gutter 10 + 设施卡边框 + 队列区 16px 内边距 + 队列卡边框。 */
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
-/** 队列卡片最小高度相对槽位高度的额外高度：间隙 2 + 效率行 20 + 底留白 6 + 边框 2。 */
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
 
@@ -1466,14 +1458,12 @@ function facilityColumnStyle(row: FacilityRow): Record<string, string> {
   return { "--simulator-column-width": facilityCardWidth(row) };
 }
 
-/** 队列卡片与队列信息卡片共用同一最小高度，保证所有小卡片等高。 */
 const facilityGridStyle = computed(() => ({
   "--simulator-queue-min-height": `${
     simulatorSlotSize.value + slotNameBandHeight.value + QUEUE_MIN_HEIGHT_EXTRA
   }px`,
 }));
 
-/** 控制中枢与发电站等级固定，卡片标题不再展示等级标签。 */
 function showsFacilityLevelTags(type: RoomKey): boolean {
   return !isFixedLevelRoom(type);
 }
@@ -1502,10 +1492,6 @@ function facilityTitleTagWidth(
   );
 }
 
-/**
- * 标题单行放不下时先缩小字号（下限 11px），再压缩与等级标签的间距（下限 4px），
- * 仍放不下则把等级标签也缩小，保证不换行、设施名称完整显示。
- */
 function facilityTitleStyle(row: FacilityRow): Record<string, string> {
   const availableWidth = Math.max(
     24,
@@ -1554,7 +1540,6 @@ function facilityIconUrl(fileName: string | undefined): string | undefined {
     : undefined;
 }
 
-/** 队列卡片背景的产物图标；没有产物的设施返回 undefined。 */
 function facilityCardIconUrl(row: FacilityRow, plan: Plan): string | undefined {
   const products = roomProducts(row, plan);
   return facilityIconUrl(
@@ -1656,9 +1641,6 @@ function slotOperator(
   return operatorByName(slotName(row, plan, planIndex, slot));
 }
 
-/**
- * 跳过状态：新建房间默认为不跳过，因此这里直接看 `skip` 标记。
- */
 function roomSkipped(room: RoomAssignment | undefined): boolean {
   return room?.skip === true;
 }
@@ -2013,7 +1995,6 @@ function contextMenuPosition(event: MouseEvent): { x: number; y: number } {
   };
 }
 
-/** 菜单渲染后按真实高度上移，保证底部不超出视口。 */
 async function clampContextMenuPosition(): Promise<void> {
   await nextTick();
   const menu = contextMenu.value;
@@ -2027,7 +2008,6 @@ async function clampContextMenuPosition(): Promise<void> {
   }
 }
 
-/** 干员右键：干员菜单 + 该干员所在房间的设施菜单。 */
 function openOperatorContextMenu(
   event: MouseEvent,
   planIndex: number,
@@ -2046,7 +2026,6 @@ function openOperatorContextMenu(
   void clampContextMenuPosition();
 }
 
-/** 设施区右键：按房间展示跳过、产物和原料编辑。 */
 function openFacilityContextMenu(
   event: MouseEvent,
   planIndex: number,
@@ -2092,7 +2071,6 @@ function roomContextMenuItems(
   }
 
   items.push({ key: `product-divider-${position}`, label: "", divider: true });
-  // 菜单不提供「未指定产物」，只列该设施可选的产物。
   const availableProducts = productOptions(type, room?.product).filter(
     (option) => option.value !== "",
   );

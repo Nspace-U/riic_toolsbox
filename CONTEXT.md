@@ -203,3 +203,4 @@
 - 效率行压缩：`.simulator-efficiency-summary` 上内边距 2px → 0、`.simulator-efficiency-summary-line` 的 `min-height` 25px → 20px 并设 `line-height: 1.2`、队列卡内容 gap 4px → 2px；`QUEUE_MIN_HEIGHT_EXTRA` 39 → 30，队列卡高度 135px → 126px。
 - 修掉行高不一致的真实原因：左侧「队列信息」内卡片的内容天生比设施队列卡高 5.28px（把 `.simulator-queue-info` 内边距 10px → 8px、gap 6px → 5px 后落回共用的 `--simulator-queue-min-height` 内），此前它会把同排的设施卡一起撑高（控制中枢卡 193.61px 而其他排 188.33px）；实测队列信息卡与 7 张设施队列卡全部 126px，外层卡片全部 188.33px（改动前 197.33px）。
 - 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过；浏览器实测点击框内「空槽位」文字与被跳过空槽位的「跳过」标签都能进入原地编辑。
+- 按要求清理了本会话在代码里写的解释性注释（`AGENTS.md` 规定不在代码中写注释），说明性内容统一放在 `CONTEXT.md` 与 `docs/decision-log.md`；仅保留 3 处 `catch` 块内的注释（`SimulatorPage.vue`、`useFacilityCardSettings.ts`、`useScheduleDocuments.ts`），因为 ESLint 的 `no-empty` 不允许空 `catch` 块。
