@@ -37,6 +37,7 @@ import type {
 } from "@/types/schedule";
 import {
   DEFAULT_SOURCE_MATERIAL,
+  BUILD_CHAIN_REQUIRED,
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
@@ -74,6 +75,15 @@ interface FacilitySlotRef {
   slotIndex: number;
 }
 
+interface LayoutDisplayRow {
+  key: string;
+  entries: FacilityEntry[];
+}
+
+interface LayoutAdditionPlan {
+  types: RoomKey[];
+}
+
 interface PowerSummary {
   used: number;
   provided: number;
@@ -95,6 +105,15 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   queue: true,
   product: true,
 };
+
+const LAYOUT_DISPLAY_ROWS: RoomKey[][] = [
+  ["control"],
+  ["trading"],
+  ["manufacture"],
+  ["power"],
+  ["meeting", "hire", "processing", "training"],
+  ["dormitory"],
+];
 
 const {
   documents,
@@ -228,18 +247,42 @@ const layoutAddOptions = computed(() =>
     const result = currentDocument.value
       ? canAddLayoutEntry(currentDocument.value.layout, type)
       : { ok: false, reason: "暂无排班表" };
+    const plan = currentDocument.value
+      ? layoutAdditionPlan(currentDocument.value.layout, type)
+      : undefined;
+    const extraTypes = plan?.types.filter((entryType) => entryType !== type);
     return {
       type,
       label: ROOM_LABELS[type],
-      disabled: !result.ok,
-      reason: result.ok ? "点击添加" : result.reason,
+      disabled: !plan,
+      reason: !plan
+        ? result.ok
+          ? "当前设施无法添加"
+          : result.reason
+        : extraTypes?.length
+          ? `点击添加，将自动补建：${extraTypes
+              .map((entryType) => ROOM_LABELS[entryType])
+              .join("、")}`
+          : "点击添加",
     };
   }),
 );
 
-const layoutEntries = computed(() => {
+const layoutRows = computed<LayoutDisplayRow[]>(() => {
   const document = currentDocument.value;
-  return document ? orderedLayoutEntries(document.layout) : [];
+  if (!document) {
+    return [];
+  }
+
+  const indexedEntries = orderedLayoutEntries(document.layout);
+  return LAYOUT_DISPLAY_ROWS.map((types, rowIndex) => ({
+    key: `layout-row-${rowIndex}`,
+    entries: types.flatMap((type) =>
+      indexedEntries
+        .filter((item) => item.entry.type === type)
+        .map(({ entry, index }, position) => ({ entry, index, position })),
+    ),
+  }));
 });
 
 const powerSummary = computed<PowerSummary>(() => {
@@ -497,20 +540,61 @@ function layoutFacilityStyle(type: RoomKey): Record<string, string> {
   };
 }
 
+function layoutBuildChain(type: RoomKey): RoomKey[] {
+  const requiredType = BUILD_CHAIN_REQUIRED[type];
+  return requiredType ? [...layoutBuildChain(requiredType), type] : [type];
+}
+
+function layoutAdditionPlan(
+  layout: LayoutEntry[],
+  type: RoomKey,
+): LayoutAdditionPlan | undefined {
+  const candidateLayout = [...layout];
+  const chain = layoutBuildChain(type);
+  const typesToAdd = chain.filter(
+    (entryType, index) =>
+      index === chain.length - 1 ||
+      !candidateLayout.some((entry) => entry.type === entryType),
+  );
+
+  for (const entryType of typesToAdd) {
+    const result = canAddLayoutEntry(candidateLayout, entryType);
+    if (!result.ok) {
+      return undefined;
+    }
+    candidateLayout.push({
+      type: entryType,
+      level: layoutEntryLevelMax(entryType),
+    });
+  }
+
+  return { types: typesToAdd };
+}
+
 function addLayoutEntry(type: RoomKey): void {
   const document = currentDocument.value;
   if (!document) {
     return;
   }
-  const result = canAddLayoutEntry(document.layout, type);
-  if (!result.ok) {
-    setError(new ScheduleError(result.reason));
+  const plan = layoutAdditionPlan(document.layout, type);
+  if (!plan) {
+    const result = canAddLayoutEntry(document.layout, type);
+    setError(new ScheduleError(result.ok ? "设施无法添加" : result.reason));
     return;
   }
 
   updateCurrent(
     (candidate) => {
-      candidate.layout.push({ type, level: layoutEntryLevelMax(type) });
+      const candidatePlan = layoutAdditionPlan(candidate.layout, type);
+      if (!candidatePlan) {
+        throw new ScheduleError("设施无法添加");
+      }
+      candidatePlan.types.forEach((entryType) => {
+        candidate.layout.push({
+          type: entryType,
+          level: layoutEntryLevelMax(entryType),
+        });
+      });
       candidate.plans.forEach((plan) =>
         resizeRoomsForLayout(plan, candidate.layout),
       );
@@ -1601,42 +1685,6 @@ watch(
           class="simulator-layout-panel"
           title="设施布局"
         >
-          <div class="simulator-layout-list">
-            <div
-              v-for="item in layoutEntries"
-              :key="item.index"
-              class="simulator-layout-card"
-              :style="layoutFacilityStyle(item.entry.type)"
-            >
-              <span class="simulator-layout-card-name">
-                {{ ROOM_LABELS[item.entry.type] }}
-              </span>
-              <a-input-number
-                :max="layoutEntryLevelMax(item.entry.type)"
-                :min="1"
-                :value="item.entry.level"
-                addon-after="级"
-                class="simulator-layout-card-level"
-                @update:value="
-                  (value: number | null) => updateLayoutLevel(item.index, value)
-                "
-              />
-              <a-button
-                :disabled="item.entry.type === 'control'"
-                aria-label="删除设施"
-                danger
-                :title="
-                  item.entry.type === 'control'
-                    ? '控制中枢不可删除'
-                    : '删除设施'
-                "
-                type="text"
-                @click="removeLayoutEntry(item.index)"
-              >
-                <template #icon><DeleteOutlined /></template>
-              </a-button>
-            </div>
-          </div>
           <div class="simulator-layout-add">
             <div class="simulator-layout-add-heading">
               <span class="simulator-summary-label">添加设施</span>
@@ -1644,23 +1692,70 @@ watch(
                 >点击设施卡片直接添加</span
               >
             </div>
-            <div class="simulator-layout-add-grid">
-              <a-button
-                v-for="option in layoutAddOptions"
-                :key="option.type"
-                :class="[
-                  'simulator-layout-add-card',
-                  {
-                    'simulator-layout-add-card--disabled': option.disabled,
-                  },
-                ]"
-                :disabled="option.disabled"
-                :style="layoutFacilityStyle(option.type)"
-                :title="option.reason"
-                @click="addLayoutEntry(option.type)"
+            <a-config-provider :auto-insert-space-in-button="false">
+              <div class="simulator-layout-add-grid">
+                <a-button
+                  v-for="option in layoutAddOptions"
+                  :key="option.type"
+                  :class="[
+                    'simulator-layout-add-card',
+                    {
+                      'simulator-layout-add-card--disabled': option.disabled,
+                    },
+                  ]"
+                  :disabled="option.disabled"
+                  :style="layoutFacilityStyle(option.type)"
+                  :title="option.reason"
+                  @click="addLayoutEntry(option.type)"
+                >
+                  {{ option.label }}
+                </a-button>
+              </div>
+            </a-config-provider>
+          </div>
+          <div class="simulator-layout-list">
+            <div
+              v-for="row in layoutRows"
+              :key="row.key"
+              class="simulator-layout-row"
+            >
+              <div
+                v-for="item in row.entries"
+                :key="item.index"
+                class="simulator-layout-card"
+                :style="layoutFacilityStyle(item.entry.type)"
               >
-                {{ option.label }}
-              </a-button>
+                <span class="simulator-layout-card-name">
+                  {{ ROOM_LABELS[item.entry.type] }}
+                </span>
+                <div class="simulator-layout-card-actions">
+                  <a-input-number
+                    :max="layoutEntryLevelMax(item.entry.type)"
+                    :min="1"
+                    :value="item.entry.level"
+                    addon-after="级"
+                    class="simulator-layout-card-level"
+                    @update:value="
+                      (value: number | null) =>
+                        updateLayoutLevel(item.index, value)
+                    "
+                  />
+                  <a-button
+                    :disabled="item.entry.type === 'control'"
+                    aria-label="删除设施"
+                    danger
+                    :title="
+                      item.entry.type === 'control'
+                        ? '控制中枢不可删除'
+                        : '删除设施'
+                    "
+                    type="text"
+                    @click="removeLayoutEntry(item.index)"
+                  >
+                    <template #icon><DeleteOutlined /></template>
+                  </a-button>
+                </div>
+              </div>
             </div>
           </div>
         </a-card>
