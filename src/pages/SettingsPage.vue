@@ -2,6 +2,7 @@
 import {
   CopyOutlined,
   DeleteOutlined,
+  EditOutlined,
   ReloadOutlined,
   SettingOutlined,
   UploadOutlined,
@@ -58,6 +59,7 @@ const {
   resetProfile,
   duplicateProfile,
   removeProfile,
+  renameProfile,
   setShowNoEditableOperators,
   setShowUnownedOperators,
   setTreatSkillsAsUnlocked,
@@ -79,6 +81,10 @@ const selectedProgressionFacility = ref<RoomKey | "">("");
 const selectedProgressionProfession = ref("");
 const selectedProgressionBranch = ref("");
 const selectedProgressionRarity = ref<number | "">("");
+const renameProfileModalOpen = ref(false);
+const renameProfileName = ref("");
+const clearLocalDataModalOpen = ref(false);
+const clearLocalDataError = ref("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
 let skillFileRequestVersion = 0;
 
@@ -299,6 +305,25 @@ function handleDuplicateProfile(): void {
   progressionSuccess.value = "已复制当前练度档案。";
 }
 
+function openRenameProfile(): void {
+  if (!activeProfile.value) {
+    return;
+  }
+  renameProfileName.value = activeProfile.value.name;
+  renameProfileModalOpen.value = true;
+}
+
+function handleRenameProfile(): void {
+  const profile = activeProfile.value;
+  if (!profile) {
+    renameProfileModalOpen.value = false;
+    return;
+  }
+  renameProfile(profile.id, renameProfileName.value);
+  renameProfileModalOpen.value = false;
+  progressionSuccess.value = `已修改练度档案名称为“${profile.name}”。`;
+}
+
 function handleRemoveProfile(): void {
   if (!activeProfile.value) {
     return;
@@ -364,6 +389,22 @@ async function refreshProgressionSkillFiles(): Promise<void> {
 function handleDataSourceChange(value: string): void {
   if (isDataSourceId(value)) {
     setDataSource(value);
+  }
+}
+
+function openClearLocalDataModal(): void {
+  clearLocalDataError.value = "";
+  clearLocalDataModalOpen.value = true;
+}
+
+function handleClearLocalData(): void {
+  try {
+    window.localStorage.clear();
+    window.location.reload();
+  } catch {
+    clearLocalDataModalOpen.value = false;
+    clearLocalDataError.value =
+      "清除本地数据失败，请检查浏览器存储权限后重试。";
   }
 }
 
@@ -469,6 +510,10 @@ watch(
           <a-button size="small" @click="handleDuplicateProfile">
             <template #icon><CopyOutlined /></template>
             复制
+          </a-button>
+          <a-button size="small" @click="openRenameProfile">
+            <template #icon><EditOutlined /></template>
+            改名
           </a-button>
           <a-button danger size="small" @click="handleRemoveProfile">
             <template #icon><DeleteOutlined /></template>
@@ -693,6 +738,22 @@ watch(
       />
     </a-card>
 
+    <a-modal
+      v-model:open="renameProfileModalOpen"
+      cancel-text="取消"
+      ok-text="保存"
+      title="修改练度档案名称"
+      @ok="handleRenameProfile"
+    >
+      <a-input
+        v-model:value="renameProfileName"
+        autofocus
+        maxlength="40"
+        placeholder="请输入练度档案名称"
+        @press-enter="handleRenameProfile"
+      />
+    </a-modal>
+
     <a-card
       :bordered="false"
       class="settings-panel settings-facility-colors-panel"
@@ -787,5 +848,40 @@ watch(
         >恢复默认颜色</a-button
       >
     </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-data-panel"
+      title="本地数据"
+    >
+      <a-alert
+        v-if="clearLocalDataError"
+        :message="clearLocalDataError"
+        closable
+        show-icon
+        type="error"
+        @close="clearLocalDataError = ''"
+      />
+      <p class="settings-panel-description">
+        清除当前浏览器中保存的排班表、干员练度、颜色和其他应用设置。
+      </p>
+      <a-button danger @click="openClearLocalDataModal">
+        <template #icon><DeleteOutlined /></template>
+        清除本地数据
+      </a-button>
+    </a-card>
+
+    <a-modal
+      v-model:open="clearLocalDataModalOpen"
+      cancel-text="取消"
+      ok-text="清除数据"
+      ok-type="danger"
+      title="确认清除本地数据"
+      @ok="handleClearLocalData"
+    >
+      <p>
+        这将删除本应用保存在当前浏览器中的全部数据，且无法撤销。确定继续吗？
+      </p>
+    </a-modal>
   </div>
 </template>
