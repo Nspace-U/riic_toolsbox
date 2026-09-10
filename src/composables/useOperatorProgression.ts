@@ -180,9 +180,7 @@ function persist(): void {
         showUnownedOperators: showUnownedOperators.value,
       }),
     );
-  } catch {
-    // Keep in-memory state usable when localStorage is unavailable.
-  }
+  } catch {}
 }
 
 function normalizeActiveProfile(): void {

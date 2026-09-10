@@ -37,5 +37,11 @@ export default tseslint.config(
       },
     },
   },
+  {
+    files: ["**/*.{js,mjs,cjs,ts,vue}"],
+    rules: {
+      "no-empty": ["error", { allowEmptyCatch: true }],
+    },
+  },
   eslintConfigPrettier,
 );

@@ -127,9 +127,7 @@ function persistFacilityColors(): void {
       FACILITY_COLORS_STORAGE_KEY,
       JSON.stringify(facilityColors.value),
     );
-  } catch {
-    // localStorage 可能在隐私模式或受限环境中不可用，页面仍可继续编辑内存中的颜色。
-  }
+  } catch {}
 }
 
 function setFacilityColor(type: RoomKey, color: string): void {
@@ -146,9 +144,7 @@ function persistProductColors(): void {
       PRODUCT_COLORS_STORAGE_KEY,
       JSON.stringify(productColors.value),
     );
-  } catch {
-    // localStorage 可能在隐私模式或受限环境中不可用，页面仍可继续编辑内存中的颜色。
-  }
+  } catch {}
 }
 
 function setProductColor(product: ProductColorKey, color: string): void {

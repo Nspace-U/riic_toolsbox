@@ -313,9 +313,7 @@ function persistSimulatorEditSettings(
       SIMULATOR_EDIT_SETTINGS_STORAGE_KEY,
       JSON.stringify(settings),
     );
-  } catch {
-    // localStorage 不可用时保留内存中的页面状态。
-  }
+  } catch {}
 }
 
 const fileInput = ref<HTMLInputElement>();

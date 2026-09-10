@@ -176,9 +176,7 @@ function persist(): void {
       ACTIVE_DOCUMENT_STORAGE_KEY,
       activeDocumentId.value,
     );
-  } catch {
-    // localStorage 可能在隐私模式或受限环境中不可用，页面仍可继续编辑内存中的数据。
-  }
+  } catch {}
 }
 
 function normalizeActiveDocument(): void {

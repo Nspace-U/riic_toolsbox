@@ -48,9 +48,7 @@ function setDataSource(value: DataSourceId): void {
 
   try {
     window.localStorage.setItem(DATA_SOURCE_STORAGE_KEY, value);
-  } catch {
-    // Local storage may be unavailable in private browsing or restricted contexts.
-  }
+  } catch {}
 }
 
 export function useDataSource() {

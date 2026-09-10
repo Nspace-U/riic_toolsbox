@@ -111,9 +111,7 @@ function persistAvatarDisplaySizes(): void {
       AVATAR_DISPLAY_SIZES_STORAGE_KEY,
       JSON.stringify(avatarDisplaySizes.value),
     );
-  } catch {
-    // Local storage may be unavailable in private browsing or restricted contexts.
-  }
+  } catch {}
 }
 
 function setAvatarDisplaySize(

@@ -88,9 +88,7 @@ function persistFacilityCardSettings(): void {
       FACILITY_CARD_SETTINGS_STORAGE_KEY,
       JSON.stringify(facilityCardSettings.value),
     );
-  } catch {
-    // localStorage 不可用时保留内存中的设置。
-  }
+  } catch {}
 }
 
 function setFacilityCardIconStyle(value: unknown): void {
