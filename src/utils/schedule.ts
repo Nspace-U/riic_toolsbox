@@ -39,6 +39,16 @@ export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
 };
 
 export const ROOM_ORDER: RoomKey[] = [...ROOM_KEYS];
+
+export const LAYOUT_TEXT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
+  ["control"],
+  ["trading"],
+  ["manufacture"],
+  ["power"],
+  ["meeting", "hire", "processing", "training"],
+  ["dormitory"],
+];
+
 export function orderedLayoutEntries<T extends LayoutEntry>(
   layout: T[],
 ): Array<{ entry: T; index: number }> {
@@ -54,10 +64,10 @@ export function orderedLayoutEntries<T extends LayoutEntry>(
 
 export const ROOM_LEVEL_LIMITS: Record<RoomKey, { min: number; max: number }> =
   {
-    control: { min: 1, max: 5 },
+    control: { min: 5, max: 5 },
     trading: { min: 1, max: 3 },
     manufacture: { min: 1, max: 3 },
-    power: { min: 1, max: 3 },
+    power: { min: 3, max: 3 },
     meeting: { min: 1, max: 3 },
     hire: { min: 1, max: 3 },
     dormitory: { min: 1, max: 5 },
@@ -150,6 +160,97 @@ function isRoomKey(value: unknown): value is RoomKey {
 
 export function roomLevelRange(type: RoomKey): { min: number; max: number } {
   return ROOM_LEVEL_LIMITS[type];
+}
+
+export function parseLayoutText(text: string): LayoutEntry[] {
+  const normalizedText = text.replace(/\r\n?/g, "\n").trimEnd();
+  if (!normalizedText.trim()) {
+    throw new ScheduleError("布局输入不能为空");
+  }
+
+  const rawLines = normalizedText.split("\n");
+  if (rawLines.length > LAYOUT_TEXT_ROWS.length) {
+    throw new ScheduleError("布局输入最多需要 6 行");
+  }
+
+  const lines = [
+    ...rawLines,
+    ...Array.from(
+      { length: LAYOUT_TEXT_ROWS.length - rawLines.length },
+      () => "",
+    ),
+  ];
+  const layout: LayoutEntry[] = [];
+
+  lines.forEach((rawLine, rowIndex) => {
+    const line = rawLine.replace(/\s/g, "");
+    const rowTypes = LAYOUT_TEXT_ROWS[rowIndex] ?? [];
+    if (!line) {
+      return;
+    }
+
+    if (rowIndex === 4) {
+      if (line.length > rowTypes.length) {
+        throw new ScheduleError(
+          `第 ${rowIndex + 1} 行最多填写 ${rowTypes.length} 个数字`,
+        );
+      }
+      [...line].forEach((character, typeIndex) => {
+        if (character === "0") {
+          return;
+        }
+        const type = rowTypes[typeIndex];
+        if (!type || !/^\d$/.test(character)) {
+          throw new ScheduleError(
+            `第 ${rowIndex + 1} 行第 ${typeIndex + 1} 个位置必须是 0 到 3 的数字`,
+          );
+        }
+        const level = Number(character);
+        const range = roomLevelRange(type);
+        if (level < range.min || level > range.max) {
+          throw new ScheduleError(
+            `${ROOM_LABELS[type]}等级必须在 ${range.min} 到 ${range.max} 之间`,
+          );
+        }
+        layout.push({ type, level });
+      });
+      return;
+    }
+
+    if (rowIndex === 0 && line.length !== 1) {
+      throw new ScheduleError("第 1 行只能填写 1 个控制中枢等级");
+    }
+    const type = rowTypes[0];
+    if (!type) {
+      return;
+    }
+    if (line.length > ROOM_LIMITS[type]) {
+      throw new ScheduleError(
+        `第 ${rowIndex + 1} 行最多填写 ${ROOM_LIMITS[type]} 个数字`,
+      );
+    }
+
+    [...line].forEach((character) => {
+      if (!/^\d$/.test(character) || character === "0") {
+        throw new ScheduleError(
+          `第 ${rowIndex + 1} 行必须填写 ${roomLevelRange(type).min} 到 ${roomLevelRange(type).max} 的设施等级数字`,
+        );
+      }
+      const level = Number(character);
+      const range = roomLevelRange(type);
+      if (level < range.min || level > range.max) {
+        throw new ScheduleError(
+          `${ROOM_LABELS[type]}等级必须在 ${range.min} 到 ${range.max} 之间`,
+        );
+      }
+      layout.push({ type, level });
+    });
+  });
+
+  if (!layout.some((entry) => entry.type === "control")) {
+    throw new ScheduleError("第 1 行必须填写控制中枢等级");
+  }
+  return layout;
 }
 
 export function roomSlotCount(type: RoomKey, level: number): number {

@@ -38,6 +38,7 @@ import type {
 import {
   DEFAULT_SOURCE_MATERIAL,
   BUILD_CHAIN_REQUIRED,
+  LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
@@ -50,6 +51,7 @@ import {
   cloneSchedule,
   facilityPower,
   orderedLayoutEntries,
+  parseLayoutText,
   roomSlotCount,
   roomLevelRange,
   validateSchedule,
@@ -106,13 +108,17 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   product: true,
 };
 
-const LAYOUT_DISPLAY_ROWS: RoomKey[][] = [
-  ["control"],
-  ["trading"],
-  ["manufacture"],
-  ["power"],
-  ["meeting", "hire", "processing", "training"],
-  ["dormitory"],
+const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
+const LAYOUT_BUILD_ORDER: RoomKey[] = [
+  "control",
+  "trading",
+  "manufacture",
+  "power",
+  "meeting",
+  "processing",
+  "hire",
+  "training",
+  "dormitory",
 ];
 
 const {
@@ -206,6 +212,7 @@ const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
+const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 let catalogRequestVersion = 0;
 
@@ -533,6 +540,24 @@ function layoutEntryLevelMax(type: RoomKey): number {
   return roomLevelRange(type).max;
 }
 
+function layoutTextFor(layout: LayoutEntry[]): string {
+  return LAYOUT_TEXT_ROWS.map((types) => {
+    if (types.length === 1) {
+      return layout
+        .filter((entry) => entry.type === types[0])
+        .map((entry) => entry.level)
+        .join("");
+    }
+
+    return types
+      .map(
+        (type) =>
+          layout.find((entry) => entry.type === type)?.level.toString() ?? "0",
+      )
+      .join("");
+  }).join("\n");
+}
+
 function layoutFacilityStyle(type: RoomKey): Record<string, string> {
   return {
     "--simulator-facility-accent":
@@ -571,6 +596,43 @@ function layoutAdditionPlan(
   return { types: typesToAdd };
 }
 
+function layoutWithBuildChain(requestedLayout: LayoutEntry[]): LayoutEntry[] {
+  const requestedByType = new Map<RoomKey, LayoutEntry[]>();
+  const includedTypes = new Set<RoomKey>();
+
+  requestedLayout.forEach((entry) => {
+    const entries = requestedByType.get(entry.type) ?? [];
+    entries.push(entry);
+    requestedByType.set(entry.type, entries);
+    includedTypes.add(entry.type);
+    layoutBuildChain(entry.type)
+      .slice(0, -1)
+      .forEach((requiredType) => includedTypes.add(requiredType));
+  });
+
+  return LAYOUT_BUILD_ORDER.flatMap((type) => {
+    if (!includedTypes.has(type)) {
+      return [];
+    }
+    const requestedEntries = requestedByType.get(type);
+    return requestedEntries?.length
+      ? requestedEntries.map((entry) => ({ ...entry }))
+      : [{ type, level: layoutEntryLevelMax(type) }];
+  });
+}
+
+function validateAddedLayout(layout: LayoutEntry[]): LayoutEntry[] {
+  const validatedLayout: LayoutEntry[] = [];
+  layout.forEach((entry) => {
+    const result = canAddLayoutEntry(validatedLayout, entry.type);
+    if (!result.ok) {
+      throw new ScheduleError(result.reason);
+    }
+    validatedLayout.push(entry);
+  });
+  return validatedLayout;
+}
+
 function addLayoutEntry(type: RoomKey): void {
   const document = currentDocument.value;
   if (!document) {
@@ -601,6 +663,31 @@ function addLayoutEntry(type: RoomKey): void {
     },
     { markLayoutExplicit: true },
   );
+}
+
+function applyLayoutText(): void {
+  clearMessages();
+  try {
+    const requestedLayout = parseLayoutText(layoutText.value);
+    const nextLayout = validateAddedLayout(
+      layoutWithBuildChain(requestedLayout),
+    );
+    const updated = updateCurrent(
+      (document) => {
+        document.layout = nextLayout.map((entry) => ({ ...entry }));
+        document.plans.forEach((plan) =>
+          resizeRoomsForLayout(plan, document.layout),
+        );
+      },
+      { markLayoutExplicit: true },
+    );
+    if (updated) {
+      layoutText.value = layoutTextFor(nextLayout);
+      successMessage.value = "已按输入内容更新设施布局。";
+    }
+  } catch (error: unknown) {
+    setError(error);
+  }
 }
 
 function updateLayoutLevel(index: number, value: number | null): void {
@@ -1480,6 +1567,14 @@ watch(activeDocumentId, () => {
 });
 
 watch(
+  () => currentDocument.value?.layout,
+  (layout) => {
+    layoutText.value = layout ? layoutTextFor(layout) : "";
+  },
+  { deep: true, immediate: true },
+);
+
+watch(
   [baseDataReady, selectedDataSource],
   () => {
     void refreshEfficiencyCatalog();
@@ -1712,6 +1807,29 @@ watch(
                 </a-button>
               </div>
             </a-config-provider>
+          </div>
+          <div class="simulator-layout-text-editor">
+            <div class="simulator-layout-add-heading">
+              <span class="simulator-summary-label">按数字批量设置</span>
+              <span class="simulator-layout-add-hint"
+                >每行依次表示控制中枢、贸易站、制造站、发电站、功能设施、宿舍等级</span
+              >
+            </div>
+            <a-textarea
+              v-model:value="layoutText"
+              :auto-size="{ minRows: 6, maxRows: 6 }"
+              class="simulator-layout-text-input"
+              placeholder="5\n32\n33222\n33\n3333\n2111"
+            />
+            <div class="simulator-layout-text-footer">
+              <span
+                >第 5 行依次为会客室、办公室、加工站、训练室，使用 0
+                表示不建造；缺少前置设施时会自动补建</span
+              >
+              <a-button type="primary" @click="applyLayoutText"
+                >应用布局</a-button
+              >
+            </div>
           </div>
           <div class="simulator-layout-list">
             <div

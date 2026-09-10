@@ -1348,6 +1348,10 @@ a {
   padding: 14px;
 }
 
+.simulator-meta-panel {
+  margin-block-end: 14px;
+}
+
 .simulator-meta-grid {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr);
@@ -1375,6 +1379,10 @@ a {
 
 .simulator-layout-panel .ant-card-body {
   padding: 12px 14px;
+}
+
+.simulator-layout-panel {
+  margin-block-end: 14px;
 }
 
 .simulator-layout-list {
@@ -1424,9 +1432,8 @@ a {
 }
 
 .simulator-layout-add {
-  margin-block-start: 14px;
-  padding-block-start: 14px;
-  border-block-start: 1px solid #edf1f0;
+  padding-block-end: 14px;
+  margin-block-end: 14px;
 }
 
 .simulator-layout-add-heading {
@@ -1440,6 +1447,33 @@ a {
 .simulator-layout-add-hint {
   color: #8a9698;
   font-size: 11px;
+}
+
+.simulator-layout-text-editor {
+  display: grid;
+  gap: 8px;
+  padding-block-end: 14px;
+  margin-block-end: 14px;
+}
+
+.simulator-layout-text-input {
+  width: 100%;
+  font-family: "Cascadia Code", Consolas, monospace;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+
+.simulator-layout-text-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-layout-text-footer > span {
+  color: #8a9698;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .simulator-layout-add-grid {
@@ -1614,7 +1648,7 @@ a {
   align-items: stretch;
   max-width: 100%;
   overflow-x: auto;
-  margin-block-start: 0;
+  margin-block-start: 14px;
   padding-block-end: 4px;
 }
 
@@ -2365,6 +2399,15 @@ a {
 
   .simulator-layout-add-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .simulator-layout-text-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .simulator-layout-text-footer .ant-btn {
+    width: 100%;
   }
 
   .simulator-layout-card {
