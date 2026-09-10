@@ -126,7 +126,10 @@ function updateNameFontSize(): void {
     return;
   }
 
-  const maxTextWidth = Math.max(1, props.size);
+  const maxTextWidth = Math.max(
+    1,
+    props.size - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding,
+  );
   const fontSize = getOperatorAvatarNameFontSizeForWidth(
     props.operator.name,
     props.size,
@@ -211,6 +214,11 @@ const displayStyle = computed(() => ({
   ...(props.plain ? { gap: "0" } : {}),
 }));
 
+const namePaddingInline = computed(() => {
+  const scale = props.proportionalLayout ? avatarScale.value : 1;
+  return (OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding * scale) / 2;
+});
+
 const nameStyle = computed(() =>
   props.plain
     ? {
@@ -220,6 +228,7 @@ const nameStyle = computed(() =>
         fontSize: `${nameFontSize.value}px`,
         fontWeight: "600",
         lineHeight: `${nameHeight.value}px`,
+        paddingInline: `${namePaddingInline.value}px`,
       }
     : {},
 );

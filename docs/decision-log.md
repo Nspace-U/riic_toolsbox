@@ -248,3 +248,14 @@
 - **实测**：Headless Edge 4× 像素扫描确认 6 字在 180px 输出下 Canvas 与 DOM 墨迹一致（高 28.75px、宽 178px、左右各 1px 留白、无省略号）；把同一名字放到 31px 时 DOM 出现 4.5px 的省略号空隙，作为检测对照。中文全角字形宽度确认为 1em。
 - **风险**：名称现在使用整幅宽度，达到上限长度时左右仅剩约 1px 留白；触到 12px 下限后 16 字以上的名字仍会溢出，Canvas 压缩字形、DOM 省略号（既有差异）。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过。
+
+## 2026-09-10：名称收缩不再截断并恢复左右边距
+
+- **问题**：名称栏与字号此前各有 12px 下限（`nameMinFontSize`、`nameOutputMinFontSize`）。当下限大于「放得下所需字号」时名字必然溢出（例如 72px 槽位里 7 个字的可用宽度只有 62.4px，而 12px 字号需要 84px），结果是 DOM 显示省略号、字号也停在下限不再缩小。
+- **决定**：删除两个字号下限，收缩循环的下限改为 1px，保证任何长度都放得下且不再出现省略号；名称栏高度下限 `nameOutputMinHeight: 24` 保留。
+- **恢复边距**：重新加入 `OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding: 24`（左右合计）并恢复 `getOperatorAvatarNameMaxTextWidth`，可用文字宽 = `输出宽度 − 24 × 缩放比`；DOM 名称 span 增加同比例 `padding-inline`（项目全局 `box-sizing: border-box`，外框宽度不变），使两条渲染路径的可用宽度与左右留白一致。
+- **字号改为输出尺度计算**：`getOperatorAvatarProportionalNameMetrics` 直接用输出宽度取上限 `round(宽度 / 6)` 并在输出尺度测量收缩，去掉「源尺度测量 → 缩放 → 取整」，避免取整导致的偶发溢出。
+- **数值**：180px 输出下 1–5 字 30px、6 字 26px、7 字 22px、8 字 19px、12 字 13px、20 字 7px；72px 槽位下 1–5 字 12px、6 字 10px、7 字 8px、12 字 5px，全部满足放得下。
+- **代价**：名字很长时字号很小，而名称栏高度下限不变，上下留白随之变大；如需名称栏跟随字号变矮需另行确认。
+- **实测**：Headless Edge 4× 像素扫描，180px 输出 8 字（DOM 18.25px 高、Canvas 18px 高；宽 151 / 150.25；左右留白 14.5/14.5 与 14.75/15）与 72px 槽位 7 字（8px 字号、留白 8.25/8.5）均无省略号；对照组（180px 下 8 字用 22px）出现 12.75/19.5 的不对称留白与 271.5px 处的空隙，验证检测方法有效。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过。
