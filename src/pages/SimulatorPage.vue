@@ -242,7 +242,6 @@ const slotNameBandStyle = computed(() => ({
 const emptySlotFrameStyle = computed(() => ({
   width: `${simulatorSlotSize.value}px`,
   height: `${simulatorSlotSize.value}px`,
-  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize.value)}px`,
 }));
 
 const skippedLabelStyle = computed(() => ({
@@ -2930,9 +2929,6 @@ onBeforeUnmount(() => {
                               )
                             "
                           >
-                            <span class="simulator-empty-slot-frame-text">
-                              空槽位
-                            </span>
                             <template v-if="roomSkipped(slotRoom(plan, slot))">
                               <span class="operator-avatar-skipped-overlay" />
                               <span

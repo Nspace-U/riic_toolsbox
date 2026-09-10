@@ -294,7 +294,7 @@
 
 ## 2026-09-10：空槽位跳过表现与卡片高度再压缩
 
-- **空槽位框内文字**：框体内显示「空槽位」（字号跟随槽位尺寸，与名称栏一致），不再只靠下方名称栏表达。
+- **空槽位框内不显示文字**：框体保持灰色方块（曾实现为框内显示「空槽位」，已按要求撤销该改动），空槽位只在下方名称栏显示「空槽位」。
 - **跳过表现统一**：房间被跳过的空槽位框体复用 `OperatorAvatarDisplay` 的 `.operator-avatar-skipped-overlay` 与 `.operator-avatar-skipped-label`（白字黑底「跳过」），与干员槽位完全一致；名称栏统一显示「空槽位」，与干员「头像显示跳过、名称显示姓名」的结构保持一致（不再把名称栏替换成「跳过」）。
 - **跳过标签字号共享**：新增 `getOperatorAvatarSkippedLabelFontSize`（`src/utils/operatorAvatarLayout.ts`），`OperatorAvatarDisplay` 与模拟器空槽位共用，去掉重复的 `Math.max(10, …)` 公式。
 - **效率行与卡片高度**：`.simulator-efficiency-summary` 上内边距 2px → 0、`.simulator-efficiency-summary-line` 的 `min-height` 25px → 20px 且 `line-height: 1.2`、队列卡内容 gap 4px → 2px；`QUEUE_MIN_HEIGHT_EXTRA` 39 → 30，队列卡 135px → 126px、设施卡 197.33px → 188.33px。

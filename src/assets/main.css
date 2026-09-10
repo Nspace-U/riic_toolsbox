@@ -2150,18 +2150,10 @@ a {
 
 .simulator-empty-slot-frame {
   position: relative;
-  display: grid;
-  place-items: center;
   background: #edf2f0;
   border-radius: 0;
   cursor: pointer;
   overflow: hidden;
-}
-
-.simulator-empty-slot-frame-text {
-  color: #8a9698;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .simulator-empty-slot-name {
