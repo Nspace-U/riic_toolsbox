@@ -269,7 +269,7 @@ export function fixedProgressionNodes(
         key: "level-1",
         type: "level",
         value: 1,
-        label: "0级",
+        label: "1级",
         facilities: [],
       },
       {
