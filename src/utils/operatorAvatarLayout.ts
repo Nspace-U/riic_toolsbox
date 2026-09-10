@@ -4,8 +4,7 @@ export const OPERATOR_AVATAR_LAYOUT = {
   rarityHeightRatio: 0.18,
   nameHeightRatio: 0.14,
   nameMinHeight: 36,
-  nameHorizontalPadding: 24,
-  nameFontRatio: 0.7,
+  nameFitCharacterCount: 6,
   nameMinFontSize: 12,
   nameOutputMinHeight: 24,
   nameOutputMinFontSize: 12,
@@ -25,20 +24,20 @@ export function getOperatorAvatarNameHeight(imageWidth: number): number {
   );
 }
 
-export function getOperatorAvatarNameFontSize(nameHeight: number): number {
+export function getOperatorAvatarNameFontSize(imageWidth: number): number {
   return Math.max(
     OPERATOR_AVATAR_LAYOUT.nameMinFontSize,
-    Math.round(nameHeight * OPERATOR_AVATAR_LAYOUT.nameFontRatio),
+    Math.round(imageWidth / OPERATOR_AVATAR_LAYOUT.nameFitCharacterCount),
   );
 }
 
 export function getOperatorAvatarNameFontSizeForWidth(
   name: string,
-  nameHeight: number,
+  imageWidth: number,
   maxWidth: number,
   measureText: (name: string, fontSize: number) => number,
 ): number {
-  let fontSize = getOperatorAvatarNameFontSize(nameHeight);
+  let fontSize = getOperatorAvatarNameFontSize(imageWidth);
   while (
     fontSize > OPERATOR_AVATAR_LAYOUT.nameMinFontSize &&
     measureText(name, fontSize) > maxWidth
@@ -85,23 +84,12 @@ export function getOperatorAvatarNameMinBandMetrics(
     ),
     fontSize: Math.max(
       getScaledOperatorAvatarLength(
-        getOperatorAvatarNameFontSize(sourceNameHeight),
+        getOperatorAvatarNameFontSize(sourceWidth),
         scale,
       ),
       OPERATOR_AVATAR_LAYOUT.nameOutputMinFontSize,
     ),
   };
-}
-
-export function getOperatorAvatarNameMaxTextWidth(
-  sourceWidth: number,
-  outputWidth: number,
-): number {
-  const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
-  return Math.max(
-    1,
-    outputWidth - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding * scale,
-  );
 }
 
 export function getOperatorAvatarProportionalNameMetrics(
@@ -110,12 +98,11 @@ export function getOperatorAvatarProportionalNameMetrics(
   outputWidth: number,
   measureText: (name: string, fontSize: number) => number,
 ): OperatorAvatarNameMetrics {
-  const sourceNameHeight = getOperatorAvatarNameHeight(sourceWidth);
   const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
   const sourceFontSize = getOperatorAvatarNameFontSizeForWidth(
     name,
-    sourceNameHeight,
-    Math.max(1, sourceWidth - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding),
+    sourceWidth,
+    sourceWidth,
     measureText,
   );
   return {

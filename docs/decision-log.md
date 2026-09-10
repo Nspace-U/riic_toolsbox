@@ -239,3 +239,12 @@
 - **兼容性影响**：模拟器槽位总高 86 → 96px；头像生成器输出高度随之变化（96 宽由 96×115 变为 96×120px），预览元信息标签同步。
 - **已知差异**：字号触到 12px 下限后长名字更容易超出可用宽度，此时 Canvas 横向压缩字形、DOM 显示省略号，该既有差异未在本轮处理。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过；Headless Edge 4× 像素测量确认 DOM 与 Canvas 的文字中心偏差均为 +0.5px，槽位 72 时上下留白 6.75/5.75px（Canvas 7/6px）。
+
+## 2026-09-10：名称最大字号改为按宽度与字符数决定
+
+- **新规则**：名称最大字号 = `max(nameMinFontSize, round(宽度 / nameFitCharacterCount))`，新增 `nameFitCharacterCount = 6`；180px 输出对应 30px，正好放下 6 个中文字符。字符更多时沿用原有收缩循环（源尺度测量、逐像素递减、下限 12px）。
+- **替换与删除**：原 `nameFontRatio: 0.7`（最大字号 = 名称栏高度 × 0.7，180px 时 25px）被删除，`getOperatorAvatarNameFontSize` 的入参由名称栏高度改为宽度；`nameHorizontalPadding: 24` 同时删除，因为 6 个字在 30px 下正好等于整幅宽度，内边距会把它判为放不下；`getOperatorAvatarNameMaxTextWidth` 随之删除，Canvas 直接以输出宽度作为 `fillText` 上限。未开启比例渲染的旧分支也改用宽度决定上限。
+- **数值**：180px 输出下 1–6 字为 30px，7/8/9/12 字分别为 25/22/20/15px，14 字起为 12px 下限；其他宽度最大字号为 96→16、120→20、144→24。名称栏高度不变（180 时 36px，小宽度下限 24px），因此字号始终小于名称栏高度，不会出现纵向裁切。
+- **实测**：Headless Edge 4× 像素扫描确认 6 字在 180px 输出下 Canvas 与 DOM 墨迹一致（高 28.75px、宽 178px、左右各 1px 留白、无省略号）；把同一名字放到 31px 时 DOM 出现 4.5px 的省略号空隙，作为检测对照。中文全角字形宽度确认为 1em。
+- **风险**：名称现在使用整幅宽度，达到上限长度时左右仅剩约 1px 留白；触到 12px 下限后 16 字以上的名字仍会溢出，Canvas 压缩字形、DOM 省略号（既有差异）。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过。

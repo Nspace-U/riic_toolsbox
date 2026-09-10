@@ -1,5 +1,4 @@
 import {
-  getOperatorAvatarNameMaxTextWidth,
   getOperatorAvatarProportionalNameMetrics,
   getOperatorAvatarScale,
   getScaledOperatorAvatarLength,
@@ -231,7 +230,7 @@ export async function generateOperatorAvatar(
       outputWidth,
       bodyHeight,
       nameMetrics,
-      getOperatorAvatarNameMaxTextWidth(sourceWidth, outputWidth),
+      outputWidth,
     );
   }
 

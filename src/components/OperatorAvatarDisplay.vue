@@ -91,7 +91,7 @@ function defaultNameFontSize(): number {
     return getOperatorAvatarNameMinBandMetrics(sourceWidth.value, props.size)
       .fontSize;
   }
-  return getOperatorAvatarNameFontSize(nameHeight.value);
+  return getOperatorAvatarNameFontSize(props.size);
 }
 
 const nameFontSize = ref(defaultNameFontSize());
@@ -126,13 +126,10 @@ function updateNameFontSize(): void {
     return;
   }
 
-  const maxTextWidth = Math.max(
-    1,
-    props.size - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding,
-  );
+  const maxTextWidth = Math.max(1, props.size);
   const fontSize = getOperatorAvatarNameFontSizeForWidth(
     props.operator.name,
-    nameHeight.value,
+    props.size,
     maxTextWidth,
     (name, size) => {
       measureElement.textContent = name;
