@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  CheckOutlined,
   ClusterOutlined,
   CopyOutlined,
   DeleteOutlined,
@@ -35,7 +36,10 @@ import type {
   ScheduleDocument,
   StoredDocument,
 } from "@/types/schedule";
-import type { OperatorProgressionNode } from "@/types/operatorProgression";
+import type {
+  OperatorProgressionNode,
+  ResolvedOperatorProgression,
+} from "@/types/operatorProgression";
 import {
   DEFAULT_SOURCE_MATERIAL,
   BUILD_CHAIN_REQUIRED,
@@ -102,6 +106,8 @@ interface OperatorContextMenuDetails {
   operator: Operator;
   room: RoomAssignment;
   progressionNodes: OperatorProgressionNode[];
+  currentMood: number;
+  currentProgression: ResolvedOperatorProgression;
   hasManualProgression: boolean;
 }
 
@@ -1591,6 +1597,16 @@ function progressionMenuNodes(
   operator: Operator,
   type: RoomKey,
 ): OperatorProgressionNode[] {
+  if (type === "meeting") {
+    const maxEliteLevel = operator.maxEliteLevel ?? 0;
+    return Array.from({ length: maxEliteLevel + 1 }, (_, value) => ({
+      key: `elite-${value}`,
+      type: "elite" as const,
+      value,
+      label: `精英${value}`,
+      facilities: [type],
+    }));
+  }
   return progressionNodesForFacility(
     efficiencyCatalog.value?.operators[operator.name]?.skillFile,
     type,
@@ -1616,16 +1632,42 @@ const operatorContextMenuDetails = computed<
     return undefined;
   }
   const state = operatorState(room, name);
+  const skillFile =
+    efficiencyCatalog.value?.operators[operator.name]?.skillFile;
   return {
     menu,
     name,
     operator,
     room,
     progressionNodes: progressionMenuNodes(operator, menu.type),
+    currentMood: state.mood ?? 24,
+    currentProgression: resolveOperatorProgression({
+      operatorId: operator.id,
+      facility: menu.type,
+      operatorSkillFile: skillFile,
+      maxEliteLevel: operator.maxEliteLevel,
+      manualElite: state.elite,
+      manualLevel: state.level,
+      profile: activeProfile.value,
+      treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+    }),
     hasManualProgression:
       state.elite !== undefined || state.level !== undefined,
   };
 });
+
+function isCurrentProgressionNode(node: OperatorProgressionNode): boolean {
+  const details = operatorContextMenuDetails.value;
+  if (!details) {
+    return false;
+  }
+  if (details.menu.type === "meeting") {
+    return details.currentProgression.elite === node.value;
+  }
+  return node.type === "elite"
+    ? details.currentProgression.elite === node.value
+    : details.currentProgression.level === node.value;
+}
 
 function operatorContextMenuStyle(): Record<string, string> {
   const menu = operatorContextMenu.value;
@@ -1771,11 +1813,22 @@ function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
   if (
     target instanceof Element &&
-    (target.closest(".simulator-operator-context-menu") ||
-      target.closest(".ant-menu-submenu-popup"))
+    target.closest(".simulator-operator-context-menu")
   ) {
     return;
   }
+  closeOperatorContextMenu();
+}
+
+function handleWindowWheel() {
+  closeOperatorContextMenu();
+}
+
+function handleWindowScroll() {
+  closeOperatorContextMenu();
+}
+
+function handleWindowResize() {
   closeOperatorContextMenu();
 }
 
@@ -1908,11 +1961,20 @@ watch(
 onMounted(() => {
   window.addEventListener("click", handleWindowClick);
   window.addEventListener("keydown", handleWindowKeydown);
+  window.addEventListener("wheel", handleWindowWheel, { passive: true });
+  window.addEventListener("scroll", handleWindowScroll, {
+    capture: true,
+    passive: true,
+  });
+  window.addEventListener("resize", handleWindowResize);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleWindowClick);
   window.removeEventListener("keydown", handleWindowKeydown);
+  window.removeEventListener("wheel", handleWindowWheel);
+  window.removeEventListener("scroll", handleWindowScroll, { capture: true });
+  window.removeEventListener("resize", handleWindowResize);
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
   }
@@ -2604,29 +2666,31 @@ onBeforeUnmount(() => {
           @click.stop
         >
           <a-menu :selectable="false">
-            <a-sub-menu key="mood">
-              <template #title>初始心情</template>
-              <a-menu-item
-                v-for="mood in INITIAL_MOOD_OPTIONS"
-                :key="`mood-${mood}`"
-                @click="updateOperatorMoodQuickly(mood)"
-              >
-                {{ mood }}<span v-if="mood === 24">（默认）</span>
-              </a-menu-item>
-            </a-sub-menu>
-            <a-sub-menu
-              v-if="operatorContextMenuDetails.progressionNodes.length"
-              key="progression"
+            <a-menu-item
+              v-for="mood in INITIAL_MOOD_OPTIONS"
+              :key="`mood-${mood}`"
+              @click="updateOperatorMoodQuickly(mood)"
             >
-              <template #title>练度</template>
-              <a-menu-item
-                v-for="node in operatorContextMenuDetails.progressionNodes"
-                :key="node.key"
-                @click="updateOperatorProgression(node)"
-              >
-                {{ node.label }}
-              </a-menu-item>
-            </a-sub-menu>
+              <template #icon>
+                <CheckOutlined
+                  v-if="operatorContextMenuDetails.currentMood === mood"
+                />
+              </template>
+              心情 {{ mood }}<span v-if="mood === 24">（默认）</span>
+            </a-menu-item>
+            <a-menu-divider
+              v-if="operatorContextMenuDetails.progressionNodes.length"
+            />
+            <a-menu-item
+              v-for="node in operatorContextMenuDetails.progressionNodes"
+              :key="node.key"
+              @click="updateOperatorProgression(node)"
+            >
+              <template #icon>
+                <CheckOutlined v-if="isCurrentProgressionNode(node)" />
+              </template>
+              {{ node.label }}
+            </a-menu-item>
             <a-menu-item
               v-if="operatorContextMenuDetails.hasManualProgression"
               key="reset-progression"

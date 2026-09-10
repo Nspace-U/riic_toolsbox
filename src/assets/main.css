@@ -1801,6 +1801,10 @@ a {
   border-radius: 6px;
 }
 
+.simulator-operator-context-menu .ant-menu-item .anticon {
+  min-width: 14px;
+}
+
 .simulator-efficiency-summary {
   display: grid;
   gap: 5px;
