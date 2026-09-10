@@ -7,7 +7,7 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useDataSource } from "@/composables/useDataSource";
@@ -38,6 +38,7 @@ import type {
 import {
   DEFAULT_SOURCE_MATERIAL,
   BUILD_CHAIN_REQUIRED,
+  LAYOUT_INPUT_ROWS,
   LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
@@ -214,6 +215,9 @@ const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
+const layoutTextHint =
+  "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
+let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
 
 const activeDocument = computed(() => getActiveDocument());
@@ -541,7 +545,7 @@ function layoutEntryLevelMax(type: RoomKey): number {
 }
 
 function layoutTextFor(layout: LayoutEntry[]): string {
-  return LAYOUT_TEXT_ROWS.map((types) => {
+  return LAYOUT_INPUT_ROWS.map((types) => {
     if (types.length === 1) {
       return layout
         .filter((entry) => entry.type === types[0])
@@ -688,6 +692,26 @@ function applyLayoutText(): void {
   } catch (error: unknown) {
     setError(error);
   }
+}
+
+function scheduleLayoutTextApply(text: string): void {
+  if (layoutApplyTimer !== undefined) {
+    clearTimeout(layoutApplyTimer);
+  }
+  if (
+    !currentDocument.value ||
+    text === layoutTextFor(currentDocument.value.layout)
+  ) {
+    layoutApplyTimer = undefined;
+    return;
+  }
+
+  layoutApplyTimer = setTimeout(() => {
+    layoutApplyTimer = undefined;
+    if (layoutText.value === text) {
+      applyLayoutText();
+    }
+  }, 300);
 }
 
 function updateLayoutLevel(index: number, value: number | null): void {
@@ -1564,6 +1588,14 @@ function isStoredDocument(document: StoredDocument): boolean {
 
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
+  if (layoutApplyTimer !== undefined) {
+    clearTimeout(layoutApplyTimer);
+    layoutApplyTimer = undefined;
+  }
+});
+
+watch(layoutText, (text) => {
+  scheduleLayoutTextApply(text);
 });
 
 watch(
@@ -1581,6 +1613,12 @@ watch(
   },
   { immediate: true },
 );
+
+onBeforeUnmount(() => {
+  if (layoutApplyTimer !== undefined) {
+    clearTimeout(layoutApplyTimer);
+  }
+});
 </script>
 
 <template>
@@ -1812,7 +1850,7 @@ watch(
             <div class="simulator-layout-add-heading">
               <span class="simulator-summary-label">按数字批量设置</span>
               <span class="simulator-layout-add-hint"
-                >每行依次表示控制中枢、贸易站、制造站、发电站、功能设施、宿舍等级</span
+                >六行分别表示各类设施等级</span
               >
             </div>
             <a-textarea
@@ -1822,13 +1860,7 @@ watch(
               placeholder="5\n32\n33222\n33\n3333\n2111"
             />
             <div class="simulator-layout-text-footer">
-              <span
-                >第 5 行依次为会客室、办公室、加工站、训练室，使用 0
-                表示不建造；缺少前置设施时会自动补建</span
-              >
-              <a-button type="primary" @click="applyLayoutText"
-                >应用布局</a-button
-              >
+              <span>{{ layoutTextHint }}</span>
             </div>
           </div>
           <div class="simulator-layout-list">

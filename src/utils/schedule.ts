@@ -49,6 +49,15 @@ export const LAYOUT_TEXT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
   ["dormitory"],
 ];
 
+export const LAYOUT_INPUT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
+  ["control"],
+  ["trading"],
+  ["manufacture"],
+  ["power"],
+  ["meeting", "processing", "hire", "training"],
+  ["dormitory"],
+];
+
 export function orderedLayoutEntries<T extends LayoutEntry>(
   layout: T[],
 ): Array<{ entry: T; index: number }> {
@@ -169,14 +178,14 @@ export function parseLayoutText(text: string): LayoutEntry[] {
   }
 
   const rawLines = normalizedText.split("\n");
-  if (rawLines.length > LAYOUT_TEXT_ROWS.length) {
+  if (rawLines.length > LAYOUT_INPUT_ROWS.length) {
     throw new ScheduleError("布局输入最多需要 6 行");
   }
 
   const lines = [
     ...rawLines,
     ...Array.from(
-      { length: LAYOUT_TEXT_ROWS.length - rawLines.length },
+      { length: LAYOUT_INPUT_ROWS.length - rawLines.length },
       () => "",
     ),
   ];
@@ -184,7 +193,7 @@ export function parseLayoutText(text: string): LayoutEntry[] {
 
   lines.forEach((rawLine, rowIndex) => {
     const line = rawLine.replace(/\s/g, "");
-    const rowTypes = LAYOUT_TEXT_ROWS[rowIndex] ?? [];
+    const rowTypes = LAYOUT_INPUT_ROWS[rowIndex] ?? [];
     if (!line) {
       return;
     }

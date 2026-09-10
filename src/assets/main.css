@@ -1464,10 +1464,7 @@ a {
 }
 
 .simulator-layout-text-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
 }
 
 .simulator-layout-text-footer > span {
@@ -2399,15 +2396,6 @@ a {
 
   .simulator-layout-add-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .simulator-layout-text-footer {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .simulator-layout-text-footer .ant-btn {
-    width: 100%;
   }
 
   .simulator-layout-card {
