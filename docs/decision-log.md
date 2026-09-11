@@ -301,3 +301,11 @@
 - **行高不一致根因**：左侧「队列信息」内卡片的内容天生比设施队列卡高 5.28px，而 `align-items: stretch` 会把同排设施卡撑到它的高度（实测控制中枢卡 193.61px、其他排 188.33px）。把 `.simulator-queue-info` 的内边距 10px → 8px、gap 6px → 5px，使内容回到共用的 `--simulator-queue-min-height` 之内；实测队列信息卡与 7 张设施队列卡全部 126px、所有外层卡片 188.33px。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；浏览器实测点击框内「空槽位」文字与被跳过空槽位的「跳过」标签都能进入原地编辑。
 - **注释清理**：按 `AGENTS.md` 的「不要在代码中写注释」删除本会话在 `SimulatorPage.vue`、`schedule.ts`、`operatorAvatarLayout.ts`、`useScheduleDocuments.ts`、`main.css` 中写的解释性注释，理由统一记录在 `CONTEXT.md` 与本文件；保留 3 处 `catch` 块内注释（`SimulatorPage.vue` 与 `useFacilityCardSettings.ts` 的 localStorage 写入、`useScheduleDocuments.ts` 的 localStorage 持久化），因为 ESLint `no-empty` 要求 `catch` 块非空。
+
+## 2026-09-11：效率汇总显示格式调整
+
+- **显示格式**：设施队列卡片干员下方由 `+x / y%` 改为 `x% / y%`；非负效率不加正号，负效率由专用 `formatEfficiencyNumber` 显示 `-`，并将计算步骤中的「组合效率」同步显示为百分比。
+- **格式隔离**：没有修改全局 `signedNumber`，材料速率、技能明细、容量技能值和其他增量继续保留正号；仅组合效率使用新格式，避免影响既有计算语义。
+- **长数字处理**：汇总值以实际格式化文本估算字符宽度，结合当前队列槽位总宽动态设置 16px 至 8px 的字号；CSS 同时设置 `min-width: 0`、`max-width: 100%`、`overflow: hidden` 和 `white-space: nowrap`，避免效率行换行。
+- **未完成与风险**：仓库没有现成的效率显示自动化测试，本轮未新增测试文件；字号宽度使用数字/符号的估算值，极端超长数值触及 8px 下限时仍可能接近或触发裁切，后续若数值范围扩大再补充真实字体测量和自动化覆盖。
+- **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过；本地浏览器实测卡片显示 `36% / 136%`、明细显示 `36%`，实际计算样式为 16px 且不换行。构建仅保留既有的大 chunk 警告。

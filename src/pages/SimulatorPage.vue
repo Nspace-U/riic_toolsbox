@@ -1435,6 +1435,9 @@ const FACILITY_TITLE_TAG_PRESETS: [
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
+const EFFICIENCY_SUMMARY_MAX_FONT_SIZE = 16;
+const EFFICIENCY_SUMMARY_MIN_FONT_SIZE = 8;
+const EFFICIENCY_SUMMARY_TEXT_SAFETY_RATIO = 0.9;
 
 function slotRefCount(row: FacilityRow): number {
   return Math.max(1, slotRefs(row).length);
@@ -1741,6 +1744,38 @@ function planDurationHours(plan: Plan): string {
 
 function formatNumber(value: number, maximumFractionDigits = 2): string {
   return value.toLocaleString("zh-CN", { maximumFractionDigits });
+}
+
+function formatEfficiencyNumber(value: number): string {
+  return value < 0 ? `-${formatNumber(Math.abs(value))}` : formatNumber(value);
+}
+
+function efficiencySummaryText(row: FacilityRow, planIndex: number): string {
+  const result = planFacilityResult(row, planIndex);
+  if (!result) {
+    return "";
+  }
+  return `${formatEfficiencyNumber(result.combinationEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
+}
+
+function efficiencySummaryStyle(
+  row: FacilityRow,
+  planIndex: number,
+): Record<string, string> {
+  const text = efficiencySummaryText(row, planIndex);
+  if (!text) {
+    return {};
+  }
+  const availableWidth = slotRefCount(row) * simulatorSlotSize.value;
+  const fontSize = Math.min(
+    EFFICIENCY_SUMMARY_MAX_FONT_SIZE,
+    Math.max(
+      EFFICIENCY_SUMMARY_MIN_FONT_SIZE,
+      (availableWidth / estimateTextEm(text)) *
+        EFFICIENCY_SUMMARY_TEXT_SAFETY_RATIO,
+    ),
+  );
+  return { fontSize: `${fontSize}px` };
 }
 
 function signedNumber(value: number): string {
@@ -3038,20 +3073,10 @@ onBeforeUnmount(() => {
                       <div
                         class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
                       >
-                        <strong v-if="planFacilityResult(row, planIndex)"
-                          >{{
-                            signedNumber(
-                              planFacilityResult(row, planIndex)
-                                ?.combinationEfficiency ?? 0,
-                            )
-                          }}
-                          /
-                          {{
-                            formatNumber(
-                              planFacilityResult(row, planIndex)?.efficiency ??
-                                0,
-                            )
-                          }}%</strong
+                        <strong
+                          v-if="planFacilityResult(row, planIndex)"
+                          :style="efficiencySummaryStyle(row, planIndex)"
+                          >{{ efficiencySummaryText(row, planIndex) }}</strong
                         >
                       </div>
                     </div>
@@ -3286,9 +3311,13 @@ onBeforeUnmount(() => {
                         signedNumber(result.facility.skillEfficiency)
                       }}</strong>
                       <span>组合效率</span>
-                      <strong>{{
-                        signedNumber(result.facility.combinationEfficiency)
-                      }}</strong>
+                      <strong
+                        >{{
+                          formatEfficiencyNumber(
+                            result.facility.combinationEfficiency,
+                          )
+                        }}%</strong
+                      >
                     </div>
                     <div
                       v-if="result.facility.inherited"

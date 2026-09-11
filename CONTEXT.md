@@ -204,3 +204,12 @@
 - 修掉行高不一致的真实原因：左侧「队列信息」内卡片的内容天生比设施队列卡高 5.28px（把 `.simulator-queue-info` 内边距 10px → 8px、gap 6px → 5px 后落回共用的 `--simulator-queue-min-height` 内），此前它会把同排的设施卡一起撑高（控制中枢卡 193.61px 而其他排 188.33px）；实测队列信息卡与 7 张设施队列卡全部 126px，外层卡片全部 188.33px（改动前 197.33px）。
 - 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过；浏览器实测点击框内「空槽位」文字与被跳过空槽位的「跳过」标签都能进入原地编辑。
 - 按要求清理了本会话在代码里写的解释性注释（`AGENTS.md` 规定不在代码中写注释），说明性内容统一放在 `CONTEXT.md` 与 `docs/decision-log.md`；仅保留 3 处 `catch` 块内的注释（`SimulatorPage.vue`、`useFacilityCardSettings.ts`、`useScheduleDocuments.ts`），因为 ESLint 的 `no-empty` 不允许空 `catch` 块。
+
+## 本轮效率显示格式更新
+
+- 已完成：设施队列卡片干员下方的效率改为「组合效率% / 总效率%」；非负数不显示 `+`，负数显示 `-`，并通过 `formatEfficiencyNumber` 处理 `-0` 边界。
+- 已完成：计算步骤中的「组合效率」同步补上 `%` 并使用相同的无正号格式；其他材料、技能明细和容量增量仍保留原有的 `signedNumber` 展示规则。
+- 已完成：效率汇总文本设置 `white-space: nowrap`、可收缩宽度和溢出隐藏，并根据当前队列槽位总宽与格式化后的文本长度动态缩小字号，默认 16px，最小 8px。
+- 未完成：仓库没有现成的效率显示自动化测试，本轮未新增测试文件；已用本地浏览器检查实际卡片文本与计算步骤，并完成静态检查和生产构建。
+- 风险：极端超长的效率数值达到 8px 最小字号时仍可能因实际字体宽度与估算值存在差异而接近或触发裁切；正常效率范围已通过当前卡片布局验证。
+- 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 均通过；构建仅保留既有的大 chunk 警告。下一步如效率数值范围扩大，应补充长数字和负数的浏览器自动化覆盖。

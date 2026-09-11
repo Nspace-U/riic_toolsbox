@@ -1909,8 +1909,12 @@ a {
 }
 
 .simulator-efficiency-summary-line--total strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   color: #176b68;
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .simulator-efficiency-panel {
