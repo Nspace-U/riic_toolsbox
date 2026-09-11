@@ -383,10 +383,6 @@ function validateOperators(room: RoomAssignment, path: string): string[] {
     }
     return operator;
   });
-  const occupiedNames = names.filter((name) => name !== "");
-  if (new Set(occupiedNames).size !== occupiedNames.length) {
-    fail(`${path}.operators`, "同一房间中不能重复出现同名干员");
-  }
   return names;
 }
 
@@ -604,7 +600,6 @@ function validatePlan(
   }
 
   const rooms = plan.rooms;
-  const operatorsInPlan = new Map<string, string>();
   ROOM_KEYS.forEach((type) => {
     const rawRooms = rooms[type];
     if (rawRooms !== undefined && !Array.isArray(rawRooms)) {
@@ -627,16 +622,6 @@ function validatePlan(
           );
         }
       }
-      (validatedRoom.operators ?? []).filter(Boolean).forEach((operator) => {
-        const previousRoom = operatorsInPlan.get(operator);
-        if (previousRoom) {
-          fail(
-            `${path}.rooms.${type}[${roomIndex}].operators`,
-            `干员“${operator}”已在 ${previousRoom} 中配置，同一队列不能重复`,
-          );
-        }
-        operatorsInPlan.set(operator, roomPath);
-      });
     });
   });
   return plan as Plan;
@@ -647,6 +632,56 @@ export function validatePlans(plans: unknown, layout?: LayoutEntry[]): Plan[] {
     fail("plans", "必须是非空数组");
   }
   return plans.map((plan, index) => validatePlan(plan, index, layout));
+}
+
+export interface DuplicateOperatorWarning {
+  planIndex: number;
+  name: string;
+  locations: string[];
+}
+
+export function findDuplicateOperators(
+  document: ScheduleDocument,
+): DuplicateOperatorWarning[] {
+  return document.plans.flatMap((plan, planIndex) => {
+    const occurrences = new Map<string, string[]>();
+    ROOM_KEYS.forEach((type) => {
+      const rooms = plan.rooms[type];
+      if (!Array.isArray(rooms)) {
+        return;
+      }
+      rooms.forEach((room, roomIndex) => {
+        if (!isRecord(room) || !Array.isArray(room.operators)) {
+          return;
+        }
+        room.operators.forEach((name, slotIndex) => {
+          if (typeof name !== "string" || !name) {
+            return;
+          }
+          const locations = occurrences.get(name) ?? [];
+          locations.push(
+            `${ROOM_LABELS[type]} ${roomIndex + 1} 槽位${slotIndex + 1}`,
+          );
+          occurrences.set(name, locations);
+        });
+      });
+    });
+    return [...occurrences.entries()]
+      .filter(([, locations]) => locations.length > 1)
+      .map(([name, locations]) => ({ planIndex, name, locations }));
+  });
+}
+
+export function formatDuplicateOperatorWarnings(
+  document: ScheduleDocument,
+): string {
+  return findDuplicateOperators(document)
+    .map(({ planIndex, name, locations }) => {
+      const plan = document.plans[planIndex];
+      const planName = plan?.name?.trim() || `队列${planIndex + 1}`;
+      return `${planName}：${name}（${locations.join("、")}）`;
+    })
+    .join("；");
 }
 
 export function canAddLayoutEntry(

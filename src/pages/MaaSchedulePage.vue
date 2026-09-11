@@ -27,6 +27,7 @@ import {
   UNSUPPORTED_PRODUCT_LABELS,
   DEFAULT_SOURCE_MATERIAL,
   createDefaultRoomAssignment,
+  formatDuplicateOperatorWarnings,
   ROOM_LABELS,
   ROOM_ORDER,
   roomLevelRange,
@@ -47,6 +48,7 @@ const {
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
+const warningMessage = ref("");
 const showRawJson = ref(false);
 const rawJson = ref("");
 
@@ -84,11 +86,13 @@ const rawJsonDisplay = computed(() => {
 function clearMessages(): void {
   errorMessage.value = "";
   successMessage.value = "";
+  warningMessage.value = "";
 }
 
 function setError(error: unknown): void {
   errorMessage.value = error instanceof Error ? error.message : "操作失败";
   successMessage.value = "";
+  warningMessage.value = "";
 }
 
 function persistActive(): void {
@@ -198,6 +202,7 @@ function handleExport(): void {
   clearMessages();
   try {
     const json = serializeMaaSchedule(document);
+    const duplicateWarning = formatDuplicateOperatorWarnings(document);
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
@@ -207,6 +212,9 @@ function handleExport(): void {
     link.click();
     URL.revokeObjectURL(url);
     successMessage.value = "已导出严格 JSON 文件。";
+    if (duplicateWarning) {
+      warningMessage.value = `导出文件中存在重复干员配置：${duplicateWarning}`;
+    }
   } catch (error: unknown) {
     setError(error);
   }
@@ -629,6 +637,14 @@ watch(activeDocumentId, () => {
       closable
       type="success"
       @close="successMessage = ''"
+    />
+    <a-alert
+      v-if="warningMessage"
+      :message="warningMessage"
+      class="maa-alert"
+      closable
+      type="warning"
+      @close="warningMessage = ''"
     />
 
     <div class="maa-layout">

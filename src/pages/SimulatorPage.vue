@@ -68,6 +68,7 @@ import {
   cloneSchedule,
   facilityPower,
   facilityProductIconFile,
+  formatDuplicateOperatorWarnings,
   isFixedLevelRoom,
   orderedLayoutEntries,
   parseLayoutText,
@@ -349,6 +350,7 @@ function persistSimulatorEditSettings(
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
+const warningMessage = ref("");
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
   successMessage.value = layoutLevelFixNotice;
@@ -584,11 +586,13 @@ const extraRooms = computed(() => {
 function clearMessages(): void {
   errorMessage.value = "";
   successMessage.value = "";
+  warningMessage.value = "";
 }
 
 function setError(error: unknown): void {
   errorMessage.value = error instanceof Error ? error.message : "操作失败";
   successMessage.value = "";
+  warningMessage.value = "";
 }
 
 function updateSimulatorEditSetting(
@@ -1852,29 +1856,6 @@ function commitOperatorName(
         (_, index) => room.operators?.[index] ?? "",
       );
       names[slotIndex] = nextName;
-      if (nextName) {
-        const duplicate = Object.entries(candidatePlan.rooms).some(
-          ([roomType, roomList]) => {
-            if (!Array.isArray(roomList)) {
-              return false;
-            }
-            return roomList.some((candidateRoom, roomPosition) => {
-              const otherRoom = candidateRoom as RoomAssignment;
-              return (
-                (roomType !== type ||
-                  roomPosition !== position ||
-                  otherRoom.operators?.indexOf(nextName) !== slotIndex) &&
-                otherRoom.operators?.includes(nextName)
-              );
-            });
-          },
-        );
-        if (duplicate) {
-          throw new ScheduleError(
-            `干员“${nextName}”已在当前队列的其他设施中配置`,
-          );
-        }
-      }
       setRoomOperators(room, trimOperatorSlots(names));
       rooms[position] = room;
       candidatePlan.rooms[type] = rooms;
@@ -3243,6 +3224,7 @@ function handleExport(): void {
   clearMessages();
   try {
     const json = DEFAULT_SCHEDULE_ADAPTER.serialize(document);
+    const duplicateWarning = formatDuplicateOperatorWarnings(document);
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
@@ -3251,6 +3233,9 @@ function handleExport(): void {
     link.click();
     URL.revokeObjectURL(url);
     successMessage.value = "已导出严格 JSON 文件。";
+    if (duplicateWarning) {
+      warningMessage.value = `导出文件中存在重复干员配置：${duplicateWarning}`;
+    }
   } catch (error: unknown) {
     setError(error);
   }
@@ -3353,6 +3338,15 @@ onBeforeUnmount(() => {
       show-icon
       type="success"
       @close="successMessage = ''"
+    />
+    <a-alert
+      v-if="warningMessage"
+      :message="warningMessage"
+      class="simulator-alert"
+      closable
+      show-icon
+      type="warning"
+      @close="warningMessage = ''"
     />
 
     <div class="simulator-layout">
