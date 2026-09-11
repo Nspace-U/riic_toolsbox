@@ -1589,9 +1589,9 @@ a {
 }
 
 .simulator-queue-info {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-height: var(--simulator-queue-min-height, 135px);
-  align-content: start;
   padding: 8px;
   gap: 5px;
   background: #f8fbfa;
@@ -1601,51 +1601,16 @@ a {
 
 .simulator-queue-info-main {
   display: grid;
+  flex: 1;
+  align-content: center;
   align-items: center;
+  min-height: 0;
 }
 
-.simulator-queue-entry-title {
-  min-width: 0;
-  padding-inline: 4px;
-  color: #526164;
-  font-size: 12px;
-  font-weight: 650;
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-}
-
-.simulator-queue-entry-title:hover,
-.simulator-queue-entry-title:focus {
-  border-color: #8bb6ad;
-}
-
-.simulator-queue-duration {
-  width: 100%;
-  color: #526164;
-  font-size: 12px;
-}
-
+.simulator-queue-entry-title,
+.simulator-queue-duration,
 .simulator-queue-description {
   width: 100%;
-  color: #526164;
-  font-size: 12px;
-}
-
-.simulator-queue-entry-title .ant-input,
-.simulator-queue-description .ant-input,
-.simulator-queue-duration .ant-input-number-input {
-  color: #526164;
-  font-size: 12px;
-}
-
-.simulator-queue-entry-title .ant-input {
-  font-weight: 650;
-}
-
-.simulator-readonly-value {
-  display: inline-flex;
-  align-items: center;
   min-height: 24px;
   padding-inline: 7px;
   color: #526164;
@@ -1655,14 +1620,71 @@ a {
   font-size: 12px;
 }
 
-.simulator-queue-entry-title.simulator-readonly-value {
-  overflow: hidden;
+.simulator-queue-entry-title {
+  min-width: 0;
+  text-align: center;
   font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.simulator-queue-description.simulator-readonly-value {
+.simulator-queue-entry-title:hover,
+.simulator-queue-entry-title:focus {
+  border-color: #8bb6ad;
+}
+
+.simulator-queue-duration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.simulator-queue-description {
+  text-align: start;
+}
+
+.simulator-queue-entry-title .ant-input,
+.simulator-queue-description .ant-input,
+.simulator-queue-duration .ant-input-number-input {
+  color: #526164;
+  font-size: 12px;
+}
+
+.simulator-queue-entry-title .ant-input,
+.simulator-queue-duration .ant-input-number-input {
+  text-align: center;
+}
+
+.simulator-queue-duration .ant-input-number-input {
+  height: 22px;
+  padding-inline: 0;
+  color: #526164;
+  background: transparent;
+}
+
+.simulator-queue-duration .ant-input-number-group-addon {
+  color: #526164;
+  background: transparent;
+  border: 0;
+}
+
+.simulator-queue-entry-title:disabled,
+.simulator-queue-description:disabled,
+.simulator-queue-duration.ant-input-number-disabled {
+  color: #526164;
+  background: #f1f5f4;
+  border: 1px solid #e0e8e5;
+  cursor: default;
+}
+
+.simulator-queue-duration.ant-input-number-disabled .ant-input-number-input {
+  color: #526164;
+  background: transparent;
+  cursor: default;
+}
+
+.simulator-queue-entry-title:disabled,
+.simulator-queue-description:disabled {
+  opacity: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1673,6 +1695,7 @@ a {
   flex-wrap: wrap;
   gap: 6px;
   margin-block-start: auto;
+  min-height: 28px;
   padding-block-start: 4px;
 }
 
@@ -1807,16 +1830,19 @@ a {
   gap: 0;
 }
 
-.simulator-slot--selected {
-  outline: 2px solid #216a66;
-  outline-offset: -2px;
-  box-shadow: inset 0 0 0 2px #216a66;
+.simulator-slot--selected::before {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  content: "";
+  border: 2px solid #216a66;
 }
 
 .simulator-slot--hovered::before {
   position: absolute;
-  inset: 3px;
-  z-index: 3;
+  inset: 0;
+  z-index: 7;
   pointer-events: none;
   content: "";
   border: 2px solid #d28b2c;
@@ -1826,7 +1852,7 @@ a {
 .simulator-slot--clipboard::after {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 6;
   pointer-events: none;
   content: "";
   border: 2px dashed #216a66;
@@ -1859,30 +1885,15 @@ a {
 }
 
 .simulator-slot-name-input {
-  position: absolute;
-  inset-block-end: 0;
-  inset-inline: 0;
-  height: var(--simulator-slot-name-height, 24px);
-}
-
-.simulator-slot-name-input .ant-select-selector {
-  height: 100%;
-  padding-inline: 4px;
-  background: #ffffff;
-  border-radius: 0;
-}
-
-.simulator-slot-name-input .ant-select-selection-search {
-  inset-inline-start: 4px;
-  inset-inline-end: 4px;
-}
-
-.simulator-slot-name-input .ant-select-selection-search-input,
-.simulator-slot-name-input .ant-select-selection-item {
-  height: 100%;
-  font-size: var(--simulator-slot-name-font-size, 12px);
-  line-height: var(--simulator-slot-name-height, 24px);
-  text-align: center;
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .simulator-slot > .operator-avatar-display {

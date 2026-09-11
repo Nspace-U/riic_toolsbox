@@ -114,10 +114,6 @@ interface OperatorSlotAddress {
   key: string;
 }
 
-interface SlotNameInputInstance {
-  $el?: Element;
-}
-
 interface FacilityTitleTagPreset {
   fontSize: number;
   padding: number;
@@ -180,7 +176,7 @@ interface SimulatorEditSettings {
 
 interface UpdateCurrentOptions {
   markLayoutExplicit?: boolean;
-  recordOperatorHistory?: boolean;
+  recordHistory?: boolean;
 }
 
 interface OperatorRoomAddress {
@@ -195,18 +191,21 @@ interface OperatorClipboardEntry {
 }
 
 interface OperatorClipboard {
+  mode: "copy" | "cut";
   entries: OperatorClipboardEntry[];
   sourceAddresses: OperatorSlotAddress[];
 }
 
-interface OperatorHistoryEntry {
+interface ScheduleHistoryEntry {
   before: ScheduleDocument;
   after: ScheduleDocument;
+  beforeInferredLayout: boolean;
+  afterInferredLayout: boolean;
 }
 
-interface OperatorHistory {
-  undo: OperatorHistoryEntry[];
-  redo: OperatorHistoryEntry[];
+interface ScheduleHistory {
+  undo: ScheduleHistoryEntry[];
+  redo: ScheduleHistoryEntry[];
 }
 
 const SIMULATOR_EDIT_SETTINGS_STORAGE_KEY =
@@ -362,7 +361,7 @@ const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const editingOperatorSlot = ref<OperatorSlotAddress>();
-const slotNameInput = ref<SlotNameInputInstance | SlotNameInputInstance[]>();
+const slotNameInput = ref<HTMLInputElement | HTMLInputElement[]>();
 const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
 const layoutText = ref("");
@@ -373,14 +372,14 @@ const hoveredOperatorSlot = ref<OperatorSlotAddress>();
 const lastOperatorSlot = ref<OperatorSlotAddress>();
 const operatorClipboard = ref<OperatorClipboard>();
 const operatorPasteHighlightKeys = ref<Set<string>>(new Set());
-const operatorHistory = new Map<string, OperatorHistory>();
+const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
   "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
 
-const MAX_OPERATOR_HISTORY = 100;
+const MAX_SCHEDULE_HISTORY = 100;
 
 const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
 
@@ -424,25 +423,6 @@ const calculationSteps = computed(
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
 );
-
-const operatorOptions = computed(() =>
-  operators.value.map((operator) => ({
-    value: operator.name,
-    label: operator.name,
-  })),
-);
-
-function filterOperatorOption(
-  input: string,
-  option: { value?: string | number | null },
-): boolean {
-  const query = input.trim().toLowerCase();
-  if (!query) {
-    return true;
-  }
-  const value = typeof option.value === "string" ? option.value : "";
-  return value.toLowerCase().includes(query);
-}
 
 const layoutAddOptions = computed(() =>
   ROOM_ORDER.map((type) => {
@@ -637,13 +617,17 @@ function updateCurrent(
   if (JSON.stringify(document) === JSON.stringify(candidate)) {
     return true;
   }
-  if (options.recordOperatorHistory) {
-    const history = operatorHistoryFor(stored.id);
+  if (options.recordHistory !== false) {
+    const history = scheduleHistoryFor(stored.id);
     history.undo.push({
       before: cloneSchedule(document),
       after: cloneSchedule(candidate),
+      beforeInferredLayout: stored.inferredLayout,
+      afterInferredLayout: options.markLayoutExplicit
+        ? false
+        : stored.inferredLayout,
     });
-    if (history.undo.length > MAX_OPERATOR_HISTORY) {
+    if (history.undo.length > MAX_SCHEDULE_HISTORY) {
       history.undo.shift();
     }
     history.redo = [];
@@ -654,81 +638,18 @@ function updateCurrent(
       target.inferredLayout = false;
     }
   });
+  operatorClipboardIsUsable();
   return true;
 }
 
-function operatorHistoryFor(documentId: string): OperatorHistory {
-  const existing = operatorHistory.get(documentId);
+function scheduleHistoryFor(documentId: string): ScheduleHistory {
+  const existing = scheduleHistory.get(documentId);
   if (existing) {
     return existing;
   }
-  const created: OperatorHistory = { undo: [], redo: [] };
-  operatorHistory.set(documentId, created);
+  const created: ScheduleHistory = { undo: [], redo: [] };
+  scheduleHistory.set(documentId, created);
   return created;
-}
-
-function restoreOperatorFields(
-  target: ScheduleDocument,
-  snapshot: ScheduleDocument,
-  expected: ScheduleDocument,
-): void {
-  target.plans.forEach((targetPlan, planIndex) => {
-    const snapshotPlan = snapshot.plans[planIndex];
-    const expectedPlan = expected.plans[planIndex];
-    if (!snapshotPlan) {
-      return;
-    }
-    ROOM_ORDER.forEach((type) => {
-      const targetRooms = Array.isArray(targetPlan.rooms[type])
-        ? (targetPlan.rooms[type] as RoomAssignment[])
-        : undefined;
-      const snapshotRooms = Array.isArray(snapshotPlan.rooms[type])
-        ? (snapshotPlan.rooms[type] as RoomAssignment[])
-        : undefined;
-      const expectedRooms =
-        expectedPlan && Array.isArray(expectedPlan.rooms[type])
-          ? (expectedPlan.rooms[type] as RoomAssignment[])
-          : undefined;
-      if (!targetRooms || !snapshotRooms) {
-        return;
-      }
-      targetRooms.forEach((targetRoom, position) => {
-        const snapshotRoom = snapshotRooms[position];
-        if (!snapshotRoom) {
-          return;
-        }
-        if (snapshotRoom.operators) {
-          targetRoom.operators = [...snapshotRoom.operators];
-        } else {
-          delete targetRoom.operators;
-        }
-        if (snapshotRoom.operatorStates) {
-          targetRoom.operatorStates = Object.fromEntries(
-            Object.entries(snapshotRoom.operatorStates).map(([name, state]) => [
-              name,
-              cloneOperatorState(state),
-            ]),
-          );
-        } else {
-          delete targetRoom.operatorStates;
-        }
-        const expectedRoom = expectedRooms?.[position];
-        if (expectedRoom?.skip === targetRoom.skip) {
-          if (snapshotRoom.skip === undefined) {
-            delete targetRoom.skip;
-          } else {
-            targetRoom.skip = snapshotRoom.skip;
-          }
-        }
-        const layoutEntry = target.layout.filter(
-          (entry) => entry.type === type,
-        )[position];
-        if (layoutEntry) {
-          normalizeRoomCapacity(targetRoom, type, layoutEntry.level);
-        }
-      });
-    });
-  });
 }
 
 function updateMeta(key: "title" | "description", value: string): void {
@@ -1396,15 +1317,17 @@ function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
   return editingOperatorSlot.value?.key === slot.key;
 }
 
-function selectOperatorName(
+function handleOperatorNameInput(
+  event: Event,
   planIndex: number,
   type: RoomKey,
   position: number,
   slotIndex: number,
-  value: string,
 ): void {
-  handleOperatorDraft(planIndex, type, position, slotIndex, value);
-  commitOperatorName(planIndex, type, position, slotIndex);
+  const input = event.target;
+  if (input instanceof HTMLInputElement) {
+    handleOperatorDraft(planIndex, type, position, slotIndex, input.value);
+  }
 }
 
 function finishOperatorNameEdit(key: string): void {
@@ -1464,18 +1387,15 @@ async function focusSlotNameInput(selectText = true): Promise<void> {
   await nextTick();
   const target = slotNameInput.value;
   const instance = Array.isArray(target) ? target[0] : target;
-  const element = instance?.$el;
-  const input =
-    element instanceof Element ? element.querySelector("input") : null;
-  if (!input) {
+  if (!(instance instanceof HTMLInputElement)) {
     return;
   }
-  input.focus();
+  instance.focus();
   if (selectText) {
-    input.select();
+    instance.select();
   } else {
-    const cursor = input.value.length;
-    input.setSelectionRange(cursor, cursor);
+    const cursor = instance.value.length;
+    instance.setSelectionRange(cursor, cursor);
   }
 }
 
@@ -1582,7 +1502,7 @@ function updateOperatorState(
         delete room.operatorStates;
       }
     },
-    { recordOperatorHistory: recordHistory },
+    { recordHistory },
   );
 }
 
@@ -1869,7 +1789,7 @@ function commitOperatorName(
       rooms[position] = room;
       candidatePlan.rooms[type] = rooms;
     },
-    { recordOperatorHistory: true },
+    { recordHistory: true },
   );
   if (updated) {
     finishOperatorNameEdit(key);
@@ -2072,7 +1992,7 @@ function operatorNameInputFromTarget(
   if (!(target instanceof Element)) {
     return undefined;
   }
-  const input = target.closest(".simulator-slot-name-input input");
+  const input = target.closest("input.simulator-slot-name-input");
   return input instanceof HTMLInputElement ? input : undefined;
 }
 
@@ -2085,26 +2005,6 @@ function keyboardShortcutKey(event: KeyboardEvent): string {
     KeyY: "y",
   };
   return codeKeys[event.code] ?? event.key.toLowerCase();
-}
-
-function operatorInputHasSelection(input: HTMLInputElement): boolean {
-  return (
-    input.selectionStart !== null &&
-    input.selectionEnd !== null &&
-    input.selectionStart !== input.selectionEnd
-  );
-}
-
-function operatorNameDraftIsDirty(): boolean {
-  const address = editingOperatorSlot.value;
-  const document = currentDocument.value;
-  if (!address || !document) {
-    return false;
-  }
-  return (
-    (draftOperatorNames.value[address.key] ?? "").trim() !==
-    operatorNameAtAddress(document, address)
-  );
 }
 
 function currentOperatorTarget(): OperatorSlotAddress | undefined {
@@ -2135,6 +2035,7 @@ function clearOperatorClipboard(): void {
 }
 
 function setOperatorClipboard(
+  mode: "copy" | "cut",
   entries: OperatorClipboardEntry[],
   addresses: OperatorSlotAddress[],
 ): void {
@@ -2144,6 +2045,7 @@ function setOperatorClipboard(
     operatorPasteHighlightTimer = undefined;
   }
   operatorClipboard.value = {
+    mode,
     entries,
     sourceAddresses: addresses.map((address) => ({ ...address })),
   };
@@ -2236,7 +2138,7 @@ function copyOperators(): boolean {
     return false;
   }
   const operatorCount = entries.filter((entry) => entry.name).length;
-  setOperatorClipboard(entries, addresses);
+  setOperatorClipboard("copy", entries, addresses);
   clearOperatorSelection();
   showOperatorMessage(
     operatorCount > 0
@@ -2291,7 +2193,7 @@ function clearOperatorSlots(addresses: OperatorSlotAddress[]): boolean {
         }
       });
     },
-    { recordOperatorHistory: true },
+    { recordHistory: true },
   );
   if (!updated) {
     return false;
@@ -2342,7 +2244,7 @@ function cutOperators(): boolean {
   if (entries.length === 0) {
     return false;
   }
-  setOperatorClipboard(entries, addresses);
+  setOperatorClipboard("cut", entries, addresses);
   if (operatorCount > 0) {
     clearOperatorSlots(addresses);
   }
@@ -2410,7 +2312,7 @@ function pasteOperators(): boolean {
       });
       setRoomOperators(room, trimOperatorSlots(names), stateOverrides);
     },
-    { recordOperatorHistory: true },
+    { recordHistory: true },
   );
   if (!updated) {
     return false;
@@ -2428,9 +2330,12 @@ function pasteOperators(): boolean {
   );
   operatorSelectionAnchor.value = pastedAddresses[0] ?? target;
   lastOperatorSlot.value = pastedAddresses[0] ?? target;
-  showOperatorPasteHighlight(pastedAddresses);
   const operatorCount = entries.filter((entry) => entry.name).length;
   const truncated = entries.length < clipboard.entries.length;
+  if (clipboard.mode === "cut") {
+    clearOperatorClipboard();
+  }
+  showOperatorPasteHighlight(pastedAddresses);
   showOperatorMessage(
     truncated
       ? `已粘贴 ${operatorCount} 名干员，超出目标槽位的内容已截断`
@@ -2481,27 +2386,27 @@ function pruneOperatorSelection(): void {
   }
 }
 
-function restoreOperatorHistory(action: "undo" | "redo"): void {
+function restoreScheduleHistory(action: "undo" | "redo"): void {
   const documentId = activeDocumentId.value;
   const stored = activeDocument.value;
   if (!documentId || !stored) {
     return;
   }
-  const history = operatorHistoryFor(documentId);
+  const history = scheduleHistoryFor(documentId);
   const source = action === "undo" ? history.undo : history.redo;
   const destination = action === "undo" ? history.redo : history.undo;
   const entry = source.pop();
   if (!entry) {
     showOperatorMessage(
-      action === "undo" ? "没有可撤销的干员操作" : "没有可还原的干员操作",
+      action === "undo" ? "没有可撤销的排班表修改" : "没有可还原的排班表修改",
     );
     return;
   }
   const snapshot = action === "undo" ? entry.before : entry.after;
-  const expected = action === "undo" ? entry.after : entry.before;
-  const candidate = cloneSchedule(stored.document);
+  const inferredLayout =
+    action === "undo" ? entry.beforeInferredLayout : entry.afterInferredLayout;
+  const candidate = cloneSchedule(snapshot);
   try {
-    restoreOperatorFields(candidate, snapshot, expected);
     validateSchedule(candidate);
   } catch (error: unknown) {
     source.push(entry);
@@ -2509,7 +2414,7 @@ function restoreOperatorHistory(action: "undo" | "redo"): void {
     return;
   }
   destination.push(entry);
-  if (destination.length > MAX_OPERATOR_HISTORY) {
+  if (destination.length > MAX_SCHEDULE_HISTORY) {
     destination.shift();
   }
   if (editingOperatorSlot.value) {
@@ -2518,9 +2423,13 @@ function restoreOperatorHistory(action: "undo" | "redo"): void {
   draftOperatorNames.value = {};
   updateDocument(documentId, (target) => {
     target.document = candidate;
+    target.inferredLayout = inferredLayout;
   });
+  operatorClipboardIsUsable();
   pruneOperatorSelection();
-  showOperatorMessage(action === "undo" ? "已撤销干员操作" : "已还原干员操作");
+  showOperatorMessage(
+    action === "undo" ? "已撤销排班表修改" : "已还原排班表修改",
+  );
 }
 
 function selectOperatorAddress(address: OperatorSlotAddress): void {
@@ -2630,10 +2539,6 @@ function navigateOperatorSlot(
 function planDurationHoursValue(plan: Plan): number {
   const minutes = Number(plan.duration ?? 720);
   return Math.round((minutes / 60) * 100) / 100;
-}
-
-function planDurationHours(plan: Plan): string {
-  return `${planDurationHoursValue(plan).toLocaleString("zh-CN")} 小时`;
 }
 
 function formatNumber(value: number, maximumFractionDigits = 2): string {
@@ -3103,7 +3008,7 @@ function updateOperatorProgression(node: OperatorProgressionNode): void {
         delete room.operatorStates;
       }
     },
-    { recordOperatorHistory: true },
+    { recordHistory: true },
   );
   closeContextMenu();
 }
@@ -3134,7 +3039,7 @@ function resetOperatorProgression(): void {
         delete room.operatorStates;
       }
     },
-    { recordOperatorHistory: true },
+    { recordHistory: true },
   );
   closeContextMenu();
 }
@@ -3163,20 +3068,42 @@ function handleWindowResize() {
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
-  if (event.key === "Escape") {
-    if (editingOperatorSlot.value) {
+  const operatorInput = operatorNameInputFromTarget(event.target);
+  if (operatorInput) {
+    if (event.key === "Escape") {
       event.preventDefault();
       cancelOperatorNameEdit();
+      closeContextMenu();
+      return;
     }
+    if (
+      event.isComposing ||
+      event.key === "Process" ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      event.shiftKey
+    ) {
+      return;
+    }
+    if (event.key === "Enter" || event.key === "Tab") {
+      const navigation = event.key === "Enter" ? "enter" : "tab";
+      if (navigateOperatorSlot(navigation)) {
+        event.preventDefault();
+      }
+    }
+    return;
+  }
+
+  if (event.key === "Escape") {
     clearOperatorClipboard();
     closeContextMenu();
     return;
   }
 
   const target = event.target instanceof Element ? event.target : undefined;
-  const operatorInput = operatorNameInputFromTarget(event.target);
   const editableTarget = target?.closest("input, textarea, select");
-  if (editableTarget && !operatorInput) {
+  if (editableTarget) {
     return;
   }
 
@@ -3184,27 +3111,18 @@ function handleWindowKeydown(event: KeyboardEvent): void {
     (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
   if (primaryModifier) {
     const key = keyboardShortcutKey(event);
-    if (
-      operatorInput &&
-      ["c", "x", "v"].includes(key) &&
-      operatorInputHasSelection(operatorInput)
-    ) {
-      return;
-    }
-    if (
-      operatorInput &&
-      ["z", "y"].includes(key) &&
-      operatorNameDraftIsDirty()
-    ) {
-      return;
-    }
     if (!["c", "x", "v", "z", "y"].includes(key)) {
       return;
     }
-    if (!currentOperatorTarget()) {
+    if (key === "z" || key === "y") {
+      event.preventDefault();
+      restoreScheduleHistory(key === "z" ? "undo" : "redo");
       return;
     }
     if (key === "v" && !operatorClipboardIsUsable()) {
+      return;
+    }
+    if (!currentOperatorTarget()) {
       return;
     }
     event.preventDefault();
@@ -3215,7 +3133,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
     } else if (key === "v") {
       pasteOperators();
     } else {
-      restoreOperatorHistory(key === "z" ? "undo" : "redo");
+      restoreScheduleHistory(key === "z" ? "undo" : "redo");
     }
     return;
   }
@@ -3239,20 +3157,6 @@ function handleWindowKeydown(event: KeyboardEvent): void {
   if (navigation) {
     if (navigateOperatorSlot(navigation)) {
       event.preventDefault();
-    }
-    return;
-  }
-
-  if (operatorInput) {
-    if (event.key === "Delete") {
-      if (operatorNameDraftIsDirty()) {
-        return;
-      }
-      const targets = operatorDeletionTargets();
-      if (targets.length > 0) {
-        event.preventDefault();
-        deleteOperators();
-      }
     }
     return;
   }
@@ -3763,27 +3667,23 @@ onBeforeUnmount(() => {
                   class="simulator-queue-info"
                 >
                   <div class="simulator-queue-info-main">
-                    <template v-if="currentSimulatorEditSettings.queue">
-                      <a-input
-                        :value="plan.name ?? ''"
-                        class="simulator-queue-entry-title"
-                        placeholder="队列名称"
-                        size="small"
-                        @update:value="
-                          (value: string) =>
-                            updatePlanMeta(planIndex, 'name', value)
-                        "
-                      />
-                    </template>
-                    <template v-else>
-                      <span
-                        class="simulator-queue-entry-title simulator-readonly-value"
-                        >{{ plan.name?.trim() || "未命名队列" }}</span
-                      >
-                    </template>
-                  </div>
-                  <template v-if="currentSimulatorEditSettings.queue">
+                    <a-input
+                      :disabled="!currentSimulatorEditSettings.queue"
+                      :value="
+                        currentSimulatorEditSettings.queue
+                          ? (plan.name ?? '')
+                          : plan.name?.trim() || '未命名队列'
+                      "
+                      class="simulator-queue-entry-title"
+                      placeholder="队列名称"
+                      size="small"
+                      @update:value="
+                        (value: string) =>
+                          updatePlanMeta(planIndex, 'name', value)
+                      "
+                    />
                     <a-input-number
+                      :disabled="!currentSimulatorEditSettings.queue"
                       :max="24"
                       :min="1"
                       :value="planDurationHoursValue(plan)"
@@ -3795,46 +3695,38 @@ onBeforeUnmount(() => {
                           updatePlanDurationHours(planIndex, value)
                       "
                     />
-                  </template>
-                  <template v-else>
-                    <span
-                      class="simulator-queue-duration simulator-readonly-value"
-                      >{{ planDurationHours(plan) }}</span
-                    >
-                  </template>
-                  <a-input
-                    v-if="currentSimulatorEditSettings.queue"
-                    :value="plan.description ?? ''"
-                    class="simulator-queue-description"
-                    placeholder="队列描述（可选）"
-                    size="small"
-                    @update:value="
-                      (value: string) =>
-                        updatePlanMeta(planIndex, 'description', value)
-                    "
-                  />
-                  <span
-                    v-else
-                    class="simulator-queue-description simulator-readonly-value"
-                    >{{ plan.description?.trim() || "未填写描述" }}</span
-                  >
-                  <div
-                    v-if="currentSimulatorEditSettings.queue"
-                    class="simulator-queue-info-actions"
-                  >
-                    <a-button size="small" @click="duplicatePlan(planIndex)">
-                      <template #icon><CopyOutlined /></template>
-                      复制队列
-                    </a-button>
-                    <a-button
-                      :disabled="currentDocument.plans.length <= 1"
-                      danger
+                    <a-input
+                      :disabled="!currentSimulatorEditSettings.queue"
+                      :value="
+                        currentSimulatorEditSettings.queue
+                          ? (plan.description ?? '')
+                          : plan.description?.trim() || '未填写描述'
+                      "
+                      class="simulator-queue-description"
+                      placeholder="队列描述（可选）"
                       size="small"
-                      @click="removePlan(planIndex)"
-                    >
-                      <template #icon><DeleteOutlined /></template>
-                      删除
-                    </a-button>
+                      @update:value="
+                        (value: string) =>
+                          updatePlanMeta(planIndex, 'description', value)
+                      "
+                    />
+                  </div>
+                  <div class="simulator-queue-info-actions">
+                    <template v-if="currentSimulatorEditSettings.queue">
+                      <a-button size="small" @click="duplicatePlan(planIndex)">
+                        <template #icon><CopyOutlined /></template>
+                        复制队列
+                      </a-button>
+                      <a-button
+                        :disabled="currentDocument.plans.length <= 1"
+                        danger
+                        size="small"
+                        @click="removePlan(planIndex)"
+                      >
+                        <template #icon><DeleteOutlined /></template>
+                        删除
+                      </a-button>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -4122,7 +4014,7 @@ onBeforeUnmount(() => {
                             }}
                           </span>
                         </template>
-                        <a-auto-complete
+                        <input
                           v-if="
                             isEditingOperatorSlot(
                               operatorSlotAddress(
@@ -4134,11 +4026,11 @@ onBeforeUnmount(() => {
                             )
                           "
                           ref="slotNameInput"
-                          :filter-option="filterOperatorOption"
-                          :options="operatorOptions"
-                          :style="slotNameBandStyle"
+                          :aria-label="`${row.label}干员名称`"
                           :value="slotName(row, plan, planIndex, slot)"
+                          autocomplete="off"
                           class="simulator-slot-name-input"
+                          type="text"
                           @blur="
                             commitOperatorName(
                               planIndex,
@@ -4147,26 +4039,14 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             )
                           "
-                          @click.stop
-                          @select="
-                            (value: string) =>
-                              selectOperatorName(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                                value,
-                              )
-                          "
-                          @update:value="
-                            (value: string) =>
-                              handleOperatorDraft(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                                value,
-                              )
+                          @input="
+                            handleOperatorNameInput(
+                              $event,
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
                           "
                         />
                       </div>
