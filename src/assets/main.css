@@ -2288,10 +2288,6 @@ a {
   cursor: pointer;
 }
 
-.simulator-empty-slot-name--editing {
-  visibility: hidden;
-}
-
 .operator-avatar-display {
   display: inline-grid;
   justify-items: center;
@@ -2434,10 +2430,6 @@ a {
 .operator-avatar-display--plain .operator-avatar-display-name {
   display: block;
   text-align: center;
-}
-
-.operator-avatar-display-name--editing {
-  visibility: hidden;
 }
 
 .operator-avatar-name-measure {

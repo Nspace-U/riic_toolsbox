@@ -35,6 +35,7 @@ const props = withDefaults(
     proportionalLayout?: boolean;
     skipped?: boolean;
     nameEditing?: boolean;
+    displayName?: string;
   }>(),
   {
     showRarity: true,
@@ -49,6 +50,7 @@ const props = withDefaults(
     proportionalLayout: false,
     skipped: false,
     nameEditing: false,
+    displayName: undefined,
   },
 );
 
@@ -106,13 +108,14 @@ const nameMeasureRef = ref<HTMLSpanElement>();
 const badgeNaturalSizes = reactive<
   Partial<Record<AvatarBadgeKind, NaturalImageSize>>
 >({});
+const renderedName = computed(() => props.displayName ?? props.operator.name);
 
 function updateNameFontSize(): void {
   const measureElement = nameMeasureRef.value;
   if (
     !props.plain ||
     !props.showName ||
-    !props.operator.name ||
+    !renderedName.value ||
     !measureElement
   ) {
     nameFontSize.value = defaultNameFontSize();
@@ -121,7 +124,7 @@ function updateNameFontSize(): void {
 
   if (props.proportionalLayout) {
     nameFontSize.value = getOperatorAvatarProportionalNameMetrics(
-      props.operator.name,
+      renderedName.value,
       sourceWidth.value,
       props.size,
       (name, fontSize) => {
@@ -135,7 +138,7 @@ function updateNameFontSize(): void {
 
   const maxTextWidth = getOperatorAvatarNameMaxTextWidth(props.size);
   const fontSize = getOperatorAvatarNameFontSizeForWidth(
-    props.operator.name,
+    renderedName.value,
     props.size,
     maxTextWidth,
     (name, size) => {
@@ -245,6 +248,7 @@ const fallbackName = computed(() => props.operator.name.slice(0, 1) || "?");
 watch(
   [
     () => props.operator.name,
+    () => props.displayName,
     () => props.showName,
     () => props.size,
     () => props.plain,
@@ -331,14 +335,14 @@ onMounted(updateNameFontSize);
       :style="nameStyle"
       class="operator-avatar-display-name"
     >
-      {{ operator.name }}
+      {{ renderedName }}
     </span>
     <span
       v-if="plain"
       ref="nameMeasureRef"
       aria-hidden="true"
       class="operator-avatar-name-measure"
-      >{{ operator.name }}</span
+      >{{ renderedName }}</span
     >
   </div>
 </template>

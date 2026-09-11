@@ -1730,13 +1730,21 @@ function slotName(
   );
 }
 
+function slotCommittedName(
+  row: FacilityRow,
+  plan: Plan,
+  slot: FacilitySlotRef,
+): string {
+  return operatorNameAt(plan, row.type, slot.entry.position, slot.slotIndex);
+}
+
 function slotOperator(
   row: FacilityRow,
   plan: Plan,
   planIndex: number,
   slot: FacilitySlotRef,
 ): Operator | undefined {
-  return operatorByName(slotName(row, plan, planIndex, slot));
+  return operatorByName(slotCommittedName(row, plan, slot));
 }
 
 function roomSkipped(room: RoomAssignment | undefined): boolean {
@@ -3871,10 +3879,11 @@ onBeforeUnmount(() => {
                         <OperatorAvatarDisplay
                           v-if="slotOperator(row, plan, planIndex, slot)"
                           :data-source="selectedDataSource"
+                          :display-name="slotName(row, plan, planIndex, slot)"
                           :elite-level="
                             operatorElite(
                               slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
+                              slotCommittedName(row, plan, slot),
                               row.type,
                             )
                           "
@@ -3882,13 +3891,13 @@ onBeforeUnmount(() => {
                           :operator-owned="
                             operatorOwned(
                               slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
+                              slotCommittedName(row, plan, slot),
                             )
                           "
                           :operator-training-upgraded="
                             operatorTrainingUpgraded(
                               slotRoom(plan, slot),
-                              slotName(row, plan, planIndex, slot),
+                              slotCommittedName(row, plan, slot),
                               row.type,
                             )
                           "
