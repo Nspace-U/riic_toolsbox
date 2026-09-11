@@ -616,11 +616,19 @@ function updatePlanMeta(
   });
 }
 
-function updatePlanDuration(planIndex: number, value: number | null): void {
+function updatePlanDurationHours(
+  planIndex: number,
+  value: number | null,
+): void {
   updateCurrent((document) => {
     const plan = document.plans[planIndex];
     if (plan) {
-      plan.duration = value ?? undefined;
+      if (value === null || !Number.isFinite(value)) {
+        plan.duration = undefined;
+      } else {
+        const hours = Math.min(24, Math.max(1, Number(value.toFixed(2))));
+        plan.duration = Math.round(hours * 60);
+      }
     }
   });
 }
@@ -1737,9 +1745,13 @@ function commitOperatorName(
   return updated;
 }
 
-function planDurationHours(plan: Plan): string {
+function planDurationHoursValue(plan: Plan): number {
   const minutes = Number(plan.duration ?? 720);
-  return `${(minutes / 60).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} 小时`;
+  return Number((minutes / 60).toFixed(2));
+}
+
+function planDurationHours(plan: Plan): string {
+  return `${planDurationHoursValue(plan).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} 小时`;
 }
 
 function formatNumber(value: number, maximumFractionDigits = 2): string {
@@ -2751,33 +2763,36 @@ onBeforeUnmount(() => {
                             updatePlanMeta(planIndex, 'name', value)
                         "
                       />
-                      <a-input-number
-                        :max="1440"
-                        :min="60"
-                        :value="plan.duration ?? 720"
-                        addon-after="分钟"
-                        class="simulator-queue-duration"
-                        size="small"
-                        @update:value="
-                          (value: number | null) =>
-                            updatePlanDuration(planIndex, value)
-                        "
-                      />
                     </template>
                     <template v-else>
                       <span
                         class="simulator-queue-entry-title simulator-readonly-value"
                         >{{ plan.name?.trim() || "未命名队列" }}</span
                       >
-                      <span
-                        class="simulator-queue-duration simulator-readonly-value"
-                        >{{ plan.duration ?? 720 }} 分钟</span
-                      >
                     </template>
                   </div>
-                  <span class="simulator-queue-duration-summary">{{
-                    planDurationHours(plan)
-                  }}</span>
+                  <template v-if="currentSimulatorEditSettings.queue">
+                    <a-input-number
+                      :max="24"
+                      :min="1"
+                      :precision="2"
+                      :step="0.01"
+                      :value="planDurationHoursValue(plan)"
+                      addon-after="小时"
+                      class="simulator-queue-duration"
+                      size="small"
+                      @update:value="
+                        (value: number | null) =>
+                          updatePlanDurationHours(planIndex, value)
+                      "
+                    />
+                  </template>
+                  <template v-else>
+                    <span
+                      class="simulator-queue-duration simulator-readonly-value"
+                      >{{ planDurationHours(plan) }}</span
+                    >
+                  </template>
                   <a-input
                     v-if="currentSimulatorEditSettings.queue"
                     :value="plan.description ?? ''"

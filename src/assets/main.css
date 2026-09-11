@@ -1601,14 +1601,14 @@ a {
 
 .simulator-queue-info-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 104px;
   align-items: center;
-  gap: 6px;
 }
 
 .simulator-queue-entry-title {
   min-width: 0;
   padding-inline: 4px;
+  color: #526164;
+  font-size: 12px;
   font-weight: 650;
   background: transparent;
   border-color: transparent;
@@ -1621,16 +1621,26 @@ a {
 }
 
 .simulator-queue-duration {
-  width: 104px;
-}
-
-.simulator-queue-duration-summary {
-  color: #72807f;
-  font-size: 11px;
+  width: 100%;
+  color: #526164;
+  font-size: 12px;
 }
 
 .simulator-queue-description {
   width: 100%;
+  color: #526164;
+  font-size: 12px;
+}
+
+.simulator-queue-entry-title .ant-input,
+.simulator-queue-description .ant-input,
+.simulator-queue-duration .ant-input-number-input {
+  color: #526164;
+  font-size: 12px;
+}
+
+.simulator-queue-entry-title .ant-input {
+  font-weight: 650;
 }
 
 .simulator-readonly-value {
