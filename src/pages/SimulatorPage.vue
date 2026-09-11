@@ -626,7 +626,7 @@ function updatePlanDurationHours(
       if (value === null || !Number.isFinite(value)) {
         plan.duration = undefined;
       } else {
-        const hours = Math.min(24, Math.max(1, Number(value.toFixed(2))));
+        const hours = Math.min(24, Math.max(1, value));
         plan.duration = Math.round(hours * 60);
       }
     }
@@ -1747,11 +1747,11 @@ function commitOperatorName(
 
 function planDurationHoursValue(plan: Plan): number {
   const minutes = Number(plan.duration ?? 720);
-  return Number((minutes / 60).toFixed(2));
+  return minutes / 60;
 }
 
 function planDurationHours(plan: Plan): string {
-  return `${planDurationHoursValue(plan).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} 小时`;
+  return `${planDurationHoursValue(plan).toLocaleString("zh-CN")} 小时`;
 }
 
 function formatNumber(value: number, maximumFractionDigits = 2): string {
@@ -2775,8 +2775,6 @@ onBeforeUnmount(() => {
                     <a-input-number
                       :max="24"
                       :min="1"
-                      :precision="2"
-                      :step="0.01"
                       :value="planDurationHoursValue(plan)"
                       addon-after="小时"
                       class="simulator-queue-duration"
