@@ -8,6 +8,7 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 import {
   computed,
   nextTick,
@@ -627,7 +628,14 @@ function updatePlanDurationHours(
         plan.duration = undefined;
       } else {
         const hours = Math.min(24, Math.max(1, value));
-        plan.duration = Math.round(hours * 60);
+        const totalMinutes = hours * 60;
+        const roundedMinutes = Math.round(totalMinutes);
+        if (Math.abs(totalMinutes - roundedMinutes) > 1e-9) {
+          message.warning(
+            `输入的 ${hours} 小时无法精确换算为整分钟，将按 ${roundedMinutes} 分钟保存`,
+          );
+        }
+        plan.duration = roundedMinutes;
       }
     }
   });
@@ -1747,7 +1755,7 @@ function commitOperatorName(
 
 function planDurationHoursValue(plan: Plan): number {
   const minutes = Number(plan.duration ?? 720);
-  return minutes / 60;
+  return Math.round((minutes / 60) * 100) / 100;
 }
 
 function planDurationHours(plan: Plan): string {
