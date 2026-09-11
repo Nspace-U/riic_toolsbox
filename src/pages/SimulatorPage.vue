@@ -2139,7 +2139,6 @@ function copyOperators(): boolean {
   }
   const operatorCount = entries.filter((entry) => entry.name).length;
   setOperatorClipboard("copy", entries, addresses);
-  clearOperatorSelection();
   showOperatorMessage(
     operatorCount > 0
       ? `已复制 ${operatorCount} 名干员`
@@ -2248,7 +2247,6 @@ function cutOperators(): boolean {
   if (operatorCount > 0) {
     clearOperatorSlots(addresses);
   }
-  clearOperatorSelection();
   showOperatorMessage(
     operatorCount > 0
       ? `已剪切 ${operatorCount} 名干员`
