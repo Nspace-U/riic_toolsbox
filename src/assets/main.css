@@ -1627,6 +1627,11 @@ a {
   font-weight: 700;
 }
 
+.simulator-queue-duration {
+  font-size: 15px;
+  font-weight: 700;
+}
+
 .simulator-queue-entry-title:hover,
 .simulator-queue-entry-title:focus {
   border-color: #8bb6ad;
@@ -1644,8 +1649,13 @@ a {
 }
 
 .simulator-queue-entry-title .ant-input,
-.simulator-queue-description .ant-input,
 .simulator-queue-duration .ant-input-number-input {
+  color: #526164;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.simulator-queue-description .ant-input {
   color: #526164;
   font-size: 12px;
 }
@@ -1653,11 +1663,6 @@ a {
 .simulator-queue-entry-title .ant-input,
 .simulator-queue-duration .ant-input-number-input {
   text-align: center;
-}
-
-.simulator-queue-entry-title .ant-input {
-  font-size: 15px;
-  font-weight: 700;
 }
 
 .simulator-queue-duration .ant-input-number-input {
@@ -1671,6 +1676,8 @@ a {
   color: #526164;
   background: transparent;
   border: 0;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .simulator-queue-entry-title:disabled,

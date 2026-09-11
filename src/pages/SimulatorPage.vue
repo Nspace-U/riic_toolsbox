@@ -3720,8 +3720,11 @@ onBeforeUnmount(() => {
                       <div class="simulator-queue-duration">
                         {{ formatDurationHours(planDurationHoursValue(plan)) }}
                       </div>
-                      <div class="simulator-queue-description">
-                        {{ plan.description?.trim() || "未填写描述" }}
+                      <div
+                        v-if="plan.description?.trim()"
+                        class="simulator-queue-description"
+                      >
+                        {{ plan.description?.trim() }}
                       </div>
                     </template>
                   </div>
