@@ -122,7 +122,7 @@ function completeInferredRooms(plans: Plan[], layout: LayoutEntry[]): Plan[] {
           mergedRoom.operators.length > 1
         ) {
           const typedRoom = mergedRoom as RoomAssignment;
-          const operators = typedRoom.operators ?? [];
+          const operators = (typedRoom.operators ?? []).filter(Boolean);
           const operatorStates = typedRoom.operatorStates;
           const roomMeta = { ...typedRoom };
           delete roomMeta.operators;
@@ -207,6 +207,25 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
 export function serializeMaaSchedule(document: ScheduleDocument): string {
   validateSchedule(document);
   const normalized = cloneSchedule(document);
+  normalized.plans.forEach((plan) => {
+    ROOM_KEYS.forEach((type) => {
+      const rooms = plan.rooms[type];
+      if (!Array.isArray(rooms)) {
+        return;
+      }
+      rooms.forEach((room) => {
+        if (!isRecord(room) || !Array.isArray(room.operators)) {
+          return;
+        }
+        const operators = room.operators.filter(Boolean);
+        if (operators.length > 0) {
+          room.operators = operators;
+        } else {
+          delete room.operators;
+        }
+      });
+    });
+  });
   applyDocumentDefaults(normalized);
   validateSchedule(normalized);
   return JSON.stringify(normalized, null, 2);

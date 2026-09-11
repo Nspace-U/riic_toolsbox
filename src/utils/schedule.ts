@@ -378,12 +378,13 @@ function validateOperators(room: RoomAssignment, path: string): string[] {
   }
 
   const names = room.operators.map((operator, index) => {
-    if (typeof operator !== "string" || !operator.trim()) {
-      fail(`${path}.operators[${index}]`, "必须是非空字符串");
+    if (typeof operator !== "string" || (operator !== "" && !operator.trim())) {
+      fail(`${path}.operators[${index}]`, "必须是干员名称字符串");
     }
     return operator;
   });
-  if (new Set(names).size !== names.length) {
+  const occupiedNames = names.filter((name) => name !== "");
+  if (new Set(occupiedNames).size !== occupiedNames.length) {
     fail(`${path}.operators`, "同一房间中不能重复出现同名干员");
   }
   return names;
@@ -415,7 +416,7 @@ function validateOperatorStates(
   }
 
   Object.entries(room.operatorStates).forEach(([name, state]) => {
-    if (!names.includes(name)) {
+    if (!name.trim() || !names.includes(name)) {
       fail(
         `${path}.operatorStates.${name}`,
         "该干员不在同一房间的 operators 中",
@@ -626,7 +627,7 @@ function validatePlan(
           );
         }
       }
-      (validatedRoom.operators ?? []).forEach((operator) => {
+      (validatedRoom.operators ?? []).filter(Boolean).forEach((operator) => {
         const previousRoom = operatorsInPlan.get(operator);
         if (previousRoom) {
           fail(
@@ -778,7 +779,7 @@ export function resolveRoomAssignment(
       continue;
     }
     const source = roomAssignmentAt(sourcePlan, type, position);
-    if (source.skip || !source.operators?.length) {
+    if (source.skip || !source.operators?.some(Boolean)) {
       continue;
     }
     const operatorStates = inheritedOperatorStates(source.operatorStates);

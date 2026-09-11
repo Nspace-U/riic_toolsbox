@@ -254,3 +254,12 @@
 - 输入兼容：输入框存在文字选区时，`Ctrl/Cmd+C/X` 让位原生文本操作；输入框有未提交内容时，`Delete` 与 `Ctrl/Cmd+Z/Y` 让位原生编辑；键盘监听使用捕获阶段避免 AutoComplete 抢先处理 Enter/方向键，槽位 DOM 暴露稳定 `data-key` 供焦点跳转。
 - 未实现：`Ctrl/Cmd+A`、快捷键改绑、拖放，以及布局/队列/产物快捷操作不在本轮范围。
 - 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；浏览器实测导航、Enter 的空槽/满槽分支、方向键边界、Delete、Enter 候选拦截，以及撤销/还原不回退队列名称。仓库没有现成快捷键自动化测试，浏览器自动化对 C/X/V 会优先接管系统剪贴板，因此剪贴板分支同时依赖静态检查与代码路径审阅。
+
+## 本轮排班模拟器干员删除不补位
+
+- 已完成：中间槽位使用 `operators` 数组中的空字符串占位，删除、手动清空、剪切、多选删除和粘贴均按槽位下标处理，不会把后续干员自动前移；末尾连续空槽会裁剪。
+- 已完成：删除全部干员时移除 `operators` 与对应 `operatorStates`，但不自动写入或修改 `skip`；已有的 `skip` 值保持不变。
+- 已完成：排班校验允许空槽占位并仅对有效干员执行重复校验；效率计算、继承排班和异常摘要跳过空名；Maa JSON 序列化过滤空名，保持外部格式紧凑。
+- 未完成：仓库没有针对排班槽位删除、空槽校验或 Maa 序列化的自动化测试；本轮浏览器仅确认新构建页面加载，未在用户本地排班数据上执行实际删除操作。
+- 风险与下一步：新增直接读取 `operators` 的代码必须继续忽略空字符串；若后续需要自动化覆盖，应增加包含中间空槽、删光干员且 `skip` 未变化、导出过滤空槽的测试。
+- 验证：本轮 `npm run type-check`、`npm run build`、本次文件定向 ESLint、定向 Prettier 和 `git diff --check` 通过；全仓 `npm run lint` 与 `npm run format:check` 被既有未跟踪目录 `scripts/efficiency-compare/` 中的未使用变量、格式和非 UTF-8 JSON 阻塞。构建仅保留既有的大 chunk 警告。

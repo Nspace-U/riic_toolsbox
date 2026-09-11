@@ -1351,6 +1351,14 @@ function operatorNameAt(
   return roomAt(plan, type, position)?.operators?.[slotIndex] ?? "";
 }
 
+function trimOperatorSlots(names: string[]): string[] {
+  let end = names.length;
+  while (end > 0 && !names[end - 1]) {
+    end -= 1;
+  }
+  return names.slice(0, end);
+}
+
 function operatorDraftValue(
   plan: Plan,
   planIndex: number,
@@ -1844,7 +1852,6 @@ function commitOperatorName(
         (_, index) => room.operators?.[index] ?? "",
       );
       names[slotIndex] = nextName;
-      const compactNames = names.filter(Boolean);
       if (nextName) {
         const duplicate = Object.entries(candidatePlan.rooms).some(
           ([roomType, roomList]) => {
@@ -1868,24 +1875,7 @@ function commitOperatorName(
           );
         }
       }
-      const nextStates: Record<string, OperatorState> = {};
-      compactNames.forEach((name) => {
-        const state = room.operatorStates?.[name];
-        if (state) {
-          nextStates[name] = state;
-        }
-      });
-      room.operators = compactNames;
-      if (compactNames.length === 0) {
-        room.skip = true;
-      } else {
-        delete room.skip;
-      }
-      if (Object.keys(nextStates).length > 0) {
-        room.operatorStates = nextStates;
-      } else {
-        delete room.operatorStates;
-      }
+      setRoomOperators(room, trimOperatorSlots(names));
       rooms[position] = room;
       candidatePlan.rooms[type] = rooms;
     },
@@ -2217,8 +2207,12 @@ function clearOperatorSlots(addresses: OperatorSlotAddress[]): boolean {
         }
         const indexes = new Set(group.map((address) => address.slotIndex));
         const names = room.operators ?? [];
-        const nextNames = names.filter((_, index) => !indexes.has(index));
+        const nextNames = trimOperatorSlots(
+          names.map((name, index) => (indexes.has(index) ? "" : name)),
+        );
         if (nextNames.length !== names.length) {
+          setRoomOperators(room, nextNames);
+        } else if (nextNames.some((name, index) => name !== names[index])) {
           setRoomOperators(room, nextNames);
         }
       });
@@ -2240,19 +2234,24 @@ function setRoomOperators(
   names: string[],
   stateOverrides: Map<string, OperatorState> = new Map(),
 ): void {
+  const occupiedNames = names.filter(Boolean);
+  if (occupiedNames.length === 0) {
+    delete room.operators;
+    delete room.operatorStates;
+    return;
+  }
   const nextStates: Record<string, OperatorState> = {};
   names.forEach((name) => {
+    if (!name) {
+      return;
+    }
     const state = stateOverrides.get(name) ?? room.operatorStates?.[name];
     if (state) {
       nextStates[name] = cloneOperatorState(state);
     }
   });
   room.operators = names;
-  if (names.length === 0) {
-    room.skip = true;
-  } else {
-    delete room.skip;
-  }
+  delete room.skip;
   if (Object.keys(nextStates).length > 0) {
     room.operatorStates = nextStates;
   } else {
@@ -2332,7 +2331,7 @@ function pasteOperators(): boolean {
           stateOverrides.set(entry.name, entry.state);
         }
       });
-      setRoomOperators(room, names.filter(Boolean), stateOverrides);
+      setRoomOperators(room, trimOperatorSlots(names), stateOverrides);
     },
     { recordOperatorHistory: true },
   );
@@ -4474,8 +4473,10 @@ onBeforeUnmount(() => {
               >
                 {{ item.planName }} · {{ ROOM_LABELS[item.type] }}
                 {{ item.index + 1 }}
-                <template v-if="item.room.operators?.length"
-                  >：{{ item.room.operators.join("、") }}</template
+                <template v-if="item.room.operators?.some(Boolean)"
+                  >：{{
+                    item.room.operators.filter(Boolean).join("、")
+                  }}</template
                 >
               </span>
             </div>

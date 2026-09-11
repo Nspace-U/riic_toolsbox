@@ -249,10 +249,13 @@ function createContexts(
     const warnings: string[] = [];
     facilities.forEach((facility) => {
       const assignment = roomAssignments(document, index, facility);
-      if (!assignment.operators?.length) {
+      if (!assignment.operators?.some(Boolean)) {
         return;
       }
       (assignment.operators ?? []).forEach((name, operatorIndex) => {
+        if (!name) {
+          return;
+        }
         const profile = catalogOperator(catalog, name);
         if (!profile) {
           warnings.push(`队列 ${index + 1}：找不到干员“${name}”的技能数据`);
