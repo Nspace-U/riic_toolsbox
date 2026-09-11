@@ -1623,7 +1623,8 @@ a {
 .simulator-queue-entry-title {
   min-width: 0;
   text-align: center;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .simulator-queue-entry-title:hover,
@@ -1652,6 +1653,11 @@ a {
 .simulator-queue-entry-title .ant-input,
 .simulator-queue-duration .ant-input-number-input {
   text-align: center;
+}
+
+.simulator-queue-entry-title .ant-input {
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .simulator-queue-duration .ant-input-number-input {
@@ -1690,12 +1696,28 @@ a {
   white-space: nowrap;
 }
 
+.simulator-queue-info-readonly .simulator-queue-entry-title,
+.simulator-queue-info-readonly .simulator-queue-duration,
+.simulator-queue-info-readonly .simulator-queue-description {
+  min-height: 0;
+  padding-inline: 0;
+  background: transparent;
+  border: 0;
+}
+
+.simulator-queue-info-readonly .simulator-queue-entry-title,
+.simulator-queue-info-readonly .simulator-queue-duration {
+  color: #36484b;
+}
+
+.simulator-queue-info-readonly .simulator-queue-description {
+  color: #526164;
+}
+
 .simulator-queue-info-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-block-start: auto;
-  min-height: 28px;
   padding-block-start: 4px;
 }
 
@@ -1863,11 +1885,7 @@ a {
     repeating-linear-gradient(0deg, #216a66 0 8px, transparent 8px 16px) 0 0 /
       3px 100% no-repeat,
     repeating-linear-gradient(0deg, #216a66 0 8px, transparent 8px 16px) 100%
-      0 / 3px 100% no-repeat,
-    linear-gradient(#fff, #fff) 0 0 / 100% 3px no-repeat,
-    linear-gradient(#fff, #fff) 0 100% / 100% 3px no-repeat,
-    linear-gradient(#fff, #fff) 0 0 / 3px 100% no-repeat,
-    linear-gradient(#fff, #fff) 100% 0 / 3px 100% no-repeat;
+      0 / 3px 100% no-repeat;
   animation: simulator-clipboard-marquee 0.8s linear infinite;
 }
 

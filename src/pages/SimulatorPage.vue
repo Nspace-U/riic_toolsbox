@@ -3662,69 +3662,78 @@ onBeforeUnmount(() => {
                 <div
                   v-for="(plan, planIndex) in currentDocument.plans"
                   :key="`queue-${planIndex}`"
-                  class="simulator-queue-info"
+                  :class="[
+                    'simulator-queue-info',
+                    {
+                      'simulator-queue-info-readonly':
+                        !currentSimulatorEditSettings.queue,
+                    },
+                  ]"
                 >
                   <div class="simulator-queue-info-main">
-                    <a-input
-                      :disabled="!currentSimulatorEditSettings.queue"
-                      :value="
-                        currentSimulatorEditSettings.queue
-                          ? (plan.name ?? '')
-                          : plan.name?.trim() || '未命名队列'
-                      "
-                      class="simulator-queue-entry-title"
-                      placeholder="队列名称"
-                      size="small"
-                      @update:value="
-                        (value: string) =>
-                          updatePlanMeta(planIndex, 'name', value)
-                      "
-                    />
-                    <a-input-number
-                      :disabled="!currentSimulatorEditSettings.queue"
-                      :max="24"
-                      :min="1"
-                      :value="planDurationHoursValue(plan)"
-                      addon-after="小时"
-                      class="simulator-queue-duration"
-                      size="small"
-                      @update:value="
-                        (value: number | null) =>
-                          updatePlanDurationHours(planIndex, value)
-                      "
-                    />
-                    <a-input
-                      :disabled="!currentSimulatorEditSettings.queue"
-                      :value="
-                        currentSimulatorEditSettings.queue
-                          ? (plan.description ?? '')
-                          : plan.description?.trim() || '未填写描述'
-                      "
-                      class="simulator-queue-description"
-                      placeholder="队列描述（可选）"
-                      size="small"
-                      @update:value="
-                        (value: string) =>
-                          updatePlanMeta(planIndex, 'description', value)
-                      "
-                    />
-                  </div>
-                  <div class="simulator-queue-info-actions">
                     <template v-if="currentSimulatorEditSettings.queue">
-                      <a-button size="small" @click="duplicatePlan(planIndex)">
-                        <template #icon><CopyOutlined /></template>
-                        复制队列
-                      </a-button>
-                      <a-button
-                        :disabled="currentDocument.plans.length <= 1"
-                        danger
+                      <a-input
+                        :value="plan.name ?? ''"
+                        class="simulator-queue-entry-title"
+                        placeholder="队列名称"
                         size="small"
-                        @click="removePlan(planIndex)"
-                      >
-                        <template #icon><DeleteOutlined /></template>
-                        删除
-                      </a-button>
+                        @update:value="
+                          (value: string) =>
+                            updatePlanMeta(planIndex, 'name', value)
+                        "
+                      />
+                      <a-input-number
+                        :max="24"
+                        :min="1"
+                        :value="planDurationHoursValue(plan)"
+                        addon-after="小时"
+                        class="simulator-queue-duration"
+                        size="small"
+                        @update:value="
+                          (value: number | null) =>
+                            updatePlanDurationHours(planIndex, value)
+                        "
+                      />
+                      <a-input
+                        :value="plan.description ?? ''"
+                        class="simulator-queue-description"
+                        placeholder="队列描述（可选）"
+                        size="small"
+                        @update:value="
+                          (value: string) =>
+                            updatePlanMeta(planIndex, 'description', value)
+                        "
+                      />
                     </template>
+                    <template v-else>
+                      <div class="simulator-queue-entry-title">
+                        {{ plan.name?.trim() || "未命名队列" }}
+                      </div>
+                      <div class="simulator-queue-duration">
+                        {{ formatDurationHours(planDurationHoursValue(plan)) }}
+                      </div>
+                      <div class="simulator-queue-description">
+                        {{ plan.description?.trim() || "未填写描述" }}
+                      </div>
+                    </template>
+                  </div>
+                  <div
+                    v-if="currentSimulatorEditSettings.queue"
+                    class="simulator-queue-info-actions"
+                  >
+                    <a-button size="small" @click="duplicatePlan(planIndex)">
+                      <template #icon><CopyOutlined /></template>
+                      复制队列
+                    </a-button>
+                    <a-button
+                      :disabled="currentDocument.plans.length <= 1"
+                      danger
+                      size="small"
+                      @click="removePlan(planIndex)"
+                    >
+                      <template #icon><DeleteOutlined /></template>
+                      删除
+                    </a-button>
                   </div>
                 </div>
               </div>
