@@ -196,6 +196,7 @@ interface OperatorClipboardEntry {
 
 interface OperatorClipboard {
   entries: OperatorClipboardEntry[];
+  sourceAddresses: OperatorSlotAddress[];
 }
 
 interface OperatorHistoryEntry {
@@ -371,10 +372,12 @@ const operatorSelectionAnchor = ref<OperatorSlotAddress>();
 const hoveredOperatorSlot = ref<OperatorSlotAddress>();
 const lastOperatorSlot = ref<OperatorSlotAddress>();
 const operatorClipboard = ref<OperatorClipboard>();
+const operatorPasteHighlightKeys = ref<Set<string>>(new Set());
 const operatorHistory = new Map<string, OperatorHistory>();
 const layoutTextHint =
   "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
+let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
 
 const MAX_OPERATOR_HISTORY = 100;
@@ -1416,6 +1419,7 @@ function beginOperatorNameEdit(
   type: RoomKey,
   position: number,
   slotIndex: number,
+  initialValue?: string,
 ): boolean {
   const nextSlot = operatorSlotAddress(planIndex, type, position, slotIndex);
   lastOperatorSlot.value = nextSlot;
@@ -1441,22 +1445,22 @@ function beginOperatorNameEdit(
     }
   }
   editingOperatorSlot.value = nextSlot;
-  draftOperatorNames.value[nextSlot.key] = currentDocument.value?.plans[
-    planIndex
-  ]
-    ? operatorNameAt(
-        currentDocument.value.plans[planIndex],
-        type,
-        position,
-        slotIndex,
-      )
-    : "";
+  draftOperatorNames.value[nextSlot.key] =
+    initialValue ??
+    (currentDocument.value?.plans[planIndex]
+      ? operatorNameAt(
+          currentDocument.value.plans[planIndex],
+          type,
+          position,
+          slotIndex,
+        )
+      : "");
   contextMenu.value = undefined;
-  void focusSlotNameInput();
+  void focusSlotNameInput(initialValue === undefined);
   return true;
 }
 
-async function focusSlotNameInput(): Promise<void> {
+async function focusSlotNameInput(selectText = true): Promise<void> {
   await nextTick();
   const target = slotNameInput.value;
   const instance = Array.isArray(target) ? target[0] : target;
@@ -1467,7 +1471,12 @@ async function focusSlotNameInput(): Promise<void> {
     return;
   }
   input.focus();
-  input.select();
+  if (selectText) {
+    input.select();
+  } else {
+    const cursor = input.value.length;
+    input.setSelectionRange(cursor, cursor);
+  }
 }
 
 function cancelOperatorNameEdit(): void {
@@ -1965,6 +1974,28 @@ function isOperatorSlotSelected(key: string): boolean {
   return selectedOperatorSlots.value.has(key);
 }
 
+function isOperatorSlotHovered(key: string): boolean {
+  return hoveredOperatorSlot.value?.key === key;
+}
+
+function isOperatorClipboardSource(key: string): boolean {
+  const clipboard = operatorClipboard.value;
+  if (!clipboard || clipboard.sourceAddresses.length === 0) {
+    return false;
+  }
+  const validKeys = new Set(
+    orderedOperatorSlotAddresses().map((address) => address.key),
+  );
+  return (
+    clipboard.sourceAddresses.every((address) => validKeys.has(address.key)) &&
+    clipboard.sourceAddresses.some((address) => address.key === key)
+  );
+}
+
+function isOperatorPasteHighlighted(key: string): boolean {
+  return operatorPasteHighlightKeys.value.has(key);
+}
+
 function setHoveredOperatorSlot(
   planIndex: number,
   type: RoomKey,
@@ -1992,6 +2023,9 @@ function selectOperatorSlot(
   position: number,
   slotIndex: number,
 ): void {
+  if (!commitPendingOperatorNameEdit()) {
+    return;
+  }
   const address = operatorSlotAddress(planIndex, type, position, slotIndex);
   const nextSelection = new Set(selectedOperatorSlots.value);
   const anchor = operatorSelectionAnchor.value;
@@ -2030,7 +2064,6 @@ function selectOperatorSlot(
   selectedOperatorSlots.value = nextSelection;
   operatorSelectionAnchor.value = address;
   lastOperatorSlot.value = address;
-  void beginOperatorNameEdit(planIndex, type, position, slotIndex);
 }
 
 function operatorNameInputFromTarget(
@@ -2075,11 +2108,7 @@ function operatorNameDraftIsDirty(): boolean {
 }
 
 function currentOperatorTarget(): OperatorSlotAddress | undefined {
-  return (
-    hoveredOperatorSlot.value ??
-    lastOperatorSlot.value ??
-    selectedOperatorSlotAddresses()[0]
-  );
+  return selectedOperatorSlotAddresses()[0] ?? hoveredOperatorSlot.value;
 }
 
 function operatorShortcutSource(): OperatorSlotAddress[] {
@@ -2089,6 +2118,66 @@ function operatorShortcutSource(): OperatorSlotAddress[] {
   }
   const target = currentOperatorTarget();
   return target ? [target] : [];
+}
+
+function clearOperatorSelection(): void {
+  selectedOperatorSlots.value = new Set();
+  operatorSelectionAnchor.value = undefined;
+}
+
+function clearOperatorClipboard(): void {
+  operatorClipboard.value = undefined;
+  operatorPasteHighlightKeys.value = new Set();
+  if (operatorPasteHighlightTimer !== undefined) {
+    clearTimeout(operatorPasteHighlightTimer);
+    operatorPasteHighlightTimer = undefined;
+  }
+}
+
+function setOperatorClipboard(
+  entries: OperatorClipboardEntry[],
+  addresses: OperatorSlotAddress[],
+): void {
+  operatorPasteHighlightKeys.value = new Set();
+  if (operatorPasteHighlightTimer !== undefined) {
+    clearTimeout(operatorPasteHighlightTimer);
+    operatorPasteHighlightTimer = undefined;
+  }
+  operatorClipboard.value = {
+    entries,
+    sourceAddresses: addresses.map((address) => ({ ...address })),
+  };
+}
+
+function showOperatorPasteHighlight(addresses: OperatorSlotAddress[]): void {
+  operatorPasteHighlightKeys.value = new Set(
+    addresses.map((address) => address.key),
+  );
+  if (operatorPasteHighlightTimer !== undefined) {
+    clearTimeout(operatorPasteHighlightTimer);
+  }
+  operatorPasteHighlightTimer = setTimeout(() => {
+    operatorPasteHighlightKeys.value = new Set();
+    operatorPasteHighlightTimer = undefined;
+  }, 700);
+}
+
+function operatorClipboardIsUsable(): boolean {
+  const clipboard = operatorClipboard.value;
+  if (!clipboard || clipboard.entries.length === 0) {
+    return false;
+  }
+  const validKeys = new Set(
+    orderedOperatorSlotAddresses().map((address) => address.key),
+  );
+  if (
+    clipboard.sourceAddresses.length !== clipboard.entries.length ||
+    clipboard.sourceAddresses.some((address) => !validKeys.has(address.key))
+  ) {
+    clearOperatorClipboard();
+    return false;
+  }
+  return true;
 }
 
 function sameOperatorRoom(
@@ -2143,13 +2232,17 @@ function copyOperators(): boolean {
     return false;
   }
   const entries = operatorClipboardEntries(addresses);
-  const operatorCount = entries.filter((entry) => entry.name).length;
-  if (operatorCount === 0) {
-    showOperatorMessage("当前选中的槽位没有干员");
+  if (entries.length === 0) {
     return false;
   }
-  operatorClipboard.value = { entries };
-  showOperatorMessage(`已复制 ${operatorCount} 名干员`);
+  const operatorCount = entries.filter((entry) => entry.name).length;
+  setOperatorClipboard(entries, addresses);
+  clearOperatorSelection();
+  showOperatorMessage(
+    operatorCount > 0
+      ? `已复制 ${operatorCount} 名干员`
+      : `已复制 ${entries.length} 个空槽位`,
+  );
   return true;
 }
 
@@ -2203,10 +2296,6 @@ function clearOperatorSlots(addresses: OperatorSlotAddress[]): boolean {
   if (!updated) {
     return false;
   }
-  const first = effectiveAddresses[0];
-  if (first) {
-    focusOperatorSlot(first);
-  }
   return true;
 }
 
@@ -2250,21 +2339,28 @@ function cutOperators(): boolean {
   }
   const entries = operatorClipboardEntries(addresses);
   const operatorCount = entries.filter((entry) => entry.name).length;
-  if (operatorCount === 0) {
-    showOperatorMessage("当前选中的槽位没有干员");
+  if (entries.length === 0) {
     return false;
   }
-  operatorClipboard.value = { entries };
-  if (!clearOperatorSlots(addresses)) {
-    return false;
+  setOperatorClipboard(entries, addresses);
+  if (operatorCount > 0) {
+    clearOperatorSlots(addresses);
   }
-  showOperatorMessage(`已剪切 ${operatorCount} 名干员`);
+  clearOperatorSelection();
+  showOperatorMessage(
+    operatorCount > 0
+      ? `已剪切 ${operatorCount} 名干员`
+      : `已剪切 ${entries.length} 个空槽位`,
+  );
   return true;
 }
 
 function pasteOperators(): boolean {
+  if (!operatorClipboardIsUsable()) {
+    return false;
+  }
   const clipboard = operatorClipboard.value;
-  if (!clipboard || clipboard.entries.length === 0) {
+  if (!clipboard) {
     return false;
   }
   if (!commitPendingOperatorNameEdit()) {
@@ -2319,7 +2415,20 @@ function pasteOperators(): boolean {
   if (!updated) {
     return false;
   }
-  focusOperatorSlot(target);
+  const pastedAddresses = entries.map((_, index) =>
+    operatorSlotAddress(
+      target.planIndex,
+      target.type,
+      target.position,
+      target.slotIndex + index,
+    ),
+  );
+  selectedOperatorSlots.value = new Set(
+    pastedAddresses.map((address) => address.key),
+  );
+  operatorSelectionAnchor.value = pastedAddresses[0] ?? target;
+  lastOperatorSlot.value = pastedAddresses[0] ?? target;
+  showOperatorPasteHighlight(pastedAddresses);
   const operatorCount = entries.filter((entry) => entry.name).length;
   const truncated = entries.length < clipboard.entries.length;
   showOperatorMessage(
@@ -2335,21 +2444,12 @@ function operatorDeletionTargets(): OperatorSlotAddress[] {
   if (!document) {
     return [];
   }
-  const editingKey = editingOperatorSlot.value?.key;
-  const hovered = hoveredOperatorSlot.value;
-  if (
-    hovered &&
-    hovered.key !== editingKey &&
-    operatorNameAtAddress(document, hovered)
-  ) {
-    return [hovered];
-  }
   const selected = selectedOperatorSlotAddresses();
   if (selected.length > 0) {
     return selected;
   }
-  const target = currentOperatorTarget();
-  return target && operatorNameAtAddress(document, target) ? [target] : [];
+  const hovered = hoveredOperatorSlot.value;
+  return hovered && operatorNameAtAddress(document, hovered) ? [hovered] : [];
 }
 
 function deleteOperators(): boolean {
@@ -2423,25 +2523,26 @@ function restoreOperatorHistory(action: "undo" | "redo"): void {
   showOperatorMessage(action === "undo" ? "已撤销干员操作" : "已还原干员操作");
 }
 
-function focusOperatorSlot(address: OperatorSlotAddress): boolean {
+function selectOperatorAddress(address: OperatorSlotAddress): void {
   selectedOperatorSlots.value = new Set([address.key]);
   operatorSelectionAnchor.value = address;
   lastOperatorSlot.value = address;
-  return beginOperatorNameEdit(
-    address.planIndex,
-    address.type,
-    address.position,
-    address.slotIndex,
-  );
 }
 
 function navigateOperatorSlot(
   action: "tab" | "enter" | "left" | "right" | "up" | "down",
-): void {
-  const current = editingOperatorSlot.value ?? lastOperatorSlot.value;
+): boolean {
+  const current =
+    editingOperatorSlot.value ??
+    selectedOperatorSlotAddresses()[0] ??
+    hoveredOperatorSlot.value ??
+    lastOperatorSlot.value;
   const document = currentDocument.value;
   if (!current || !document) {
-    return;
+    return false;
+  }
+  if (editingOperatorSlot.value && !commitPendingOperatorNameEdit()) {
+    return false;
   }
   let target: OperatorSlotAddress | undefined;
   if (action === "enter") {
@@ -2455,7 +2556,7 @@ function navigateOperatorSlot(
       current.position,
     );
     if (capacity <= 0) {
-      return;
+      return false;
     }
     const nextRoom = operatorRoomAtDocument(
       document,
@@ -2481,7 +2582,7 @@ function navigateOperatorSlot(
       (address) => address.key === current.key,
     );
     if (currentIndex < 0 || slots.length === 0) {
-      return;
+      return false;
     }
     const direction = action === "left" ? -1 : 1;
     const targetIndex = currentIndex + direction;
@@ -2497,7 +2598,7 @@ function navigateOperatorSlot(
         room.type === current.type && room.position === current.position,
     );
     if (currentRoomIndex < 0 || document.plans.length === 0) {
-      return;
+      return false;
     }
     const direction = action === "up" ? -1 : 1;
     let nextRoomIndex = currentRoomIndex;
@@ -2505,13 +2606,13 @@ function navigateOperatorSlot(
     if (nextPlanIndex < 0 || nextPlanIndex >= document.plans.length) {
       nextRoomIndex += direction;
       if (nextRoomIndex < 0 || nextRoomIndex >= rooms.length) {
-        return;
+        return false;
       }
       nextPlanIndex = direction > 0 ? 0 : document.plans.length - 1;
     }
     const nextRoom = rooms[nextRoomIndex];
     if (!nextRoom) {
-      return;
+      return false;
     }
     target = operatorSlotAddress(
       nextPlanIndex,
@@ -2521,8 +2622,9 @@ function navigateOperatorSlot(
     );
   }
   if (target && target.key !== current.key) {
-    focusOperatorSlot(target);
+    selectOperatorAddress(target);
   }
+  return Boolean(target);
 }
 
 function planDurationHoursValue(plan: Plan): number {
@@ -3043,8 +3145,7 @@ function handleWindowClick(event: MouseEvent): void {
     return;
   }
   if (!(target instanceof Element) || !target.closest(".simulator-slot")) {
-    selectedOperatorSlots.value = new Set();
-    operatorSelectionAnchor.value = undefined;
+    clearOperatorSelection();
   }
   closeContextMenu();
 }
@@ -3067,6 +3168,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
       event.preventDefault();
       cancelOperatorNameEdit();
     }
+    clearOperatorClipboard();
     closeContextMenu();
     return;
   }
@@ -3096,46 +3198,52 @@ function handleWindowKeydown(event: KeyboardEvent): void {
     ) {
       return;
     }
-    if (key === "v" && !operatorClipboard.value) {
+    if (!["c", "x", "v", "z", "y"].includes(key)) {
       return;
     }
-    if (["c", "x", "v", "z", "y"].includes(key)) {
-      event.preventDefault();
-      if (key === "c") {
-        copyOperators();
-      } else if (key === "x") {
-        cutOperators();
-      } else if (key === "v") {
-        pasteOperators();
-      } else {
-        restoreOperatorHistory(key === "z" ? "undo" : "redo");
-      }
+    if (!currentOperatorTarget()) {
       return;
     }
+    if (key === "v" && !operatorClipboardIsUsable()) {
+      return;
+    }
+    event.preventDefault();
+    if (key === "c") {
+      copyOperators();
+    } else if (key === "x") {
+      cutOperators();
+    } else if (key === "v") {
+      pasteOperators();
+    } else {
+      restoreOperatorHistory(key === "z" ? "undo" : "redo");
+    }
+    return;
   }
 
   if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
     return;
   }
 
-  if (operatorInput) {
-    const navigationKeys: Record<
-      string,
-      "tab" | "enter" | "left" | "right" | "up" | "down"
-    > = {
-      Tab: "tab",
-      Enter: "enter",
-      ArrowLeft: "left",
-      ArrowRight: "right",
-      ArrowUp: "up",
-      ArrowDown: "down",
-    };
-    const navigation = navigationKeys[event.key];
-    if (navigation) {
+  const navigationKeys: Record<
+    string,
+    "tab" | "enter" | "left" | "right" | "up" | "down"
+  > = {
+    Tab: "tab",
+    Enter: "enter",
+    ArrowLeft: "left",
+    ArrowRight: "right",
+    ArrowUp: "up",
+    ArrowDown: "down",
+  };
+  const navigation = navigationKeys[event.key];
+  if (navigation) {
+    if (navigateOperatorSlot(navigation)) {
       event.preventDefault();
-      navigateOperatorSlot(navigation);
-      return;
     }
+    return;
+  }
+
+  if (operatorInput) {
     if (event.key === "Delete") {
       if (operatorNameDraftIsDirty()) {
         return;
@@ -3147,6 +3255,24 @@ function handleWindowKeydown(event: KeyboardEvent): void {
       }
     }
     return;
+  }
+
+  if (!event.isComposing && event.key.length === 1) {
+    const selected = selectedOperatorSlotAddresses();
+    if (selected.length === 1) {
+      const target = selected[0];
+      if (target) {
+        event.preventDefault();
+        beginOperatorNameEdit(
+          target.planIndex,
+          target.type,
+          target.position,
+          target.slotIndex,
+          event.key,
+        );
+      }
+      return;
+    }
   }
 
   if (event.key === "Delete" && operatorDeletionTargets().length > 0) {
@@ -3248,10 +3374,10 @@ function isStoredDocument(document: StoredDocument): boolean {
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
   editingOperatorSlot.value = undefined;
-  selectedOperatorSlots.value = new Set();
-  operatorSelectionAnchor.value = undefined;
+  clearOperatorSelection();
   hoveredOperatorSlot.value = undefined;
   lastOperatorSlot.value = undefined;
+  clearOperatorClipboard();
   contextMenu.value = undefined;
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
@@ -3298,6 +3424,9 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", handleWindowResize);
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
+  }
+  if (operatorPasteHighlightTimer !== undefined) {
+    clearTimeout(operatorPasteHighlightTimer);
   }
 });
 </script>
@@ -3794,6 +3923,32 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             ).key,
                           ),
+                          'simulator-slot--hovered': isOperatorSlotHovered(
+                            operatorSlotAddress(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            ).key,
+                          ),
+                          'simulator-slot--clipboard':
+                            isOperatorClipboardSource(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ).key,
+                            ),
+                          'simulator-slot--paste-highlight':
+                            isOperatorPasteHighlighted(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ).key,
+                            ),
                         }"
                         @mouseenter="
                           setHoveredOperatorSlot(
@@ -3874,6 +4029,14 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             )
                           "
+                          @dblclick.stop="
+                            beginOperatorNameEdit(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
                         />
                         <template v-else>
                           <div
@@ -3882,6 +4045,14 @@ onBeforeUnmount(() => {
                             @click.stop="
                               selectOperatorSlot(
                                 $event,
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              )
+                            "
+                            @dblclick.stop="
+                              beginOperatorNameEdit(
                                 planIndex,
                                 row.type,
                                 slot.entry.position,
@@ -3923,6 +4094,14 @@ onBeforeUnmount(() => {
                             @click.stop="
                               selectOperatorSlot(
                                 $event,
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              )
+                            "
+                            @dblclick.stop="
+                              beginOperatorNameEdit(
                                 planIndex,
                                 row.type,
                                 slot.entry.position,
