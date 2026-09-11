@@ -1792,8 +1792,8 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: var(--simulator-slot-size, 72px);
-  min-width: var(--simulator-slot-size, 72px);
+  width: var(--simulator-slot-size, 90px);
+  min-width: var(--simulator-slot-size, 90px);
   gap: 0;
 }
 

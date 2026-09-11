@@ -121,13 +121,13 @@
 
 ## 本轮头像显示尺寸可配置
 
-- 新增共享设置 `src/composables/useAvatarDisplaySizes.ts`：以 `riic-tools:avatar-display-sizes:v1` 持久化三个显示宽度，默认 56（设置页练度卡片）、72（排班模拟器设施槽位）、112（基建技能一览与技能生成器卡片）；读取时逐字段做类型与区间校验，非法值回退默认，写入失败时保留内存值。
+- 新增共享设置 `src/composables/useAvatarDisplaySizes.ts`：以 `riic-tools:avatar-display-sizes:v1` 持久化三个显示宽度，默认 56（设置页练度卡片）、90（排班模拟器设施槽位）、112（基建技能一览与技能生成器卡片）；读取时逐字段做类型与区间校验，非法值回退默认，写入失败时保留内存值。
 - 通用设置页新增「头像显示尺寸」卡片（位于「设施背景颜色」与「本地数据」之间）：三个 `a-input-number`（`addon-after="px"`，`:min`/`:max` 取自选项表）与「恢复默认尺寸」按钮，清空输入回落到该处默认值，说明文字标注每处默认值与可设置区间。
 - 可设置区间：练度卡片 40–96、模拟器槽位 48–120、技能卡 72–144，超出即钳制，避免撑坏固定容器。
-- 容器同步：`OperatorAvatarDisplay` 的 `:size` 与容器尺寸都由该设置驱动；`main.css` 中 `.operator-card .ant-card-body` 首个网格轨道、`.operator-avatar-placeholder`、窄屏覆盖、`.simulator-slot` 与 `.simulator-slot-input` 改用 `var(--operator-card-avatar-size, 112px)` 与 `var(--simulator-slot-size, 72px)`，变量由 `OperatorSkillCard.vue` 与 `SimulatorPage.vue` 的 `.simulator-slot-grid` 内联提供，沿用既有 `--simulator-column-width` 模式。
+- 容器同步：`OperatorAvatarDisplay` 的 `:size` 与容器尺寸都由该设置驱动；`main.css` 中 `.operator-card .ant-card-body` 首个网格轨道、`.operator-avatar-placeholder`、窄屏覆盖、`.simulator-slot` 与 `.simulator-slot-input` 改用 `var(--operator-card-avatar-size, 112px)` 与 `var(--simulator-slot-size, 90px)`，变量由 `OperatorSkillCard.vue` 与 `SimulatorPage.vue` 的 `.simulator-slot-grid` 内联提供，沿用既有 `--simulator-column-width` 模式。
 - 关键修复：模拟器设施卡片宽度原先由 TS 常量 `SIMULATOR_SLOT_WIDTH = 72` 计算并写入 `--simulator-column-width`，而设施卡片带 `overflow: hidden`；只改 CSS 槽位宽度会让末尾槽位被裁切。现 `facilityCardWidth` 直接读取当前设置的槽位宽度，该常量已删除。
 - 行为变化：技能卡窄屏（≤600px）原先把头像图片强制为 144px，与 112px 画框叠加造成横向拉伸；现改为跟随配置值，拉伸消失，窄屏默认回到 112px。
-- 保存与清除：该设置随「清除本地数据」一并清除（该按钮调用 `localStorage.clear()`），清除后恢复 56/72/112。
+- 保存与清除：该设置随「清除本地数据」一并清除（该按钮调用 `localStorage.clear()`），清除后恢复 56/90/112。
 - 未做：不提供「三处共用一个宽度」模式；不改头像生成器的导出宽度（仍由该页「输出宽度」单独控制）；不加数值以外的预设档位。
 - 风险：模拟器槽位宽度直接影响设施卡片宽度与横向滚动范围，超过 120 会明显挤压同排设施；技能卡宽度超过 144 会挤压干员名与技能列。基建技能一览与技能生成器共用同一组件，因此技能生成器导出的卡片布局也会随该设置变化。
 - 已验证 `npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 通过（构建仅保留既有大 chunk 警告）；浏览器界面未在本轮实测。
@@ -213,3 +213,11 @@
 - 未完成：仓库没有现成的效率显示自动化测试，本轮未新增测试文件；已用本地浏览器检查实际卡片文本与计算步骤，并完成静态检查和生产构建。
 - 风险：极端超长的效率数值达到 8px 最小字号时仍可能因实际字体宽度与估算值存在差异而接近或触发裁切；正常效率范围已通过当前卡片布局验证。
 - 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 均通过；构建仅保留既有的大 chunk 警告。下一步如效率数值范围扩大，应补充长数字和负数的浏览器自动化覆盖。
+
+## 本轮排班模拟器设施槽位默认尺寸
+
+- 已完成：排班模拟器设施槽位的默认显示宽度由 72px 调整为 90px，允许范围保持 48–120px。
+- 已完成：首次读取、恢复默认尺寸和清除本地数据后均使用 90px；已保存的用户自定义槽位尺寸不主动覆盖。
+- 未完成：未新增自动化测试。
+- 风险与下一步：90px 会按现有逻辑同步增加设施卡片宽度、槽位高度和横向滚动范围，无额外已知风险。
+- 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 均通过；构建仅保留既有的大 chunk 警告。

@@ -309,3 +309,10 @@
 - **长数字处理**：汇总值以实际格式化文本估算字符宽度，结合当前队列槽位总宽动态设置 16px 至 8px 的字号；CSS 同时设置 `min-width: 0`、`max-width: 100%`、`overflow: hidden` 和 `white-space: nowrap`，避免效率行换行。
 - **未完成与风险**：仓库没有现成的效率显示自动化测试，本轮未新增测试文件；字号宽度使用数字/符号的估算值，极端超长数值触及 8px 下限时仍可能接近或触发裁切，后续若数值范围扩大再补充真实字体测量和自动化覆盖。
 - **验证**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过；本地浏览器实测卡片显示 `36% / 136%`、明细显示 `36%`，实际计算样式为 16px 且不换行。构建仅保留既有的大 chunk 警告。
+
+## 2026-09-11：调整排班模拟器设施槽位默认尺寸
+
+- **决定**：排班模拟器设施槽位默认显示宽度由 72px 改为 90px，允许范围保持 48–120px。
+- **持久化边界**：90px 仅作为首次读取、恢复默认尺寸和清除本地数据后的默认值；已有 `riic-tools:avatar-display-sizes:v1` 中的用户自定义尺寸不主动迁移。
+- **影响**：现有响应式槽位、设施卡片宽度、名称栏高度和横向滚动范围继续读取同一共享设置，使用 90px 自动联动。
+- **验证状态**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 均通过；构建仅保留既有的大 chunk 警告。

@@ -30,7 +30,7 @@ export const AVATAR_DISPLAY_SIZE_OPTIONS: Record<
   },
   simulatorSlot: {
     label: "排班模拟器设施槽位",
-    defaultSize: 72,
+    defaultSize: 90,
     minSize: 48,
     maxSize: 120,
   },
