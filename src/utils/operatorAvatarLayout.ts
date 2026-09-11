@@ -4,7 +4,6 @@ export const OPERATOR_AVATAR_LAYOUT = {
   rarityHeightRatio: 0.18,
   nameHeightRatio: 0.14,
   nameMinHeight: 36,
-  nameHorizontalPadding: 24,
   nameFitCharacterCount: 6,
   nameOutputMinHeight: 24,
 } as const;
@@ -28,6 +27,12 @@ export function getOperatorAvatarNameFontSize(imageWidth: number): number {
     1,
     Math.round(imageWidth / OPERATOR_AVATAR_LAYOUT.nameFitCharacterCount),
   );
+}
+
+export function getOperatorAvatarNameHorizontalPadding(
+  imageWidth: number,
+): number {
+  return getOperatorAvatarNameFontSize(imageWidth);
 }
 
 export function getOperatorAvatarSkippedLabelFontSize(
@@ -73,14 +78,10 @@ export function getScaledOperatorAvatarLength(
   return Math.max(1, Math.round(sourceLength * scale));
 }
 
-export function getOperatorAvatarNameMaxTextWidth(
-  sourceWidth: number,
-  outputWidth: number,
-): number {
-  const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
+export function getOperatorAvatarNameMaxTextWidth(outputWidth: number): number {
   return Math.max(
     1,
-    outputWidth - OPERATOR_AVATAR_LAYOUT.nameHorizontalPadding * scale,
+    outputWidth - getOperatorAvatarNameHorizontalPadding(outputWidth),
   );
 }
 
@@ -111,7 +112,7 @@ export function getOperatorAvatarProportionalNameMetrics(
     fontSize: getOperatorAvatarNameFontSizeForWidth(
       name,
       outputWidth,
-      getOperatorAvatarNameMaxTextWidth(sourceWidth, outputWidth),
+      getOperatorAvatarNameMaxTextWidth(outputWidth),
       measureText,
     ),
   };

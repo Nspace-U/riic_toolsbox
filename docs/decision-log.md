@@ -405,3 +405,11 @@
 - **名称编辑**：移除可见 `a-auto-complete`，保留不可见原生输入载体以支持文本编辑和中文 composition。编辑期间文本操作优先；Enter/Tab 提交后分别执行现有导航规则，输入法候选存在时不触发槽位导航。
 - **图层**：选中框使用高于头像内容的伪元素；剪贴板来源框和悬停框继续叠加在其上，悬停框覆盖整个槽位。
 - **验证与限制**：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build`、`git diff --check` 通过；浏览器实测布局撤销、名称撤销/重做、名称编辑 Delete 优先级、隐藏输入载体和框体图层。浏览器自动化的 Ctrl/Cmd+C/V 被系统剪贴板通道接管，复制粘贴分支未据此宣称页面自动化通过。
+
+## 2026-09-11：头像生成器名称留白随 `nameFitCharacterCount` 联动
+
+- **决定**：`nameFitCharacterCount = N` 表示默认字号按 N 个字符计算，但名称最大可用宽度只按 N - 1 个基准字符计算，剩余一个字符宽度作为总水平留白，并继续左右对称显示。
+- **实现**：新增 `getOperatorAvatarNameHorizontalPadding`，返回当前输出宽度下的名称字号基准；`getOperatorAvatarNameMaxTextWidth`、`OperatorAvatarDisplay` 和 Canvas 头像生成器均直接按输出宽度联动，不再使用固定 `nameHorizontalPadding: 24` 或源宽度缩放后的取整值。
+- **文字处理**：最大宽度只作为测量上限，名称不按字符数截断；中文、英文、数字和混合名称继续由 Canvas/DOM 的实际宽度决定是否缩小。
+- **验证**：全仓 Lint、Prettier、类型检查、生产构建和 `git diff --check` 通过；浏览器实测当前 `nameFitCharacterCount = 6` 时 180px 输出的五字名称保持 30px、六字名称缩小至 25px，120px 输出的名称栏为 20px 字号并左右各保留 10px，整合图片加载为 180 × 216。
+- **未完成与风险**：仓库没有现成头像布局自动化测试，本轮未新增测试；改动 `nameFitCharacterCount` 后仍应抽查中英文混排名称和常用输出宽度。
