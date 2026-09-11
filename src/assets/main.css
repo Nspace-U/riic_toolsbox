@@ -1856,13 +1856,13 @@ a {
   pointer-events: none;
   content: "";
   background:
-    repeating-linear-gradient(90deg, #1f1f1f 0 8px, transparent 8px 16px) 0 0 /
+    repeating-linear-gradient(90deg, #216a66 0 8px, transparent 8px 16px) 0 0 /
       100% 3px no-repeat,
-    repeating-linear-gradient(90deg, #1f1f1f 0 8px, transparent 8px 16px) 0
+    repeating-linear-gradient(90deg, #216a66 0 8px, transparent 8px 16px) 0
       100% / 100% 3px no-repeat,
-    repeating-linear-gradient(0deg, #1f1f1f 0 8px, transparent 8px 16px) 0 0 /
+    repeating-linear-gradient(0deg, #216a66 0 8px, transparent 8px 16px) 0 0 /
       3px 100% no-repeat,
-    repeating-linear-gradient(0deg, #1f1f1f 0 8px, transparent 8px 16px) 100%
+    repeating-linear-gradient(0deg, #216a66 0 8px, transparent 8px 16px) 100%
       0 / 3px 100% no-repeat,
     linear-gradient(#fff, #fff) 0 0 / 100% 3px no-repeat,
     linear-gradient(#fff, #fff) 0 100% / 100% 3px no-repeat,
