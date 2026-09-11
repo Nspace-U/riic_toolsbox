@@ -177,6 +177,36 @@ interface SimulatorEditSettings {
   product: boolean;
 }
 
+interface UpdateCurrentOptions {
+  markLayoutExplicit?: boolean;
+  recordOperatorHistory?: boolean;
+}
+
+interface OperatorRoomAddress {
+  type: RoomKey;
+  position: number;
+  slotCount: number;
+}
+
+interface OperatorClipboardEntry {
+  name: string;
+  state?: OperatorState;
+}
+
+interface OperatorClipboard {
+  entries: OperatorClipboardEntry[];
+}
+
+interface OperatorHistoryEntry {
+  before: ScheduleDocument;
+  after: ScheduleDocument;
+}
+
+interface OperatorHistory {
+  undo: OperatorHistoryEntry[];
+  redo: OperatorHistoryEntry[];
+}
+
 const SIMULATOR_EDIT_SETTINGS_STORAGE_KEY =
   "riic-tools:simulator-edit-settings:v1";
 const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
@@ -334,10 +364,18 @@ const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
+const selectedOperatorSlots = ref<Set<string>>(new Set());
+const operatorSelectionAnchor = ref<OperatorSlotAddress>();
+const hoveredOperatorSlot = ref<OperatorSlotAddress>();
+const lastOperatorSlot = ref<OperatorSlotAddress>();
+const operatorClipboard = ref<OperatorClipboard>();
+const operatorHistory = new Map<string, OperatorHistory>();
 const layoutTextHint =
   "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
+
+const MAX_OPERATOR_HISTORY = 100;
 
 const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
 
@@ -573,7 +611,7 @@ function updateSimulatorEditSetting(
 
 function updateCurrent(
   mutator: (document: ScheduleDocument) => void,
-  options: { markLayoutExplicit?: boolean } = {},
+  options: UpdateCurrentOptions = {},
 ): boolean {
   const document = currentDocument.value;
   const stored = activeDocument.value;
@@ -589,6 +627,20 @@ function updateCurrent(
     setError(error);
     return false;
   }
+  if (JSON.stringify(document) === JSON.stringify(candidate)) {
+    return true;
+  }
+  if (options.recordOperatorHistory) {
+    const history = operatorHistoryFor(stored.id);
+    history.undo.push({
+      before: cloneSchedule(document),
+      after: cloneSchedule(candidate),
+    });
+    if (history.undo.length > MAX_OPERATOR_HISTORY) {
+      history.undo.shift();
+    }
+    history.redo = [];
+  }
   updateDocument(stored.id, (target) => {
     target.document = candidate;
     if (options.markLayoutExplicit) {
@@ -596,6 +648,80 @@ function updateCurrent(
     }
   });
   return true;
+}
+
+function operatorHistoryFor(documentId: string): OperatorHistory {
+  const existing = operatorHistory.get(documentId);
+  if (existing) {
+    return existing;
+  }
+  const created: OperatorHistory = { undo: [], redo: [] };
+  operatorHistory.set(documentId, created);
+  return created;
+}
+
+function restoreOperatorFields(
+  target: ScheduleDocument,
+  snapshot: ScheduleDocument,
+  expected: ScheduleDocument,
+): void {
+  target.plans.forEach((targetPlan, planIndex) => {
+    const snapshotPlan = snapshot.plans[planIndex];
+    const expectedPlan = expected.plans[planIndex];
+    if (!snapshotPlan) {
+      return;
+    }
+    ROOM_ORDER.forEach((type) => {
+      const targetRooms = Array.isArray(targetPlan.rooms[type])
+        ? (targetPlan.rooms[type] as RoomAssignment[])
+        : undefined;
+      const snapshotRooms = Array.isArray(snapshotPlan.rooms[type])
+        ? (snapshotPlan.rooms[type] as RoomAssignment[])
+        : undefined;
+      const expectedRooms =
+        expectedPlan && Array.isArray(expectedPlan.rooms[type])
+          ? (expectedPlan.rooms[type] as RoomAssignment[])
+          : undefined;
+      if (!targetRooms || !snapshotRooms) {
+        return;
+      }
+      targetRooms.forEach((targetRoom, position) => {
+        const snapshotRoom = snapshotRooms[position];
+        if (!snapshotRoom) {
+          return;
+        }
+        if (snapshotRoom.operators) {
+          targetRoom.operators = [...snapshotRoom.operators];
+        } else {
+          delete targetRoom.operators;
+        }
+        if (snapshotRoom.operatorStates) {
+          targetRoom.operatorStates = Object.fromEntries(
+            Object.entries(snapshotRoom.operatorStates).map(([name, state]) => [
+              name,
+              cloneOperatorState(state),
+            ]),
+          );
+        } else {
+          delete targetRoom.operatorStates;
+        }
+        const expectedRoom = expectedRooms?.[position];
+        if (expectedRoom?.skip === targetRoom.skip) {
+          if (snapshotRoom.skip === undefined) {
+            delete targetRoom.skip;
+          } else {
+            targetRoom.skip = snapshotRoom.skip;
+          }
+        }
+        const layoutEntry = target.layout.filter(
+          (entry) => entry.type === type,
+        )[position];
+        if (layoutEntry) {
+          normalizeRoomCapacity(targetRoom, type, layoutEntry.level);
+        }
+      });
+    });
+  });
 }
 
 function updateMeta(key: "title" | "description", value: string): void {
@@ -1050,6 +1176,7 @@ function updatePlanRoom(
   type: RoomKey,
   position: number,
   update: (room: RoomAssignment) => void,
+  options: UpdateCurrentOptions = {},
 ): void {
   updateCurrent((document) => {
     const plan = document.plans[planIndex];
@@ -1071,7 +1198,7 @@ function updatePlanRoom(
     }
     update(room);
     plan.rooms[type] = rooms;
-  });
+  }, options);
 }
 
 function roomEntries(
@@ -1277,8 +1404,14 @@ function beginOperatorNameEdit(
   type: RoomKey,
   position: number,
   slotIndex: number,
-): void {
+): boolean {
   const nextSlot = operatorSlotAddress(planIndex, type, position, slotIndex);
+  lastOperatorSlot.value = nextSlot;
+  if (editingOperatorSlot.value?.key === nextSlot.key) {
+    contextMenu.value = undefined;
+    void focusSlotNameInput();
+    return true;
+  }
   if (
     editingOperatorSlot.value &&
     editingOperatorSlot.value.key !== nextSlot.key
@@ -1292,7 +1425,7 @@ function beginOperatorNameEdit(
         previous.slotIndex,
       )
     ) {
-      return;
+      return false;
     }
   }
   editingOperatorSlot.value = nextSlot;
@@ -1308,6 +1441,7 @@ function beginOperatorNameEdit(
     : "";
   contextMenu.value = undefined;
   void focusSlotNameInput();
+  return true;
 }
 
 async function focusSlotNameInput(): Promise<void> {
@@ -1396,6 +1530,7 @@ function updateOperatorState(
   slotIndex: number,
   key: "mood" | "elite" | "level",
   value: number | null,
+  recordHistory = true,
 ): void {
   const plan = currentDocument.value?.plans[planIndex];
   const name = plan ? operatorNameAt(plan, type, position, slotIndex) : "";
@@ -1403,25 +1538,31 @@ function updateOperatorState(
     return;
   }
 
-  updatePlanRoom(planIndex, type, position, (room) => {
-    const states = room.operatorStates ?? {};
-    const state = states[name] ?? {};
-    if (value === null) {
-      delete state[key];
-    } else {
-      state[key] = value;
-    }
-    if (Object.keys(state).length > 0) {
-      states[name] = state;
-    } else {
-      delete states[name];
-    }
-    if (Object.keys(states).length > 0) {
-      room.operatorStates = states;
-    } else {
-      delete room.operatorStates;
-    }
-  });
+  updatePlanRoom(
+    planIndex,
+    type,
+    position,
+    (room) => {
+      const states = room.operatorStates ?? {};
+      const state = states[name] ?? {};
+      if (value === null) {
+        delete state[key];
+      } else {
+        state[key] = value;
+      }
+      if (Object.keys(state).length > 0) {
+        states[name] = state;
+      } else {
+        delete states[name];
+      }
+      if (Object.keys(states).length > 0) {
+        room.operatorStates = states;
+      } else {
+        delete room.operatorStates;
+      }
+    },
+    { recordOperatorHistory: recordHistory },
+  );
 }
 
 function slotRefs(row: FacilityRow): FacilitySlotRef[] {
@@ -1684,73 +1825,724 @@ function commitOperatorName(
     return true;
   }
 
-  const updated = updateCurrent((candidate) => {
-    const candidatePlan = candidate.plans[planIndex];
-    if (!candidatePlan) {
-      return;
-    }
-    const rooms = Array.isArray(candidatePlan.rooms[type])
-      ? [...(candidatePlan.rooms[type] as RoomAssignment[])]
-      : [];
-    const room = rooms[position] ?? {};
-    const capacity = candidate.layout.filter((entry) => entry.type === type)[
-      position
-    ];
-    const slotLimit = capacity ? roomSlotCount(type, capacity.level) : 0;
-    const names = Array.from(
-      { length: slotLimit },
-      (_, index) => room.operators?.[index] ?? "",
-    );
-    names[slotIndex] = nextName;
-    const compactNames = names.filter(Boolean);
-    if (nextName) {
-      const duplicate = Object.entries(candidatePlan.rooms).some(
-        ([roomType, roomList]) => {
-          if (!Array.isArray(roomList)) {
-            return false;
-          }
-          return roomList.some((candidateRoom, roomPosition) => {
-            const otherRoom = candidateRoom as RoomAssignment;
-            return (
-              (roomType !== type ||
-                roomPosition !== position ||
-                otherRoom.operators?.indexOf(nextName) !== slotIndex) &&
-              otherRoom.operators?.includes(nextName)
-            );
-          });
-        },
+  const updated = updateCurrent(
+    (candidate) => {
+      const candidatePlan = candidate.plans[planIndex];
+      if (!candidatePlan) {
+        return;
+      }
+      const rooms = Array.isArray(candidatePlan.rooms[type])
+        ? [...(candidatePlan.rooms[type] as RoomAssignment[])]
+        : [];
+      const room = rooms[position] ?? {};
+      const capacity = candidate.layout.filter((entry) => entry.type === type)[
+        position
+      ];
+      const slotLimit = capacity ? roomSlotCount(type, capacity.level) : 0;
+      const names = Array.from(
+        { length: slotLimit },
+        (_, index) => room.operators?.[index] ?? "",
       );
-      if (duplicate) {
-        throw new ScheduleError(
-          `干员“${nextName}”已在当前队列的其他设施中配置`,
+      names[slotIndex] = nextName;
+      const compactNames = names.filter(Boolean);
+      if (nextName) {
+        const duplicate = Object.entries(candidatePlan.rooms).some(
+          ([roomType, roomList]) => {
+            if (!Array.isArray(roomList)) {
+              return false;
+            }
+            return roomList.some((candidateRoom, roomPosition) => {
+              const otherRoom = candidateRoom as RoomAssignment;
+              return (
+                (roomType !== type ||
+                  roomPosition !== position ||
+                  otherRoom.operators?.indexOf(nextName) !== slotIndex) &&
+                otherRoom.operators?.includes(nextName)
+              );
+            });
+          },
         );
+        if (duplicate) {
+          throw new ScheduleError(
+            `干员“${nextName}”已在当前队列的其他设施中配置`,
+          );
+        }
       }
-    }
-    const nextStates: Record<string, OperatorState> = {};
-    compactNames.forEach((name) => {
-      const state = room.operatorStates?.[name];
-      if (state) {
-        nextStates[name] = state;
+      const nextStates: Record<string, OperatorState> = {};
+      compactNames.forEach((name) => {
+        const state = room.operatorStates?.[name];
+        if (state) {
+          nextStates[name] = state;
+        }
+      });
+      room.operators = compactNames;
+      if (compactNames.length === 0) {
+        room.skip = true;
+      } else {
+        delete room.skip;
       }
-    });
-    room.operators = compactNames;
-    if (compactNames.length === 0) {
-      room.skip = true;
-    } else {
-      delete room.skip;
-    }
-    if (Object.keys(nextStates).length > 0) {
-      room.operatorStates = nextStates;
-    } else {
-      delete room.operatorStates;
-    }
-    rooms[position] = room;
-    candidatePlan.rooms[type] = rooms;
-  });
+      if (Object.keys(nextStates).length > 0) {
+        room.operatorStates = nextStates;
+      } else {
+        delete room.operatorStates;
+      }
+      rooms[position] = room;
+      candidatePlan.rooms[type] = rooms;
+    },
+    { recordOperatorHistory: true },
+  );
   if (updated) {
     finishOperatorNameEdit(key);
   }
   return updated;
+}
+
+function showOperatorMessage(message: string): void {
+  errorMessage.value = "";
+  successMessage.value = message;
+}
+
+function cloneOperatorState(state: OperatorState): OperatorState {
+  return JSON.parse(JSON.stringify(state)) as OperatorState;
+}
+
+function operatorRoomAtDocument(
+  document: ScheduleDocument,
+  address: OperatorSlotAddress,
+  ensure: boolean,
+): RoomAssignment | undefined {
+  const plan = document.plans[address.planIndex];
+  if (!plan) {
+    return undefined;
+  }
+  const currentRooms = plan.rooms[address.type];
+  const rooms = Array.isArray(currentRooms)
+    ? [...(currentRooms as RoomAssignment[])]
+    : [];
+  if (!ensure && !Array.isArray(currentRooms)) {
+    return undefined;
+  }
+  if (ensure) {
+    const expected = document.layout.filter(
+      (entry) => entry.type === address.type,
+    ).length;
+    while (rooms.length < expected) {
+      rooms.push(createDefaultRoomAssignment(address.type));
+    }
+    plan.rooms[address.type] = rooms;
+  }
+  return rooms[address.position];
+}
+
+function operatorRoomCapacity(
+  document: ScheduleDocument,
+  type: RoomKey,
+  position: number,
+): number {
+  const entry = document.layout.filter((item) => item.type === type)[position];
+  return entry ? roomSlotCount(type, entry.level) : 0;
+}
+
+function operatorRoomAddresses(): OperatorRoomAddress[] {
+  return facilityRows.value.flatMap((row) =>
+    row.entries.map((entry) => ({
+      type: row.type,
+      position: entry.position,
+      slotCount: roomSlotCount(row.type, entry.entry.level),
+    })),
+  );
+}
+
+function operatorSlotAddressesForPlan(
+  planIndex: number,
+): OperatorSlotAddress[] {
+  return operatorRoomAddresses().flatMap((room) =>
+    Array.from({ length: room.slotCount }, (_, slotIndex) =>
+      operatorSlotAddress(planIndex, room.type, room.position, slotIndex),
+    ),
+  );
+}
+
+function orderedOperatorSlotAddresses(): OperatorSlotAddress[] {
+  const document = currentDocument.value;
+  if (!document) {
+    return [];
+  }
+  return document.plans.flatMap((_, planIndex) =>
+    operatorSlotAddressesForPlan(planIndex),
+  );
+}
+
+function operatorNameAtAddress(
+  document: ScheduleDocument,
+  address: OperatorSlotAddress,
+): string {
+  const plan = document.plans[address.planIndex];
+  return plan
+    ? operatorNameAt(plan, address.type, address.position, address.slotIndex)
+    : "";
+}
+
+function selectedOperatorSlotAddresses(): OperatorSlotAddress[] {
+  const selected = selectedOperatorSlots.value;
+  return orderedOperatorSlotAddresses().filter((address) =>
+    selected.has(address.key),
+  );
+}
+
+function isOperatorSlotSelected(key: string): boolean {
+  return selectedOperatorSlots.value.has(key);
+}
+
+function setHoveredOperatorSlot(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): void {
+  hoveredOperatorSlot.value = operatorSlotAddress(
+    planIndex,
+    type,
+    position,
+    slotIndex,
+  );
+}
+
+function clearHoveredOperatorSlot(key: string): void {
+  if (hoveredOperatorSlot.value?.key === key) {
+    hoveredOperatorSlot.value = undefined;
+  }
+}
+
+function selectOperatorSlot(
+  event: MouseEvent,
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): void {
+  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
+  const nextSelection = new Set(selectedOperatorSlots.value);
+  const anchor = operatorSelectionAnchor.value;
+  if (
+    event.shiftKey &&
+    anchor &&
+    anchor.planIndex === planIndex &&
+    anchor.type === type &&
+    anchor.position === position
+  ) {
+    const roomSlots = operatorSlotAddressesForPlan(planIndex).filter(
+      (item) => item.type === type && item.position === position,
+    );
+    const anchorIndex = roomSlots.findIndex((item) => item.key === anchor.key);
+    const targetIndex = roomSlots.findIndex((item) => item.key === address.key);
+    if (anchorIndex >= 0 && targetIndex >= 0) {
+      const start = Math.min(anchorIndex, targetIndex);
+      const end = Math.max(anchorIndex, targetIndex);
+      for (let index = start; index <= end; index += 1) {
+        const item = roomSlots[index];
+        if (item) {
+          nextSelection.add(item.key);
+        }
+      }
+    }
+  } else if (event.ctrlKey || event.metaKey) {
+    if (nextSelection.has(address.key)) {
+      nextSelection.delete(address.key);
+    } else {
+      nextSelection.add(address.key);
+    }
+  } else {
+    nextSelection.clear();
+    nextSelection.add(address.key);
+  }
+  selectedOperatorSlots.value = nextSelection;
+  operatorSelectionAnchor.value = address;
+  lastOperatorSlot.value = address;
+  void beginOperatorNameEdit(planIndex, type, position, slotIndex);
+}
+
+function operatorNameInputFromTarget(
+  target: EventTarget | null,
+): HTMLInputElement | undefined {
+  if (!(target instanceof Element)) {
+    return undefined;
+  }
+  const input = target.closest(".simulator-slot-name-input input");
+  return input instanceof HTMLInputElement ? input : undefined;
+}
+
+function keyboardShortcutKey(event: KeyboardEvent): string {
+  const codeKeys: Record<string, string> = {
+    KeyC: "c",
+    KeyX: "x",
+    KeyV: "v",
+    KeyZ: "z",
+    KeyY: "y",
+  };
+  return codeKeys[event.code] ?? event.key.toLowerCase();
+}
+
+function operatorInputHasSelection(input: HTMLInputElement): boolean {
+  return (
+    input.selectionStart !== null &&
+    input.selectionEnd !== null &&
+    input.selectionStart !== input.selectionEnd
+  );
+}
+
+function operatorNameDraftIsDirty(): boolean {
+  const address = editingOperatorSlot.value;
+  const document = currentDocument.value;
+  if (!address || !document) {
+    return false;
+  }
+  return (
+    (draftOperatorNames.value[address.key] ?? "").trim() !==
+    operatorNameAtAddress(document, address)
+  );
+}
+
+function currentOperatorTarget(): OperatorSlotAddress | undefined {
+  return (
+    hoveredOperatorSlot.value ??
+    lastOperatorSlot.value ??
+    selectedOperatorSlotAddresses()[0]
+  );
+}
+
+function operatorShortcutSource(): OperatorSlotAddress[] {
+  const selected = selectedOperatorSlotAddresses();
+  if (selected.length > 0) {
+    return selected;
+  }
+  const target = currentOperatorTarget();
+  return target ? [target] : [];
+}
+
+function sameOperatorRoom(
+  left: OperatorSlotAddress,
+  right: OperatorSlotAddress,
+): boolean {
+  return (
+    left.planIndex === right.planIndex &&
+    left.type === right.type &&
+    left.position === right.position
+  );
+}
+
+function operatorClipboardEntries(
+  addresses: OperatorSlotAddress[],
+): OperatorClipboardEntry[] {
+  const document = currentDocument.value;
+  if (!document) {
+    return [];
+  }
+  return addresses.map((address) => {
+    const name = operatorNameAtAddress(document, address);
+    const room = operatorRoomAtDocument(document, address, false);
+    const state = name ? room?.operatorStates?.[name] : undefined;
+    return {
+      name,
+      ...(state ? { state: cloneOperatorState(state) } : {}),
+    };
+  });
+}
+
+function validOperatorClipboardSource(
+  addresses: OperatorSlotAddress[],
+): boolean {
+  if (addresses.length <= 1) {
+    return true;
+  }
+  const first = addresses[0];
+  if (first && addresses.every((address) => sameOperatorRoom(first, address))) {
+    return true;
+  }
+  showOperatorMessage("多选复制或剪切仅支持同一队列同一设施");
+  return false;
+}
+
+function copyOperators(): boolean {
+  if (!commitPendingOperatorNameEdit()) {
+    return false;
+  }
+  const addresses = operatorShortcutSource();
+  if (!validOperatorClipboardSource(addresses)) {
+    return false;
+  }
+  const entries = operatorClipboardEntries(addresses);
+  const operatorCount = entries.filter((entry) => entry.name).length;
+  if (operatorCount === 0) {
+    showOperatorMessage("当前选中的槽位没有干员");
+    return false;
+  }
+  operatorClipboard.value = { entries };
+  showOperatorMessage(`已复制 ${operatorCount} 名干员`);
+  return true;
+}
+
+function clearOperatorSlots(addresses: OperatorSlotAddress[]): boolean {
+  const document = currentDocument.value;
+  if (!document) {
+    return false;
+  }
+  const effectiveAddresses = addresses.filter((address) =>
+    operatorNameAtAddress(document, address),
+  );
+  if (effectiveAddresses.length === 0) {
+    showOperatorMessage("当前目标没有可删除的干员");
+    return false;
+  }
+  if (editingOperatorSlot.value) {
+    finishOperatorNameEdit(editingOperatorSlot.value.key);
+  }
+  const groups = new Map<string, OperatorSlotAddress[]>();
+  effectiveAddresses.forEach((address) => {
+    const key = `${address.planIndex}-${address.type}-${address.position}`;
+    const group = groups.get(key) ?? [];
+    group.push(address);
+    groups.set(key, group);
+  });
+  const updated = updateCurrent(
+    (candidate) => {
+      groups.forEach((group) => {
+        const first = group[0];
+        if (!first) {
+          return;
+        }
+        const room = operatorRoomAtDocument(candidate, first, true);
+        if (!room) {
+          return;
+        }
+        const indexes = new Set(group.map((address) => address.slotIndex));
+        const names = room.operators ?? [];
+        const nextNames = names.filter((_, index) => !indexes.has(index));
+        if (nextNames.length !== names.length) {
+          setRoomOperators(room, nextNames);
+        }
+      });
+    },
+    { recordOperatorHistory: true },
+  );
+  if (!updated) {
+    return false;
+  }
+  const first = effectiveAddresses[0];
+  if (first) {
+    focusOperatorSlot(first);
+  }
+  return true;
+}
+
+function setRoomOperators(
+  room: RoomAssignment,
+  names: string[],
+  stateOverrides: Map<string, OperatorState> = new Map(),
+): void {
+  const nextStates: Record<string, OperatorState> = {};
+  names.forEach((name) => {
+    const state = stateOverrides.get(name) ?? room.operatorStates?.[name];
+    if (state) {
+      nextStates[name] = cloneOperatorState(state);
+    }
+  });
+  room.operators = names;
+  if (names.length === 0) {
+    room.skip = true;
+  } else {
+    delete room.skip;
+  }
+  if (Object.keys(nextStates).length > 0) {
+    room.operatorStates = nextStates;
+  } else {
+    delete room.operatorStates;
+  }
+}
+
+function cutOperators(): boolean {
+  if (!commitPendingOperatorNameEdit()) {
+    return false;
+  }
+  const addresses = operatorShortcutSource();
+  if (!validOperatorClipboardSource(addresses)) {
+    return false;
+  }
+  const entries = operatorClipboardEntries(addresses);
+  const operatorCount = entries.filter((entry) => entry.name).length;
+  if (operatorCount === 0) {
+    showOperatorMessage("当前选中的槽位没有干员");
+    return false;
+  }
+  operatorClipboard.value = { entries };
+  if (!clearOperatorSlots(addresses)) {
+    return false;
+  }
+  showOperatorMessage(`已剪切 ${operatorCount} 名干员`);
+  return true;
+}
+
+function pasteOperators(): boolean {
+  const clipboard = operatorClipboard.value;
+  if (!clipboard || clipboard.entries.length === 0) {
+    return false;
+  }
+  if (!commitPendingOperatorNameEdit()) {
+    return false;
+  }
+  const target = currentOperatorTarget();
+  const document = currentDocument.value;
+  if (!target || !document) {
+    showOperatorMessage("请先选择要粘贴到的干员槽位");
+    return false;
+  }
+  const capacity = operatorRoomCapacity(document, target.type, target.position);
+  if (target.slotIndex >= capacity) {
+    return false;
+  }
+  const entries = clipboard.entries.slice(
+    0,
+    Math.max(0, capacity - target.slotIndex),
+  );
+  if (entries.length === 0) {
+    return false;
+  }
+  if (editingOperatorSlot.value) {
+    finishOperatorNameEdit(editingOperatorSlot.value.key);
+  }
+  const updated = updateCurrent(
+    (candidate) => {
+      const room = operatorRoomAtDocument(candidate, target, true);
+      if (!room) {
+        return;
+      }
+      const targetCapacity = operatorRoomCapacity(
+        candidate,
+        target.type,
+        target.position,
+      );
+      const names = Array.from(
+        { length: targetCapacity },
+        (_, index) => room.operators?.[index] ?? "",
+      );
+      const stateOverrides = new Map<string, OperatorState>();
+      entries.forEach((entry, index) => {
+        names[target.slotIndex + index] = entry.name;
+        if (entry.name && entry.state) {
+          stateOverrides.set(entry.name, entry.state);
+        }
+      });
+      setRoomOperators(room, names.filter(Boolean), stateOverrides);
+    },
+    { recordOperatorHistory: true },
+  );
+  if (!updated) {
+    return false;
+  }
+  focusOperatorSlot(target);
+  const operatorCount = entries.filter((entry) => entry.name).length;
+  const truncated = entries.length < clipboard.entries.length;
+  showOperatorMessage(
+    truncated
+      ? `已粘贴 ${operatorCount} 名干员，超出目标槽位的内容已截断`
+      : `已粘贴 ${operatorCount} 名干员`,
+  );
+  return true;
+}
+
+function operatorDeletionTargets(): OperatorSlotAddress[] {
+  const document = currentDocument.value;
+  if (!document) {
+    return [];
+  }
+  const editingKey = editingOperatorSlot.value?.key;
+  const hovered = hoveredOperatorSlot.value;
+  if (
+    hovered &&
+    hovered.key !== editingKey &&
+    operatorNameAtAddress(document, hovered)
+  ) {
+    return [hovered];
+  }
+  const selected = selectedOperatorSlotAddresses();
+  if (selected.length > 0) {
+    return selected;
+  }
+  const target = currentOperatorTarget();
+  return target && operatorNameAtAddress(document, target) ? [target] : [];
+}
+
+function deleteOperators(): boolean {
+  const targets = operatorDeletionTargets();
+  if (targets.length === 0) {
+    showOperatorMessage("当前没有可删除的干员");
+    return false;
+  }
+  const count = targets.filter((address) => {
+    const document = currentDocument.value;
+    return document ? Boolean(operatorNameAtAddress(document, address)) : false;
+  }).length;
+  const updated = clearOperatorSlots(targets);
+  if (updated) {
+    showOperatorMessage(`已删除 ${count} 名干员`);
+  }
+  return updated;
+}
+
+function pruneOperatorSelection(): void {
+  const validKeys = new Set(
+    orderedOperatorSlotAddresses().map((address) => address.key),
+  );
+  selectedOperatorSlots.value = new Set(
+    [...selectedOperatorSlots.value].filter((key) => validKeys.has(key)),
+  );
+  if (lastOperatorSlot.value && !validKeys.has(lastOperatorSlot.value.key)) {
+    lastOperatorSlot.value = undefined;
+  }
+}
+
+function restoreOperatorHistory(action: "undo" | "redo"): void {
+  const documentId = activeDocumentId.value;
+  const stored = activeDocument.value;
+  if (!documentId || !stored) {
+    return;
+  }
+  const history = operatorHistoryFor(documentId);
+  const source = action === "undo" ? history.undo : history.redo;
+  const destination = action === "undo" ? history.redo : history.undo;
+  const entry = source.pop();
+  if (!entry) {
+    showOperatorMessage(
+      action === "undo" ? "没有可撤销的干员操作" : "没有可还原的干员操作",
+    );
+    return;
+  }
+  const snapshot = action === "undo" ? entry.before : entry.after;
+  const expected = action === "undo" ? entry.after : entry.before;
+  const candidate = cloneSchedule(stored.document);
+  try {
+    restoreOperatorFields(candidate, snapshot, expected);
+    validateSchedule(candidate);
+  } catch (error: unknown) {
+    source.push(entry);
+    setError(error);
+    return;
+  }
+  destination.push(entry);
+  if (destination.length > MAX_OPERATOR_HISTORY) {
+    destination.shift();
+  }
+  if (editingOperatorSlot.value) {
+    finishOperatorNameEdit(editingOperatorSlot.value.key);
+  }
+  draftOperatorNames.value = {};
+  updateDocument(documentId, (target) => {
+    target.document = candidate;
+  });
+  pruneOperatorSelection();
+  showOperatorMessage(action === "undo" ? "已撤销干员操作" : "已还原干员操作");
+}
+
+function focusOperatorSlot(address: OperatorSlotAddress): boolean {
+  selectedOperatorSlots.value = new Set([address.key]);
+  operatorSelectionAnchor.value = address;
+  lastOperatorSlot.value = address;
+  return beginOperatorNameEdit(
+    address.planIndex,
+    address.type,
+    address.position,
+    address.slotIndex,
+  );
+}
+
+function navigateOperatorSlot(
+  action: "tab" | "enter" | "left" | "right" | "up" | "down",
+): void {
+  const current = editingOperatorSlot.value ?? lastOperatorSlot.value;
+  const document = currentDocument.value;
+  if (!current || !document) {
+    return;
+  }
+  let target: OperatorSlotAddress | undefined;
+  if (action === "enter") {
+    const nextPlanIndex =
+      document.plans.length > 0
+        ? (current.planIndex + 1) % document.plans.length
+        : current.planIndex;
+    const capacity = operatorRoomCapacity(
+      document,
+      current.type,
+      current.position,
+    );
+    if (capacity <= 0) {
+      return;
+    }
+    const nextRoom = operatorRoomAtDocument(
+      document,
+      operatorSlotAddress(nextPlanIndex, current.type, current.position, 0),
+      false,
+    );
+    const nextNames = nextRoom?.operators ?? [];
+    const firstEmpty = Array.from(
+      { length: capacity },
+      (_, index) => index,
+    ).find((index) => !nextNames[index]);
+    const targetIndex =
+      firstEmpty ?? Math.min(current.slotIndex, Math.max(0, capacity - 1));
+    target = operatorSlotAddress(
+      nextPlanIndex,
+      current.type,
+      current.position,
+      targetIndex,
+    );
+  } else if (action === "tab" || action === "left" || action === "right") {
+    const slots = operatorSlotAddressesForPlan(current.planIndex);
+    const currentIndex = slots.findIndex(
+      (address) => address.key === current.key,
+    );
+    if (currentIndex < 0 || slots.length === 0) {
+      return;
+    }
+    const direction = action === "left" ? -1 : 1;
+    const targetIndex = currentIndex + direction;
+    if (action === "tab") {
+      target = slots[(targetIndex + slots.length) % slots.length];
+    } else if (targetIndex >= 0 && targetIndex < slots.length) {
+      target = slots[targetIndex];
+    }
+  } else {
+    const rooms = operatorRoomAddresses();
+    const currentRoomIndex = rooms.findIndex(
+      (room) =>
+        room.type === current.type && room.position === current.position,
+    );
+    if (currentRoomIndex < 0 || document.plans.length === 0) {
+      return;
+    }
+    const direction = action === "up" ? -1 : 1;
+    let nextRoomIndex = currentRoomIndex;
+    let nextPlanIndex = current.planIndex + direction;
+    if (nextPlanIndex < 0 || nextPlanIndex >= document.plans.length) {
+      nextRoomIndex += direction;
+      if (nextRoomIndex < 0 || nextRoomIndex >= rooms.length) {
+        return;
+      }
+      nextPlanIndex = direction > 0 ? 0 : document.plans.length - 1;
+    }
+    const nextRoom = rooms[nextRoomIndex];
+    if (!nextRoom) {
+      return;
+    }
+    target = operatorSlotAddress(
+      nextPlanIndex,
+      nextRoom.type,
+      nextRoom.position,
+      Math.min(current.slotIndex, nextRoom.slotCount - 1),
+    );
+  }
+  if (target && target.key !== current.key) {
+    focusOperatorSlot(target);
+  }
 }
 
 function planDurationHoursValue(plan: Plan): number {
@@ -2070,8 +2862,12 @@ function openOperatorContextMenu(
   if (!commitPendingOperatorNameEdit()) {
     return;
   }
+  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
+  selectedOperatorSlots.value = new Set([address.key]);
+  operatorSelectionAnchor.value = address;
+  lastOperatorSlot.value = address;
   contextMenu.value = {
-    ...operatorSlotAddress(planIndex, type, position, slotIndex),
+    ...address,
     positions: [position],
     ...contextMenuPosition(event),
   };
@@ -2198,43 +2994,35 @@ function updateOperatorProgression(node: OperatorProgressionNode): void {
   if (!menu) {
     return;
   }
-  if (node.type === "elite") {
-    updateOperatorState(
-      menu.menu.planIndex,
-      menu.menu.type,
-      menu.menu.position,
-      menu.menu.slotIndex,
-      "elite",
-      node.value,
-    );
-    updateOperatorState(
-      menu.menu.planIndex,
-      menu.menu.type,
-      menu.menu.position,
-      menu.menu.slotIndex,
-      "level",
-      1,
-    );
-  } else {
-    if (menu.operator.rarity <= 2) {
-      updateOperatorState(
-        menu.menu.planIndex,
-        menu.menu.type,
-        menu.menu.position,
-        menu.menu.slotIndex,
-        "elite",
-        0,
-      );
-    }
-    updateOperatorState(
-      menu.menu.planIndex,
-      menu.menu.type,
-      menu.menu.position,
-      menu.menu.slotIndex,
-      "level",
-      node.value,
-    );
-  }
+  updatePlanRoom(
+    menu.menu.planIndex,
+    menu.menu.type,
+    menu.menu.position,
+    (room) => {
+      const states = room.operatorStates ?? {};
+      const state = states[menu.name] ?? {};
+      if (node.type === "elite") {
+        state.elite = node.value;
+        state.level = 1;
+      } else {
+        if (menu.operator.rarity <= 2) {
+          state.elite = 0;
+        }
+        state.level = node.value;
+      }
+      if (Object.keys(state).length > 0) {
+        states[menu.name] = state;
+      } else {
+        delete states[menu.name];
+      }
+      if (Object.keys(states).length > 0) {
+        room.operatorStates = states;
+      } else {
+        delete room.operatorStates;
+      }
+    },
+    { recordOperatorHistory: true },
+  );
   closeContextMenu();
 }
 
@@ -2264,6 +3052,7 @@ function resetOperatorProgression(): void {
         delete room.operatorStates;
       }
     },
+    { recordOperatorHistory: true },
   );
   closeContextMenu();
 }
@@ -2272,6 +3061,10 @@ function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
   if (target instanceof Element && target.closest(".simulator-context-menu")) {
     return;
+  }
+  if (!(target instanceof Element) || !target.closest(".simulator-slot")) {
+    selectedOperatorSlots.value = new Set();
+    operatorSelectionAnchor.value = undefined;
   }
   closeContextMenu();
 }
@@ -2295,6 +3088,90 @@ function handleWindowKeydown(event: KeyboardEvent): void {
       cancelOperatorNameEdit();
     }
     closeContextMenu();
+    return;
+  }
+
+  const target = event.target instanceof Element ? event.target : undefined;
+  const operatorInput = operatorNameInputFromTarget(event.target);
+  const editableTarget = target?.closest("input, textarea, select");
+  if (editableTarget && !operatorInput) {
+    return;
+  }
+
+  const primaryModifier =
+    (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
+  if (primaryModifier) {
+    const key = keyboardShortcutKey(event);
+    if (
+      operatorInput &&
+      ["c", "x", "v"].includes(key) &&
+      operatorInputHasSelection(operatorInput)
+    ) {
+      return;
+    }
+    if (
+      operatorInput &&
+      ["z", "y"].includes(key) &&
+      operatorNameDraftIsDirty()
+    ) {
+      return;
+    }
+    if (key === "v" && !operatorClipboard.value) {
+      return;
+    }
+    if (["c", "x", "v", "z", "y"].includes(key)) {
+      event.preventDefault();
+      if (key === "c") {
+        copyOperators();
+      } else if (key === "x") {
+        cutOperators();
+      } else if (key === "v") {
+        pasteOperators();
+      } else {
+        restoreOperatorHistory(key === "z" ? "undo" : "redo");
+      }
+      return;
+    }
+  }
+
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
+    return;
+  }
+
+  if (operatorInput) {
+    const navigationKeys: Record<
+      string,
+      "tab" | "enter" | "left" | "right" | "up" | "down"
+    > = {
+      Tab: "tab",
+      Enter: "enter",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+      ArrowUp: "up",
+      ArrowDown: "down",
+    };
+    const navigation = navigationKeys[event.key];
+    if (navigation) {
+      event.preventDefault();
+      navigateOperatorSlot(navigation);
+      return;
+    }
+    if (event.key === "Delete") {
+      if (operatorNameDraftIsDirty()) {
+        return;
+      }
+      const targets = operatorDeletionTargets();
+      if (targets.length > 0) {
+        event.preventDefault();
+        deleteOperators();
+      }
+    }
+    return;
+  }
+
+  if (event.key === "Delete" && operatorDeletionTargets().length > 0) {
+    event.preventDefault();
+    deleteOperators();
   }
 }
 
@@ -2387,6 +3264,10 @@ function isStoredDocument(document: StoredDocument): boolean {
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
   editingOperatorSlot.value = undefined;
+  selectedOperatorSlots.value = new Set();
+  operatorSelectionAnchor.value = undefined;
+  hoveredOperatorSlot.value = undefined;
+  lastOperatorSlot.value = undefined;
   contextMenu.value = undefined;
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
@@ -2416,7 +3297,7 @@ watch(
 
 onMounted(() => {
   window.addEventListener("click", handleWindowClick);
-  window.addEventListener("keydown", handleWindowKeydown);
+  window.addEventListener("keydown", handleWindowKeydown, true);
   window.addEventListener("wheel", handleWindowWheel, { passive: true });
   window.addEventListener("scroll", handleWindowScroll, {
     capture: true,
@@ -2427,7 +3308,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("click", handleWindowClick);
-  window.removeEventListener("keydown", handleWindowKeydown);
+  window.removeEventListener("keydown", handleWindowKeydown, true);
   window.removeEventListener("wheel", handleWindowWheel);
   window.removeEventListener("scroll", handleWindowScroll, { capture: true });
   window.removeEventListener("resize", handleWindowResize);
@@ -2903,6 +3784,42 @@ onBeforeUnmount(() => {
                         v-for="slot in slotRefs(row)"
                         :key="`${planIndex}-${slot.entry.position}-${slot.slotIndex}`"
                         class="simulator-slot"
+                        :data-key="
+                          operatorSlotAddress(
+                            planIndex,
+                            row.type,
+                            slot.entry.position,
+                            slot.slotIndex,
+                          ).key
+                        "
+                        :class="{
+                          'simulator-slot--selected': isOperatorSlotSelected(
+                            operatorSlotAddress(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            ).key,
+                          ),
+                        }"
+                        @mouseenter="
+                          setHoveredOperatorSlot(
+                            planIndex,
+                            row.type,
+                            slot.entry.position,
+                            slot.slotIndex,
+                          )
+                        "
+                        @mouseleave="
+                          clearHoveredOperatorSlot(
+                            operatorSlotAddress(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            ).key,
+                          )
+                        "
                       >
                         <OperatorAvatarDisplay
                           v-if="slotOperator(row, plan, planIndex, slot)"
@@ -2947,7 +3864,8 @@ onBeforeUnmount(() => {
                           :size="simulatorSlotSize"
                           :skipped="roomSkipped(slotRoom(plan, slot))"
                           @click.stop="
-                            beginOperatorNameEdit(
+                            selectOperatorSlot(
+                              $event,
                               planIndex,
                               row.type,
                               slot.entry.position,
@@ -2969,7 +3887,8 @@ onBeforeUnmount(() => {
                             :style="emptySlotFrameStyle"
                             class="simulator-empty-slot-frame"
                             @click.stop="
-                              beginOperatorNameEdit(
+                              selectOperatorSlot(
+                                $event,
                                 planIndex,
                                 row.type,
                                 slot.entry.position,
@@ -3009,7 +3928,8 @@ onBeforeUnmount(() => {
                             :style="slotNameBandStyle"
                             class="simulator-empty-slot-name"
                             @click.stop="
-                              beginOperatorNameEdit(
+                              selectOperatorSlot(
+                                $event,
                                 planIndex,
                                 row.type,
                                 slot.entry.position,
@@ -3056,14 +3976,6 @@ onBeforeUnmount(() => {
                             )
                           "
                           @click.stop
-                          @press-enter="
-                            commitOperatorName(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            )
-                          "
                           @select="
                             (value: string) =>
                               selectOperatorName(

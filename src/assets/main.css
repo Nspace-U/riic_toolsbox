@@ -1807,6 +1807,11 @@ a {
   gap: 0;
 }
 
+.simulator-slot--selected {
+  outline: 2px solid #216a66;
+  outline-offset: -2px;
+}
+
 .simulator-slot-name-input {
   position: absolute;
   inset-block-end: 0;

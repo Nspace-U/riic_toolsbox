@@ -241,6 +241,16 @@
 ## 当前工作区验证状态
 
 - 本轮队列小时修正已提交为 `a1fdbad`；本次提交未包含操作员批量操作或槽位样式的未提交改动。
-- 当前工作区的 `npm run type-check` 未通过，错误位于未暂存的操作员撤销/重做代码：`OperatorHistoryEntry` 与 `ScheduleDocument` 在 `SimulatorPage.vue:2409`、`SimulatorPage.vue:2418` 不匹配；本轮队列时长改动不在这些差异中。
-- `npm run build` 的 Vite 构建阶段成功，但因并行的 `type-check` 失败而整体退出；`git diff --cached --check` 和提交前的 `git diff --check` 通过。
-- 下一步：修正操作员历史类型后重新运行完整类型检查、Lint 和格式检查；该问题不影响本轮已提交的整分钟转换警告逻辑。
+- 当前工作区的操作员批量快捷键改动已修正历史类型，`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 均通过；构建仅保留既有的大 chunk 警告。
+
+## 本轮排班模拟器干员快捷键
+
+- 已实现范围：`Tab`、`Enter`、四个方向键、`Delete`、`Ctrl/Cmd+C`、`Ctrl/Cmd+X`、`Ctrl/Cmd+V`、`Ctrl/Cmd+Z`、`Ctrl/Cmd+Y`，快捷键只作用于干员槽位，不操作设施布局、队列结构、队列元数据或产物设置。
+- 选中模型：点击槽位单选，`Ctrl/Cmd` 点击切换多选，`Shift` 点击选择同队列同设施的连续槽位；选中槽位显示边框，悬停槽位用于沿用旧项目的删除和粘贴目标优先级。
+- 导航：`Tab` 在当前队列按设施与槽位顺序前进并循环；`ArrowLeft/Right` 在同一队列前后移动且到边界停留；`ArrowUp/Down` 在同设施跨队列移动，到队列边界时跨到相邻设施并钳制槽位，到全局边界停留。
+- `Enter`：循环到下一个队列的同设施同实例；优先选择该队列的第一个空槽位，目标设施已满时选择与当前槽位相同的槽位。
+- 干员修改：`Delete` 按旧项目优先级先删悬停干员，再删选中干员，最后删当前槽位；复制、剪切和粘贴保留干员练度/心情状态，剪贴板为页面内部干员剪贴板，不写布局或队列数据。
+- 历史：`Ctrl/Cmd+Z/Y` 只恢复干员名称、干员状态及干员操作引起的跳过字段；恢复时合并到当前排班表，保留之后发生的布局、队列和产物修改，历史按排班表隔离并最多保留 100 步。
+- 输入兼容：输入框存在文字选区时，`Ctrl/Cmd+C/X` 让位原生文本操作；输入框有未提交内容时，`Delete` 与 `Ctrl/Cmd+Z/Y` 让位原生编辑；键盘监听使用捕获阶段避免 AutoComplete 抢先处理 Enter/方向键，槽位 DOM 暴露稳定 `data-key` 供焦点跳转。
+- 未实现：`Ctrl/Cmd+A`、快捷键改绑、拖放，以及布局/队列/产物快捷操作不在本轮范围。
+- 验证：`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；浏览器实测导航、Enter 的空槽/满槽分支、方向键边界、Delete、Enter 候选拦截，以及撤销/还原不回退队列名称。仓库没有现成快捷键自动化测试，浏览器自动化对 C/X/V 会优先接管系统剪贴板，因此剪贴板分支同时依赖静态检查与代码路径审阅。
