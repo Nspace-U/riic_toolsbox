@@ -842,7 +842,8 @@ function perCount(
       count = 0;
   }
   const perUnit = Math.max(EPSILON, Number(per.per) || 1);
-  const times = per.floor
+  const shouldFloor = per.floor ?? per.source !== "facCap";
+  const times = shouldFloor
     ? Math.max(0, Math.floor(count / perUnit))
     : count / perUnit;
   const raw = times * (Number(per.value) || 0);
