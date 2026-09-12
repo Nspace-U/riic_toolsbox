@@ -1754,6 +1754,11 @@ a {
   max-inline-size: 100%;
 }
 
+.simulator-queue-info-readonly .simulator-queue-entry-title,
+.simulator-queue-info-readonly .simulator-queue-duration {
+  justify-self: center;
+}
+
 .simulator-queue-column-readonly .simulator-queue-entries {
   grid-template-columns: minmax(0, 1fr);
   min-inline-size: 0;
