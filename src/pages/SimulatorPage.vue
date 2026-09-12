@@ -3351,7 +3351,7 @@ function commitPendingOperatorNameEdit(): boolean {
 function contextMenuPosition(event: MouseEvent): { x: number; y: number } {
   return {
     x: Math.min(event.clientX, Math.max(8, window.innerWidth - 240)),
-    y: Math.min(event.clientY, Math.max(8, window.innerHeight - 320)),
+    y: event.clientY,
   };
 }
 
@@ -3363,8 +3363,9 @@ async function clampContextMenuPosition(): Promise<void> {
     return;
   }
   const maxTop = Math.max(8, window.innerHeight - element.offsetHeight - 8);
-  if (menu.y > maxTop) {
-    contextMenu.value = { ...menu, y: maxTop };
+  const clampedTop = Math.min(Math.max(8, menu.y), maxTop);
+  if (menu.y !== clampedTop) {
+    contextMenu.value = { ...menu, y: clampedTop };
   }
 }
 
