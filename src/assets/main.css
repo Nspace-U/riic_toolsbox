@@ -1488,6 +1488,7 @@ a {
   field-sizing: content;
   min-inline-size: 0;
   max-inline-size: 100%;
+  overflow: hidden;
   font-family: "Cascadia Code", Consolas, monospace;
   letter-spacing: 0.08em;
   line-height: 1.6;

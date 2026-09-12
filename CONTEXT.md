@@ -344,3 +344,11 @@
 - 未完成：未新增专用浏览器端到端测试。
 - 风险与下一步：宽度自适应依赖当前 Chromium 支持的 `field-sizing: content`；若未来需要支持不具备该特性的浏览器，应补充降级方案。
 - 验证：浏览器实测当前输入宽度约 `123px`，从约 `148px` 的固定宽度收窄；短文本实测约 `48px` 并可恢复。`npm run lint`、`npm run type-check`、`npm run build`、CSS 定向 Prettier 和 `git diff --check` 通过；全仓 `npm run format:check` 仍受既有 `CONTEXT.md`、`docs/decision-log.md` 与用户未提交的 `SimulatorPage.vue` 格式问题影响。
+
+## 2026-09-12 排班模拟器布局数字编辑框两行高度
+
+- 已完成：批量布局数字编辑框固定为两行高度，不显示内部滚动条，也不允许用户拖拽改变高度。
+- 实现：沿用 `a-textarea` 的 `minRows: 2`、`maxRows: 2`，并对该编辑框设置 `overflow: hidden`；不改变内容自适应宽度和布局解析逻辑。
+- 未完成：未新增专用浏览器端到端测试。
+- 风险与下一步：超过两行的非法临时输入会保持两行高度并被裁剪，输入校验仍按原逻辑拒绝；若未来需要显示完整错误输入，应改用外部错误提示而不是恢复滚动条。
+- 验证：浏览器实测正常输入高度约 `53px`；临时输入三行时高度不增加且 `overflow-y` 为 `hidden`，恢复原输入后状态正常。
