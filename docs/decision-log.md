@@ -519,3 +519,9 @@
 - **候选来源**：技能 JSON 中设施技能链归属该设施，或阶段效果实际指向该设施的干员进入列表；`public/assets/facility-operator-overrides.json` 提供人工维护的额外干员 ID。制造站额外配置斯卡蒂、幽灵鲨、安哲拉和乌尔比安，重复项去重，未知设施或干员 ID 在开发环境警告并忽略。
 - **排序**：候选与基建技能一览、通用设置统一使用实装倒序；缺少 `implementationOrder` 的干员排在最前，同类保持原始数据顺序。
 - **验证与边界**：浏览器实测桌面和 390px 窄屏展开、方向、实时筛选、无匹配手动输入、候选提交、Escape 和制造站深海猎人候选；无浏览器错误日志。`npm run lint`、`npm run type-check`、`npm run build`、目标文件 Prettier 和 `git diff --check` 通过；仓库无专用 E2E 测试，构建仅有既有的大 chunk 警告。
+
+## 2026-09-12：修复首尾槽位反馈框裁切
+
+- **决定**：反馈框默认继续使用 `inset-inline: -1px`，仅对每个槽位网格的 `:first-child` 收回 `inset-inline-start`，对 `:last-child` 收回 `inset-inline-end`；规则同时覆盖 `::before` 和 `::after`。
+- **原因**：队列卡片及其内部 `.ant-card-body` 的 `overflow: hidden` 会裁掉首尾框体的外扩边缘；首尾没有相邻框需要重叠，因此只收回外侧不会影响中间竖线。
+- **验证**：浏览器确认首槽位和末槽位选中框完整可见；类型检查、Lint、生产构建和 `git diff --check` 通过。固定选区框、拖动头像预览和排班数据契约未修改。
