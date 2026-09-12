@@ -4046,6 +4046,7 @@ onBeforeUnmount(() => {
                           "
                           ref="slotNameInput"
                           :aria-label="`${row.label}干员名称`"
+                          :style="slotNameBandStyle"
                           :value="slotName(row, plan, planIndex, slot)"
                           autocomplete="off"
                           class="simulator-slot-name-input"

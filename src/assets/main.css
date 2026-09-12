@@ -1937,15 +1937,27 @@ a {
 }
 
 .simulator-slot-name-input {
-  position: fixed;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline: 0;
+  z-index: 12;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--simulator-slot-name-height, 24px);
+  padding-inline: 4px;
+  color: #526164;
+  background: #ffffff;
+  border: 1px solid #216a66;
+  border-radius: 0;
+  outline: none;
+  font-size: var(--simulator-slot-name-font-size, 12px);
+  line-height: var(--simulator-slot-name-height, 24px);
+  text-align: center;
+}
+
+.simulator-empty-slot-name--editing,
+.operator-avatar-display-name--editing {
+  visibility: hidden;
 }
 
 .simulator-slot > .operator-avatar-display {
