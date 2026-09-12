@@ -3622,6 +3622,13 @@ function operatorState(
   return room?.operatorStates?.[name] ?? {};
 }
 
+function operatorMoodScattered(
+  room: RoomAssignment | undefined,
+  name: string,
+): boolean {
+  return operatorState(room, name).mood === 0;
+}
+
 function progressionMenuNodes(
   operator: Operator,
   type: RoomKey,
@@ -3952,11 +3959,7 @@ function handleWindowClick(event: MouseEvent): void {
   if (target instanceof Element && target.closest(".simulator-context-menu")) {
     return;
   }
-  const pickerElement =
-    target instanceof Element
-      ? target.closest(".simulator-operator-picker")
-      : undefined;
-  if (pickerElement) {
+  if (target instanceof Node && operatorPickerElement.value?.contains(target)) {
     return;
   }
   const slotElement =
@@ -4762,6 +4765,7 @@ onBeforeUnmount(() => {
                   class="simulator-facility-queue"
                   size="small"
                   :style="facilityQueueStyle(row, plan)"
+                  @contextmenu.stop.prevent
                 >
                   <img
                     v-if="facilityCardIconUrl(row, plan)"
@@ -5123,6 +5127,12 @@ onBeforeUnmount(() => {
                 operatorDragPreview.name,
               )
             "
+            :mood-scattered="
+              operatorMoodScattered(
+                operatorDragPreview.room,
+                operatorDragPreview.name,
+              )
+            "
             :operator-training-upgraded="
               operatorTrainingUpgraded(
                 operatorDragPreview.room,
@@ -5161,6 +5171,7 @@ onBeforeUnmount(() => {
           ]"
           :style="[operatorPickerStyle, slotGridStyle, operatorPickerGridStyle]"
           @click.stop
+          @mousedown.prevent
         >
           <div class="simulator-operator-picker-heading">
             <span>{{ ROOM_LABELS[operatorPicker.type] }}</span>
@@ -5197,6 +5208,12 @@ onBeforeUnmount(() => {
                   "
                   :missing="
                     operatorMissing(operatorPickerRoom, candidate.operator.name)
+                  "
+                  :mood-scattered="
+                    operatorMoodScattered(
+                      operatorPickerRoom,
+                      candidate.operator.name,
+                    )
                   "
                   :operator-training-upgraded="
                     operatorTrainingUpgraded(

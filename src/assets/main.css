@@ -2115,7 +2115,7 @@ a {
     320px,
     calc(
       var(--simulator-operator-picker-columns) * var(--simulator-slot-size) +
-        96px
+        114px
     )
   );
   max-width: calc(100vw - 16px);
