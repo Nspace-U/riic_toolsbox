@@ -2079,6 +2079,70 @@ a {
   cursor: pointer;
 }
 
+.simulator-operator-picker {
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100vw - 16px);
+  max-height: min(420px, calc(100vh - 16px));
+  overflow-y: auto;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #dce8e4;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.18);
+}
+
+.simulator-operator-picker-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block-end: 8px;
+  color: #2e4043;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.simulator-operator-picker-heading span:last-child {
+  color: #879294;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.simulator-operator-picker-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+}
+
+.simulator-operator-picker-item {
+  display: grid;
+  min-width: 0;
+  padding: 4px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  place-items: center;
+}
+
+.simulator-operator-picker-item:hover,
+.simulator-operator-picker-item:focus-visible {
+  background: #eef6f2;
+  outline: none;
+}
+
+.simulator-operator-picker-item .operator-avatar-display {
+  max-width: 100%;
+}
+
+.simulator-operator-picker-empty.ant-empty {
+  margin-block: 16px;
+}
+
 .simulator-context-menu {
   position: fixed;
   z-index: 1050;
@@ -2856,6 +2920,14 @@ a {
 
   .simulator-layout-card {
     flex-basis: 100%;
+  }
+
+  .simulator-operator-picker {
+    width: calc(100vw - 16px);
+  }
+
+  .simulator-operator-picker-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .simulator-result-section-heading {

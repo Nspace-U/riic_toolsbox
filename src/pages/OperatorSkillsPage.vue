@@ -159,7 +159,7 @@ function sortOperatorRows(
         if (leftOrder === undefined && rightOrder === undefined) {
           return left.index - right.index;
         }
-        return leftOrder === undefined ? 1 : -1;
+        return leftOrder === undefined ? -1 : 1;
       }
       return rightOrder - leftOrder || left.index - right.index;
     })

@@ -151,6 +151,15 @@ interface OperatorContextMenuDetails {
   hasManualProgression: boolean;
 }
 
+interface OperatorPickerCandidate {
+  index: number;
+  operator: Operator;
+}
+
+interface OperatorPickerState extends OperatorSlotAddress {
+  side: "left" | "right" | "below";
+}
+
 interface LayoutDisplayRow {
   key: string;
   entries: FacilityEntry[];
@@ -381,6 +390,11 @@ const editingOperatorSlot = ref<OperatorSlotAddress>();
 const slotNameInput = ref<HTMLInputElement | HTMLInputElement[]>();
 const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
+const operatorPicker = ref<OperatorPickerState>();
+const operatorPickerElement = ref<HTMLElement>();
+const operatorPickerStyle = ref<Record<string, string>>({});
+const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
+const warnedFacilityOperatorOverrideIds = new Set<string>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 const selectedOperatorSlots = ref<Set<string>>(new Set());
@@ -508,6 +522,53 @@ const calculationSteps = computed(
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
 );
+
+const operatorPickerRoom = computed(() => {
+  const picker = operatorPicker.value;
+  const document = currentDocument.value;
+  const plan = document?.plans[picker?.planIndex ?? -1];
+  return picker && plan
+    ? roomAt(plan, picker.type, picker.position)
+    : undefined;
+});
+
+const operatorPickerQuery = computed(() => {
+  const picker = operatorPicker.value;
+  const document = currentDocument.value;
+  const plan = document?.plans[picker?.planIndex ?? -1];
+  if (!picker || !plan) {
+    return "";
+  }
+  return operatorDraftValue(
+    plan,
+    picker.planIndex,
+    picker.type,
+    picker.position,
+    picker.slotIndex,
+  )
+    .trim()
+    .toLocaleLowerCase();
+});
+
+const operatorPickerCandidates = computed<OperatorPickerCandidate[]>(() => {
+  const picker = operatorPicker.value;
+  if (!picker) {
+    return [];
+  }
+  const overrideIds = new Set(
+    facilityOperatorOverrides.value[picker.type] ?? [],
+  );
+  const query = operatorPickerQuery.value;
+  return operators.value
+    .map((operator, index) => ({ operator, index }))
+    .filter(
+      ({ operator }) =>
+        (operatorHasFacilitySkill(operator, picker.type) ||
+          overrideIds.has(operator.id)) &&
+        (!query || operator.name.toLocaleLowerCase().includes(query)),
+    )
+    .sort(compareOperatorPickerCandidates);
+});
 
 const layoutAddOptions = computed(() =>
   ROOM_ORDER.map((type) => {
@@ -1415,10 +1476,90 @@ function handleOperatorNameInput(
   }
 }
 
+function closeOperatorPicker(): void {
+  operatorPicker.value = undefined;
+  operatorPickerStyle.value = {};
+}
+
+function operatorPickerSlotElement(key: string): HTMLElement | undefined {
+  return [
+    ...window.document.querySelectorAll<HTMLElement>(
+      ".simulator-slot[data-key]",
+    ),
+  ].find((element) => element.dataset.key === key);
+}
+
+async function updateOperatorPickerPosition(): Promise<void> {
+  const picker = operatorPicker.value;
+  const element = operatorPickerElement.value;
+  if (!picker || !element) {
+    return;
+  }
+  await nextTick();
+  const currentPicker = operatorPicker.value;
+  const currentElement = operatorPickerElement.value;
+  if (!currentPicker || currentPicker.key !== picker.key || !currentElement) {
+    return;
+  }
+  const slot = operatorPickerSlotElement(currentPicker.key);
+  if (!slot) {
+    return;
+  }
+
+  const slotRect = slot.getBoundingClientRect();
+  const panelWidth = currentElement.offsetWidth;
+  const panelHeight = currentElement.offsetHeight;
+  const padding = 8;
+  const maxTop = Math.max(padding, window.innerHeight - panelHeight - padding);
+  const narrow = window.innerWidth <= 600;
+  let side: OperatorPickerState["side"] = "below";
+  let left = Math.min(
+    Math.max(padding, slotRect.left),
+    Math.max(padding, window.innerWidth - panelWidth - padding),
+  );
+  let top = Math.min(slotRect.bottom + padding, maxTop);
+
+  if (!narrow) {
+    const preferRight =
+      slotRect.left + slotRect.width / 2 <= window.innerWidth / 2;
+    const rightLeft = slotRect.right + padding;
+    const leftLeft = slotRect.left - panelWidth - padding;
+    const rightFits = rightLeft + panelWidth <= window.innerWidth - padding;
+    const leftFits = leftLeft >= padding;
+    if (preferRight ? rightFits : leftFits) {
+      side = preferRight ? "right" : "left";
+    } else if (preferRight ? leftFits : rightFits) {
+      side = preferRight ? "left" : "right";
+    }
+    if (side === "right") {
+      left = rightLeft;
+      top = Math.min(Math.max(padding, slotRect.top), maxTop);
+    } else if (side === "left") {
+      left = leftLeft;
+      top = Math.min(Math.max(padding, slotRect.top), maxTop);
+    }
+  }
+
+  operatorPicker.value = { ...currentPicker, side };
+  operatorPickerStyle.value = {
+    insetInlineStart: `${left}px`,
+    insetBlockStart: `${top}px`,
+  };
+}
+
+function openOperatorPicker(slot: OperatorSlotAddress): void {
+  operatorPicker.value = { ...slot, side: "below" };
+  operatorPickerStyle.value = {};
+  void nextTick(updateOperatorPickerPosition);
+}
+
 function finishOperatorNameEdit(key: string): void {
   delete draftOperatorNames.value[key];
   if (editingOperatorSlot.value?.key === key) {
     editingOperatorSlot.value = undefined;
+  }
+  if (operatorPicker.value?.key === key) {
+    closeOperatorPicker();
   }
 }
 
@@ -1428,10 +1569,14 @@ function beginOperatorNameEdit(
   position: number,
   slotIndex: number,
   initialValue?: string,
+  openPicker = false,
 ): boolean {
   const nextSlot = operatorSlotAddress(planIndex, type, position, slotIndex);
   if (editingOperatorSlot.value?.key === nextSlot.key) {
     contextMenu.value = undefined;
+    if (openPicker) {
+      openOperatorPicker(nextSlot);
+    }
     void focusSlotNameInput();
     return true;
   }
@@ -1463,6 +1608,11 @@ function beginOperatorNameEdit(
         )
       : "");
   contextMenu.value = undefined;
+  if (openPicker) {
+    openOperatorPicker(nextSlot);
+  } else {
+    closeOperatorPicker();
+  }
   void focusSlotNameInput(initialValue === undefined);
   return true;
 }
@@ -1891,6 +2041,21 @@ function commitOperatorName(
   return updated;
 }
 
+function selectOperatorPickerCandidate(candidate: Operator): void {
+  const picker = operatorPicker.value;
+  if (!picker || editingOperatorSlot.value?.key !== picker.key) {
+    closeOperatorPicker();
+    return;
+  }
+  draftOperatorNames.value[picker.key] = candidate.name;
+  commitOperatorName(
+    picker.planIndex,
+    picker.type,
+    picker.position,
+    picker.slotIndex,
+  );
+}
+
 function showOperatorMessage(message: string): void {
   errorMessage.value = "";
   successMessage.value = message;
@@ -2087,10 +2252,13 @@ function selectOperatorSlot(
     suppressNextOperatorClick.value = false;
     return;
   }
+  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
+  const shouldSwitchPicker =
+    operatorPicker.value !== undefined &&
+    operatorPicker.value.key !== address.key;
   if (!commitPendingOperatorNameEdit()) {
     return;
   }
-  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
   const nextSelection = new Set(selectedOperatorSlots.value);
   const anchor = operatorSelectionAnchor.value;
   if (
@@ -2129,6 +2297,16 @@ function selectOperatorSlot(
   resetOperatorSelectAllCycle();
   selectedOperatorSlots.value = nextSelection;
   operatorSelectionAnchor.value = address;
+  if (shouldSwitchPicker) {
+    beginOperatorNameEdit(
+      planIndex,
+      type,
+      position,
+      slotIndex,
+      undefined,
+      true,
+    );
+  }
 }
 
 function operatorNameInputFromTarget(
@@ -3293,6 +3471,114 @@ function operatorByName(name: string): Operator | undefined {
   return operators.value.find((operator) => operator.name === name);
 }
 
+function operatorHasFacilitySkill(operator: Operator, type: RoomKey): boolean {
+  const skillFile =
+    efficiencyCatalog.value?.operators[operator.name]?.skillFile;
+  if (skillFile) {
+    return skillFile.chains.some(
+      (chain) =>
+        chain.room === type ||
+        chain.stages.some((stage) =>
+          stage.effects.some(
+            (effect) =>
+              effect.target === type ||
+              (effect.target === "any" &&
+                (!effect.facilities?.length ||
+                  effect.facilities.includes(type))),
+          ),
+        ),
+    );
+  }
+  return operator.skills.some(
+    (skill) => skill.facility === ROOM_LABELS[type] || skill.facility === type,
+  );
+}
+
+function compareOperatorPickerCandidates(
+  left: OperatorPickerCandidate,
+  right: OperatorPickerCandidate,
+): number {
+  const leftOrder = left.operator.implementationOrder;
+  const rightOrder = right.operator.implementationOrder;
+  if (leftOrder === undefined || rightOrder === undefined) {
+    if (leftOrder === undefined && rightOrder === undefined) {
+      return left.index - right.index;
+    }
+    return leftOrder === undefined ? -1 : 1;
+  }
+  return rightOrder - leftOrder || left.index - right.index;
+}
+
+function warnFacilityOperatorOverride(message: string): void {
+  if (import.meta.env.DEV) {
+    console.warn(`[facility-operator-overrides] ${message}`);
+  }
+}
+
+function validateFacilityOperatorOverrides(): void {
+  if (operators.value.length === 0) {
+    return;
+  }
+  const availableIds = new Set(operators.value.map((operator) => operator.id));
+  Object.entries(facilityOperatorOverrides.value).forEach(([, ids]) => {
+    (ids ?? []).forEach((id) => {
+      if (!availableIds.has(id) && !warnedFacilityOperatorOverrideIds.has(id)) {
+        warnFacilityOperatorOverride(`未知干员 ID：${id}`);
+        warnedFacilityOperatorOverrideIds.add(id);
+      }
+    });
+  });
+}
+
+async function loadFacilityOperatorOverrides(): Promise<void> {
+  try {
+    const response = await fetch(
+      `${import.meta.env.BASE_URL}assets/facility-operator-overrides.json`,
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const parsed: unknown = await response.json();
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      throw new Error("根节点必须是对象");
+    }
+
+    const overrides: Partial<Record<RoomKey, string[]>> = {};
+    Object.entries(parsed as Record<string, unknown>).forEach(
+      ([type, value]) => {
+        if (!ROOM_ORDER.includes(type as RoomKey)) {
+          warnFacilityOperatorOverride(`未知设施：${type}`);
+          return;
+        }
+        if (!Array.isArray(value)) {
+          warnFacilityOperatorOverride(`${type} 的干员列表必须是数组`);
+          return;
+        }
+        const ids = value.filter((id): id is string => {
+          if (typeof id === "string" && id.trim()) {
+            return true;
+          }
+          warnFacilityOperatorOverride(`${type} 中存在无效干员 ID`);
+          return false;
+        });
+        if (ids.length > 0) {
+          overrides[type as RoomKey] = [...new Set(ids)];
+        }
+      },
+    );
+    facilityOperatorOverrides.value = overrides;
+    validateFacilityOperatorOverrides();
+  } catch (error: unknown) {
+    warnFacilityOperatorOverride(
+      `读取人工覆盖文件失败：${error instanceof Error ? error.message : "未知错误"}`,
+    );
+  }
+}
+
 function operatorState(
   room: RoomAssignment | undefined,
   name: string,
@@ -3630,6 +3916,20 @@ function handleWindowClick(event: MouseEvent): void {
   if (target instanceof Element && target.closest(".simulator-context-menu")) {
     return;
   }
+  const pickerElement =
+    target instanceof Element
+      ? target.closest(".simulator-operator-picker")
+      : undefined;
+  if (pickerElement) {
+    return;
+  }
+  const slotElement =
+    target instanceof Element
+      ? target.closest<HTMLElement>(".simulator-slot[data-key]")
+      : undefined;
+  if (slotElement?.dataset.key === operatorPicker.value?.key) {
+    return;
+  }
   if (suppressNextOperatorClick.value) {
     suppressNextOperatorClick.value = false;
     closeContextMenu();
@@ -3637,6 +3937,10 @@ function handleWindowClick(event: MouseEvent): void {
   }
   if (!(target instanceof Element) || !target.closest(".simulator-slot")) {
     clearOperatorSelection();
+  }
+  if (operatorPicker.value) {
+    commitPendingOperatorNameEdit();
+    closeOperatorPicker();
   }
   closeContextMenu();
 }
@@ -3647,10 +3951,12 @@ function handleWindowWheel() {
 
 function handleWindowScroll() {
   closeContextMenu();
+  void updateOperatorPickerPosition();
 }
 
 function handleWindowResize() {
   closeContextMenu();
+  void updateOperatorPickerPosition();
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
@@ -3684,6 +3990,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
   if (event.key === "Escape") {
     clearOperatorClipboard();
     resetOperatorSelectAllCycle();
+    closeOperatorPicker();
     closeContextMenu();
     return;
   }
@@ -3871,6 +4178,7 @@ function isStoredDocument(document: StoredDocument): boolean {
 watch(activeDocumentId, () => {
   draftOperatorNames.value = {};
   editingOperatorSlot.value = undefined;
+  closeOperatorPicker();
   clearOperatorSelection();
   hoveredOperatorSlot.value = undefined;
   clearOperatorClipboard();
@@ -3901,7 +4209,17 @@ watch(
   { immediate: true },
 );
 
+watch(operators, validateFacilityOperatorOverrides);
+
+watch(
+  () => operatorPickerCandidates.value.length,
+  () => {
+    void updateOperatorPickerPosition();
+  },
+);
+
 onMounted(() => {
+  void loadFacilityOperatorOverrides();
   window.addEventListener("click", handleWindowClick);
   window.addEventListener("keydown", handleWindowKeydown, true);
   window.addEventListener("pointermove", handleOperatorGridPointerMove, true);
@@ -3944,6 +4262,7 @@ onBeforeUnmount(() => {
   if (operatorPasteHighlightTimer !== undefined) {
     clearTimeout(operatorPasteHighlightTimer);
   }
+  closeOperatorPicker();
 });
 </script>
 
@@ -4570,6 +4889,8 @@ onBeforeUnmount(() => {
                               row.type,
                               slot.entry.position,
                               slot.slotIndex,
+                              undefined,
+                              true,
                             )
                           "
                         />
@@ -4592,6 +4913,8 @@ onBeforeUnmount(() => {
                                 row.type,
                                 slot.entry.position,
                                 slot.slotIndex,
+                                undefined,
+                                true,
                               )
                             "
                             @contextmenu.stop.prevent="
@@ -4641,6 +4964,8 @@ onBeforeUnmount(() => {
                                 row.type,
                                 slot.entry.position,
                                 slot.slotIndex,
+                                undefined,
+                                true,
                               )
                             "
                             @contextmenu.stop.prevent="
@@ -4761,6 +5086,74 @@ onBeforeUnmount(() => {
             class="simulator-operator-drag-preview-count"
             >×{{ operatorDragPreview.count }}</span
           >
+        </div>
+
+        <div
+          v-if="operatorPicker"
+          ref="operatorPickerElement"
+          :class="[
+            'simulator-operator-picker',
+            `simulator-operator-picker--${operatorPicker.side}`,
+          ]"
+          :style="[operatorPickerStyle, slotGridStyle]"
+          @click.stop
+        >
+          <div class="simulator-operator-picker-heading">
+            <span>{{ ROOM_LABELS[operatorPicker.type] }}</span>
+            <span>{{ operatorPickerCandidates.length }}</span>
+          </div>
+          <div
+            v-if="operatorPickerCandidates.length"
+            class="simulator-operator-picker-list"
+          >
+            <button
+              v-for="candidate in operatorPickerCandidates"
+              :key="candidate.operator.id"
+              :aria-label="`选择${candidate.operator.name}`"
+              :title="candidate.operator.name"
+              class="simulator-operator-picker-item"
+              type="button"
+              @click="selectOperatorPickerCandidate(candidate.operator)"
+              @mousedown.prevent
+            >
+              <OperatorAvatarDisplay
+                :data-source="selectedDataSource"
+                :display-name="candidate.operator.name"
+                :elite-level="
+                  operatorElite(
+                    operatorPickerRoom,
+                    candidate.operator.name,
+                    operatorPicker.type,
+                  )
+                "
+                :operator="candidate.operator"
+                :operator-owned="
+                  operatorOwned(operatorPickerRoom, candidate.operator.name)
+                "
+                :operator-training-upgraded="
+                  operatorTrainingUpgraded(
+                    operatorPickerRoom,
+                    candidate.operator.name,
+                    operatorPicker.type,
+                  )
+                "
+                :plain="true"
+                :proportional-layout="true"
+                :show-elite-level="true"
+                :show-name="true"
+                :show-profession="true"
+                :show-rarity="true"
+                :size="simulatorSlotSize"
+                :skipped="roomSkipped(operatorPickerRoom)"
+              />
+            </button>
+          </div>
+          <a-empty
+            v-else
+            :image="undefined"
+            class="simulator-operator-picker-empty"
+            description="无匹配干员"
+          />
         </div>
 
         <div
