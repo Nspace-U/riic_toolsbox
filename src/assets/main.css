@@ -1921,6 +1921,22 @@ a {
   gap: 0;
 }
 
+.simulator-slot--selected {
+  z-index: 1;
+}
+
+.simulator-slot--clipboard {
+  z-index: 2;
+}
+
+.simulator-slot--hovered {
+  z-index: 3;
+}
+
+.simulator-slot--drag-target {
+  z-index: 4;
+}
+
 .simulator-slot--selected::before {
   position: absolute;
   inset-block: 0;
