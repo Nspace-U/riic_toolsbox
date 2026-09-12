@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
 
 import type { EliteLevel, Operator } from "@/types/baseData";
 import { getOperatorAvatarLayerSources } from "@/utils/operatorAvatar";
+import { getOperatorAvatarOverlay } from "@/utils/operatorAvatarOverlay";
 import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameFontSizeForWidth,
@@ -66,6 +67,14 @@ const sources = computed(() =>
     props.operator,
     props.dataSource,
     props.eliteLevel,
+  ),
+);
+
+const overlay = computed(() =>
+  getOperatorAvatarOverlay(
+    props.operatorOwned,
+    props.operatorTrainingUpgraded,
+    props.moodScattered,
   ),
 );
 
@@ -291,12 +300,18 @@ onMounted(updateNameFontSize);
       >
         {{ fallbackName }}
       </a-avatar>
-      <span v-if="!operatorOwned" class="operator-avatar-unowned-overlay" />
       <span
-        v-if="operatorTrainingUpgraded"
+        v-if="overlay === 'unowned'"
+        class="operator-avatar-unowned-overlay"
+      />
+      <span
+        v-else-if="overlay === 'training'"
         class="operator-avatar-training-overlay"
       />
-      <span v-if="moodScattered" class="operator-avatar-mood-overlay" />
+      <span
+        v-else-if="overlay === 'mood'"
+        class="operator-avatar-mood-overlay"
+      />
       <img
         v-if="showProfession && sources.professionIconUrl"
         :alt="`${operator.profession}职业`"

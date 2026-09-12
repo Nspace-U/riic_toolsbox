@@ -4886,6 +4886,12 @@ onBeforeUnmount(() => {
                               slotCommittedName(row, plan, slot),
                             )
                           "
+                          :mood-scattered="
+                            operatorMoodScattered(
+                              slotRoom(plan, slot),
+                              slotCommittedName(row, plan, slot),
+                            )
+                          "
                           :operator-training-upgraded="
                             operatorTrainingUpgraded(
                               slotRoom(plan, slot),

@@ -7,6 +7,7 @@ import {
   OPERATOR_AVATAR_LAYOUT,
   type OperatorAvatarNameMetrics,
 } from "@/utils/operatorAvatarLayout";
+import { getOperatorAvatarOverlay } from "@/utils/operatorAvatarOverlay";
 
 export interface OperatorAvatarGenerationOptions {
   imageUrl: string;
@@ -185,17 +186,19 @@ export async function generateOperatorAvatar(
   const context = source.context;
   context.drawImage(image, 0, 0);
 
-  if (!options.operatorOwned) {
+  const overlay = getOperatorAvatarOverlay(
+    options.operatorOwned,
+    options.operatorTrainingUpgraded,
+    options.moodScattered,
+  );
+
+  if (overlay === "unowned") {
     context.fillStyle = "rgba(128, 128, 128, 0.5)";
     context.fillRect(0, 0, sourceWidth, sourceHeight);
-  }
-
-  if (options.operatorTrainingUpgraded) {
+  } else if (overlay === "training") {
     context.fillStyle = "rgba(0, 255, 0, 0.5)";
     context.fillRect(0, 0, sourceWidth, sourceHeight);
-  }
-
-  if (options.moodScattered) {
+  } else if (overlay === "mood") {
     context.fillStyle = "rgba(255, 0, 0, 0.5)";
     context.fillRect(0, 0, sourceWidth, sourceHeight);
   }
