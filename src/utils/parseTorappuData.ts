@@ -136,9 +136,23 @@ function extractTermReferences(
   return [...references.values()];
 }
 
+function extractListedOperatorNames(description: string | undefined): string[] {
+  const lines = String(description ?? "").split(/\r?\n/);
+  if (lines[0]?.trim() !== "包含以下干员") {
+    return [];
+  }
+  return lines
+    .slice(1)
+    .join("")
+    .split(/[、,，]/)
+    .map((member) => member.trim())
+    .filter(Boolean);
+}
+
 function extractOperatorTerms(
   skills: OperatorSkill[],
   terms: Record<string, TorappuTermDescription>,
+  operatorName: string,
 ): SkillTermReference[] {
   const references = new Map<string, SkillTermReference>();
   skills
@@ -149,6 +163,15 @@ function extractOperatorTerms(
         name: terms[reference.key]?.termName ?? reference.name,
       });
     });
+  Object.entries(terms).forEach(([key, term]) => {
+    if (!extractListedOperatorNames(term.description).includes(operatorName)) {
+      return;
+    }
+    references.set(key, {
+      key,
+      name: term.termName ?? key,
+    });
+  });
   return [...references.values()];
 }
 
@@ -295,7 +318,7 @@ export function parseTorappuData(
       branch: character.branch ?? character.subProfessionId ?? "",
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
-      termReferences: extractOperatorTerms(skills, terms),
+      termReferences: extractOperatorTerms(skills, terms, character.name),
       skills,
     });
   }
