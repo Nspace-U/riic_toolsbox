@@ -374,7 +374,7 @@ const operatorClipboard = ref<OperatorClipboard>();
 const operatorPasteHighlightKeys = ref<Set<string>>(new Set());
 const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
-  "修改数字后将自动应用；第 5 行依次为会客室、加工站、办公室、训练室，0 表示不建造，缺少前置设施时会自动补建。";
+  "修改数字后自动应用；第 1 行为空格分隔的贸易站、制造站，第 2 行前 4 位依次为会客室、加工站、办公室、训练室，宿舍与其用空格分隔，0 表示不建造";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let catalogRequestVersion = 0;
@@ -764,21 +764,21 @@ function layoutEntryLevelMax(type: RoomKey): number {
 }
 
 function layoutTextFor(layout: LayoutEntry[]): string {
-  return LAYOUT_INPUT_ROWS.map((types) => {
-    if (types.length === 1) {
-      return layout
-        .filter((entry) => entry.type === types[0])
-        .map((entry) => entry.level)
-        .join("");
-    }
-
-    return types
-      .map(
-        (type) =>
-          layout.find((entry) => entry.type === type)?.level.toString() ?? "0",
-      )
+  function levelsFor(type: RoomKey): string {
+    const levels = layout
+      .filter((entry) => entry.type === type)
+      .map((entry) => entry.level)
       .join("");
-  }).join("\n");
+    return levels || "0";
+  }
+
+  const coreTypes = LAYOUT_INPUT_ROWS[0] ?? [];
+  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 4) ?? [];
+  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[4];
+  return [
+    coreTypes.map((type) => levelsFor(type)).join(" "),
+    `${functionalTypes.map((type) => levelsFor(type)).join("")} ${dormitoryType ? levelsFor(dormitoryType) : "0"}`,
+  ].join("\n");
 }
 
 function layoutFacilityStyle(type: RoomKey): Record<string, string> {
@@ -3579,14 +3579,14 @@ onBeforeUnmount(() => {
             <div class="simulator-layout-add-heading">
               <span class="simulator-summary-label">按数字批量设置</span>
               <span class="simulator-layout-add-hint"
-                >六行分别表示各类设施等级</span
+                >每行按固定顺序填写设施等级</span
               >
             </div>
             <a-textarea
               v-model:value="layoutText"
-              :auto-size="{ minRows: 6, maxRows: 6 }"
+              :auto-size="{ minRows: 2, maxRows: 2 }"
               class="simulator-layout-text-input"
-              placeholder="5\n32\n33222\n33\n3333\n2111"
+              placeholder="33 33222\n1313 2111"
             />
             <div class="simulator-layout-text-footer">
               <span>{{ layoutTextHint }}</span>

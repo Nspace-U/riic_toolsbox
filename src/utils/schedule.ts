@@ -52,12 +52,8 @@ export const LAYOUT_TEXT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
 ];
 
 export const LAYOUT_INPUT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
-  ["control"],
-  ["trading"],
-  ["manufacture"],
-  ["power"],
-  ["meeting", "processing", "hire", "training"],
-  ["dormitory"],
+  ["trading", "manufacture"],
+  ["meeting", "processing", "hire", "training", "dormitory"],
 ];
 
 export function orderedLayoutEntries<T extends LayoutEntry>(
@@ -237,79 +233,39 @@ export function normalizeLayoutLevels(
 }
 
 export function parseLayoutText(text: string): LayoutEntry[] {
-  const normalizedText = text.replace(/\r\n?/g, "\n").trimEnd();
-  if (!normalizedText.trim()) {
+  const normalizedText = text.replace(/\r\n?/g, "\n").trim();
+  if (!normalizedText) {
     throw new ScheduleError("布局输入不能为空");
   }
 
   const rawLines = normalizedText.split("\n");
-  if (rawLines.length > LAYOUT_INPUT_ROWS.length) {
-    throw new ScheduleError("布局输入最多需要 6 行");
+  if (rawLines.length !== LAYOUT_INPUT_ROWS.length) {
+    throw new ScheduleError("布局输入必须为 2 行");
   }
 
-  const lines = [
-    ...rawLines,
-    ...Array.from(
-      { length: LAYOUT_INPUT_ROWS.length - rawLines.length },
-      () => "",
-    ),
-  ];
-  const layout: LayoutEntry[] = [];
+  const rowTokens = rawLines.map((rawLine) => rawLine.trim().split(/\s+/));
+  if (rowTokens.some((tokens) => tokens.length !== 2)) {
+    throw new ScheduleError("每行必须由两个数字段组成，并使用空格分隔");
+  }
 
-  lines.forEach((rawLine, rowIndex) => {
-    const line = rawLine.replace(/\s/g, "");
-    const rowTypes = LAYOUT_INPUT_ROWS[rowIndex] ?? [];
-    if (!line) {
+  const layout: LayoutEntry[] = [{ type: "control", level: 5 }];
+  const coreTypes = LAYOUT_INPUT_ROWS[0] ?? [];
+  coreTypes.forEach((type, typeIndex) => {
+    const token = rowTokens[0]?.[typeIndex] ?? "";
+    if (token === "0") {
       return;
     }
-
-    if (rowIndex === 4) {
-      if (line.length > rowTypes.length) {
-        throw new ScheduleError(
-          `第 ${rowIndex + 1} 行最多填写 ${rowTypes.length} 个数字`,
-        );
-      }
-      [...line].forEach((character, typeIndex) => {
-        if (character === "0") {
-          return;
-        }
-        const type = rowTypes[typeIndex];
-        if (!type || !/^\d$/.test(character)) {
-          throw new ScheduleError(
-            `第 ${rowIndex + 1} 行第 ${typeIndex + 1} 个位置必须是 0 到 3 的数字`,
-          );
-        }
-        const level = Number(character);
-        const range = roomLevelRange(type);
-        if (level < range.min || level > range.max) {
-          throw new ScheduleError(
-            `${ROOM_LABELS[type]}等级必须在 ${range.min} 到 ${range.max} 之间`,
-          );
-        }
-        layout.push({ type, level });
-      });
-      return;
-    }
-
-    if (rowIndex === 0 && line.length !== 1) {
-      throw new ScheduleError("第 1 行只能填写 1 个控制中枢等级");
-    }
-    const type = rowTypes[0];
-    if (!type) {
-      return;
-    }
-    if (line.length > ROOM_LIMITS[type]) {
+    if (!/^\d+$/.test(token) || token.includes("0")) {
       throw new ScheduleError(
-        `第 ${rowIndex + 1} 行最多填写 ${ROOM_LIMITS[type]} 个数字`,
+        `${ROOM_LABELS[type]}只能使用 0 表示不建造，或填写连续的设施等级数字`,
       );
     }
-
-    [...line].forEach((character) => {
-      if (!/^\d$/.test(character) || character === "0") {
-        throw new ScheduleError(
-          `第 ${rowIndex + 1} 行必须填写 ${roomLevelRange(type).min} 到 ${roomLevelRange(type).max} 的设施等级数字`,
-        );
-      }
+    if (token.length > ROOM_LIMITS[type]) {
+      throw new ScheduleError(
+        `${ROOM_LABELS[type]}最多填写 ${ROOM_LIMITS[type]} 个设施等级数字`,
+      );
+    }
+    [...token].forEach((character) => {
       const level = Number(character);
       const range = roomLevelRange(type);
       if (level < range.min || level > range.max) {
@@ -321,9 +277,75 @@ export function parseLayoutText(text: string): LayoutEntry[] {
     });
   });
 
-  if (!layout.some((entry) => entry.type === "control")) {
-    throw new ScheduleError("第 1 行必须填写控制中枢等级");
+  const powerCount =
+    9 -
+    layout.filter((entry) => entry.type === "trading").length -
+    layout.filter((entry) => entry.type === "manufacture").length;
+  if (powerCount < 0 || powerCount > ROOM_LIMITS.power) {
+    throw new ScheduleError(
+      "贸易站、制造站和发电站的总数必须为 9，且发电站最多 3 个",
+    );
   }
+  layout.push(
+    ...Array.from({ length: powerCount }, () => ({
+      type: "power" as const,
+      level: 3,
+    })),
+  );
+
+  const functionalToken = rowTokens[1]?.[0] ?? "";
+  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 4) ?? [];
+  if (!/^\d{4}$/.test(functionalToken)) {
+    throw new ScheduleError(
+      "第 2 行第 1 段必须按会客室、加工站、办公室、训练室填写 4 位数字",
+    );
+  }
+  [...functionalToken].forEach((character, typeIndex) => {
+    if (character === "0") {
+      return;
+    }
+    const type = functionalTypes[typeIndex];
+    if (!type) {
+      throw new ScheduleError("第 2 行功能设施顺序无效");
+    }
+    const level = Number(character);
+    const range = roomLevelRange(type);
+    if (level < range.min || level > range.max) {
+      throw new ScheduleError(
+        `${ROOM_LABELS[type]}等级必须在 ${range.min} 到 ${range.max} 之间`,
+      );
+    }
+    layout.push({ type, level });
+  });
+
+  const dormitoryToken = rowTokens[1]?.[1] ?? "";
+  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[4];
+  if (!dormitoryType) {
+    throw new ScheduleError("宿舍输入配置无效");
+  }
+  if (dormitoryToken !== "0") {
+    if (!/^\d+$/.test(dormitoryToken)) {
+      throw new ScheduleError(
+        "宿舍只能使用 0 表示不建造，或填写连续的设施等级数字",
+      );
+    }
+    if (dormitoryToken.length > ROOM_LIMITS[dormitoryType]) {
+      throw new ScheduleError(
+        `宿舍最多填写 ${ROOM_LIMITS[dormitoryType]} 个设施等级数字`,
+      );
+    }
+    [...dormitoryToken].forEach((character) => {
+      const level = Number(character);
+      const range = roomLevelRange(dormitoryType);
+      if (level < range.min || level > range.max) {
+        throw new ScheduleError(
+          `${ROOM_LABELS[dormitoryType]}等级必须在 ${range.min} 到 ${range.max} 之间`,
+        );
+      }
+      layout.push({ type: dormitoryType, level });
+    });
+  }
+
   return layout;
 }
 
