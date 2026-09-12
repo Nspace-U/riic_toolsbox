@@ -84,6 +84,7 @@ import {
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
 import {
+  nodesForOperator,
   progressionNodesForFacility,
   resolveOperatorProgression,
 } from "@/utils/operatorProgression";
@@ -3475,18 +3476,8 @@ function operatorHasFacilitySkill(operator: Operator, type: RoomKey): boolean {
   const skillFile =
     efficiencyCatalog.value?.operators[operator.name]?.skillFile;
   if (skillFile) {
-    return skillFile.chains.some(
-      (chain) =>
-        chain.room === type ||
-        chain.stages.some((stage) =>
-          stage.effects.some(
-            (effect) =>
-              effect.target === type ||
-              (effect.target === "any" &&
-                (!effect.facilities?.length ||
-                  effect.facilities.includes(type))),
-          ),
-        ),
+    return nodesForOperator(skillFile).some((node) =>
+      node.facilities.includes(type),
     );
   }
   return operator.skills.some(
