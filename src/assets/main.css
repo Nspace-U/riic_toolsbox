@@ -1581,6 +1581,25 @@ a {
   background: #f6f9f8;
 }
 
+.simulator-queue-card .ant-card-head-wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.simulator-queue-card .ant-card-head-title {
+  grid-column: 2;
+  min-width: 0;
+  overflow: visible;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.simulator-queue-card .ant-card-extra {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .simulator-queue-card .ant-card-body,
 .simulator-facility-card .ant-card-body {
   padding: 0;
@@ -1724,6 +1743,31 @@ a {
 
 .simulator-queue-info-readonly .simulator-queue-description {
   color: #526164;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.simulator-queue-info-readonly .simulator-queue-entry-title,
+.simulator-queue-info-readonly .simulator-queue-duration,
+.simulator-queue-info-readonly .simulator-queue-description {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+}
+
+.simulator-queue-column-readonly .simulator-queue-entries {
+  grid-template-columns: minmax(0, 1fr);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.simulator-queue-column-readonly .simulator-queue-info,
+.simulator-queue-column-readonly .simulator-queue-info-main {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.simulator-queue-column-readonly .simulator-queue-info-main {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .simulator-queue-info-actions {
@@ -1763,6 +1807,12 @@ a {
 .simulator-facility-grid > .ant-col.simulator-queue-column {
   flex: 0 0 220px;
   max-width: 220px;
+}
+
+.simulator-facility-grid > .ant-col.simulator-queue-column-readonly {
+  flex: 0 0 auto;
+  inline-size: max-content;
+  max-inline-size: 220px;
 }
 
 .simulator-facility-card .ant-card-head-title {

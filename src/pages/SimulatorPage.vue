@@ -4258,7 +4258,15 @@ onBeforeUnmount(() => {
           @dragstart.prevent
           @pointerdown="handleOperatorGridPointerDown"
         >
-          <a-col class="simulator-queue-column" flex="0 0 220px">
+          <a-col
+            :class="[
+              'simulator-queue-column',
+              {
+                'simulator-queue-column-readonly':
+                  !currentSimulatorEditSettings.queue,
+              },
+            ]"
+          >
             <a-card
               :bordered="false"
               class="simulator-column-card simulator-queue-card"
