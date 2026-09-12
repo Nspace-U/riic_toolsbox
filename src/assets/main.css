@@ -1873,7 +1873,8 @@ a {
 
 .simulator-slot--selected::before {
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  inset-inline: -1px;
   z-index: 5;
   pointer-events: none;
   content: "";
@@ -1882,17 +1883,18 @@ a {
 
 .simulator-slot--hovered::before {
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  inset-inline: -1px;
   z-index: 10;
   pointer-events: none;
   content: "";
   border: 2px solid #d28b2c;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 78%);
 }
 
 .simulator-slot--clipboard::after {
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  inset-inline: -1px;
   z-index: 8;
   pointer-events: none;
   content: "";
@@ -1910,20 +1912,47 @@ a {
 
 .simulator-slot--drag-target::before {
   position: absolute;
-  inset: 0;
+  inset-block: 0;
+  inset-inline: -1px;
   z-index: 11;
   pointer-events: none;
   content: "";
   border: 2px dashed #2f7f59;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 78%);
 }
 
 .simulator-selection-marquee {
   position: fixed;
   z-index: 1200;
+  box-sizing: border-box;
   pointer-events: none;
   background: rgb(33 106 102 / 10%);
   border: 1px solid #216a66;
+}
+
+.simulator-operator-drag-preview {
+  position: fixed;
+  z-index: 1300;
+  pointer-events: none;
+  opacity: 0.78;
+  transform: translate(-50%, -50%);
+}
+
+.simulator-operator-drag-preview-count {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -8px;
+  display: grid;
+  min-width: 24px;
+  height: 24px;
+  padding-inline: 4px;
+  color: #ffffff;
+  background: #216a66;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  place-items: center;
 }
 
 .simulator-slot--paste-highlight {

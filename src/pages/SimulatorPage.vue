@@ -408,11 +408,63 @@ const operatorSelectionMarqueeStyle = computed<Record<string, string>>(() => {
   if (!interaction || interaction.mode !== "box") {
     return {} as Record<string, string>;
   }
+  const left = Math.min(interaction.startX, interaction.currentX);
+  const top = Math.min(interaction.startY, interaction.currentY);
   return {
-    insetInlineStart: `${Math.min(interaction.startX, interaction.currentX)}px`,
-    insetBlockStart: `${Math.min(interaction.startY, interaction.currentY)}px`,
-    width: `${Math.abs(interaction.currentX - interaction.startX)}px`,
-    height: `${Math.abs(interaction.currentY - interaction.startY)}px`,
+    insetInlineStart: `${left - 1}px`,
+    insetBlockStart: `${top - 1}px`,
+    width: `${Math.abs(interaction.currentX - interaction.startX) + 2}px`,
+    height: `${Math.abs(interaction.currentY - interaction.startY) + 2}px`,
+  };
+});
+
+function operatorDragPreviewData():
+  | {
+      count: number;
+      name: string;
+      operator: Operator;
+      room: RoomAssignment | undefined;
+      type: RoomKey;
+    }
+  | undefined {
+  const interaction = operatorPointerInteraction.value;
+  const document = currentDocument.value;
+  if (!interaction || interaction.mode !== "move" || !document) {
+    return undefined;
+  }
+  const entries = interaction.sourceAddresses.flatMap((address) => {
+    const plan = document.plans[address.planIndex];
+    const name = plan
+      ? operatorNameAt(plan, address.type, address.position, address.slotIndex)
+      : "";
+    const operator = operatorByName(name);
+    if (!plan || !name || !operator) {
+      return [];
+    }
+    return [
+      {
+        count: 0,
+        name,
+        operator,
+        room: roomAt(plan, address.type, address.position),
+        type: address.type,
+      },
+    ];
+  });
+  const first = entries[0];
+  return first ? { ...first, count: entries.length } : undefined;
+}
+
+const operatorDragPreview = computed(operatorDragPreviewData);
+
+const operatorDragPreviewStyle = computed<Record<string, string>>(() => {
+  const interaction = operatorPointerInteraction.value;
+  if (!interaction || interaction.mode !== "move") {
+    return {} as Record<string, string>;
+  }
+  return {
+    insetInlineStart: `${interaction.currentX}px`,
+    insetBlockStart: `${interaction.currentY}px`,
   };
 });
 
@@ -4660,6 +4712,48 @@ onBeforeUnmount(() => {
             class="simulator-selection-marquee"
           />
         </a-row>
+
+        <div
+          v-if="operatorDragPreview"
+          :style="operatorDragPreviewStyle"
+          class="simulator-operator-drag-preview"
+        >
+          <OperatorAvatarDisplay
+            :data-source="selectedDataSource"
+            :display-name="operatorDragPreview.name"
+            :elite-level="
+              operatorElite(
+                operatorDragPreview.room,
+                operatorDragPreview.name,
+                operatorDragPreview.type,
+              )
+            "
+            :operator="operatorDragPreview.operator"
+            :operator-owned="
+              operatorOwned(operatorDragPreview.room, operatorDragPreview.name)
+            "
+            :operator-training-upgraded="
+              operatorTrainingUpgraded(
+                operatorDragPreview.room,
+                operatorDragPreview.name,
+                operatorDragPreview.type,
+              )
+            "
+            :show-elite-level="true"
+            :show-name="true"
+            :show-profession="true"
+            :show-rarity="true"
+            :plain="true"
+            :proportional-layout="true"
+            :size="simulatorSlotSize"
+            :skipped="roomSkipped(operatorDragPreview.room)"
+          />
+          <span
+            v-if="operatorDragPreview.count > 1"
+            class="simulator-operator-drag-preview-count"
+            >×{{ operatorDragPreview.count }}</span
+          >
+        </div>
 
         <div
           v-if="contextMenu"
