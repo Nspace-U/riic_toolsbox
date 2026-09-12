@@ -28,6 +28,7 @@ import {
 } from "@/composables/useFacilityColors";
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
+import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
 import type { EliteLevel, Operator } from "@/types/baseData";
@@ -88,6 +89,7 @@ import {
   progressionNodesForFacility,
   resolveOperatorProgression,
 } from "@/utils/operatorProgression";
+import { sortProfessionValues } from "@/utils/operatorOrdering";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -158,7 +160,7 @@ interface OperatorPickerCandidate {
 }
 
 interface OperatorPickerState extends OperatorSlotAddress {
-  side: "left" | "right" | "below";
+  side: "left" | "right";
 }
 
 interface LayoutDisplayRow {
@@ -275,6 +277,7 @@ const { facilityCardSettings, facilityCardIconScale } =
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
 const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
+const { operatorPickerColumns } = useOperatorPickerSettings();
 
 const simulatorSlotSize = computed(
   () => avatarDisplaySizes.value.simulatorSlot,
@@ -282,6 +285,10 @@ const simulatorSlotSize = computed(
 
 const slotGridStyle = computed(() => ({
   "--simulator-slot-size": `${simulatorSlotSize.value}px`,
+}));
+
+const operatorPickerGridStyle = computed(() => ({
+  "--simulator-operator-picker-columns": `${operatorPickerColumns.value}`,
 }));
 
 const slotNameBandHeight = computed(
@@ -533,11 +540,23 @@ const operatorPickerRoom = computed(() => {
     : undefined;
 });
 
+const selectedOperatorPickerProfession = ref("");
+const operatorPickerShowAll = ref(false);
+
+const operatorPickerProfessionOptions = computed(() =>
+  sortProfessionValues(
+    operators.value.map((operator) => operator.profession).filter(Boolean),
+  ),
+);
+
 const operatorPickerQuery = computed(() => {
   const picker = operatorPicker.value;
   const document = currentDocument.value;
   const plan = document?.plans[picker?.planIndex ?? -1];
   if (!picker || !plan) {
+    return "";
+  }
+  if (operatorPickerShowAll.value) {
     return "";
   }
   return operatorDraftValue(
@@ -560,12 +579,14 @@ const operatorPickerCandidates = computed<OperatorPickerCandidate[]>(() => {
     facilityOperatorOverrides.value[picker.type] ?? [],
   );
   const query = operatorPickerQuery.value;
+  const profession = selectedOperatorPickerProfession.value;
   return operators.value
     .map((operator, index) => ({ operator, index }))
     .filter(
       ({ operator }) =>
         (operatorHasFacilitySkill(operator, picker.type) ||
           overrideIds.has(operator.id)) &&
+        (!profession || operator.profession === profession) &&
         (!query || operator.name.toLocaleLowerCase().includes(query)),
     )
     .sort(compareOperatorPickerCandidates);
@@ -1458,6 +1479,7 @@ function handleOperatorDraft(
   draftOperatorNames.value[
     operatorSlotKey(planIndex, type, position, slotIndex)
   ] = value;
+  operatorPickerShowAll.value = false;
 }
 
 function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
@@ -1477,9 +1499,30 @@ function handleOperatorNameInput(
   }
 }
 
+function updateOperatorPickerSelection(input: HTMLInputElement): void {
+  const picker = operatorPicker.value;
+  if (!picker || picker.key !== editingOperatorSlot.value?.key) {
+    operatorPickerShowAll.value = false;
+    return;
+  }
+  operatorPickerShowAll.value =
+    input.value.length > 0 &&
+    input.selectionStart === 0 &&
+    input.selectionEnd === input.value.length;
+}
+
+function handleOperatorNameSelection(event: Event): void {
+  const input = event.target;
+  if (input instanceof HTMLInputElement) {
+    updateOperatorPickerSelection(input);
+  }
+}
+
 function closeOperatorPicker(): void {
   operatorPicker.value = undefined;
   operatorPickerStyle.value = {};
+  operatorPickerShowAll.value = false;
+  selectedOperatorPickerProfession.value = "";
 }
 
 function operatorPickerSlotElement(key: string): HTMLElement | undefined {
@@ -1512,34 +1555,25 @@ async function updateOperatorPickerPosition(): Promise<void> {
   const panelHeight = currentElement.offsetHeight;
   const padding = 8;
   const maxTop = Math.max(padding, window.innerHeight - panelHeight - padding);
-  const narrow = window.innerWidth <= 600;
-  let side: OperatorPickerState["side"] = "below";
-  let left = Math.min(
-    Math.max(padding, slotRect.left),
-    Math.max(padding, window.innerWidth - panelWidth - padding),
+  const rightLeft = slotRect.right + padding;
+  const leftLeft = slotRect.left - panelWidth - padding;
+  const rightSpace = window.innerWidth - slotRect.right - padding;
+  const leftSpace = slotRect.left - padding;
+  const rightFits = rightSpace >= panelWidth;
+  const leftFits = leftSpace >= panelWidth;
+  const side: OperatorPickerState["side"] = rightFits
+    ? "right"
+    : leftFits
+      ? "left"
+      : rightSpace >= leftSpace
+        ? "right"
+        : "left";
+  const maxLeft = Math.max(padding, window.innerWidth - panelWidth - padding);
+  const left = Math.min(
+    Math.max(padding, side === "right" ? rightLeft : leftLeft),
+    maxLeft,
   );
-  let top = Math.min(slotRect.bottom + padding, maxTop);
-
-  if (!narrow) {
-    const preferRight =
-      slotRect.left + slotRect.width / 2 <= window.innerWidth / 2;
-    const rightLeft = slotRect.right + padding;
-    const leftLeft = slotRect.left - panelWidth - padding;
-    const rightFits = rightLeft + panelWidth <= window.innerWidth - padding;
-    const leftFits = leftLeft >= padding;
-    if (preferRight ? rightFits : leftFits) {
-      side = preferRight ? "right" : "left";
-    } else if (preferRight ? leftFits : rightFits) {
-      side = preferRight ? "left" : "right";
-    }
-    if (side === "right") {
-      left = rightLeft;
-      top = Math.min(Math.max(padding, slotRect.top), maxTop);
-    } else if (side === "left") {
-      left = leftLeft;
-      top = Math.min(Math.max(padding, slotRect.top), maxTop);
-    }
-  }
+  const top = Math.min(Math.max(padding, slotRect.top), maxTop);
 
   operatorPicker.value = { ...currentPicker, side };
   operatorPickerStyle.value = {
@@ -1549,7 +1583,9 @@ async function updateOperatorPickerPosition(): Promise<void> {
 }
 
 function openOperatorPicker(slot: OperatorSlotAddress): void {
-  operatorPicker.value = { ...slot, side: "below" };
+  selectedOperatorPickerProfession.value = "";
+  operatorPickerShowAll.value = false;
+  operatorPicker.value = { ...slot, side: "right" };
   operatorPickerStyle.value = {};
   void nextTick(updateOperatorPickerPosition);
 }
@@ -1628,9 +1664,11 @@ async function focusSlotNameInput(selectText = true): Promise<void> {
   instance.focus();
   if (selectText) {
     instance.select();
+    updateOperatorPickerSelection(instance);
   } else {
     const cursor = instance.value.length;
     instance.setSelectionRange(cursor, cursor);
+    operatorPickerShowAll.value = false;
   }
 }
 
@@ -1673,6 +1711,13 @@ function operatorOwned(
   const operator = operatorByName(name);
   const entry = operator ? activeProfile.value.entries[operator.id] : undefined;
   return entry?.owned === true;
+}
+
+function operatorMissing(
+  room: RoomAssignment | undefined,
+  name: string,
+): boolean {
+  return !operatorOwned(room, name);
 }
 
 function operatorTrainingUpgraded(
@@ -4203,7 +4248,7 @@ watch(
 watch(operators, validateFacilityOperatorOverrides);
 
 watch(
-  () => operatorPickerCandidates.value.length,
+  [() => operatorPickerCandidates.value.length, operatorPickerColumns],
   () => {
     void updateOperatorPickerPosition();
   },
@@ -4831,6 +4876,12 @@ onBeforeUnmount(() => {
                               slotCommittedName(row, plan, slot),
                             )
                           "
+                          :missing="
+                            operatorMissing(
+                              slotRoom(plan, slot),
+                              slotCommittedName(row, plan, slot),
+                            )
+                          "
                           :operator-training-upgraded="
                             operatorTrainingUpgraded(
                               slotRoom(plan, slot),
@@ -4855,7 +4906,13 @@ onBeforeUnmount(() => {
                           :plain="true"
                           :proportional-layout="true"
                           :size="simulatorSlotSize"
-                          :skipped="roomSkipped(slotRoom(plan, slot))"
+                          :skipped="
+                            roomSkipped(slotRoom(plan, slot)) &&
+                            !operatorMissing(
+                              slotRoom(plan, slot),
+                              slotCommittedName(row, plan, slot),
+                            )
+                          "
                           @click.stop="
                             selectOperatorSlot(
                               $event,
@@ -4991,6 +5048,7 @@ onBeforeUnmount(() => {
                           autocomplete="off"
                           class="simulator-slot-name-input"
                           type="text"
+                          @focus="handleOperatorNameSelection"
                           @blur="
                             commitOperatorName(
                               planIndex,
@@ -4999,6 +5057,7 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             )
                           "
+                          @keyup="handleOperatorNameSelection"
                           @input="
                             handleOperatorNameInput(
                               $event,
@@ -5008,6 +5067,8 @@ onBeforeUnmount(() => {
                               slot.slotIndex,
                             )
                           "
+                          @mouseup="handleOperatorNameSelection"
+                          @select="handleOperatorNameSelection"
                         />
                       </div>
                     </div>
@@ -5056,6 +5117,12 @@ onBeforeUnmount(() => {
             :operator-owned="
               operatorOwned(operatorDragPreview.room, operatorDragPreview.name)
             "
+            :missing="
+              operatorMissing(
+                operatorDragPreview.room,
+                operatorDragPreview.name,
+              )
+            "
             :operator-training-upgraded="
               operatorTrainingUpgraded(
                 operatorDragPreview.room,
@@ -5070,7 +5137,13 @@ onBeforeUnmount(() => {
             :plain="true"
             :proportional-layout="true"
             :size="simulatorSlotSize"
-            :skipped="roomSkipped(operatorDragPreview.room)"
+            :skipped="
+              roomSkipped(operatorDragPreview.room) &&
+              !operatorMissing(
+                operatorDragPreview.room,
+                operatorDragPreview.name,
+              )
+            "
           />
           <span
             v-if="operatorDragPreview.count > 1"
@@ -5086,65 +5159,95 @@ onBeforeUnmount(() => {
             'simulator-operator-picker',
             `simulator-operator-picker--${operatorPicker.side}`,
           ]"
-          :style="[operatorPickerStyle, slotGridStyle]"
+          :style="[operatorPickerStyle, slotGridStyle, operatorPickerGridStyle]"
           @click.stop
         >
           <div class="simulator-operator-picker-heading">
             <span>{{ ROOM_LABELS[operatorPicker.type] }}</span>
             <span>{{ operatorPickerCandidates.length }}</span>
           </div>
-          <div
-            v-if="operatorPickerCandidates.length"
-            class="simulator-operator-picker-list"
-          >
-            <button
-              v-for="candidate in operatorPickerCandidates"
-              :key="candidate.operator.id"
-              :aria-label="`选择${candidate.operator.name}`"
-              :title="candidate.operator.name"
-              class="simulator-operator-picker-item"
-              type="button"
-              @click="selectOperatorPickerCandidate(candidate.operator)"
-              @mousedown.prevent
+          <div class="simulator-operator-picker-body">
+            <div
+              v-if="operatorPickerCandidates.length"
+              class="simulator-operator-picker-list"
             >
-              <OperatorAvatarDisplay
-                :data-source="selectedDataSource"
-                :display-name="candidate.operator.name"
-                :elite-level="
-                  operatorElite(
-                    operatorPickerRoom,
-                    candidate.operator.name,
-                    operatorPicker.type,
-                  )
+              <button
+                v-for="candidate in operatorPickerCandidates"
+                :key="candidate.operator.id"
+                :aria-label="`选择${candidate.operator.name}`"
+                :title="candidate.operator.name"
+                class="simulator-operator-picker-item"
+                type="button"
+                @click="selectOperatorPickerCandidate(candidate.operator)"
+                @mousedown.prevent
+              >
+                <OperatorAvatarDisplay
+                  :data-source="selectedDataSource"
+                  :display-name="candidate.operator.name"
+                  :elite-level="
+                    operatorElite(
+                      operatorPickerRoom,
+                      candidate.operator.name,
+                      operatorPicker.type,
+                    )
+                  "
+                  :operator="candidate.operator"
+                  :operator-owned="
+                    operatorOwned(operatorPickerRoom, candidate.operator.name)
+                  "
+                  :missing="
+                    operatorMissing(operatorPickerRoom, candidate.operator.name)
+                  "
+                  :operator-training-upgraded="
+                    operatorTrainingUpgraded(
+                      operatorPickerRoom,
+                      candidate.operator.name,
+                      operatorPicker.type,
+                    )
+                  "
+                  :plain="true"
+                  :proportional-layout="true"
+                  :show-elite-level="true"
+                  :show-name="true"
+                  :show-profession="true"
+                  :show-rarity="true"
+                  :size="simulatorSlotSize"
+                />
+              </button>
+            </div>
+            <a-empty
+              v-else
+              :image="undefined"
+              class="simulator-operator-picker-empty"
+              description="无匹配干员"
+            />
+            <div class="simulator-operator-picker-profession-filter">
+              <a-button
+                :type="
+                  !selectedOperatorPickerProfession ? 'primary' : 'default'
                 "
-                :operator="candidate.operator"
-                :operator-owned="
-                  operatorOwned(operatorPickerRoom, candidate.operator.name)
+                size="small"
+                @click="selectedOperatorPickerProfession = ''"
+                @mousedown.prevent
+              >
+                全部
+              </a-button>
+              <a-button
+                v-for="profession in operatorPickerProfessionOptions"
+                :key="profession"
+                :type="
+                  selectedOperatorPickerProfession === profession
+                    ? 'primary'
+                    : 'default'
                 "
-                :operator-training-upgraded="
-                  operatorTrainingUpgraded(
-                    operatorPickerRoom,
-                    candidate.operator.name,
-                    operatorPicker.type,
-                  )
-                "
-                :plain="true"
-                :proportional-layout="true"
-                :show-elite-level="true"
-                :show-name="true"
-                :show-profession="true"
-                :show-rarity="true"
-                :size="simulatorSlotSize"
-                :skipped="roomSkipped(operatorPickerRoom)"
-              />
-            </button>
+                size="small"
+                @click="selectedOperatorPickerProfession = profession"
+                @mousedown.prevent
+              >
+                {{ profession }}
+              </a-button>
+            </div>
           </div>
-          <a-empty
-            v-else
-            :image="undefined"
-            class="simulator-operator-picker-empty"
-            description="无匹配干员"
-          />
         </div>
 
         <div

@@ -1238,6 +1238,14 @@ a {
   background: #dcecf0;
 }
 
+.simulator-sidebar-toggle {
+  position: fixed;
+  z-index: 8;
+  inset-block-start: 110px;
+  inset-inline-start: var(--app-main-layout-offset, 0px);
+  color: #38504e !important;
+}
+
 .simulator-alert {
   margin-block-end: 14px;
 }
@@ -1247,6 +1255,10 @@ a {
   grid-template-columns: 248px minmax(0, 1fr);
   align-items: start;
   gap: 12px;
+}
+
+.simulator-layout--sidebar-hidden {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .simulator-document-sidebar,
@@ -1276,6 +1288,11 @@ a {
 .simulator-sidebar-head {
   padding: 18px 16px 12px;
   border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-sidebar-head-actions {
+  display: flex;
+  gap: 4px;
 }
 
 .simulator-sidebar-head h3,
@@ -2093,10 +2110,18 @@ a {
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
-  width: 320px;
+  display: flex;
+  width: max(
+    320px,
+    calc(
+      var(--simulator-operator-picker-columns) * var(--simulator-slot-size) +
+        96px
+    )
+  );
   max-width: calc(100vw - 16px);
   max-height: min(420px, calc(100vh - 16px));
-  overflow-y: auto;
+  flex-direction: column;
+  overflow: hidden;
   padding: 10px;
   background: #ffffff;
   border: 1px solid #dce8e4;
@@ -2109,6 +2134,7 @@ a {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
+  flex: 0 0 auto;
   padding-block-end: 8px;
   color: #2e4043;
   font-size: 12px;
@@ -2121,16 +2147,45 @@ a {
   font-weight: 400;
 }
 
+.simulator-operator-picker-profession-filter {
+  display: flex;
+  flex: 0 0 68px;
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+}
+
+.simulator-operator-picker-profession-filter .ant-btn {
+  flex: 0 0 auto;
+  width: 100%;
+  padding-inline: 4px;
+}
+
 .simulator-operator-picker-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    var(--simulator-operator-picker-columns),
+    var(--simulator-slot-size)
+  );
+  min-height: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: auto;
   gap: 0;
+}
+
+.simulator-operator-picker-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 8px;
+  overflow: hidden;
 }
 
 .simulator-operator-picker-item {
   display: grid;
   min-width: 0;
-  padding: 4px;
+  padding: 0;
   color: inherit;
   background: transparent;
   border: 0;
@@ -2150,6 +2205,7 @@ a {
 }
 
 .simulator-operator-picker-empty.ant-empty {
+  flex: 1 1 auto;
   margin-block: 16px;
 }
 
@@ -2610,7 +2666,28 @@ a {
   background: rgba(128, 128, 128, 0.5);
 }
 
+.operator-avatar-missing-overlay {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  background: rgba(128, 128, 128, 0.5);
+}
+
 .operator-avatar-skipped-label {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  padding-block: 2px;
+  padding-inline: 6px;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.55);
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.operator-avatar-missing-label {
   position: absolute;
   z-index: 4;
   inset-block-start: 50%;
@@ -2714,6 +2791,10 @@ a {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .simulator-sidebar-toggle {
+    inset-block-start: 102px;
+  }
+
   .simulator-document-sidebar {
     position: static;
   }
@@ -2739,6 +2820,10 @@ a {
     min-height: 100vh;
     padding: 20px 16px;
     padding-block-start: 84px;
+  }
+
+  .simulator-sidebar-toggle {
+    inset-block-start: 90px;
   }
 
   .header-source {
@@ -2930,14 +3015,6 @@ a {
 
   .simulator-layout-card {
     flex-basis: 100%;
-  }
-
-  .simulator-operator-picker {
-    width: calc(100vw - 16px);
-  }
-
-  .simulator-operator-picker-list {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .simulator-result-section-heading {

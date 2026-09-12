@@ -17,6 +17,10 @@ import {
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
+import {
+  DEFAULT_OPERATOR_PICKER_COLUMNS,
+  useOperatorPickerSettings,
+} from "@/composables/useOperatorPickerSettings";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
@@ -59,6 +63,11 @@ const {
   setAvatarDisplaySize,
   resetAvatarDisplaySizes,
 } = useAvatarDisplaySizes();
+const {
+  operatorPickerColumns,
+  setOperatorPickerColumns,
+  resetOperatorPickerColumns,
+} = useOperatorPickerSettings();
 const {
   facilityCardSettings,
   facilityCardIconStyleKeys,
@@ -424,6 +433,10 @@ function handleAvatarDisplaySizeChange(
     target,
     value ?? avatarDisplaySizeOptions[target].defaultSize,
   );
+}
+
+function handleOperatorPickerColumnsChange(value: number | null): void {
+  setOperatorPickerColumns(value ?? DEFAULT_OPERATOR_PICKER_COLUMNS);
 }
 
 watch(selectedProgressionProfession, () => {
@@ -896,6 +909,34 @@ watch(
         </a-form-item>
       </a-form>
       <a-button @click="resetAvatarDisplaySizes">恢复默认尺寸</a-button>
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-operator-picker-panel"
+      title="干员候选框"
+    >
+      <p class="settings-panel-description">
+        调整排班模拟器干员候选框中每行显示的干员数量，修改后立即生效并保存在当前浏览器。
+      </p>
+      <a-form layout="vertical">
+        <a-form-item
+          extra="默认 4，仅支持正整数，不设上限"
+          label="每行显示干员数"
+        >
+          <a-input-number
+            :min="1"
+            :precision="0"
+            :step="1"
+            :value="operatorPickerColumns"
+            addon-after="人"
+            @update:value="
+              (value: number | null) => handleOperatorPickerColumnsChange(value)
+            "
+          />
+        </a-form-item>
+      </a-form>
+      <a-button @click="resetOperatorPickerColumns">恢复默认人数</a-button>
     </a-card>
 
     <a-card
