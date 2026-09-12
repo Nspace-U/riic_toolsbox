@@ -3135,7 +3135,7 @@ function efficiencySummaryText(row: FacilityRow, planIndex: number): string {
   if (!result) {
     return "";
   }
-  return `${formatEfficiencyNumber(result.combinationEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
+  return `${formatEfficiencyNumber(result.skillEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
 }
 
 function efficiencySummaryStyle(

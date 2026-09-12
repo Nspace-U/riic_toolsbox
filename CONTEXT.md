@@ -28,7 +28,7 @@
 - 已根据旧项目 Markdown 整理并确认效率计算基础规则：`docs/效率计算基础规则待核对.md`。
 - 已新增 `src/types/efficiency.ts`、`src/utils/efficiency/` 纯计算模块和 `docs/效率计算模块使用说明.md`。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
-- 已将效率计算接入排班模拟器：设施队列小卡片展示组合效率与设施最终效率，独立结果区展示按产物拆分的每日产出与可核对的计算步骤。
+- 已将效率计算接入排班模拟器：设施队列小卡片展示不含心情效率的干员效率与设施最终效率，独立结果区展示按产物拆分的每日产出与可核对的计算步骤。
 - `ScheduleDocument.settings` 已加入计算设置；`OperatorState.level` 已加入供等级解锁和未来训练室扩展使用。
 - 已接入 ESLint 与 Prettier：使用 Vue 3、TypeScript 和 JavaScript 的标准推荐配置，构建产物与生成数据目录已排除。
 - 已修复基建技能一览中折叠隐藏技能时最后一条可见技能仍显示分割线的问题：技能卡片只渲染当前可见技能，并按最后一个技能元素移除边框。
@@ -68,7 +68,7 @@
 - 尚未实现完整库存过程、精 0 孑逐单订单衰减和 `orderProgress` 动态订单状态；当前只实现容量速率级爆仓时间、首件进度和 `overflowMode` 有效产出截断。宿舍自动休整仍未实现。
 - 新 Torappu 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。
-- 模拟器效率结果暂只支持 Torappu 数据源；“组合效率”统一表示干员基础贡献与技能/组合贡献之和，每日产出按产物分别汇总。
+- 模拟器效率结果暂只支持 Torappu 数据源；计算结果中的“组合效率”仍表示干员基础贡献与技能/组合贡献之和，小卡片首项单独使用不含心情的 `skillEfficiency`，每日产出按产物分别汇总。
 - 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
 - 当前验证中，`npm run lint`、`npm run format:check`、`npm run type-check`、`npm run build` 和技能生成命令均已通过；ESLint 报告的未使用变量、无效赋值、变量声明和 Vue 属性顺序问题已按默认规则修复。
 - 本次 UI 修复已验证 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build` 通过；构建仍仅提示既有的大 chunk 警告。
@@ -307,6 +307,13 @@
 
 - **决定**：同一 `plan` 即同一队列，允许同一队列在同一设施的不同槽位、不同设施之间配置同名干员；不同队列本来就可以使用同名干员。
 - **校验**：移除房间内重复名称和同一计划跨设施重复名称的阻止逻辑，模拟器编辑、排班文档读取、Maa JSON 导入和序列化均接受重复干员。
+
+## 2026-09-12 排班模拟器小卡片效率口径
+
+- 已完成：设施队列小卡片下方改为显示「干员效率% / 整站效率%」；首项读取 `skillEfficiency`，不包含心情提供的固定基础效率，后项继续读取 `efficiency`。
+- 根因：小卡片此前读取 `combinationEfficiency`，该计算字段包含 `moodEfficiency + skillEfficiency`，导致每名有心情干员额外显示贸易/制造 `+1%` 或发电/会客/办公室 `+5%`。
+- 兼容性：只调整小卡片显示口径，不修改整站效率、产出计算或结果对象中组合效率字段。
+- 验证：`trade-basic` 反馈环修复前以 `1%` 对 `0%` 失败，修复后通过；浏览器实测卡片显示 `0% / 108%`；`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过。全量 `npm run format:check` 仍受工作树中既有的 `CONTEXT.md`、`docs/decision-log.md`、`src/assets/main.css` 和 `src/pages/SimulatorPage.vue` 格式差异影响。
 - **导出警告**：Maa JSON 导出继续生成文件，但按队列和干员汇总重复配置，并列出每个出现的设施槽位；重复干员仍使用按名称索引的共享 `operatorStates`。
 - **未完成**：仓库没有现成的自动化测试框架，本轮未新增测试文件；当前浏览器测试通道未暴露下载事件，因此未对下载文件本身做自动化断言。
 - **风险与下一步**：同一队列重复干员会按多个槽位参与当前模拟器效率计算；导出警告用于提示 Maa 侧可能存在的重复配置兼容性，后续如需区分副本状态需要另行设计按槽位存储的排班契约。
@@ -376,6 +383,14 @@
 - 未完成与风险：只识别明确的“包含以下干员”格式；“包含所有异格干员”及其他非成员关系描述不通过名单解析。术语源格式变化时需要调整解析规则。
 - 验证：赫默在基建技能一览和技能生成器预览源卡片中均显示“莱茵生命”；本轮 `npm run lint`、`npm run type-check`、目标文件 Prettier、生产构建和 `git diff --check` 通过；`npm run format:check` 因 `CONTEXT.md` 与 `docs/decision-log.md` 的既有格式问题未通过，构建仅有既有的大 chunk 警告。
 - 下一步：后续更新 Torappu 数据后抽查成员名单匹配结果，尤其关注新增术语和联动干员名称。
+
+## 2026-09-12：统一缺少实装顺序干员的排序位置
+
+- **已完成**：基建技能一览和通用设置的实装倒序均将缺少 `implementationOrder` 的干员排在最前；多个缺少顺序的干员继续按原始数据顺序排列。
+- **兼容性**：有实装顺序的干员仍按实装顺序倒序；基建技能一览的名称正序模式不受影响。
+- **未完成与风险**：本轮没有新增自动化测试；排序逻辑依赖当前两个页面各自的比较器，后续新增同类干员列表时应沿用相同规则。
+- **验证**：本轮目标文件 Prettier、目标文件 ESLint、`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；全量 `npm run format:check` 仍因工作区既有的 `CONTEXT.md`、`docs/decision-log.md`、`src/assets/main.css` 和 `src/pages/SimulatorPage.vue` 格式差异失败，构建仅提示既有的大 chunk 警告。
+- **下一步**：若后续抽取共享排序工具，再统一收敛页面和模拟器候选列表的排序实现。
 
 ## 2026-09-12 排班模拟器队列信息卡片自适应宽度
 

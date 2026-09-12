@@ -379,6 +379,13 @@
 - **范围**：本轮只调整干员槽位操作，不增加布局、队列、产物快捷操作；Excel 表格视图、外部 TSV 剪贴板和更完整的矩形选区留待后续。
 - **验证与风险**：`npm run lint`、`npm run type-check`、目标文件 Prettier 检查和 `git diff --check` 通过；全量格式检查仍被无关未跟踪目录 `scripts/efficiency-compare/` 阻塞。浏览器已验证单击/直接输入、双击编辑、方向键/Enter、选中空槽位 Delete 不回退悬停干员；C/X/V 页面自动化受测试工具系统剪贴板通道接管，未将其记为浏览器实测通过。
 
+
+## 2026-09-12：修正排班模拟器小卡片效率首项口径
+
+- **决定**：设施队列小卡片下方显示 `干员效率% / 整站效率%`；干员效率读取 `skillEfficiency`，不包含心情提供的固定基础效率，整站效率继续读取 `efficiency`。
+- **根因**：原实现读取 `combinationEfficiency`，而计算结果中的该字段是 `moodEfficiency + skillEfficiency`，因此每名有心情干员会额外带入贸易/制造 `+1%` 或发电/会客/办公室 `+5%`。
+- **范围**：只调整 `SimulatorPage.vue` 的小卡片显示字段；整站效率、产出计算和结果对象中的组合效率字段保持不变。
+- **验证**：`trade-basic` 反馈环修复前以 `1%` 对 `0%` 失败，修复后通过；浏览器实测卡片显示 `0% / 108%`；`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过。全量 `npm run format:check` 仍受工作树中既有的 `CONTEXT.md`、`docs/decision-log.md`、`src/assets/main.css` 和 `src/pages/SimulatorPage.vue` 格式差异影响。
 ## 2026-09-11：建立新旧效率计算只读比对器
 
 - **比较边界**：新增 `scripts/efficiency-compare/`，通过旧项目 VM 运行时与当前项目 Vite SSR 运行时分别计算同一组逻辑场景；比较器只读，不修改正式 `src/`、旧项目或数据源。
@@ -491,6 +498,12 @@
 - **决定**：术语归属以 `gamedata_const.json` 中首行明确为“包含以下干员”的描述为准，成员名按当前干员显示名精确匹配；“异格”没有显式名单，继续依据 `character_table.json` 的 `isSpChar` 标记。
 - **实现**：`parseTorappuData` 在构造 `Operator` 时把术语源文件成员关系合并到 `termReferences`；技能生成器和基建技能一览通过现有共享卡片/术语逻辑同时消费，不修改技能 JSON 输出契约。
 - **边界**：不把“由以下干员的基建技能提供”、技能列表或战斗状态描述识别为干员所属术语；源文件成员名称无法与当前干员匹配时不生成引用。
+
+## 2026-09-12：调整缺少实装顺序干员的排序位置
+
+- **决定**：基建技能一览和通用设置在实装倒序模式下，将缺少 `implementationOrder` 的干员排在全部有顺序干员之前；缺少顺序的干员之间按原始数据顺序保持稳定排列。
+- **范围**：只修改 `src/pages/OperatorSkillsPage.vue` 和 `src/pages/SettingsPage.vue` 的排序比较器；基建技能一览的名称正序模式以及其它数据契约不变。
+- **验证**：目标文件 Prettier、目标文件 ESLint、`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；全量 `npm run format:check` 仍因工作区既有的 `CONTEXT.md`、`docs/decision-log.md`、`src/assets/main.css` 和 `src/pages/SimulatorPage.vue` 格式差异失败；本轮未新增自动化测试。
 - **验证**：赫默显示“莱茵生命”，并通过技能生成器的卡片源文本确认；本轮 `npm run lint`、`npm run type-check`、目标文件 Prettier、生产构建和 `git diff --check` 通过；`npm run format:check` 因 `CONTEXT.md` 与 `docs/decision-log.md` 的既有格式问题未通过，构建仅有既有的大 chunk 警告。
 
 ## 2026-09-12：排班模拟器队列信息卡片自适应宽度
