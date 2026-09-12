@@ -225,6 +225,12 @@ interface OperatorPointerInteraction {
   additive: boolean;
 }
 
+interface PendingOperatorPointerMove {
+  pointerId: number;
+  clientX: number;
+  clientY: number;
+}
+
 interface ScheduleHistoryEntry {
   before: ScheduleDocument;
   after: ScheduleDocument;
@@ -400,6 +406,7 @@ const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
 const operatorPicker = ref<OperatorPickerState>();
 const operatorPickerElement = ref<HTMLElement>();
+const operatorDragPreviewElement = ref<HTMLElement>();
 const operatorPickerStyle = ref<Record<string, string>>({});
 const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
 const warnedFacilityOperatorOverrideIds = new Set<string>();
@@ -424,6 +431,8 @@ let catalogRequestVersion = 0;
 const MAX_SCHEDULE_HISTORY = 100;
 
 const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
+let pendingOperatorPointerMove: PendingOperatorPointerMove | undefined;
+let operatorPointerMoveFrame: number | undefined;
 
 const operatorSelectionMarqueeStyle = computed<Record<string, string>>(() => {
   const interaction = operatorPointerInteraction.value;
@@ -479,19 +488,28 @@ function operatorDragPreviewData():
 
 const operatorDragPreview = computed(operatorDragPreviewData);
 
-const operatorDragPreviewStyle = computed<Record<string, string>>(() => {
-  const interaction = operatorPointerInteraction.value;
-  if (!interaction || interaction.mode !== "move") {
-    return {} as Record<string, string>;
-  }
-  return {
-    insetInlineStart: `${interaction.currentX}px`,
-    insetBlockStart: `${interaction.currentY}px`,
-  };
-});
-
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
+const operatorAddressMap = computed(
+  () =>
+    new Map(
+      orderedOperatorSlotAddresses().map((address) => [address.key, address]),
+    ),
+);
+const operatorClipboardSourceKeys = computed(() => {
+  const clipboard = operatorClipboard.value;
+  if (!clipboard || clipboard.sourceAddresses.length === 0) {
+    return new Set<string>();
+  }
+  if (
+    clipboard.sourceAddresses.some(
+      (address) => !operatorAddressMap.value.has(address.key),
+    )
+  ) {
+    return new Set<string>();
+  }
+  return new Set(clipboard.sourceAddresses.map((address) => address.key));
+});
 const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
   const documentId = activeDocumentId.value;
   return documentId
@@ -2212,7 +2230,7 @@ function resetOperatorSelectAllCycle(): void {
 }
 
 function operatorAddressByKey(key: string): OperatorSlotAddress | undefined {
-  return orderedOperatorSlotAddresses().find((address) => address.key === key);
+  return operatorAddressMap.value.get(key);
 }
 
 function operatorAddressFromTarget(
@@ -2250,17 +2268,7 @@ function operatorFacilitySlotAddresses(
 }
 
 function isOperatorClipboardSource(key: string): boolean {
-  const clipboard = operatorClipboard.value;
-  if (!clipboard || clipboard.sourceAddresses.length === 0) {
-    return false;
-  }
-  const validKeys = new Set(
-    orderedOperatorSlotAddresses().map((address) => address.key),
-  );
-  return (
-    clipboard.sourceAddresses.every((address) => validKeys.has(address.key)) &&
-    clipboard.sourceAddresses.some((address) => address.key === key)
-  );
+  return operatorClipboardSourceKeys.value.has(key);
 }
 
 function isOperatorPasteHighlighted(key: string): boolean {
@@ -2722,6 +2730,80 @@ function operatorGridPointerTarget(
   return grid && queue ? target : undefined;
 }
 
+function updateOperatorDragPreviewPosition(
+  clientX: number,
+  clientY: number,
+): void {
+  const element = operatorDragPreviewElement.value;
+  if (!element) {
+    return;
+  }
+  element.style.insetInlineStart = `${clientX}px`;
+  element.style.insetBlockStart = `${clientY}px`;
+}
+
+function applyOperatorGridPointerMove(
+  pointerId: number,
+  clientX: number,
+  clientY: number,
+): void {
+  const interaction = operatorPointerInteraction.value;
+  if (!interaction || interaction.pointerId !== pointerId) {
+    return;
+  }
+  const previousMode = interaction.mode;
+  if (
+    interaction.mode === "press" &&
+    (interaction.startX !== clientX || interaction.startY !== clientY)
+  ) {
+    interaction.mode = interaction.sourceAddresses.length > 0 ? "move" : "box";
+  }
+  if (interaction.mode === "move") {
+    if (previousMode !== "move") {
+      interaction.currentX = clientX;
+      interaction.currentY = clientY;
+    }
+    updateOperatorDragPreviewPosition(clientX, clientY);
+    if (previousMode !== "move") {
+      void nextTick(() => {
+        if (operatorPointerInteraction.value?.pointerId === pointerId) {
+          updateOperatorDragPreviewPosition(clientX, clientY);
+        }
+      });
+    }
+  } else {
+    interaction.currentX = clientX;
+    interaction.currentY = clientY;
+  }
+  if (interaction.mode !== "move") {
+    return;
+  }
+  const nextTarget = operatorAddressAtPoint(clientX, clientY);
+  if (operatorDragTarget.value?.key !== nextTarget?.key) {
+    operatorDragTarget.value = nextTarget;
+  }
+}
+
+function cancelOperatorPointerMoveFrame(): void {
+  pendingOperatorPointerMove = undefined;
+  if (operatorPointerMoveFrame !== undefined) {
+    cancelAnimationFrame(operatorPointerMoveFrame);
+    operatorPointerMoveFrame = undefined;
+  }
+}
+
+function flushOperatorPointerMove(): void {
+  const pending = pendingOperatorPointerMove;
+  cancelOperatorPointerMoveFrame();
+  if (pending) {
+    applyOperatorGridPointerMove(
+      pending.pointerId,
+      pending.clientX,
+      pending.clientY,
+    );
+  }
+}
+
 function handleOperatorGridPointerDown(event: PointerEvent): void {
   if (event.button !== 0 || !operatorGridPointerTarget(event.target)) {
     return;
@@ -2765,25 +2847,31 @@ function handleOperatorGridPointerMove(event: PointerEvent): void {
   if (!interaction || interaction.pointerId !== event.pointerId) {
     return;
   }
-  if (
+  const startsPointerInteraction =
     interaction.mode === "press" &&
     (interaction.startX !== event.clientX ||
-      interaction.startY !== event.clientY)
-  ) {
-    interaction.mode = interaction.sourceAddresses.length > 0 ? "move" : "box";
-  }
-  interaction.currentX = event.clientX;
-  interaction.currentY = event.clientY;
-  if (interaction.mode === "box") {
+      interaction.startY !== event.clientY);
+  if (interaction.mode !== "press" || startsPointerInteraction) {
     event.preventDefault();
-    return;
   }
-  if (interaction.mode === "move") {
-    event.preventDefault();
-    operatorDragTarget.value = operatorAddressAtPoint(
-      event.clientX,
-      event.clientY,
-    );
+  pendingOperatorPointerMove = {
+    pointerId: event.pointerId,
+    clientX: event.clientX,
+    clientY: event.clientY,
+  };
+  if (operatorPointerMoveFrame === undefined) {
+    operatorPointerMoveFrame = requestAnimationFrame(() => {
+      operatorPointerMoveFrame = undefined;
+      const pending = pendingOperatorPointerMove;
+      pendingOperatorPointerMove = undefined;
+      if (pending) {
+        applyOperatorGridPointerMove(
+          pending.pointerId,
+          pending.clientX,
+          pending.clientY,
+        );
+      }
+    });
   }
 }
 
@@ -2792,6 +2880,7 @@ function handleOperatorGridPointerUp(event: PointerEvent): void {
   if (!interaction || interaction.pointerId !== event.pointerId) {
     return;
   }
+  flushOperatorPointerMove();
   interaction.currentX = event.clientX;
   interaction.currentY = event.clientY;
   if (interaction.mode === "box") {
@@ -2819,6 +2908,7 @@ function handleOperatorGridPointerCancel(event: PointerEvent): void {
   if (!interaction || interaction.pointerId !== event.pointerId) {
     return;
   }
+  cancelOperatorPointerMoveFrame();
   operatorPointerInteraction.value = undefined;
   operatorDragTarget.value = undefined;
   suppressNextOperatorClick.value = true;
@@ -4278,6 +4368,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  cancelOperatorPointerMoveFrame();
   window.removeEventListener("click", handleWindowClick);
   window.removeEventListener("keydown", handleWindowKeydown, true);
   window.removeEventListener(
@@ -5110,7 +5201,7 @@ onBeforeUnmount(() => {
 
         <div
           v-if="operatorDragPreview"
-          :style="operatorDragPreviewStyle"
+          ref="operatorDragPreviewElement"
           class="simulator-operator-drag-preview"
         >
           <OperatorAvatarDisplay
