@@ -1478,12 +1478,16 @@ a {
 .simulator-layout-text-editor {
   display: grid;
   gap: 8px;
+  justify-items: start;
   padding-block-end: 14px;
   margin-block-end: 14px;
 }
 
-.simulator-layout-text-input {
-  width: 100%;
+.simulator-layout-text-editor .simulator-layout-text-input {
+  inline-size: fit-content;
+  field-sizing: content;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   font-family: "Cascadia Code", Consolas, monospace;
   letter-spacing: 0.08em;
   line-height: 1.6;

@@ -443,3 +443,11 @@
 - **验证**：示例 `33 33222` / `1313 2111` 生成贸易站 2 间、制造站 5 间、发电站 2 间，并正确解析功能房和宿舍；`npm run lint`、`npm run type-check`、`npm run build`、`git diff --check` 通过。仓库整体 `npm run format:check` 仍受现有 `CONTEXT.md` 与 `docs/decision-log.md` 格式问题影响，源码文件已单独格式化。
 - **未完成与风险**：暂无专用自动化测试；严格两行输入和核心设施总数推导会拒绝不满足 9 间核心设施约束的文本。
 - **下一步**：后续若增加布局文本自动化测试，应覆盖空格归类、`0` 占位、发电站数量边界和旧六行输入拒绝。
+
+## 2026-09-12：排班模拟器布局数字编辑框宽度自适应
+
+- **决定**：布局批量数字编辑框不再使用固定 `18ch` 宽度，改为按当前两行输入内容自适应；父级左对齐，编辑框宽度不得超过可用容器宽度。
+- **实现**：使用 `inline-size: fit-content` 和 `field-sizing: content`，由两行中较长的一行决定编辑框宽度，并保留 `max-inline-size: 100%` 以适配窄屏。
+- **边界**：只修改模拟器布局数字输入的样式，不改变两行格式、解析规则、排班 JSON 契约或其他输入框。
+- **验证**：浏览器实测默认内容宽度由约 `148px` 收窄至约 `123px`，短文本可收缩至约 `48px`，恢复原内容后宽度正确恢复；`npm run lint`、`npm run type-check`、`npm run build`、CSS 定向 Prettier 和 `git diff --check` 通过。全仓 `npm run format:check` 仍受既有 `CONTEXT.md`、`docs/decision-log.md` 与用户未提交的 `SimulatorPage.vue` 格式问题影响。
+- **未完成与风险**：未新增专用浏览器端到端测试；宽度自适应依赖浏览器对 `field-sizing: content` 的支持。
