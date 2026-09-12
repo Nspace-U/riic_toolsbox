@@ -88,7 +88,6 @@ interface PlanContext {
   durationHours: number;
   facilities: EfficiencyFacility[];
   placements: Placement[];
-  byName: Map<string, Placement>;
   active: ActiveEffect[];
   basePoints: Record<string, number>;
   statValues: Map<string, number>;
@@ -305,9 +304,6 @@ function createContexts(
       durationHours,
       facilities,
       placements,
-      byName: new Map(
-        placements.map((placement) => [placement.name, placement]),
-      ),
       active: [],
       basePoints: {},
       statValues: new Map(),
@@ -1138,7 +1134,12 @@ function resolveMoods(
     const previousIndex = (index - 1 + contexts.length) % contexts.length;
     const context = contexts[previousIndex];
     return {
-      placement: context?.byName.get(placement.name),
+      placement: context?.placements.find(
+        (candidate) =>
+          candidate.name === placement.name &&
+          candidate.facility.id === placement.facility.id &&
+          candidate.index === placement.index,
+      ),
       context,
     };
   };
@@ -1151,7 +1152,7 @@ function resolveMoods(
     previous.moodStart > EPSILON &&
     isWorkPlacement(previous) &&
     isWorkPlacement(current) &&
-    !current.explicitMood;
+    (!current.explicitMood || clampMood(current.state.mood ?? 24) > EPSILON);
 
   contexts.forEach((context, index) => {
     context.placements.forEach((placement) => {
