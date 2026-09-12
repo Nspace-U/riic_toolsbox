@@ -1740,6 +1740,13 @@ a {
   overflow-x: auto;
   margin-block-start: 14px;
   padding-block-end: 4px;
+  user-select: none;
+}
+
+.simulator-facility-grid input,
+.simulator-facility-grid textarea,
+.simulator-facility-grid select {
+  user-select: text;
 }
 
 .simulator-facility-grid > .ant-col.simulator-queue-column,
@@ -1901,6 +1908,24 @@ a {
   animation: simulator-clipboard-marquee 0.8s linear infinite;
 }
 
+.simulator-slot--drag-target::before {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  content: "";
+  border: 2px dashed #2f7f59;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 78%);
+}
+
+.simulator-selection-marquee {
+  position: fixed;
+  z-index: 1200;
+  pointer-events: none;
+  background: rgb(33 106 102 / 10%);
+  border: 1px solid #216a66;
+}
+
 .simulator-slot--paste-highlight {
   animation: simulator-paste-highlight 0.7s ease-out;
 }
@@ -1958,6 +1983,7 @@ a {
   font-size: var(--simulator-slot-name-font-size, 12px);
   line-height: var(--simulator-slot-name-height, 24px);
   text-align: center;
+  user-select: text;
 }
 
 .simulator-empty-slot-name--editing,
