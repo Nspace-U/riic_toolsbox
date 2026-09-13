@@ -31,6 +31,7 @@ const props = withDefaults(
     size?: number;
     moodScattered?: boolean;
     operatorOwned?: boolean;
+    missing?: boolean;
     operatorTrainingUpgraded?: boolean;
     plain?: boolean;
     proportionalLayout?: boolean;
@@ -46,6 +47,7 @@ const props = withDefaults(
     size: 96,
     moodScattered: false,
     operatorOwned: true,
+    missing: false,
     operatorTrainingUpgraded: false,
     plain: false,
     proportionalLayout: false,
@@ -336,9 +338,19 @@ onMounted(updateNameFontSize);
         :style="badgeStyle('rarity')"
         @load="handleBadgeLoad('rarity', $event)"
       />
-      <span v-if="skipped" class="operator-avatar-skipped-overlay" />
+      <span v-if="missing" class="operator-avatar-missing-overlay" />
       <span
-        v-if="skipped"
+        v-if="missing"
+        :style="skippedLabelStyle"
+        class="operator-avatar-missing-label"
+        >缺少</span
+      >
+      <span
+        v-if="skipped && !missing"
+        class="operator-avatar-skipped-overlay"
+      />
+      <span
+        v-if="skipped && !missing"
         :style="skippedLabelStyle"
         class="operator-avatar-skipped-label"
         >跳过</span

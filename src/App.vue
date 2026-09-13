@@ -75,6 +75,7 @@ const mainLayoutOffset = computed(() =>
 );
 const mainLayoutStyle = computed(() => ({
   marginInlineStart: mainLayoutOffset.value,
+  "--app-main-layout-offset": mainLayoutOffset.value,
 }));
 
 const selectedNavigationKey = computed(() => {

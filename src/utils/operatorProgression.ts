@@ -233,8 +233,9 @@ export function resolveOperatorProgression(
       input.maxEliteLevel,
     );
     return {
-      elite: Math.max(base.elite, maximum.elite) as EliteLevel,
-      level: Math.max(base.level, maximum.level),
+      elite:
+        manualElite ?? (Math.max(sourceElite, maximum.elite) as EliteLevel),
+      level: manualLevel ?? Math.max(sourceLevel, maximum.level),
       owned: base.owned,
       upgraded: base.elite < maximum.elite || base.level < maximum.level,
     };

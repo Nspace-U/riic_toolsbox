@@ -5,6 +5,8 @@ import {
   CopyOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   PlusOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
@@ -123,6 +125,7 @@ interface FacilityTitleTagPreset {
 }
 
 interface FacilityContextMenuState extends OperatorSlotAddress {
+  scope: "queue" | "facility";
   positions: number[];
   x: number;
   y: number;
@@ -412,6 +415,7 @@ const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
 const warnedFacilityOperatorOverrideIds = new Set<string>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
+const showScheduleSidebar = ref(true);
 const selectedOperatorSlots = ref<Set<string>>(new Set());
 const operatorSelectionAnchor = ref<OperatorSlotAddress>();
 const hoveredOperatorSlot = ref<OperatorSlotAddress>();
@@ -780,6 +784,10 @@ function updateSimulatorEditSetting(
     },
   };
   persistSimulatorEditSettings(simulatorEditSettings.value);
+}
+
+function toggleScheduleSidebar() {
+  showScheduleSidebar.value = !showScheduleSidebar.value;
 }
 
 function updateCurrent(
@@ -1313,6 +1321,32 @@ function updatePlanRoom(
     update(room);
     plan.rooms[type] = rooms;
   }, options);
+}
+
+function updateAllPlanRooms(
+  type: RoomKey,
+  position: number,
+  update: (room: RoomAssignment) => void,
+) {
+  updateCurrent((document) => {
+    const expected = document.layout.filter(
+      (entry) => entry.type === type,
+    ).length;
+    document.plans.forEach((plan) => {
+      const rooms = Array.isArray(plan.rooms[type])
+        ? [...(plan.rooms[type] as RoomAssignment[])]
+        : [];
+      while (rooms.length < expected) {
+        rooms.push(createDefaultRoomAssignment(type));
+      }
+      const room = rooms[position];
+      if (!room) {
+        return;
+      }
+      update(room);
+      plan.rooms[type] = rooms;
+    });
+  });
 }
 
 function roomEntries(
@@ -2092,7 +2126,7 @@ function commitOperatorName(
         (_, index) => room.operators?.[index] ?? "",
       );
       names[slotIndex] = nextName;
-      setRoomOperators(room, trimOperatorSlots(names));
+      setRoomOperators(room, names);
       rooms[position] = room;
       candidatePlan.rooms[type] = rooms;
     },
@@ -2174,6 +2208,71 @@ function operatorRoomAddresses(): OperatorRoomAddress[] {
       slotCount: roomSlotCount(row.type, entry.entry.level),
     })),
   );
+}
+
+function operatorFacilityRow(
+  type: RoomKey,
+  position: number,
+): FacilityRow | undefined {
+  return facilityRows.value.find(
+    (row) =>
+      row.type === type &&
+      (row.type === "power" ||
+        row.entries.some((entry) => entry.position === position)),
+  );
+}
+
+function operatorFacilityKey(type: RoomKey, position: number): string {
+  return operatorFacilityRow(type, position)?.key ?? `${type}-${position}`;
+}
+
+function operatorFacilityKeyForAddress(address: OperatorSlotAddress): string {
+  return operatorFacilityKey(address.type, address.position);
+}
+
+function operatorFacilitySlotIndex(
+  address: OperatorSlotAddress,
+): number | undefined {
+  const row = operatorFacilityRow(address.type, address.position);
+  if (!row) {
+    return undefined;
+  }
+  let offset = 0;
+  for (const entry of row.entries) {
+    const slotCount = roomSlotCount(row.type, entry.entry.level);
+    if (entry.position === address.position) {
+      return offset + address.slotIndex;
+    }
+    offset += slotCount;
+  }
+  return undefined;
+}
+
+function operatorAddressAtFacilitySlot(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): OperatorSlotAddress | undefined {
+  const row = operatorFacilityRow(type, position);
+  const document = currentDocument.value;
+  if (!row || !document?.plans[planIndex] || slotIndex < 0) {
+    return undefined;
+  }
+  let offset = 0;
+  for (const entry of row.entries) {
+    const slotCount = roomSlotCount(row.type, entry.entry.level);
+    if (slotIndex < offset + slotCount) {
+      return operatorSlotAddress(
+        planIndex,
+        row.type,
+        entry.position,
+        slotIndex - offset,
+      );
+    }
+    offset += slotCount;
+  }
+  return undefined;
 }
 
 function operatorSlotAddressesForPlan(
@@ -2262,8 +2361,9 @@ function operatorFacilitySlotAddresses(
   type: RoomKey,
   position: number,
 ): OperatorSlotAddress[] {
+  const facilityKey = operatorFacilityKey(type, position);
   return orderedOperatorSlotAddresses().filter(
-    (address) => address.type === type && address.position === position,
+    (address) => operatorFacilityKeyForAddress(address) === facilityKey,
   );
 }
 
@@ -2315,22 +2415,39 @@ function selectOperatorSlot(
   }
   const nextSelection = new Set(selectedOperatorSlots.value);
   const anchor = operatorSelectionAnchor.value;
+  const addressFacilityKey = operatorFacilityKeyForAddress(address);
+  const anchorFacilityKey = anchor
+    ? operatorFacilityKeyForAddress(anchor)
+    : undefined;
+  const anchorFacilitySlotIndex = anchor
+    ? operatorFacilitySlotIndex(anchor)
+    : undefined;
+  const addressFacilitySlotIndex = operatorFacilitySlotIndex(address);
   if (
     event.shiftKey &&
     anchor &&
-    anchor.type === type &&
-    anchor.position === position
+    anchorFacilityKey === addressFacilityKey &&
+    anchorFacilitySlotIndex !== undefined &&
+    addressFacilitySlotIndex !== undefined
   ) {
     const startPlanIndex = Math.min(anchor.planIndex, planIndex);
     const endPlanIndex = Math.max(anchor.planIndex, planIndex);
-    const startSlotIndex = Math.min(anchor.slotIndex, slotIndex);
-    const endSlotIndex = Math.max(anchor.slotIndex, slotIndex);
+    const startSlotIndex = Math.min(
+      anchorFacilitySlotIndex,
+      addressFacilitySlotIndex,
+    );
+    const endSlotIndex = Math.max(
+      anchorFacilitySlotIndex,
+      addressFacilitySlotIndex,
+    );
     operatorFacilitySlotAddresses(type, position).forEach((item) => {
+      const itemSlotIndex = operatorFacilitySlotIndex(item);
       if (
+        itemSlotIndex !== undefined &&
         item.planIndex >= startPlanIndex &&
         item.planIndex <= endPlanIndex &&
-        item.slotIndex >= startSlotIndex &&
-        item.slotIndex <= endSlotIndex
+        itemSlotIndex >= startSlotIndex &&
+        itemSlotIndex <= endSlotIndex
       ) {
         nextSelection.add(item.key);
       }
@@ -2403,11 +2520,10 @@ function operatorSelectAllAddresses(
 ): OperatorSlotAddress[] {
   if (stage === 0) {
     const plan = currentDocument.value?.plans[anchor.planIndex];
+    const facilityKey = operatorFacilityKeyForAddress(anchor);
     return plan
       ? operatorSlotAddressesForPlan(anchor.planIndex).filter(
-          (address) =>
-            address.type === anchor.type &&
-            address.position === anchor.position,
+          (address) => operatorFacilityKeyForAddress(address) === facilityKey,
         )
       : [];
   }
@@ -2478,81 +2594,69 @@ function operatorRoomAddressKey(address: OperatorSlotAddress): string {
   return `${address.planIndex}-${address.type}-${address.position}`;
 }
 
-function displayOrderedOperatorSlotAddresses(): OperatorSlotAddress[] {
-  const document = currentDocument.value;
-  if (!document) {
-    return [];
-  }
-  return operatorRoomAddresses().flatMap((room) =>
-    document.plans.flatMap((_, planIndex) =>
-      Array.from({ length: room.slotCount }, (_, slotIndex) =>
-        operatorSlotAddress(planIndex, room.type, room.position, slotIndex),
-      ),
-    ),
-  );
-}
-
-function operatorDragPairs(
+function operatorTransferPairs(
   sourceAddresses: OperatorSlotAddress[],
   target: OperatorSlotAddress,
 ): Array<[OperatorSlotAddress, OperatorSlotAddress]> {
   const sources = sourceAddresses.filter((address) =>
     operatorAddressByKey(address.key),
   );
-  const first = sources[0];
-  if (!first) {
+  if (sources.length === 0) {
     return [];
   }
-
+  const sourceFacilityKey = operatorFacilityKeyForAddress(sources[0]!);
+  const sourceCoordinates: Array<{
+    source: OperatorSlotAddress;
+    slotIndex: number;
+  }> = [];
   if (
     sources.every(
-      (address) =>
-        address.type === first.type && address.position === first.position,
-    ) &&
-    target.type === first.type &&
-    target.position === first.position
+      (source) => operatorFacilityKeyForAddress(source) === sourceFacilityKey,
+    )
   ) {
-    return sources
-      .map((source) => {
-        const destination = operatorAddressByKey(
-          operatorSlotKey(
-            target.planIndex + source.planIndex - first.planIndex,
-            target.type,
-            target.position,
-            target.slotIndex + source.slotIndex - first.slotIndex,
-          ),
-        );
-        return destination ? ([source, destination] as const) : undefined;
-      })
-      .filter((pair): pair is [OperatorSlotAddress, OperatorSlotAddress] =>
-        Boolean(pair),
+    for (const source of sources) {
+      const slotIndex = operatorFacilitySlotIndex(source);
+      if (slotIndex === undefined) {
+        sourceCoordinates.length = 0;
+        break;
+      }
+      sourceCoordinates.push({ source, slotIndex });
+    }
+  }
+  const targetSlotIndex = operatorFacilitySlotIndex(target);
+  if (
+    sourceCoordinates.length === sources.length &&
+    sourceCoordinates.length > 0 &&
+    targetSlotIndex !== undefined
+  ) {
+    const firstPlanIndex = Math.min(
+      ...sourceCoordinates.map(({ source }) => source.planIndex),
+    );
+    const firstSlotIndex = Math.min(
+      ...sourceCoordinates.map(({ slotIndex }) => slotIndex),
+    );
+    return sourceCoordinates.flatMap(({ source, slotIndex }) => {
+      const destination = operatorAddressAtFacilitySlot(
+        target.planIndex + source.planIndex - firstPlanIndex,
+        target.type,
+        target.position,
+        targetSlotIndex + slotIndex - firstSlotIndex,
       );
+      return destination ? [[source, destination] as const] : [];
+    });
   }
 
-  const displayAddresses = displayOrderedOperatorSlotAddresses();
-  const startIndex = displayAddresses.findIndex(
+  const addresses = operatorSlotAddressesForPlan(target.planIndex);
+  const startIndex = addresses.findIndex(
     (address) => address.key === target.key,
   );
   if (startIndex < 0) {
     return [];
   }
-  const orderedSources = [...sources].sort(
-    (left, right) =>
-      displayAddresses.findIndex((address) => address.key === left.key) -
-      displayAddresses.findIndex((address) => address.key === right.key),
-  );
-  const destinations = displayAddresses.slice(
-    startIndex,
-    startIndex + orderedSources.length,
-  );
-  return orderedSources
-    .map((source, index) => {
-      const destination = destinations[index];
-      return destination ? ([source, destination] as const) : undefined;
-    })
-    .filter((pair): pair is [OperatorSlotAddress, OperatorSlotAddress] =>
-      Boolean(pair),
-    );
+  return sources.flatMap((source, index) => {
+    const destination = addresses[startIndex + index];
+    return destination ? [[source, destination] as const] : [];
+  });
 }
 
 function swapOperatorAddressPairs(
@@ -2891,10 +2995,14 @@ function handleOperatorGridPointerUp(event: PointerEvent): void {
       operatorDragTarget.value ??
       operatorAddressAtPoint(event.clientX, event.clientY);
     if (target) {
-      const pairs = operatorDragPairs(interaction.sourceAddresses, target);
+      const pairs = operatorTransferPairs(interaction.sourceAddresses, target);
       const destinations = swapOperatorAddressPairs(pairs);
       if (destinations.length > 0) {
-        showOperatorMessage(`已交换 ${destinations.length} 个槽位`);
+        showOperatorMessage(
+          destinations.length < interaction.sourceAddresses.length
+            ? `已交换 ${destinations.length} 个槽位，超出目标槽位的内容已截断`
+            : `已交换 ${destinations.length} 个槽位`,
+        );
       }
     }
     suppressNextOperatorClick.value = true;
@@ -3016,6 +3124,7 @@ function copyOperators(): boolean {
   }
   const operatorCount = entries.filter((entry) => entry.name).length;
   setOperatorClipboard("copy", entries, addresses);
+  clearOperatorSelection();
   showOperatorMessage(
     operatorCount > 0
       ? `已复制 ${operatorCount} 名干员`
@@ -3059,8 +3168,8 @@ function clearOperatorSlots(addresses: OperatorSlotAddress[]): boolean {
         }
         const indexes = new Set(group.map((address) => address.slotIndex));
         const names = room.operators ?? [];
-        const nextNames = trimOperatorSlots(
-          names.map((name, index) => (indexes.has(index) ? "" : name)),
+        const nextNames = names.map((name, index) =>
+          indexes.has(index) ? "" : name,
         );
         if (nextNames.length !== names.length) {
           setRoomOperators(room, nextNames);
@@ -3082,14 +3191,15 @@ function setRoomOperators(
   names: string[],
   stateOverrides: Map<string, OperatorState> = new Map(),
 ): void {
-  const occupiedNames = names.filter(Boolean);
+  const normalizedNames = trimOperatorSlots(names);
+  const occupiedNames = normalizedNames.filter(Boolean);
   if (occupiedNames.length === 0) {
     delete room.operators;
     delete room.operatorStates;
     return;
   }
   const nextStates: Record<string, OperatorState> = {};
-  names.forEach((name) => {
+  normalizedNames.forEach((name) => {
     if (!name) {
       return;
     }
@@ -3098,7 +3208,7 @@ function setRoomOperators(
       nextStates[name] = cloneOperatorState(state);
     }
   });
-  room.operators = names;
+  room.operators = normalizedNames;
   delete room.skip;
   if (Object.keys(nextStates).length > 0) {
     room.operatorStates = nextStates;
@@ -3121,23 +3231,13 @@ function cutOperators(): boolean {
   if (operatorCount > 0) {
     clearOperatorSlots(addresses);
   }
+  clearOperatorSelection();
   showOperatorMessage(
     operatorCount > 0
       ? `已剪切 ${operatorCount} 名干员`
       : `已剪切 ${entries.length} 个空槽位`,
   );
   return true;
-}
-
-function operatorPasteTargets(
-  target: OperatorSlotAddress,
-  count: number,
-): OperatorSlotAddress[] {
-  const addresses = operatorSlotAddressesForPlan(target.planIndex);
-  const startIndex = addresses.findIndex(
-    (address) => address.key === target.key,
-  );
-  return startIndex < 0 ? [] : addresses.slice(startIndex, startIndex + count);
 }
 
 function pasteOperators(): boolean {
@@ -3157,12 +3257,22 @@ function pasteOperators(): boolean {
     showOperatorMessage("请先选择要粘贴到的干员槽位");
     return false;
   }
-  const pastedAddresses = operatorPasteTargets(
+  const sourceEntries = new Map<string, OperatorClipboardEntry>();
+  clipboard.sourceAddresses.forEach((address, index) => {
+    const entry = clipboard.entries[index];
+    if (entry) {
+      sourceEntries.set(address.key, entry);
+    }
+  });
+  const transferEntries = operatorTransferPairs(
+    clipboard.sourceAddresses,
     target,
-    clipboard.entries.length,
-  );
-  const entries = clipboard.entries.slice(0, pastedAddresses.length);
-  if (pastedAddresses.length === 0 || entries.length === 0) {
+  ).flatMap(([source, address]) => {
+    const entry = sourceEntries.get(source.key);
+    return entry ? [{ address, entry }] : [];
+  });
+  const pastedAddresses = transferEntries.map(({ address }) => address);
+  if (transferEntries.length === 0) {
     return false;
   }
   if (editingOperatorSlot.value) {
@@ -3174,11 +3284,7 @@ function pasteOperators(): boolean {
         string,
         Array<{ address: OperatorSlotAddress; entry: OperatorClipboardEntry }>
       >();
-      pastedAddresses.forEach((address, index) => {
-        const entry = entries[index];
-        if (!entry) {
-          return;
-        }
+      transferEntries.forEach(({ address, entry }) => {
         const roomKey = operatorRoomAddressKey(address);
         const changes = changesByRoom.get(roomKey) ?? [];
         changes.push({ address, entry });
@@ -3214,7 +3320,7 @@ function pasteOperators(): boolean {
             stateOverrides.set(entry.name, entry.state);
           }
         });
-        setRoomOperators(room, trimOperatorSlots(names), stateOverrides);
+        setRoomOperators(room, names, stateOverrides);
       });
     },
     { recordHistory: true },
@@ -3227,8 +3333,10 @@ function pasteOperators(): boolean {
     pastedAddresses.map((address) => address.key),
   );
   operatorSelectionAnchor.value = pastedAddresses[0] ?? target;
-  const operatorCount = entries.filter((entry) => entry.name).length;
-  const truncated = entries.length < clipboard.entries.length;
+  const operatorCount = transferEntries.filter(
+    ({ entry }) => entry.name,
+  ).length;
+  const truncated = transferEntries.length < clipboard.entries.length;
   if (clipboard.mode === "cut") {
     clearOperatorClipboard();
   }
@@ -3745,7 +3853,7 @@ const operatorContextMenuDetails = computed<
 >(() => {
   const menu = contextMenu.value;
   const document = currentDocument.value;
-  if (!menu || !document) {
+  if (!menu || menu.scope !== "queue" || !document) {
     return undefined;
   }
   const plan = document.plans[menu.planIndex];
@@ -3855,6 +3963,7 @@ function openOperatorContextMenu(
   operatorSelectionAnchor.value = address;
   contextMenu.value = {
     ...address,
+    scope: "queue",
     positions: [position],
     ...contextMenuPosition(event),
   };
@@ -3872,7 +3981,36 @@ function openFacilityContextMenu(
   }
   contextMenu.value = {
     ...operatorSlotAddress(planIndex, type, positions[0] ?? 0, 0),
+    scope: "queue",
     positions,
+    ...contextMenuPosition(event),
+  };
+  void clampContextMenuPosition();
+}
+
+function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
+  if (
+    event.target instanceof Element &&
+    event.target.closest(".simulator-facility-queue")
+  ) {
+    return;
+  }
+  const position = row.entries[0]?.position;
+  if (
+    position === undefined ||
+    !roomHasProduct(row.type) ||
+    !currentSimulatorEditSettings.value.product
+  ) {
+    return;
+  }
+  if (!commitPendingOperatorNameEdit()) {
+    return;
+  }
+  event.preventDefault();
+  contextMenu.value = {
+    ...operatorSlotAddress(0, row.type, position, 0),
+    scope: "facility",
+    positions: [position],
     ...contextMenuPosition(event),
   };
   void clampContextMenuPosition();
@@ -3943,10 +4081,90 @@ function roomContextMenuItems(
   return items;
 }
 
+function facilityCardContextMenuItems(
+  type: RoomKey,
+  position: number,
+): FacilityContextMenuItem[] {
+  const document = currentDocument.value;
+  if (!document || !roomHasProduct(type)) {
+    return [];
+  }
+  const rooms = document.plans.map((plan) => roomAt(plan, type, position));
+  const currentProduct = rooms.every(
+    (room) => (room?.product ?? "") === (rooms[0]?.product ?? ""),
+  )
+    ? rooms[0]?.product
+    : undefined;
+  const items: FacilityContextMenuItem[] = [];
+
+  productOptions(type, currentProduct)
+    .filter((option) => option.value !== "")
+    .forEach((option) => {
+      items.push({
+        key: `facility-product-${position}-${option.value}`,
+        label: option.label,
+        check: rooms.every((room) => (room?.product ?? "") === option.value),
+        disabled: option.disabled,
+        action: () => {
+          updateAllPlanRooms(type, position, (room) => {
+            if (option.value === "Originium Shard") {
+              room.product = option.value;
+              room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
+            } else {
+              room.product = option.value;
+              delete room.sourceMaterial;
+            }
+          });
+          closeContextMenu();
+        },
+      });
+    });
+
+  if (
+    !rooms.length ||
+    !rooms.every((room) => room?.product === "Originium Shard")
+  ) {
+    return items;
+  }
+
+  items.push({
+    key: `facility-source-divider-${position}`,
+    label: "",
+    divider: true,
+  });
+  SOURCE_MATERIAL_OPTIONS.forEach((option) => {
+    items.push({
+      key: `facility-source-${position}-${option.value}`,
+      label: option.label,
+      check: rooms.every((room) => sourceValue(room) === option.value),
+      action: () => {
+        updateAllPlanRooms(type, position, (room) => {
+          room.sourceMaterial = option.value;
+        });
+        closeContextMenu();
+      },
+    });
+  });
+
+  return items;
+}
+
 const contextMenuSections = computed<FacilityContextMenuSection[]>(() => {
   const menu = contextMenu.value;
   if (!menu) {
     return [];
+  }
+  if (menu.scope === "facility") {
+    const position = menu.positions[0];
+    return position === undefined
+      ? []
+      : [
+          {
+            key: `${menu.type}-${position}`,
+            title: ROOM_LABELS[menu.type],
+            items: facilityCardContextMenuItems(menu.type, position),
+          },
+        ];
   }
   const multipleRooms = menu.positions.length > 1;
   return menu.positions.map((position) => ({
@@ -4041,6 +4259,14 @@ function resetOperatorProgression(): void {
     },
     { recordHistory: true },
   );
+  closeContextMenu();
+}
+
+function handleWindowPointerDown(event: PointerEvent): void {
+  const target = event.target;
+  if (target instanceof Element && target.closest(".simulator-context-menu")) {
+    return;
+  }
   closeContextMenu();
 }
 
@@ -4349,6 +4575,7 @@ watch(
 
 onMounted(() => {
   void loadFacilityOperatorOverrides();
+  window.addEventListener("pointerdown", handleWindowPointerDown, true);
   window.addEventListener("click", handleWindowClick);
   window.addEventListener("keydown", handleWindowKeydown, true);
   window.addEventListener("pointermove", handleOperatorGridPointerMove, true);
@@ -4369,6 +4596,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cancelOperatorPointerMoveFrame();
+  window.removeEventListener("pointerdown", handleWindowPointerDown, true);
   window.removeEventListener("click", handleWindowClick);
   window.removeEventListener("keydown", handleWindowKeydown, true);
   window.removeEventListener(
@@ -4413,6 +4641,16 @@ onBeforeUnmount(() => {
           >按设施与队列查看排班，保留干员状态与布局关系</span
         >
       </div>
+      <a-button
+        v-if="!showScheduleSidebar"
+        aria-label="显示排班表"
+        class="simulator-sidebar-toggle"
+        title="显示排班表"
+        type="text"
+        @click="toggleScheduleSidebar"
+      >
+        <template #icon><MenuUnfoldOutlined /></template>
+      </a-button>
     </div>
 
     <a-alert
@@ -4443,21 +4681,36 @@ onBeforeUnmount(() => {
       @close="warningMessage = ''"
     />
 
-    <div class="simulator-layout">
-      <aside class="simulator-document-sidebar">
+    <div
+      :class="[
+        'simulator-layout',
+        { 'simulator-layout--sidebar-hidden': !showScheduleSidebar },
+      ]"
+    >
+      <aside v-if="showScheduleSidebar" class="simulator-document-sidebar">
         <div class="simulator-sidebar-head">
           <div>
             <span class="simulator-eyebrow">SCHEDULES</span>
             <h3>排班表</h3>
           </div>
-          <a-button
-            aria-label="新建排班表"
-            title="新建排班表"
-            type="text"
-            @click="handleCreate"
-          >
-            <template #icon><PlusOutlined /></template>
-          </a-button>
+          <div class="simulator-sidebar-head-actions">
+            <a-button
+              aria-label="新建排班表"
+              title="新建排班表"
+              type="text"
+              @click="handleCreate"
+            >
+              <template #icon><PlusOutlined /></template>
+            </a-button>
+            <a-button
+              aria-label="隐藏排班表"
+              title="隐藏排班表"
+              type="text"
+              @click="toggleScheduleSidebar"
+            >
+              <template #icon><MenuFoldOutlined /></template>
+            </a-button>
+          </div>
         </div>
         <div class="simulator-sidebar-actions">
           <a-button block @click="openFilePicker">
@@ -4826,6 +5079,9 @@ onBeforeUnmount(() => {
               :bordered="false"
               :class="['simulator-column-card', 'simulator-facility-card']"
               :style="facilityCardStyle(row, currentDocument.plans)"
+              @contextmenu.stop.prevent="
+                openFacilityCardContextMenu($event, row)
+              "
             >
               <template #title>
                 <div
@@ -5267,8 +5523,8 @@ onBeforeUnmount(() => {
             `simulator-operator-picker--${operatorPicker.side}`,
           ]"
           :style="[operatorPickerStyle, slotGridStyle, operatorPickerGridStyle]"
-          @click.stop
           @mousedown.prevent
+          @click.stop
         >
           <div class="simulator-operator-picker-heading">
             <span>{{ ROOM_LABELS[operatorPicker.type] }}</span>
@@ -5372,7 +5628,7 @@ onBeforeUnmount(() => {
             { 'simulator-context-menu--flat': contextMenuIsFlat },
           ]"
           :style="contextMenuStyle()"
-          @click.stop
+          @click="closeContextMenu"
         >
           <a-menu :selectable="false">
             <template v-if="operatorContextMenuDetails">
