@@ -30,9 +30,9 @@ export function getOperatorAvatarNameFontSize(imageWidth: number): number {
 }
 
 export function getOperatorAvatarNameHorizontalPadding(
-  imageWidth: number,
+  fontSize: number,
 ): number {
-  return getOperatorAvatarNameFontSize(imageWidth);
+  return Math.max(1, fontSize);
 }
 
 export function getOperatorAvatarSkippedLabelFontSize(
@@ -44,11 +44,15 @@ export function getOperatorAvatarSkippedLabelFontSize(
 export function getOperatorAvatarNameFontSizeForWidth(
   name: string,
   imageWidth: number,
-  maxWidth: number,
   measureText: (name: string, fontSize: number) => number,
 ): number {
   let fontSize = getOperatorAvatarNameFontSize(imageWidth);
-  while (fontSize > 1 && measureText(name, fontSize) > maxWidth) {
+  while (
+    fontSize > 1 &&
+    measureText(name, fontSize) +
+      getOperatorAvatarNameHorizontalPadding(fontSize) >
+      imageWidth
+  ) {
     fontSize -= 1;
   }
   return fontSize;
@@ -78,10 +82,13 @@ export function getScaledOperatorAvatarLength(
   return Math.max(1, Math.round(sourceLength * scale));
 }
 
-export function getOperatorAvatarNameMaxTextWidth(outputWidth: number): number {
+export function getOperatorAvatarNameMaxTextWidth(
+  outputWidth: number,
+  fontSize: number,
+): number {
   return Math.max(
     1,
-    outputWidth - getOperatorAvatarNameHorizontalPadding(outputWidth),
+    outputWidth - getOperatorAvatarNameHorizontalPadding(fontSize),
   );
 }
 
@@ -112,7 +119,6 @@ export function getOperatorAvatarProportionalNameMetrics(
     fontSize: getOperatorAvatarNameFontSizeForWidth(
       name,
       outputWidth,
-      getOperatorAvatarNameMaxTextWidth(outputWidth),
       measureText,
     ),
   };

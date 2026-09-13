@@ -234,7 +234,7 @@ export async function generateOperatorAvatar(
       outputWidth,
       bodyHeight,
       nameMetrics,
-      getOperatorAvatarNameMaxTextWidth(outputWidth),
+      getOperatorAvatarNameMaxTextWidth(outputWidth, nameMetrics.fontSize),
     );
   }
 

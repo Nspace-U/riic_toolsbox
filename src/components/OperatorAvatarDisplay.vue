@@ -9,7 +9,6 @@ import {
   getOperatorAvatarNameFontSizeForWidth,
   getOperatorAvatarNameHeight,
   getOperatorAvatarNameHorizontalPadding,
-  getOperatorAvatarNameMaxTextWidth,
   getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarProportionalNameMetrics,
   getOperatorAvatarScale,
@@ -149,11 +148,9 @@ function updateNameFontSize(): void {
     return;
   }
 
-  const maxTextWidth = getOperatorAvatarNameMaxTextWidth(props.size);
   const fontSize = getOperatorAvatarNameFontSizeForWidth(
     renderedName.value,
     props.size,
-    maxTextWidth,
     (name, size) => {
       measureElement.textContent = name;
       measureElement.style.fontSize = `${size}px`;
@@ -239,7 +236,7 @@ const skippedLabelStyle = computed(() => ({
 }));
 
 const namePaddingInline = computed(() => {
-  return getOperatorAvatarNameHorizontalPadding(props.size) / 2;
+  return getOperatorAvatarNameHorizontalPadding(nameFontSize.value) / 2;
 });
 
 const nameStyle = computed(() =>
