@@ -2756,17 +2756,14 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
       /所有生产(.+?)类配方的制造站生产力([+-]?\d+(?:\.\d+)?)/,
     ))
   ) {
-    pushControlEffect(
-      effects,
-      {
-        target: "manufacture",
-        stat: "manuProd",
-        recipe: match[1],
-        value: Number(match[2]),
-        stack: "max",
-      },
-      condition,
-    );
+    const effect = {
+      target: "manufacture",
+      stat: "manuProd",
+      recipe: match[1],
+      value: Number(match[2]),
+    };
+    if (/同种效果取最高/.test(text)) effect.stack = "max";
+    pushControlEffect(effects, effect, condition);
     rest = rest.replace(match[0], "");
   }
   if (

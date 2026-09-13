@@ -289,6 +289,26 @@ export const scenarios = [
     products: ["Pure Gold"],
   },
   {
+    id: "control-facility-efficiency-attribution",
+    title: "中枢直接设施效率归属",
+    durationHours: 12,
+    layout: [
+      ["control", 5],
+      ["trading", 3],
+      ["manufacture", 3],
+      ["hire", 3],
+    ],
+    assignments: {
+      control: [
+        [operator("Mon3tr", 2), operator("诗怀雅"), operator("焰狐龙梓兰")],
+      ],
+      trading: [[operator("能天使")]],
+      manufacture: [[operator("机械师")]],
+      hire: [[]],
+    },
+    products: ["Battle Record"],
+  },
+  {
     id: "meeting-and-office",
     title: "会客室与办公室基础加成",
     durationHours: 12,

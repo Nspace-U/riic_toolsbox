@@ -267,21 +267,23 @@ npm run generate:operator-skills
 
 这些字段描述“效果给谁”和“效果怎么合并”：
 
-| 字段         | 取值/说明                                                                                |
-| ------------ | ---------------------------------------------------------------------------------------- |
-| `scope`      | `self` 自身、`room` 同设施、`op` 指定干员、`facility` 目标设施总效率；缺省由效果类型决定 |
-| `op`         | `scope: op` 时的干员名                                                                   |
-| `scopeGroup` | 受影响的阵营术语 key                                                                     |
-| `facilities` | 作用设施集合。通常与 `target: any` 搭配                                                  |
-| `exclude`    | 从基建计数中排除的设施 key                                                               |
-| `subjects`   | 宿舍效果的 `single` 单体或 `spread` 均摊                                                 |
-| `other`      | 受众/计数是否排除自身                                                                    |
-| `stack`      | `max` 表示同组取最高；缺省表示累加                                                       |
-| `maxGroup`   | `stack: max` 的显式分组名                                                                |
-| `baseValue`  | 与 `per` 共存的固定基础值，最终值为基础值加线性值                                        |
-| `recipe`     | 制造站配方类别，例如 `贵金属`                                                            |
+| 字段         | 取值/说明                                                     |
+| ------------ | ------------------------------------------------------------- |
+| `scope`      | `self` 自身、`room` 同设施、`op` 指定干员；缺省由效果类型决定 |
+| `op`         | `scope: op` 时的干员名                                        |
+| `scopeGroup` | 受影响的阵营术语 key                                          |
+| `facilities` | 作用设施集合。通常与 `target: any` 搭配                       |
+| `exclude`    | 从基建计数中排除的设施 key                                    |
+| `subjects`   | 宿舍效果的 `single` 单体或 `spread` 均摊                      |
+| `other`      | 受众/计数是否排除自身                                         |
+| `stack`      | `max` 表示同组取最高；缺省表示累加                            |
+| `maxGroup`   | `stack: max` 的显式分组名                                     |
+| `baseValue`  | 与 `per` 共存的固定基础值，最终值为基础值加线性值             |
+| `recipe`     | 制造站配方类别，例如 `贵金属`                                 |
 
 `stack: "max"` 的含义是：先按每个目标设施、条件和 `per` 计算候选值，再在相同 `maxGroup` 中取满足条件的最大值；不能把标记为 `max` 的效果与普通效果混为一组。玛恩纳、重岳、维什戴尔针对 `部分设施/其他设施` 的心情恢复使用 `maxGroup: "otherFacRec"`，由每个设施分别取最高。
+
+控制中枢直接提供目标设施效率的效果，如果描述包含“同种效果取最高”，使用 `stack: "max"`。计算器据此将 `tradeSpd`、`manuProd`、`droneCharge`、`clueSpeed` 和 `hireSpd` 的效果归入设施效率，而不是干员个人贡献。
 
 ## 4. condition
 

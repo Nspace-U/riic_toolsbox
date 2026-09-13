@@ -28,8 +28,7 @@
               "target": "manufacture",
               "stat": "manuProd",
               "recipe": "贵金属",
-              "value": 0.5,
-              "stack": "max"
+              "value": 0.5
             }
           ]
         },
@@ -55,8 +54,7 @@
               "target": "manufacture",
               "stat": "manuProd",
               "recipe": "贵金属",
-              "value": 1,
-              "stack": "max"
+              "value": 1
             }
           ]
         }

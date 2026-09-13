@@ -127,7 +127,7 @@ export interface EfficiencyEffect {
   curve?: EfficiencyCurve;
   condition?: EfficiencyCondition;
   facilities?: RoomKey[];
-  scope?: "self" | "room" | "op" | "facility" | string;
+  scope?: "self" | "room" | "op" | string;
   op?: string;
   scopeGroup?: string;
   subjects?: "single" | "spread" | string;
@@ -301,7 +301,7 @@ export interface OperatorEfficiencyDetail {
   value: number;
   facility: RoomKey;
   ownerFacility?: RoomKey;
-  scope?: EfficiencyEffect["scope"];
+  stack?: EfficiencyEffect["stack"];
   category?: "base" | "combination";
   calculation?: OperatorEfficiencyCalculation;
 }

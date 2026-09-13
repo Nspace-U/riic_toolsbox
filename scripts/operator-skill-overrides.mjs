@@ -56,7 +56,6 @@ export const OPERATOR_SKILL_OVERRIDES = {
       target: MANUFACTURE,
       stat: "manuProd",
       value: 3,
-      scope: "facility",
       stack: "max",
       condition: {
         type: "opGroupInFacility",

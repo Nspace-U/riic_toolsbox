@@ -81,6 +81,13 @@ const EFFICIENCY_STATS = new Set([
   "droneCharge",
   "abyssalBoost",
 ]);
+const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
+  "tradeSpd",
+  "manuProd",
+  "droneCharge",
+  "clueSpeed",
+  "hireSpd",
+]);
 const ATTRIBUTE_STATS = new Set(["orderLimit", "storageCap"]);
 const POINT_STATS = new Set(["basePointGain", "basePointConvert"]);
 
@@ -204,9 +211,7 @@ function isFacilityBaseEffect(item: ActiveEffect): boolean {
   }
   return (
     owner.facility.type === "control" &&
-    ["tradeSpd", "manuProd", "droneCharge", "clueSpeed", "hireSpd"].includes(
-      effect.stat,
-    ) &&
+    DIRECT_FACILITY_EFFICIENCY_STATS.has(effect.stat) &&
     !effect.per &&
     !effect.condition &&
     !effect.scope &&
@@ -1910,7 +1915,7 @@ function detailRows(
       value,
       facility,
       ownerFacility: item.owner.facility.type,
-      ...(item.effect.scope !== undefined ? { scope: item.effect.scope } : {}),
+      ...(item.effect.stack !== undefined ? { stack: item.effect.stack } : {}),
       category,
       ...(calculation ? { calculation } : {}),
     }));
@@ -1943,6 +1948,12 @@ function operatorTrainingEfficiency(placement: Placement): number {
   );
 }
 
+function isFacilitySkillDetail(detail: OperatorEfficiencyDetail): boolean {
+  return (
+    detail.stack === "max" && DIRECT_FACILITY_EFFICIENCY_STATS.has(detail.stat)
+  );
+}
+
 function operatorContributions(
   placements: Placement[],
   combinationDetails: OperatorEfficiencyDetail[],
@@ -1951,7 +1962,7 @@ function operatorContributions(
   const skillValues = new Map<string, number>();
   const sourceFacilities = new Map<string, RoomKey>();
   combinationDetails
-    .filter((detail) => detail.scope !== "facility")
+    .filter((detail) => !isFacilitySkillDetail(detail))
     .forEach((detail) => {
       skillValues.set(
         detail.operator,
@@ -2108,7 +2119,8 @@ function calculateFacility(
     ...trainingDetails,
   ];
   const facilitySkillEfficiency = combinationDetails.reduce(
-    (total, detail) => total + (detail.scope === "facility" ? detail.value : 0),
+    (total, detail) =>
+      total + (isFacilitySkillDetail(detail) ? detail.value : 0),
     0,
   );
   const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
@@ -2609,7 +2621,8 @@ function calculatePowerGroup(
   const baseEfficiency = 100 + facBase;
   const combinationEfficiency = skillEfficiency;
   const facilitySkillEfficiency = skillDetails.reduce(
-    (total, detail) => total + (detail.scope === "facility" ? detail.value : 0),
+    (total, detail) =>
+      total + (isFacilitySkillDetail(detail) ? detail.value : 0),
     0,
   );
   const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
