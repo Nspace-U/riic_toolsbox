@@ -655,3 +655,9 @@
 - **连续比例边界**：`source=facCap` 未显式设置 `floor` 时保留连续比例；显式 `floor: true` 仍按完整档位。`value` 可以是小数，取整只作用于档位次数。
 - **范围**：只修改 `src/utils/efficiency/calculate.ts` 的统一 `per` 求值和对应技能 JSON 规范，不修改排班/Maa 数据契约或生成技能 JSON 文件。
 - **验证**：技能生成器 0 警告；`npm run lint`、`npm run type-check`、`npm run build`、目标文件 Prettier 和 `git diff --check` 通过。全量格式检查仍被既有文档和 `SimulatorPage.vue` 格式差异阻塞。
+
+## 2026-09-13：清理项目上下文日志
+
+- 决定：`CONTEXT.md` 只保留项目定位、长期当前状态、数据契约和风险摘要；实现过程、验证结果和阶段性决定统一记录在 `docs/decision-log.md`。
+- 处理：将 `CONTEXT.md` 中已有的阶段性日志与决策日志逐条对照；已有对应条目的内容不重复追加，仅从 `CONTEXT.md` 移除。
+- 结果：`CONTEXT.md` 不再包含日期日志或“本轮”日志，决策日志保留一份完整历史记录。
