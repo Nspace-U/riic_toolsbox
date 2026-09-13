@@ -23,7 +23,7 @@
 
 ## 提交
 
-每次修改完成后对修改部分进行提交
+每次任务完成后对增改部分进行提交
 
 Common commit types:
 
@@ -38,12 +38,12 @@ Common commit types:
 
 开始任务前：
 
-- 读取 CONTEXT.md
-- 读取 docs/decision-log.md 的最近内容
+- 读 CONTEXT.md
+- 读 docs/decision-log.md
 
 完成任务后：
 
-- 更新 CONTEXT.md
+- 在 CONTEXT.md 中按现有格式写入关键内容，不写日志
 - 把重要技术决定追加到 docs/decision-log.md
 - 明确记录已完成、未完成、风险和下一步
 - 不要把未经验证的内容写成已完成

@@ -1567,6 +1567,28 @@ function isEditingOperatorSlot(slot: OperatorSlotAddress): boolean {
   return editingOperatorSlot.value?.key === slot.key;
 }
 
+function isOperatorNameInputVisible(slot: OperatorSlotAddress): boolean {
+  return (
+    isEditingOperatorSlot(slot) ||
+    (!contextMenu.value &&
+      selectedOperatorSlots.value.size === 1 &&
+      selectedOperatorSlots.value.has(slot.key))
+  );
+}
+
+function ensureOperatorNameEdit(slot: OperatorSlotAddress): boolean {
+  if (editingOperatorSlot.value?.key === slot.key) {
+    return true;
+  }
+  if (editingOperatorSlot.value && !commitPendingOperatorNameEdit()) {
+    return false;
+  }
+  editingOperatorSlot.value = slot;
+  contextMenu.value = undefined;
+  closeOperatorPicker();
+  return true;
+}
+
 function handleOperatorNameInput(
   event: Event,
   planIndex: number,
@@ -1576,6 +1598,10 @@ function handleOperatorNameInput(
 ): void {
   const input = event.target;
   if (input instanceof HTMLInputElement) {
+    const slot = operatorSlotAddress(planIndex, type, position, slotIndex);
+    if (!ensureOperatorNameEdit(slot)) {
+      return;
+    }
     handleOperatorDraft(planIndex, type, position, slotIndex, input.value);
   }
 }
@@ -2372,6 +2398,13 @@ function setOperatorSlotDataFlag(
   }
 }
 
+function focusSelectedOperatorNameInput(): void {
+  if (selectedOperatorSlots.value.size !== 1 || contextMenu.value) {
+    return;
+  }
+  void focusSlotNameInput();
+}
+
 function setOperatorDragTarget(
   nextTarget: OperatorSlotAddress | undefined,
 ): void {
@@ -2488,6 +2521,8 @@ function selectOperatorSlot(
     return;
   }
   const address = operatorSlotAddress(planIndex, type, position, slotIndex);
+  const wasEditingSelectedSlot =
+    editingOperatorSlot.value?.key === address.key;
   const shouldSwitchPicker =
     operatorPicker.value !== undefined &&
     operatorPicker.value.key !== address.key;
@@ -2558,6 +2593,9 @@ function selectOperatorSlot(
       undefined,
       true,
     );
+  }
+  if (!wasEditingSelectedSlot) {
+    focusSelectedOperatorNameInput();
   }
 }
 
@@ -3537,6 +3575,7 @@ function selectOperatorAddress(address: OperatorSlotAddress): void {
   resetOperatorSelectAllCycle();
   selectedOperatorSlots.value = new Set([address.key]);
   operatorSelectionAnchor.value = address;
+  focusSelectedOperatorNameInput();
 }
 
 function navigateOperatorSlot(
@@ -4473,8 +4512,13 @@ function handleWindowResize() {
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
+  const isImeEvent =
+    event.isComposing || event.key === "Process" || event.keyCode === 229;
   const operatorInput = operatorNameInputFromTarget(event.target);
-  if (operatorInput) {
+  const pendingOperatorInput = operatorInput?.classList.contains(
+    "simulator-slot-name-input--pending",
+  );
+  if (operatorInput && !pendingOperatorInput) {
     if (event.key === "Escape") {
       event.preventDefault();
       cancelOperatorNameEdit();
@@ -4482,8 +4526,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
       return;
     }
     if (
-      event.isComposing ||
-      event.key === "Process" ||
+      isImeEvent ||
       event.ctrlKey ||
       event.metaKey ||
       event.altKey ||
@@ -4500,7 +4543,23 @@ function handleWindowKeydown(event: KeyboardEvent): void {
     return;
   }
 
+  if (pendingOperatorInput && event.key === "Backspace") {
+    event.preventDefault();
+    return;
+  }
+
+  if (pendingOperatorInput && event.key === "Delete") {
+    event.preventDefault();
+    if (operatorDeletionTargets().length > 0) {
+      deleteOperators();
+    }
+    return;
+  }
+
   if (event.key === "Escape") {
+    if (pendingOperatorInput) {
+      operatorInput?.blur();
+    }
     clearOperatorClipboard();
     resetOperatorSelectAllCycle();
     closeOperatorPicker();
@@ -4510,7 +4569,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
 
   const target = event.target instanceof Element ? event.target : undefined;
   const editableTarget = target?.closest("input, textarea, select");
-  if (editableTarget) {
+  if (editableTarget && !pendingOperatorInput) {
     return;
   }
 
@@ -4574,7 +4633,11 @@ function handleWindowKeydown(event: KeyboardEvent): void {
     return;
   }
 
-  if (!event.isComposing && event.key.length === 1) {
+  if (pendingOperatorInput && !isImeEvent && event.key.length === 1) {
+    return;
+  }
+
+  if (!operatorPicker.value && !isImeEvent && event.key.length === 1) {
     const selected = selectedOperatorSlotAddresses();
     if (selected.length === 1) {
       const target = selected[0];
@@ -5413,7 +5476,7 @@ onBeforeUnmount(() => {
                           :show-profession="true"
                           :show-rarity="true"
                           :name-editing="
-                            isEditingOperatorSlot(
+                            isOperatorNameInputVisible(
                               operatorSlotAddress(
                                 planIndex,
                                 row.type,
@@ -5505,7 +5568,7 @@ onBeforeUnmount(() => {
                           <span
                             :class="{
                               'simulator-empty-slot-name--editing':
-                                isEditingOperatorSlot(
+                                isOperatorNameInputVisible(
                                   operatorSlotAddress(
                                     planIndex,
                                     row.type,
@@ -5551,7 +5614,7 @@ onBeforeUnmount(() => {
                         </template>
                         <input
                           v-if="
-                            isEditingOperatorSlot(
+                            isOperatorNameInputVisible(
                               operatorSlotAddress(
                                 planIndex,
                                 row.type,
@@ -5562,11 +5625,93 @@ onBeforeUnmount(() => {
                           "
                           ref="slotNameInput"
                           :aria-label="`${row.label}干员名称`"
+                          :class="{
+                            'simulator-slot-name-input--pending':
+                              !isEditingOperatorSlot(
+                                operatorSlotAddress(
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                ),
+                              ),
+                          }"
+                          :placeholder="
+                            !isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            ) && !slotName(row, plan, planIndex, slot)
+                              ? '空槽位'
+                              : undefined
+                          "
                           :style="slotNameBandStyle"
                           :value="slotName(row, plan, planIndex, slot)"
                           autocomplete="off"
                           class="simulator-slot-name-input"
                           type="text"
+                          @click.stop="
+                            !isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            ) &&
+                            selectOperatorSlot(
+                              $event,
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
+                          @contextmenu.stop.prevent="
+                            !isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            ) &&
+                            (slotOperator(row, plan, planIndex, slot)
+                              ? openOperatorContextMenu(
+                                  $event,
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                )
+                              : openFacilityContextMenu(
+                                  $event,
+                                  planIndex,
+                                  row.type,
+                                  [slot.entry.position],
+                                ))
+                          "
+                          @dblclick.stop="
+                            !isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            ) &&
+                            beginOperatorNameEdit(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                              undefined,
+                              true,
+                            )
+                          "
                           @focus="handleOperatorNameSelection"
                           @blur="
                             commitOperatorName(

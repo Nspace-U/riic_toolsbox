@@ -2103,6 +2103,19 @@ a {
   visibility: hidden;
 }
 
+.simulator-slot-name-input--pending {
+  color: #526164;
+  background: transparent;
+  border-color: transparent;
+  caret-color: transparent;
+  cursor: pointer;
+}
+
+.simulator-slot-name-input--pending::placeholder {
+  color: #8a9698;
+  opacity: 1;
+}
+
 .simulator-slot > .operator-avatar-display {
   cursor: pointer;
 }
