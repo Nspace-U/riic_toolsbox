@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "test:efficiency": "node scripts/efficiency-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",
     "sync:torappu": "node scripts/sync-torappu.mjs",

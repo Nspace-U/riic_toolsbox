@@ -1,0 +1,297 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
+
+const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const assetRoot = path.join(projectRoot, "public", "assets");
+
+async function readJson(filePath) {
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+async function loadRuntime() {
+  const vite = await createServer({
+    root: projectRoot,
+    server: { middlewareMode: true, hmr: false },
+    appType: "custom",
+    logLevel: "error",
+  });
+  try {
+    const [parseModule, catalogModule, calculateModule] = await Promise.all([
+      vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
+    ]);
+    const [characterTable, buildingData, gamedataConst, metadata] =
+      await Promise.all([
+        readJson(
+          path.join(
+            assetRoot,
+            "gamedata",
+            "latest",
+            "excel",
+            "character_table.json",
+          ),
+        ),
+        readJson(
+          path.join(
+            assetRoot,
+            "gamedata",
+            "latest",
+            "excel",
+            "building_data.json",
+          ),
+        ),
+        readJson(
+          path.join(
+            assetRoot,
+            "gamedata",
+            "latest",
+            "excel",
+            "gamedata_const.json",
+          ),
+        ),
+        readJson(
+          path.join(assetRoot, "gamedata", "latest", "torappu-meta.json"),
+        ),
+      ]);
+    const operators = parseModule.parseTorappuData(
+      characterTable,
+      buildingData,
+      metadata,
+      gamedataConst.termDescriptionDict ?? {},
+      gamedataConst.richTextStyles ?? {},
+    );
+    const skillFiles = Object.fromEntries(
+      await Promise.all(
+        operators.map(async (operator) => {
+          try {
+            return [
+              operator.id,
+              await readJson(
+                path.join(assetRoot, "operator-skills", `${operator.id}.json`),
+              ),
+            ];
+          } catch {
+            return [operator.id, undefined];
+          }
+        }),
+      ),
+    );
+    const terms = Object.fromEntries(
+      Object.entries(gamedataConst.termDescriptionDict ?? {}).map(
+        ([key, term]) => [
+          key,
+          { name: term.termName, definition: term.description },
+        ],
+      ),
+    );
+    return {
+      calculateEfficiency: calculateModule.calculateEfficiency,
+      catalog: catalogModule.createEfficiencyCatalog(
+        operators,
+        skillFiles,
+        terms,
+      ),
+      close: () => vite.close(),
+    };
+  } catch (error) {
+    await vite.close();
+    throw error;
+  }
+}
+
+function assignment(operators, eliteLevels) {
+  return {
+    operators: [...operators],
+    operatorStates: Object.fromEntries(
+      operators.map((name) => [
+        name,
+        { elite: eliteLevels[name] ?? 2, level: 1, mood: 24 },
+      ]),
+    ),
+  };
+}
+
+function documentFor({
+  control = [],
+  trading = [],
+  manufacture = [],
+  eliteLevels = {},
+}) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "power", level: 3 },
+      { type: "power", level: 3 },
+      { type: "power", level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment(control, eliteLevels)],
+          trading: [assignment(trading, eliteLevels)],
+          manufacture: [
+            {
+              ...assignment(manufacture, eliteLevels),
+              product: "Pure Gold",
+            },
+          ],
+          power: [
+            assignment([], eliteLevels),
+            assignment([], eliteLevels),
+            assignment([], eliteLevels),
+          ],
+        },
+      },
+    ],
+  };
+}
+
+function manufactureResult(result) {
+  const facility = result.plans[0].facilities.find(
+    ({ facility: value }) => value.type === "manufacture",
+  );
+  assert.ok(facility);
+  return facility;
+}
+
+function tradingResult(result) {
+  const facility = result.plans[0].facilities.find(
+    ({ facility: value }) => value.type === "trading",
+  );
+  assert.ok(facility);
+  return facility;
+}
+
+function contribution(result, operator) {
+  const value = result.operatorContributions.find(
+    (item) => item.operator === operator,
+  );
+  assert.ok(value);
+  return value;
+}
+
+function assertSkillDetails(result, operators) {
+  assert.deepEqual(
+    [...new Set(result.combinationDetails.map((detail) => detail.operator))],
+    operators,
+  );
+}
+
+function runTests(runtime) {
+  const { calculateEfficiency, catalog } = runtime;
+  const wendy = calculateEfficiency(
+    documentFor({
+      control: ["薇薇安娜"],
+      manufacture: ["温蒂", "砾"],
+      eliteLevels: { 温蒂: 2, 砾: 1, 薇薇安娜: 2 },
+    }),
+    catalog,
+  );
+  const wendyManufacture = manufactureResult(wendy);
+  assert.equal(wendyManufacture.moodEfficiency, 2);
+  assert.equal(wendyManufacture.skillEfficiency, 45);
+  assert.equal(wendyManufacture.operatorSkillEfficiency, 45);
+  assert.equal(wendyManufacture.facilitySkillEfficiency, 0);
+  assert.equal(wendyManufacture.efficiency, 147);
+  assertSkillDetails(wendyManufacture, ["温蒂"]);
+  assert.deepEqual(contribution(wendyManufacture, "砾"), {
+    operator: "砾",
+    baseEfficiency: 1,
+    skillEfficiency: 0,
+    efficiency: 1,
+    sourceFacility: "manufacture",
+  });
+  assert.equal(contribution(wendyManufacture, "温蒂").skillEfficiency, 45);
+
+  const huaihu = calculateEfficiency(
+    documentFor({
+      manufacture: ["槐琥", "砾"],
+      eliteLevels: { 槐琥: 2, 砾: 1 },
+    }),
+    catalog,
+  );
+  const huaihuManufacture = manufactureResult(huaihu);
+  assert.equal(huaihuManufacture.skillEfficiency, 70);
+  assert.equal(huaihuManufacture.operatorSkillEfficiency, 70);
+  assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
+  assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
+
+  const clearedDerived = calculateEfficiency(
+    documentFor({
+      manufacture: ["温蒂", "槐琥", "砾"],
+      eliteLevels: { 温蒂: 2, 槐琥: 2, 砾: 1 },
+    }),
+    catalog,
+  );
+  const clearedDerivedManufacture = manufactureResult(clearedDerived);
+  assert.equal(clearedDerivedManufacture.moodEfficiency, 3);
+  assert.equal(clearedDerivedManufacture.skillEfficiency, 45);
+  assert.equal(clearedDerivedManufacture.operatorSkillEfficiency, 45);
+  assertSkillDetails(clearedDerivedManufacture, ["温蒂"]);
+  assert.equal(
+    contribution(clearedDerivedManufacture, "槐琥").skillEfficiency,
+    0,
+  );
+  assert.equal(
+    contribution(clearedDerivedManufacture, "砾").skillEfficiency,
+    0,
+  );
+
+  const mutual = calculateEfficiency(
+    documentFor({
+      manufacture: ["温蒂", "冬时"],
+      eliteLevels: { 温蒂: 2, 冬时: 1 },
+    }),
+    catalog,
+  );
+  const mutualManufacture = manufactureResult(mutual);
+  assert.equal(mutualManufacture.skillEfficiency, 65);
+  assert.equal(mutualManufacture.operatorSkillEfficiency, 65);
+  assert.equal(contribution(mutualManufacture, "温蒂").skillEfficiency, 45);
+  assert.equal(contribution(mutualManufacture, "冬时").skillEfficiency, 20);
+
+  const facilitySkill = calculateEfficiency(
+    documentFor({
+      control: ["斩业星熊", "诗怀雅"],
+      manufacture: ["温蒂"],
+      eliteLevels: { 斩业星熊: 2, 诗怀雅: 2, 温蒂: 2 },
+    }),
+    catalog,
+  );
+  const facilitySkillManufacture = manufactureResult(facilitySkill);
+  assert.equal(facilitySkillManufacture.skillEfficiency, 48);
+  assert.equal(facilitySkillManufacture.operatorSkillEfficiency, 45);
+  assert.equal(facilitySkillManufacture.facilitySkillEfficiency, 3);
+  assertSkillDetails(facilitySkillManufacture, ["温蒂", "斩业星熊"]);
+
+  const trade = calculateEfficiency(
+    documentFor({
+      trading: ["巫恋", "琳琅诗怀雅"],
+      eliteLevels: { 巫恋: 2, 琳琅诗怀雅: 2 },
+    }),
+    catalog,
+  );
+  const tradeFacility = tradingResult(trade);
+  assert.equal(tradeFacility.skillEfficiency, 45);
+  assert.equal(tradeFacility.operatorSkillEfficiency, 45);
+  assertSkillDetails(tradeFacility, ["巫恋"]);
+}
+
+async function main() {
+  const runtime = await loadRuntime();
+  try {
+    runTests(runtime);
+    console.log("efficiency regression: passed");
+  } finally {
+    await runtime.close();
+  }
+}
+
+await main();

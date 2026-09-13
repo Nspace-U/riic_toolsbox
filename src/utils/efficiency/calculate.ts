@@ -1496,10 +1496,7 @@ function resolveMoods(
       const inheritsMood = canInheritMood(previousOperator, placement);
       const previousWork = previousWorkPlacement(index, placement);
       const previousWorkOperator = previousWork.placement;
-      const continuesWork = canContinueWork(
-        previousWorkOperator,
-        placement,
-      );
+      const continuesWork = canContinueWork(previousWorkOperator, placement);
       placement.moodStart = placement.explicitMood
         ? clampMood(placement.state.mood ?? 24)
         : inheritsMood
@@ -1525,10 +1522,7 @@ function resolveMoods(
         const inheritsMood = canInheritMood(previousOperator, placement);
         const previousWork = previousWorkPlacement(index, placement);
         const previousWorkOperator = previousWork.placement;
-        const continuesWork = canContinueWork(
-          previousWorkOperator,
-          placement,
-        );
+        const continuesWork = canContinueWork(previousWorkOperator, placement);
         const nextStart = placement.explicitMood
           ? clampMood(placement.state.mood ?? 24)
           : inheritsMood
@@ -1728,31 +1722,54 @@ function rawAttributeState(
   };
 }
 
-function zeroedOperators(
+function zeroedSkillOperators(
   context: PlanContext,
   facility: EfficiencyFacility,
 ): Set<string> {
-  const zero = new Set<string>();
-  context.active
-    .filter(
-      (item) =>
-        item.target?.id === facility.id && item.effect.stat === "zeroOpBonus",
-    )
-    .forEach((item) => {
-      placementsInFacility(context, facility).forEach((placement) => {
-        if (placement.name !== item.owner.name) zero.add(placement.name);
-      });
-    });
-  return zero;
+  const zeroingOperators = new Set(
+    context.active
+      .filter(
+        (item) =>
+          item.target?.id === facility.id && item.effect.stat === "zeroOpBonus",
+      )
+      .map((item) => item.owner.name),
+  );
+  if (zeroingOperators.size === 0) {
+    return new Set<string>();
+  }
+  return new Set(
+    context.active
+      .filter(
+        (item) =>
+          item.target?.id === facility.id &&
+          !zeroingOperators.has(item.owner.name),
+      )
+      .map((item) => item.owner.name),
+  );
 }
 
-function isCountEffect(effect: EfficiencyEffect): boolean {
-  const source = effect.per?.source;
+function isFacilitySkillEffect(item: ActiveEffect): boolean {
   return (
-    source === "facilityCount" ||
-    source === "facilityLevel" ||
-    source === "facilityLevelTotal"
+    item.effect.stack === "max" &&
+    DIRECT_FACILITY_EFFICIENCY_STATS.has(item.effect.stat)
   );
+}
+
+function isZeroExemptEffect(item: ActiveEffect): boolean {
+  const source = item.effect.per?.source;
+  return (
+    isFacilityBaseEffect(item) ||
+    isFacilitySkillEffect(item) ||
+    (typeof source === "string" &&
+      item.effect.except?.includes(source) === true)
+  );
+}
+
+function shouldIncludeZeroedEffect(
+  item: ActiveEffect,
+  zeroed: Set<string>,
+): boolean {
+  return !zeroed.has(item.owner.name) || isZeroExemptEffect(item);
 }
 
 function aggregateEffectValues(
@@ -1791,9 +1808,7 @@ function aggregateEffectValues(
     .filter(matchesSource)
     .filter((item) => !["moodCost", "moodRecover"].includes(item.effect.stat))
     .filter((item) => item.effect.stack !== "max")
-    .filter(
-      (item) => !zeroed.has(item.owner.name) || isCountEffect(item.effect),
-    )
+    .filter((item) => shouldIncludeZeroedEffect(item, zeroed))
     .forEach((item) =>
       normal.push({
         item,
@@ -1818,9 +1833,7 @@ function aggregateEffectValues(
     .filter(matchesSource)
     .filter((item) => item.effect.stack === "max")
     .filter((item) => item.effect.stat !== "tradeNetEff")
-    .filter(
-      (item) => !zeroed.has(item.owner.name) || isCountEffect(item.effect),
-    )
+    .filter((item) => shouldIncludeZeroedEffect(item, zeroed))
     .forEach((item) => {
       const groupKey =
         item.effect.maxGroup ??
@@ -1867,7 +1880,7 @@ function collectBonusByFacility(
       capBoosts: attributeStates.get(facility.id)?.capBoosts ?? {},
       bonusByFacility: result,
     };
-    const zeroed = zeroedOperators(context, facility);
+    const zeroed = zeroedSkillOperators(context, facility);
     const stats = new Set([
       "tradeSpd",
       "manuProd",
@@ -1923,6 +1936,7 @@ function tradeSpecialEfficiency(
   state: AttributeState,
   active: ActiveEffect[],
   data: EvaluationData,
+  zeroed: Set<string>,
   ordinarySkill: number,
 ): {
   value: number;
@@ -1938,16 +1952,20 @@ function tradeSpecialEfficiency(
       item.effect.stat === "orderLimit" &&
       item.effect.per?.source === "stat",
   );
-  const netEffects = active.filter(
-    (item) =>
-      item.target?.id === facility.id && item.effect.stat === "tradeNetEff",
-  );
-  const orderEffects = active.filter(
-    (item) =>
-      item.target?.id === facility.id &&
-      item.effect.stat === "tradeSpd" &&
-      item.effect.per?.source === "orderCount",
-  );
+  const netEffects = active
+    .filter(
+      (item) =>
+        item.target?.id === facility.id && item.effect.stat === "tradeNetEff",
+    )
+    .filter((item) => shouldIncludeZeroedEffect(item, zeroed));
+  const orderEffects = active
+    .filter(
+      (item) =>
+        item.target?.id === facility.id &&
+        item.effect.stat === "tradeSpd" &&
+        item.effect.per?.source === "orderCount",
+    )
+    .filter((item) => shouldIncludeZeroedEffect(item, zeroed));
   const baseOrder = TRADE_ORDER_LIMIT[facility.level] ?? 0;
   if (
     jieEffects.length === 0 &&
@@ -2057,7 +2075,6 @@ function isFacilitySkillDetail(detail: OperatorEfficiencyDetail): boolean {
 function operatorContributions(
   placements: Placement[],
   combinationDetails: OperatorEfficiencyDetail[],
-  zeroed: Set<string> = new Set(),
 ): OperatorEfficiencyContribution[] {
   const skillValues = new Map<string, number>();
   const sourceFacilities = new Map<string, RoomKey>();
@@ -2075,9 +2092,10 @@ function operatorContributions(
     });
   const contributions = new Map<string, OperatorEfficiencyContribution>();
   placements.forEach((placement) => {
-    const baseEfficiency = zeroed.has(placement.name)
-      ? 0
-      : operatorBaseEfficiency(placement.facility, placement);
+    const baseEfficiency = operatorBaseEfficiency(
+      placement.facility,
+      placement,
+    );
     const skillEfficiency = skillValues.get(placement.name) ?? 0;
     const contribution = {
       operator: placement.name,
@@ -2122,7 +2140,7 @@ function calculateFacility(
     capBoosts: attributeState.capBoosts,
     bonusByFacility,
   };
-  const zeroed = zeroedOperators(context, facility);
+  const zeroed = zeroedSkillOperators(context, facility);
   const baseAggregate = aggregateEffectValues(
     context,
     facility,
@@ -2156,11 +2174,7 @@ function calculateFacility(
   );
   const placements = placementsInFacility(context, facility);
   const moodEfficiency = placements.reduce(
-    (total, placement) =>
-      total +
-      (zeroed.has(placement.name)
-        ? 0
-        : operatorBaseEfficiency(facility, placement)),
+    (total, placement) => total + operatorBaseEfficiency(facility, placement),
     0,
   );
   let baseEfficiency = facilityBaseEfficiency(facility.type, facility.level);
@@ -2178,6 +2192,7 @@ function calculateFacility(
     attributeState,
     context.active,
     data,
+    zeroed,
     combinationAggregate.total,
   );
   if (facility.type === "trading" && attributeState.attributes.orderLimit) {
@@ -2247,7 +2262,6 @@ function calculateFacility(
     operatorContributions: operatorContributions(
       placements,
       combinationDetails,
-      zeroed,
     ),
   };
   result.production = decorateProduction(
