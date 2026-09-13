@@ -44,6 +44,7 @@ import type {
   EfficiencyResult,
   FacilityEfficiencyResult,
   CluePreference,
+  MoodWarning,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -564,6 +565,16 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
       dormitoryDefaultIncludesMoodRecovery.value,
   });
 });
+
+const efficiencyMoodWarnings = computed(() =>
+  (efficiencyResult.value?.plans ?? []).flatMap((plan, planIndex) =>
+    plan.moodWarnings.map((warning: MoodWarning) => ({
+      plan,
+      planIndex,
+      warning,
+    })),
+  ),
+);
 
 const efficiencySettingsModalOpen = ref(false);
 const currentEfficiencySettings = computed(() => {
@@ -6303,6 +6314,29 @@ onBeforeUnmount(() => {
               show-icon
               type="info"
             />
+            <a-alert
+              v-if="efficiencyMoodWarnings.length"
+              class="simulator-efficiency-scope-alert"
+              message="发现心情继承异常"
+              show-icon
+              type="warning"
+            >
+              <template #description>
+                <div class="simulator-anomaly-list">
+                  <span
+                    v-for="item in efficiencyMoodWarnings"
+                    :key="`${item.planIndex}-${item.warning.facilityId}-${item.warning.slotIndex}-${item.warning.operator}`"
+                  >
+                    {{ item.plan.name }} ·
+                    {{ ROOM_LABELS[item.warning.facility] }}
+                    {{ item.warning.facilityIndex + 1 }} ·
+                    {{ item.warning.operator }}：上一队列结束心情
+                    {{ formatNumber(item.warning.previousEnd) }}，当前手动设置为
+                    {{ formatNumber(item.warning.configuredStart) }}
+                  </span>
+                </div>
+              </template>
+            </a-alert>
             <div class="simulator-daily-output">
               <div class="simulator-result-section-heading">
                 <div>

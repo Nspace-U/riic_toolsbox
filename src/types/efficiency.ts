@@ -360,6 +360,16 @@ export interface MoodSnapshot {
   rateDetails: MoodRateDetail[];
 }
 
+export interface MoodWarning {
+  operator: string;
+  facility: RoomKey;
+  facilityId: string;
+  facilityIndex: number;
+  slotIndex: number;
+  previousEnd: number;
+  configuredStart: number;
+}
+
 export type BasePointSourceKind = "gain" | "convert";
 
 export interface BasePointSource {
@@ -385,6 +395,7 @@ export interface EfficiencyPlanResult {
   durationHours: number;
   facilities: FacilityEfficiencyResult[];
   moods: MoodSnapshot[];
+  moodWarnings: MoodWarning[];
   basePoints: Record<string, number>;
   basePointDetails: BasePointDetail[];
   warnings: string[];

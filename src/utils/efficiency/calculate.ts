@@ -16,6 +16,7 @@ import type {
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
+  MoodWarning,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -122,6 +123,7 @@ interface PlanContext {
   basePoints: Record<string, number>;
   basePointDetails: BasePointDetail[];
   statValues: Map<string, number>;
+  moodWarnings: MoodWarning[];
   warnings: string[];
 }
 
@@ -352,6 +354,7 @@ function createContexts(
       basePoints: {},
       basePointDetails: [],
       statValues: new Map(),
+      moodWarnings: [],
       warnings,
     };
   });
@@ -359,6 +362,10 @@ function createContexts(
 
 function isWorkPlacement(placement: Placement): boolean {
   return WORK_ROOM_KEYS.includes(placement.facility.type);
+}
+
+function isMoodContinuityPlacement(placement: Placement): boolean {
+  return placement.facility.type !== "dormitory";
 }
 
 function isCurrentlyWorking(placement: Placement): boolean {
@@ -1403,7 +1410,7 @@ function resolveMoods(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
 ): void {
-  const previousPlacement = (
+  const previousWorkPlacement = (
     index: number,
     placement: Placement,
   ): { placement?: Placement; context?: PlanContext } => {
@@ -1422,6 +1429,55 @@ function resolveMoods(
       context,
     };
   };
+  const previousMoodPlacement = (
+    index: number,
+    placement: Placement,
+  ): { placement?: Placement; context?: PlanContext } => {
+    if (contexts.length <= 1) {
+      return {};
+    }
+    const previousIndex = (index - 1 + contexts.length) % contexts.length;
+    const context = contexts[previousIndex];
+    return {
+      placement: context?.placements.find(
+        (candidate) => candidate.name === placement.name,
+      ),
+      context,
+    };
+  };
+  const unanchoredCycleOperators = new Set(
+    contexts.length > 1
+      ? contexts[0]?.placements
+          .map((placement) => placement.name)
+          .filter((name) =>
+            contexts.every((context) => {
+              const placement = context.placements.find(
+                (candidate) => candidate.name === name,
+              );
+              return (
+                !!placement &&
+                isMoodContinuityPlacement(placement) &&
+                !placement.explicitMood
+              );
+            }),
+          )
+          .filter((name) =>
+            contexts.some((context) => {
+              const placement = context.placements.find(
+                (candidate) => candidate.name === name,
+              );
+              return !!placement && isWorkPlacement(placement);
+            }),
+          )
+      : [],
+  );
+  const canInheritMood = (
+    previous: Placement | undefined,
+    current: Placement,
+  ): previous is Placement =>
+    !!previous &&
+    isMoodContinuityPlacement(previous) &&
+    isMoodContinuityPlacement(current);
   const canContinueWork = (
     previous: Placement | undefined,
     current: Placement,
@@ -1435,18 +1491,26 @@ function resolveMoods(
 
   contexts.forEach((context, index) => {
     context.placements.forEach((placement) => {
-      const previous = previousPlacement(index, placement);
-      const previousOperator = previous.placement;
-      const continues = canContinueWork(previousOperator, placement);
+      const previousMood = previousMoodPlacement(index, placement);
+      const previousOperator = previousMood.placement;
+      const inheritsMood = canInheritMood(previousOperator, placement);
+      const previousWork = previousWorkPlacement(index, placement);
+      const previousWorkOperator = previousWork.placement;
+      const continuesWork = canContinueWork(
+        previousWorkOperator,
+        placement,
+      );
       placement.moodStart = placement.explicitMood
         ? clampMood(placement.state.mood ?? 24)
-        : continues
+        : inheritsMood
           ? previousOperator.moodEnd
-          : 24;
+          : unanchoredCycleOperators.has(placement.name)
+            ? 0
+            : 24;
       placement.working = true;
-      placement.workHoursBefore = continues
-        ? previousOperator.workHoursBefore +
-          (previous.context?.durationHours ?? 0)
+      placement.workHoursBefore = continuesWork
+        ? previousWorkOperator.workHoursBefore +
+          (previousWork.context?.durationHours ?? 0)
         : 0;
       placement.moodEnd = placement.moodStart;
     });
@@ -1456,23 +1520,31 @@ function resolveMoods(
     let maxStartDelta = 0;
     contexts.forEach((context, index) => {
       context.placements.forEach((placement) => {
-        const previous = previousPlacement(index, placement);
-        const previousOperator = previous.placement;
-        const continues = canContinueWork(previousOperator, placement);
+        const previousMood = previousMoodPlacement(index, placement);
+        const previousOperator = previousMood.placement;
+        const inheritsMood = canInheritMood(previousOperator, placement);
+        const previousWork = previousWorkPlacement(index, placement);
+        const previousWorkOperator = previousWork.placement;
+        const continuesWork = canContinueWork(
+          previousWorkOperator,
+          placement,
+        );
         const nextStart = placement.explicitMood
           ? clampMood(placement.state.mood ?? 24)
-          : continues
+          : inheritsMood
             ? previousOperator.moodEnd
-            : 24;
+            : unanchoredCycleOperators.has(placement.name)
+              ? 0
+              : 24;
         maxStartDelta = Math.max(
           maxStartDelta,
           Math.abs(nextStart - placement.moodStart),
         );
         placement.moodStart = nextStart;
         placement.working = true;
-        placement.workHoursBefore = continues
-          ? previousOperator.workHoursBefore +
-            (previous.context?.durationHours ?? 0)
+        placement.workHoursBefore = continuesWork
+          ? previousWorkOperator.workHoursBefore +
+            (previousWork.context?.durationHours ?? 0)
           : 0;
       });
       const emptyData: EvaluationData = { capBoosts: {}, bonusByFacility: {} };
@@ -1520,6 +1592,34 @@ function resolveMoods(
       break;
     }
   }
+  contexts.forEach((context, index) => {
+    context.moodWarnings = context.placements.flatMap((placement) => {
+      if (!placement.explicitMood) {
+        return [];
+      }
+      const previous = previousMoodPlacement(index, placement).placement;
+      const configuredStart = clampMood(placement.state.mood ?? 24);
+      if (
+        !previous ||
+        !isMoodContinuityPlacement(previous) ||
+        !isMoodContinuityPlacement(placement) ||
+        previous.moodEnd >= configuredStart
+      ) {
+        return [];
+      }
+      return [
+        {
+          operator: placement.name,
+          facility: placement.facility.type,
+          facilityId: placement.facility.id,
+          facilityIndex: placement.facility.index,
+          slotIndex: placement.index,
+          previousEnd: previous.moodEnd,
+          configuredStart,
+        },
+      ];
+    });
+  });
 }
 
 function recipeMatches(
@@ -2708,7 +2808,7 @@ function calculatePlan(
     durationHours: context.durationHours,
     facilities,
     moods: context.placements
-      .filter((placement) => isWorkPlacement(placement))
+      .filter((placement) => isMoodContinuityPlacement(placement))
       .map((placement): MoodSnapshot => ({
         operator: placement.name,
         facility: placement.facility.type,
@@ -2720,6 +2820,7 @@ function calculatePlan(
         working: isCurrentlyWorking(placement),
         rateDetails: placement.moodRateDetails,
       })),
+    moodWarnings: context.moodWarnings,
     basePoints: context.basePoints,
     basePointDetails: context.basePointDetails,
     warnings: context.warnings,
