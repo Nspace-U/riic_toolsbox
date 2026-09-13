@@ -626,14 +626,18 @@ function perCount(
   per: EfficiencyPer,
   owner: Placement,
   target: EfficiencyFacility | undefined,
+  effectTarget: EfficiencyEffect["target"],
   context: PlanContext,
   catalog: EfficiencyCatalog,
   data: EvaluationData,
 ): PerValue {
-  const sameFacility = owner.facility;
+  const sameFacility =
+    effectTarget === "any" || !target ? owner.facility : target;
   const countInFacility = (type: RoomKey | "same" | undefined): Placement[] => {
-    const facilityType = type === "same" || !type ? sameFacility.type : type;
-    return placementsInRoomType(context, facilityType);
+    if (type === "same" || !type) {
+      return placementsInFacility(context, sameFacility);
+    }
+    return placementsInRoomType(context, type);
   };
   let count = 0;
   switch (per.source) {
@@ -736,14 +740,7 @@ function perCount(
     }
     case "opGroupInFacility": {
       const members = membersFor(catalog, per.group);
-      const facility =
-        per.facility === "same" &&
-        owner.name === "灵知" &&
-        per.group === "cc.g.karlan" &&
-        target?.type === "trading"
-          ? "trading"
-          : per.facility;
-      count = countInFacility(facility)
+      count = countInFacility(per.facility)
         .filter((placement) => workingPlacement(placement, per.moodCheck))
         .filter((placement) => members.includes(placement.name))
         .filter((placement) => !per.other || placement.name !== owner.name)
@@ -954,7 +951,15 @@ function effectValue(
       owner.workHoursBefore,
     ).value;
   } else if (effect.per) {
-    value = perCount(effect.per, owner, target, context, catalog, data).value;
+    value = perCount(
+      effect.per,
+      owner,
+      target,
+      effect.target,
+      context,
+      catalog,
+      data,
+    ).value;
   } else {
     value = Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
   }
@@ -1654,11 +1659,17 @@ function aggregateEffectValues(
   zeroed: Set<string>,
   stats: Set<string>,
   category: "all" | "base" | "combination" = "all",
+  source: "regular" | "stat" = "regular",
 ): { total: number; details: Array<{ item: ActiveEffect; value: number }> } {
   const matchesCategory = (item: ActiveEffect): boolean => {
     const base = isFacilityBaseEffect(item);
     return category === "all" || (category === "base" ? base : !base);
   };
+  const matchesSource = (item: ActiveEffect): boolean =>
+    source === "stat"
+      ? item.effect.per?.source === "stat"
+      : item.effect.per?.source !== "stat" &&
+        item.effect.per?.source !== "orderCount";
   const normal: Array<{ item: ActiveEffect; value: number }> = [];
   active
     .filter(
@@ -1672,11 +1683,7 @@ function aggregateEffectValues(
       ),
     )
     .filter((item) => item.effect.stat !== "tradeNetEff")
-    .filter(
-      (item) =>
-        item.effect.per?.source !== "stat" &&
-        item.effect.per?.source !== "orderCount",
-    )
+    .filter(matchesSource)
     .filter((item) => !["moodCost", "moodRecover"].includes(item.effect.stat))
     .filter((item) => item.effect.stack !== "max")
     .filter(
@@ -1703,6 +1710,7 @@ function aggregateEffectValues(
         roomAssignments(context.document, context.index, facility),
       ),
     )
+    .filter(matchesSource)
     .filter((item) => item.effect.stack === "max")
     .filter((item) => item.effect.stat !== "tradeNetEff")
     .filter(
@@ -1767,7 +1775,13 @@ function collectBonusByFacility(
       context,
       facility,
       catalog,
-      context.active,
+      context.active.filter(
+        (item) =>
+          item.owner.facility.id === facility.id &&
+          !["facilityCount", "powerCount"].includes(
+            item.effect.per?.source ?? "",
+          ),
+      ),
       data,
       zeroed,
       stats,
@@ -2015,6 +2029,17 @@ function calculateFacility(
     EFFICIENCY_STATS,
     "combination",
   );
+  const statAggregate = aggregateEffectValues(
+    context,
+    facility,
+    catalog,
+    context.active,
+    data,
+    zeroed,
+    EFFICIENCY_STATS,
+    "combination",
+    "stat",
+  );
   const placements = placementsInFacility(context, facility);
   const moodEfficiency = placements.reduce(
     (total, placement) =>
@@ -2068,10 +2093,14 @@ function calculateFacility(
     0,
   );
   const skillEfficiency =
-    combinationAggregate.total + special.value + trainingEfficiency;
+    combinationAggregate.total +
+    statAggregate.total +
+    special.value +
+    trainingEfficiency;
   const baseDetails = detailRows(baseAggregate, facility.type, "base", context);
   const combinationDetails = [
     ...detailRows(combinationAggregate, facility.type, "combination", context),
+    ...detailRows(statAggregate, facility.type, "combination", context),
     ...detailRows(special, facility.type, "combination", context),
     ...trainingDetails,
   ];

@@ -211,7 +211,7 @@ npm run generate:operator-skills
 | `source`    | 计数来源，见下表                                                                        |
 | `group`     | 阵营/标签术语 key                                                                       |
 | `term`      | 基地点数或其他术语 key                                                                  |
-| `facility`  | 设施数量或等级计数所查的设施                                                            |
+| `facility`  | 计数所查设施；具体 `target` 的 `same` 为目标设施，`any` 的 `same` 为施放者设施          |
 | `stat`      | `source` 为 `stat`/`facCap` 时所读取的属性                                              |
 | `other`     | 是否排除技能拥有者自身                                                                  |
 | `floor`     | 是否按完整档位取整；普通 `per` 默认取整，`source=facCap` 默认连续比例，需用 `true` 覆盖 |

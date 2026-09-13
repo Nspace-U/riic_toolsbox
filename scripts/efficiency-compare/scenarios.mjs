@@ -234,6 +234,20 @@ export const scenarios = [
     sourceMaterials: [undefined, undefined, "固源岩"],
   },
   {
+    id: "manufacture-huaihu-stat-cross-facility",
+    title: "槐琥属性折算不计跨设施加成",
+    durationHours: 12,
+    layout: [
+      ["power", 3],
+      ["manufacture", 3],
+    ],
+    assignments: {
+      power: [[operator("正义骑士号", 0, 30)]],
+      manufacture: [[operator("野鬃", 2, 30), operator("槐琥", 2, 30)]],
+    },
+    products: ["Pure Gold"],
+  },
+  {
     id: "manufacture-overflow-zero",
     title: "制造站爆仓后效率归零",
     durationHours: 48,
