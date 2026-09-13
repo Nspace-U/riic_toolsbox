@@ -3108,7 +3108,14 @@ function handleOperatorGridPointerCancel(event: PointerEvent): void {
   }
   cancelOperatorPointerMoveFrame();
   operatorPointerInteraction.value = undefined;
-  operatorDragTarget.value = undefined;
+  setOperatorDragTarget(undefined);
+  if (interaction.mode === "move") {
+    const hoveredSlot = operatorDragHoveredSlotKey
+      ? operatorAddressByKey(operatorDragHoveredSlotKey)
+      : undefined;
+    setOperatorDragHoveredSlot(undefined);
+    hoveredOperatorSlot.value = hoveredSlot;
+  }
   suppressNextOperatorClick.value = true;
 }
 
