@@ -421,7 +421,8 @@ const operatorSelectionAnchor = ref<OperatorSlotAddress>();
 const hoveredOperatorSlot = ref<OperatorSlotAddress>();
 const operatorSelectAllStage = ref<0 | 1 | 2>(0);
 const operatorPointerInteraction = ref<OperatorPointerInteraction>();
-const operatorDragTarget = ref<OperatorSlotAddress>();
+let operatorDragTarget: OperatorSlotAddress | undefined;
+let operatorDragHoveredSlotKey: string | undefined;
 const suppressNextOperatorClick = ref(false);
 const operatorClipboard = ref<OperatorClipboard>();
 const operatorPasteHighlightKeys = ref<Set<string>>(new Set());
@@ -2320,16 +2321,57 @@ function isOperatorSlotHovered(key: string): boolean {
   return hoveredOperatorSlot.value?.key === key;
 }
 
-function isOperatorDragTarget(key: string): boolean {
-  return operatorDragTarget.value?.key === key;
-}
-
 function resetOperatorSelectAllCycle(): void {
   operatorSelectAllStage.value = 0;
 }
 
 function operatorAddressByKey(key: string): OperatorSlotAddress | undefined {
   return operatorAddressMap.value.get(key);
+}
+
+function setOperatorSlotDataFlag(
+  key: string,
+  attribute: "data-drag-target" | "data-hovered",
+  enabled: boolean,
+): void {
+  const slot = window.document.querySelector<HTMLElement>(
+    `.simulator-slot[data-key="${key}"]`,
+  );
+  if (enabled) {
+    slot?.setAttribute(attribute, "");
+  } else {
+    slot?.removeAttribute(attribute);
+  }
+}
+
+function setOperatorDragTarget(
+  nextTarget: OperatorSlotAddress | undefined,
+): void {
+  if (operatorDragTarget?.key === nextTarget?.key) {
+    return;
+  }
+  if (operatorDragTarget) {
+    setOperatorSlotDataFlag(operatorDragTarget.key, "data-drag-target", false);
+  }
+  operatorDragTarget = nextTarget;
+  if (nextTarget) {
+    setOperatorSlotDataFlag(nextTarget.key, "data-drag-target", true);
+  }
+}
+
+function setOperatorDragHoveredSlot(
+  nextSlot: OperatorSlotAddress | undefined,
+): void {
+  if (operatorDragHoveredSlotKey === nextSlot?.key) {
+    return;
+  }
+  if (operatorDragHoveredSlotKey) {
+    setOperatorSlotDataFlag(operatorDragHoveredSlotKey, "data-hovered", false);
+  }
+  operatorDragHoveredSlotKey = nextSlot?.key;
+  if (nextSlot) {
+    setOperatorSlotDataFlag(nextSlot.key, "data-hovered", true);
+  }
 }
 
 function operatorAddressFromTarget(
@@ -2381,15 +2423,26 @@ function setHoveredOperatorSlot(
   position: number,
   slotIndex: number,
 ): void {
-  hoveredOperatorSlot.value = operatorSlotAddress(
+  const address = operatorSlotAddress(
     planIndex,
     type,
     position,
     slotIndex,
   );
+  if (operatorPointerInteraction.value?.mode === "move") {
+    setOperatorDragHoveredSlot(address);
+    return;
+  }
+  hoveredOperatorSlot.value = address;
 }
 
 function clearHoveredOperatorSlot(key: string): void {
+  if (operatorPointerInteraction.value?.mode === "move") {
+    if (operatorDragHoveredSlotKey === key) {
+      setOperatorDragHoveredSlot(undefined);
+    }
+    return;
+  }
   if (hoveredOperatorSlot.value?.key === key) {
     hoveredOperatorSlot.value = undefined;
   }
@@ -2864,6 +2917,9 @@ function applyOperatorGridPointerMove(
   }
   if (interaction.mode === "move") {
     if (previousMode !== "move") {
+      const previousHoveredSlot = hoveredOperatorSlot.value;
+      hoveredOperatorSlot.value = undefined;
+      setOperatorDragHoveredSlot(previousHoveredSlot);
       interaction.currentX = clientX;
       interaction.currentY = clientY;
     }
@@ -2883,9 +2939,7 @@ function applyOperatorGridPointerMove(
     return;
   }
   const nextTarget = operatorAddressAtPoint(clientX, clientY);
-  if (operatorDragTarget.value?.key !== nextTarget?.key) {
-    operatorDragTarget.value = nextTarget;
-  }
+  setOperatorDragTarget(nextTarget);
 }
 
 function cancelOperatorPointerMoveFrame(): void {
@@ -2984,6 +3038,7 @@ function handleOperatorGridPointerUp(event: PointerEvent): void {
   if (!interaction || interaction.pointerId !== event.pointerId) {
     return;
   }
+  let finalHoveredSlot: OperatorSlotAddress | undefined;
   flushOperatorPointerMove();
   interaction.currentX = event.clientX;
   interaction.currentY = event.clientY;
@@ -2991,8 +3046,11 @@ function handleOperatorGridPointerUp(event: PointerEvent): void {
     selectOperatorSlotsInBox(interaction);
     suppressNextOperatorClick.value = true;
   } else if (interaction.mode === "move") {
+    finalHoveredSlot = operatorDragHoveredSlotKey
+      ? operatorAddressByKey(operatorDragHoveredSlotKey)
+      : undefined;
     const target =
-      operatorDragTarget.value ??
+      operatorDragTarget ??
       operatorAddressAtPoint(event.clientX, event.clientY);
     if (target) {
       const pairs = operatorTransferPairs(interaction.sourceAddresses, target);
@@ -3008,7 +3066,11 @@ function handleOperatorGridPointerUp(event: PointerEvent): void {
     suppressNextOperatorClick.value = true;
   }
   operatorPointerInteraction.value = undefined;
-  operatorDragTarget.value = undefined;
+  setOperatorDragTarget(undefined);
+  setOperatorDragHoveredSlot(undefined);
+  if (interaction.mode === "move") {
+    hoveredOperatorSlot.value = finalHoveredSlot;
+  }
 }
 
 function handleOperatorGridPointerCancel(event: PointerEvent): void {
@@ -4535,6 +4597,8 @@ watch(activeDocumentId, () => {
   editingOperatorSlot.value = undefined;
   closeOperatorPicker();
   clearOperatorSelection();
+  setOperatorDragTarget(undefined);
+  setOperatorDragHoveredSlot(undefined);
   hoveredOperatorSlot.value = undefined;
   clearOperatorClipboard();
   contextMenu.value = undefined;
@@ -4596,6 +4660,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   cancelOperatorPointerMoveFrame();
+  setOperatorDragTarget(undefined);
+  setOperatorDragHoveredSlot(undefined);
   window.removeEventListener("pointerdown", handleWindowPointerDown, true);
   window.removeEventListener("click", handleWindowClick);
   window.removeEventListener("keydown", handleWindowKeydown, true);
@@ -5181,14 +5247,6 @@ onBeforeUnmount(() => {
                                 slot.slotIndex,
                               ).key,
                             ),
-                          'simulator-slot--drag-target': isOperatorDragTarget(
-                            operatorSlotAddress(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            ).key,
-                          ),
                         }"
                         @mouseenter="
                           setHoveredOperatorSlot(

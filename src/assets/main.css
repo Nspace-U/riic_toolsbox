@@ -1953,7 +1953,8 @@ a {
   border: 2px solid #216a66;
 }
 
-.simulator-slot--hovered::before {
+.simulator-slot--hovered::before,
+.simulator-slot[data-hovered]::before {
   position: absolute;
   inset-block: 0;
   inset-inline: -1px;
@@ -1982,7 +1983,7 @@ a {
   animation: simulator-clipboard-marquee 0.8s linear infinite;
 }
 
-.simulator-slot--drag-target::before {
+.simulator-slot[data-drag-target]::before {
   position: absolute;
   inset-block: 0;
   inset-inline: -1px;
