@@ -22,6 +22,7 @@ import {
 } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
+import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useDataSource } from "@/composables/useDataSource";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
@@ -36,6 +37,8 @@ import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
+  BasePointDetail,
+  BasePointSource,
   EfficiencyCatalog,
   EfficiencyPlanResult,
   EfficiencyResult,
@@ -294,6 +297,7 @@ const {
   duplicateDocument,
 } = useScheduleDocuments();
 const { operators, terms, ready: baseDataReady } = useBaseData();
+const { isBasePointVisible } = useBasePointDisplaySettings();
 const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
@@ -601,6 +605,22 @@ const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
       : facilitySteps;
   });
 });
+
+const plansWithBasePoints = computed(() =>
+  (efficiencyResult.value?.plans ?? []).flatMap((plan, planIndex) =>
+    plan.basePointDetails.some((point) => isBasePointVisible(point.term))
+      ? [{ plan, planIndex }]
+      : [],
+  ),
+);
+
+function displayedBasePointDetails(
+  plan: EfficiencyPlanResult,
+): BasePointDetail[] {
+  return plan.basePointDetails.filter((point) =>
+    isBasePointVisible(point.term),
+  );
+}
 
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
@@ -2542,12 +2562,7 @@ function setHoveredOperatorSlot(
   position: number,
   slotIndex: number,
 ): void {
-  const address = operatorSlotAddress(
-    planIndex,
-    type,
-    position,
-    slotIndex,
-  );
+  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
   if (operatorPointerInteraction.value?.mode === "move") {
     setOperatorDragHoveredSlot(address);
     return;
@@ -2579,8 +2594,7 @@ function selectOperatorSlot(
     return;
   }
   const address = operatorSlotAddress(planIndex, type, position, slotIndex);
-  const wasEditingSelectedSlot =
-    editingOperatorSlot.value?.key === address.key;
+  const wasEditingSelectedSlot = editingOperatorSlot.value?.key === address.key;
   const shouldSwitchPicker =
     operatorPicker.value !== undefined &&
     operatorPicker.value.key !== address.key;
@@ -3978,6 +3992,19 @@ function facilityResultLabel(result: FacilityEfficiencyResult): string {
       (entry) => entry.type === facility.type,
     ).length ?? 0;
   return `${ROOM_LABELS[facility.type]}${count > 1 ? ` ${facility.index + 1}` : ""}`;
+}
+
+function basePointLabel(term: string): string {
+  return terms.value[term]?.name ?? term;
+}
+
+function basePointSourceText(source: BasePointSource): string {
+  const operator = [source.operator, source.skill].filter(Boolean).join(" · ");
+  const facility = ROOM_LABELS[source.facility] ?? source.facility;
+  if (source.kind === "convert" && source.from) {
+    return `${operator}（${facility}，由${basePointLabel(source.from)} × ${formatNumber(source.rate ?? 0)}派生）`;
+  }
+  return `${operator}（${facility}）`;
 }
 
 const efficiencyStatLabels: Record<string, string> = {
@@ -6373,6 +6400,56 @@ onBeforeUnmount(() => {
                 :image="undefined"
                 description="当前排班没有可统计的产出"
               />
+            </div>
+
+            <div
+              v-if="plansWithBasePoints.length"
+              class="simulator-base-point-results"
+            >
+              <div class="simulator-result-section-heading">
+                <div>
+                  <span class="simulator-eyebrow">BASE POINTS</span>
+                  <h3>基地点数</h3>
+                </div>
+                <span class="simulator-result-hint"
+                  >来源点数保留，派生点数按比例追加</span
+                >
+              </div>
+              <div
+                v-for="entry in plansWithBasePoints"
+                :key="`base-points-${entry.planIndex}`"
+                class="simulator-base-point-plan"
+              >
+                <div class="simulator-base-point-plan-heading">
+                  <strong>{{ entry.plan.name }}</strong>
+                  <span>{{ formatNumber(entry.plan.durationHours) }} 小时</span>
+                </div>
+                <div class="simulator-base-point-grid">
+                  <div
+                    v-for="point in displayedBasePointDetails(entry.plan)"
+                    :key="point.term"
+                    class="simulator-base-point-item"
+                  >
+                    <div class="simulator-base-point-value">
+                      <span>{{ basePointLabel(point.term) }}</span>
+                      <strong>{{ formatNumber(point.value) }}</strong>
+                    </div>
+                    <div class="simulator-base-point-sources">
+                      <span class="simulator-base-point-source-title"
+                        >来源</span
+                      >
+                      <div
+                        v-for="(source, sourceIndex) in point.sources"
+                        :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
+                        class="simulator-base-point-source"
+                      >
+                        <span>{{ basePointSourceText(source) }}</span>
+                        <strong>+{{ formatNumber(source.value) }}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="simulator-calculation-steps">

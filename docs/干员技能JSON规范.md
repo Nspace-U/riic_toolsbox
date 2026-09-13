@@ -123,28 +123,28 @@ npm run generate:operator-skills
 
 当前生成器使用的属性包括：
 
-| stat               | 含义                  | 备注                               |
-| ------------------ | --------------------- | ---------------------------------- |
-| `tradeSpd`         | 贸易站订单获取效率    | 百分比数值                         |
-| `manuProd`         | 制造站生产力          | 百分比数值，可带 `recipe`          |
-| `clueSpeed`        | 会客室线索搜集速度    | 百分比数值                         |
-| `clueChance`       | 线索获取倾向/概率语义 | 仅展示，不参与百分比效率           |
-| `hireSpd`          | 办公室联络速度        | 百分比数值                         |
-| `droneCharge`      | 发电站无人机充能速度  | 百分比数值                         |
-| `orderLimit`       | 贸易站订单上限        | 数值，非百分比                     |
-| `storageCap`       | 制造站仓库容量        | 格数                               |
-| `moodRecover`      | 心情恢复速度          | 每小时                             |
-| `moodCost`         | 心情消耗修正          | 正数表示额外消耗，负数表示减少消耗 |
-| `facilityCount`    | 设施数量计数          | 不改变实际设施，只供其他效果读取   |
-| `basePointGain`    | 基地点数产出          | 必须配 `term`                      |
-| `basePointConvert` | 基地点数转化          | 使用 `from`、`to`、`rate`          |
-| `tradeOrder`       | 贸易站订单规则        | 使用 `order` 对象                  |
-| `zeroOpMood`       | 消除技能心情消耗      | 由未来心情计算器解释               |
-| `zeroOpBonus`      | 其他干员效率归零      | 可配 `except`                      |
-| `facBase`          | 设施基础效率层效果    | 当前主要由未来训练室跨设施效果使用 |
-| `abyssalBoost`     | 深海猎人特殊制造加成  | 歌蕾蒂娅特殊规则                   |
-| `moodSwap`         | 心情互换规则          | 记录规则，不直接换算效率           |
-| `skillTagConvert`  | 技能类别转换          | 使用 `tagFrom`、`tagTo`            |
+| stat               | 含义                  | 备注                                        |
+| ------------------ | --------------------- | ------------------------------------------- |
+| `tradeSpd`         | 贸易站订单获取效率    | 百分比数值                                  |
+| `manuProd`         | 制造站生产力          | 百分比数值，可带 `recipe`                   |
+| `clueSpeed`        | 会客室线索搜集速度    | 百分比数值                                  |
+| `clueChance`       | 线索获取倾向/概率语义 | 仅展示，不参与百分比效率                    |
+| `hireSpd`          | 办公室联络速度        | 百分比数值                                  |
+| `droneCharge`      | 发电站无人机充能速度  | 百分比数值                                  |
+| `orderLimit`       | 贸易站订单上限        | 数值，非百分比                              |
+| `storageCap`       | 制造站仓库容量        | 格数                                        |
+| `moodRecover`      | 心情恢复速度          | 每小时                                      |
+| `moodCost`         | 心情消耗修正          | 正数表示额外消耗，负数表示减少消耗          |
+| `facilityCount`    | 设施数量计数          | 不改变实际设施，只供其他效果读取            |
+| `basePointGain`    | 基地点数产出          | 必须配 `term`                               |
+| `basePointConvert` | 基地点数派生增益      | 使用 `from`、`to`、`rate`；保留 `from` 点数 |
+| `tradeOrder`       | 贸易站订单规则        | 使用 `order` 对象                           |
+| `zeroOpMood`       | 消除技能心情消耗      | 由未来心情计算器解释                        |
+| `zeroOpBonus`      | 其他干员效率归零      | 可配 `except`                               |
+| `facBase`          | 设施基础效率层效果    | 当前主要由未来训练室跨设施效果使用          |
+| `abyssalBoost`     | 深海猎人特殊制造加成  | 歌蕾蒂娅特殊规则                            |
+| `moodSwap`         | 心情互换规则          | 记录规则，不直接换算效率                    |
+| `skillTagConvert`  | 技能类别转换          | 使用 `tagFrom`、`tagTo`                     |
 
 `clueChance` 效果只表达线索倾向，不参与效率百分比计算。派系线索倾向使用 `cluePreference` 保存线索编号；尚未拥有和已经拥有的线索分别使用字符串值 `unowned` 与 `owned`。`text` 保存统一后的显示文案：
 
@@ -335,7 +335,7 @@ npm run generate:operator-skills
 }
 ```
 
-术语 key 必须来自当前 `gamedata_const.json`；生成器会优先使用描述中的标记，并在没有标记时按术语名反查。`basePointGain` 是产出，`basePointConvert` 是转化，`per.source: "basePoint"` 是消费侧。它们只记录基地点数关系，不直接当作设施百分比相加。
+术语 key 必须来自当前 `gamedata_const.json`；生成器会优先使用描述中的标记，并在没有标记时按术语名反查。`basePointGain` 是直接产出，`basePointConvert` 是根据 `from` 点数按 `rate` 向 `to` 追加的派生增益，来源点数不会减少；`per.source: "basePoint"` 是消费侧。它们只记录基地点数关系，不直接当作设施百分比相加。多个派生规则按依赖顺序计算，派生结果可以继续作为下一条规则的来源。
 
 控制中枢的设施集合术语由当前快照动态读取：
 

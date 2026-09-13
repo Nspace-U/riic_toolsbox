@@ -10,6 +10,7 @@ import {
 import { computed, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
+import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import {
   useAvatarDisplaySizes,
   type AvatarDisplaySizeTarget,
@@ -34,6 +35,7 @@ import {
   sortBranchValues,
   sortProfessionValues,
 } from "@/utils/operatorOrdering";
+import { basePointTermOptions } from "@/utils/efficiency/basePoints";
 import { ROOM_ORDER } from "@/utils/schedule";
 import {
   fixedProgressionNodes,
@@ -55,7 +57,9 @@ const {
   setProductColor,
   resetFacilityColors,
 } = useFacilityColors();
-const { operators, ready: baseDataReady } = useBaseData();
+const { operators, terms, ready: baseDataReady } = useBaseData();
+const { isBasePointVisible, setAllBasePointsVisible, setBasePointVisible } =
+  useBasePointDisplaySettings();
 const {
   avatarDisplaySizes,
   avatarDisplaySizeOptions,
@@ -120,6 +124,10 @@ const clearLocalDataModalOpen = ref(false);
 const clearLocalDataError = ref("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
 let skillFileRequestVersion = 0;
+
+const basePointDisplayOptions = computed(() =>
+  basePointTermOptions(terms.value),
+);
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
   value,
@@ -441,6 +449,13 @@ function handleOperatorPickerColumnsChange(value: number | null): void {
   setOperatorPickerColumns(value ?? DEFAULT_OPERATOR_PICKER_COLUMNS);
 }
 
+function setAllBasePointTermsVisible(visible: boolean): void {
+  setAllBasePointsVisible(
+    basePointDisplayOptions.value.map((option) => option.key),
+    visible,
+  );
+}
+
 watch(selectedProgressionProfession, () => {
   selectedProgressionBranch.value = "";
 });
@@ -480,6 +495,45 @@ watch(
         <span>当前数据源</span>
         <strong>{{ selectedDataSourceLabel }}</strong>
       </div>
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-base-point-panel"
+      title="基地点数显示"
+    >
+      <p class="settings-panel-description">
+        选择排班模拟器计算结果中需要显示的基地点数，设置仅影响显示，不改变计算结果。
+      </p>
+      <a-space :size="6" wrap>
+        <a-button size="small" @click="setAllBasePointTermsVisible(true)">
+          全选显示
+        </a-button>
+        <a-button size="small" @click="setAllBasePointTermsVisible(false)">
+          全部隐藏
+        </a-button>
+      </a-space>
+      <div
+        v-if="basePointDisplayOptions.length"
+        class="settings-base-point-options"
+      >
+        <a-checkbox
+          v-for="option in basePointDisplayOptions"
+          :key="option.key"
+          :checked="isBasePointVisible(option.key)"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setBasePointVisible(option.key, event.target.checked)
+          "
+        >
+          {{ option.name }}
+        </a-checkbox>
+      </div>
+      <a-empty
+        v-else
+        :image="undefined"
+        description="当前数据源没有可用的基地点数"
+      />
     </a-card>
 
     <a-card

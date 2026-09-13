@@ -2354,10 +2354,115 @@ a {
   border-block-end: 1px solid #edf1f0;
 }
 
+.simulator-base-point-results {
+  overflow-x: auto;
+  padding-block: 18px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-base-point-plan + .simulator-base-point-plan {
+  margin-block-start: 12px;
+}
+
+.simulator-base-point-plan {
+  min-inline-size: max-content;
+}
+
+.simulator-base-point-plan-heading,
+.simulator-base-point-value,
+.simulator-base-point-source {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-base-point-plan-heading {
+  align-items: baseline;
+  margin-block-end: 8px;
+  color: #425457;
+  font-size: 12px;
+}
+
+.simulator-base-point-plan-heading strong {
+  color: #2e4043;
+  font-size: 13px;
+}
+
+.simulator-base-point-plan-heading span,
+.simulator-base-point-source {
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-base-point-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, max-content);
+  gap: 10px;
+}
+
+.simulator-base-point-item {
+  min-inline-size: max-content;
+  padding: 12px;
+  background: #f8fbfa;
+  border: 1px solid #e0e8e5;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.simulator-base-point-value {
+  align-items: baseline;
+}
+
+.simulator-base-point-value span {
+  color: #2e4043;
+  font-weight: 650;
+}
+
+.simulator-base-point-value strong {
+  color: #176b68;
+  font-size: 16px;
+}
+
+.simulator-base-point-sources {
+  margin-block-start: 8px;
+  padding-block-start: 7px;
+  border-block-start: 1px solid #e4ece9;
+}
+
+.simulator-base-point-source-title {
+  display: block;
+  margin-block-end: 4px;
+  color: #879294;
+  font-size: 11px;
+}
+
+.simulator-base-point-source {
+  align-items: flex-start;
+  padding-block: 2px;
+  white-space: nowrap;
+}
+
+.simulator-base-point-source span {
+  flex: 0 0 auto;
+}
+
+.simulator-base-point-source strong {
+  flex: 0 0 auto;
+  color: #176b68;
+  font-size: 11px;
+}
+
 .simulator-daily-output-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
+}
+
+.settings-base-point-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+  margin-block-start: 16px;
 }
 
 .simulator-daily-output-item {

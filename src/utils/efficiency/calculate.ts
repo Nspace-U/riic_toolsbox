@@ -5,6 +5,8 @@ import type {
   EfficiencyCalculationOptions,
   EfficiencyFacility,
   EfficiencyOperator,
+  BasePointDetail,
+  BasePointSource,
   OperatorEfficiencyCalculation,
   FacilityCapacity,
   EfficiencyPer,
@@ -47,6 +49,10 @@ import {
 } from "@/utils/efficiency/baseRules";
 import { catalogOperator, groupMembers } from "@/utils/efficiency/catalog";
 import { resolveRoomAssignment, roomSlotCount } from "@/utils/schedule";
+import {
+  compareBasePointDetails,
+  compareBasePointSources,
+} from "@/utils/efficiency/basePoints";
 
 const EPSILON = 0.000001;
 const DEFAULT_DURATION_MINUTES = 720;
@@ -107,6 +113,7 @@ interface PlanContext {
   placements: Placement[];
   active: ActiveEffect[];
   basePoints: Record<string, number>;
+  basePointDetails: BasePointDetail[];
   statValues: Map<string, number>;
   warnings: string[];
 }
@@ -140,6 +147,11 @@ interface AttributeState {
   capBoosts: Record<string, Record<string, number>>;
   linked: boolean;
   orderLimitNet: number;
+}
+
+interface BasePointState {
+  points: Record<string, number>;
+  details: BasePointDetail[];
 }
 
 function clampMood(value: number): number {
@@ -333,6 +345,7 @@ function createContexts(
       placements,
       active: [],
       basePoints: {},
+      basePointDetails: [],
       statValues: new Map(),
       warnings,
     };
@@ -1093,36 +1106,118 @@ function cluePreferencesFor(
   );
 }
 
-function computeBasePoints(
+function appendBasePointSource(
+  sources: Record<string, BasePointSource[]>,
+  term: string,
+  source: BasePointSource,
+): void {
+  const termSources = sources[term] ?? (sources[term] = []);
+  const current = termSources.find(
+    (candidate) =>
+      candidate.kind === source.kind &&
+      candidate.operator === source.operator &&
+      candidate.skill === source.skill &&
+      candidate.facility === source.facility &&
+      candidate.facilityIndex === source.facilityIndex &&
+      candidate.slotIndex === source.slotIndex &&
+      candidate.from === source.from &&
+      candidate.rate === source.rate,
+  );
+  if (current) {
+    current.value += source.value;
+  } else {
+    termSources.push(source);
+  }
+}
+
+function orderedBasePointConversions(active: ActiveEffect[]): ActiveEffect[] {
+  const pending = active.filter(
+    (item) =>
+      item.effect.stat === "basePointConvert" &&
+      Boolean(item.effect.from) &&
+      Boolean(item.effect.to),
+  );
+  const ordered: ActiveEffect[] = [];
+  while (pending.length > 0) {
+    const nextIndex = pending.findIndex(
+      (candidate) =>
+        !pending.some(
+          (dependency) =>
+            dependency !== candidate &&
+            dependency.effect.to === candidate.effect.from,
+        ),
+    );
+    const [next] = pending.splice(nextIndex >= 0 ? nextIndex : 0, 1);
+    if (next) {
+      ordered.push(next);
+    }
+  }
+  return ordered;
+}
+
+function computeBasePointState(
   context: PlanContext,
   active: ActiveEffect[],
   catalog: EfficiencyCatalog,
   data: EvaluationData,
-): Record<string, number> {
+): BasePointState {
   const points: Record<string, number> = {};
+  const sources: Record<string, BasePointSource[]> = {};
   active
     .filter((item) => item.effect.stat === "basePointGain")
     .forEach((item) => {
       const term = item.effect.term;
       if (!term) return;
-      points[term] =
-        (points[term] ?? 0) +
-        effectValue(item, item.target, context, catalog, data);
+      const value = effectValue(item, item.target, context, catalog, data);
+      points[term] = (points[term] ?? 0) + value;
+      if (value > EPSILON) {
+        appendBasePointSource(sources, term, {
+          kind: "gain",
+          operator: item.owner.name,
+          skill: item.skill,
+          facility: item.owner.facility.type,
+          facilityIndex: item.owner.facility.index,
+          slotIndex: item.owner.index,
+          value,
+        });
+      }
     });
-  active
-    .filter((item) => item.effect.stat === "basePointConvert")
-    .forEach((item) => {
-      const from = item.effect.from;
-      const to = item.effect.to;
-      if (!from || !to) return;
-      const amount = Math.max(
-        0,
-        (points[from] ?? 0) * Number(item.effect.rate ?? 0),
-      );
-      points[from] = Math.max(0, (points[from] ?? 0) - amount);
-      points[to] = (points[to] ?? 0) + amount;
-    });
-  return points;
+  orderedBasePointConversions(active).forEach((item) => {
+    const from = item.effect.from;
+    const to = item.effect.to;
+    if (!from || !to) return;
+    const amount = Math.max(
+      0,
+      (points[from] ?? 0) * Number(item.effect.rate ?? 0),
+    );
+    points[to] = (points[to] ?? 0) + amount;
+    if (amount > EPSILON) {
+      appendBasePointSource(sources, to, {
+        kind: "convert",
+        operator: item.owner.name,
+        skill: item.skill,
+        facility: item.owner.facility.type,
+        facilityIndex: item.owner.facility.index,
+        slotIndex: item.owner.index,
+        value: amount,
+        from,
+        rate: Number(item.effect.rate ?? 0),
+      });
+    }
+  });
+  return {
+    points,
+    details: Object.entries(points)
+      .filter(([, value]) => value > EPSILON)
+      .map(([term, value]) => ({
+        term,
+        value,
+        sources: [...(sources[term] ?? [])].sort(compareBasePointSources),
+      }))
+      .sort((left, right) =>
+        compareBasePointDetails(left, right, catalog.terms),
+      ),
+  };
 }
 
 function preliminaryStatValues(
@@ -1372,19 +1467,23 @@ function resolveMoods(
       });
       const emptyData: EvaluationData = { capBoosts: {}, bonusByFacility: {} };
       context.active = collectActive(context, catalog, true);
-      context.basePoints = computeBasePoints(
+      const preliminaryPointState = computeBasePointState(
         context,
         context.active,
         catalog,
         emptyData,
       );
+      context.basePoints = preliminaryPointState.points;
+      context.basePointDetails = preliminaryPointState.details;
       context.active = collectActive(context, catalog, false);
-      context.basePoints = computeBasePoints(
+      const pointState = computeBasePointState(
         context,
         context.active,
         catalog,
         emptyData,
       );
+      context.basePoints = pointState.points;
+      context.basePointDetails = pointState.details;
       context.statValues = preliminaryStatValues(
         context,
         context.active,
@@ -2588,6 +2687,7 @@ function calculatePlan(
         rateDetails: placement.moodRateDetails,
       })),
     basePoints: context.basePoints,
+    basePointDetails: context.basePointDetails,
     warnings: context.warnings,
   };
 }

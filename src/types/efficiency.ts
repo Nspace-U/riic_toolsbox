@@ -358,12 +358,33 @@ export interface MoodSnapshot {
   rateDetails: MoodRateDetail[];
 }
 
+export type BasePointSourceKind = "gain" | "convert";
+
+export interface BasePointSource {
+  kind: BasePointSourceKind;
+  operator: string;
+  skill?: string;
+  facility: RoomKey;
+  facilityIndex: number;
+  slotIndex: number;
+  value: number;
+  from?: string;
+  rate?: number;
+}
+
+export interface BasePointDetail {
+  term: string;
+  value: number;
+  sources: BasePointSource[];
+}
+
 export interface EfficiencyPlanResult {
   name: string;
   durationHours: number;
   facilities: FacilityEfficiencyResult[];
   moods: MoodSnapshot[];
   basePoints: Record<string, number>;
+  basePointDetails: BasePointDetail[];
   warnings: string[];
 }
 
