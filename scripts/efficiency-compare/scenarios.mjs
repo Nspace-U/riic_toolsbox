@@ -248,6 +248,29 @@ export const scenarios = [
     products: ["Pure Gold"],
   },
   {
+    id: "manufacture-facility-skill-scope",
+    title: "制造站设施级技能不计入干员效率",
+    durationHours: 12,
+    layout: [
+      ["control", 5],
+      ["manufacture", 3],
+    ],
+    assignments: {
+      control: [
+        [
+          operator("斩业星熊", 2),
+          operator("诗怀雅"),
+          operator("焰尾", 2),
+          operator("薇薇安娜", 2),
+        ],
+      ],
+      manufacture: [
+        [operator("远牙", 2), operator("野鬃", 2), operator("灰毫", 2)],
+      ],
+    },
+    products: ["Battle Record"],
+  },
+  {
     id: "manufacture-overflow-zero",
     title: "制造站爆仓后效率归零",
     durationHours: 48,

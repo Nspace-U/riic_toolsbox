@@ -51,6 +51,22 @@ export const OPERATOR_SKILL_OVERRIDES = {
       },
     },
   ],
+  "char_1044_hsgma2#共事情谊": [
+    {
+      target: MANUFACTURE,
+      stat: "manuProd",
+      value: 3,
+      scope: "facility",
+      stack: "max",
+      condition: {
+        type: "opGroupInFacility",
+        group: "cc.g.lgd",
+        facility: "same",
+        other: true,
+        moodCheck: true,
+      },
+    },
+  ],
   // “市井之道”同时读取其他干员提供的效率和当前订单数，无法归结为普通固定值。
   "char_272_strong#市井之道": [
     {

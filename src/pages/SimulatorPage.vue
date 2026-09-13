@@ -3765,7 +3765,7 @@ function efficiencySummaryText(row: FacilityRow, planIndex: number): string {
   if (!result) {
     return "";
   }
-  return `${formatEfficiencyNumber(result.skillEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
+  return `${formatEfficiencyNumber(result.operatorSkillEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
 }
 
 function efficiencySummaryStyle(
@@ -6505,7 +6505,15 @@ onBeforeUnmount(() => {
                     <div class="simulator-step-formula">
                       基础 {{ formatNumber(result.facility.baseEfficiency) }} +
                       心情 {{ formatNumber(result.facility.moodEfficiency) }} +
-                      组合 {{ formatNumber(result.facility.skillEfficiency) }} =
+                      干员技能
+                      {{
+                        formatNumber(result.facility.operatorSkillEfficiency)
+                      }}
+                      + 设施技能
+                      {{
+                        formatNumber(result.facility.facilitySkillEfficiency)
+                      }}
+                      =
                       <strong
                         >{{ formatNumber(result.facility.efficiency) }}%</strong
                       >
@@ -6519,9 +6527,13 @@ onBeforeUnmount(() => {
                       <strong>{{
                         formatNumber(result.facility.moodEfficiency)
                       }}</strong>
-                      <span>技能/组合效率</span>
+                      <span>干员技能效率</span>
                       <strong>{{
-                        signedNumber(result.facility.skillEfficiency)
+                        signedNumber(result.facility.operatorSkillEfficiency)
+                      }}</strong>
+                      <span>设施技能效率</span>
+                      <strong>{{
+                        signedNumber(result.facility.facilitySkillEfficiency)
                       }}</strong>
                       <span>组合效率</span>
                       <strong

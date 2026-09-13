@@ -43,6 +43,7 @@
               "target": "manufacture",
               "stat": "manuProd",
               "value": 3,
+              "scope": "facility",
               "stack": "max",
               "condition": {
                 "type": "opGroupInFacility",

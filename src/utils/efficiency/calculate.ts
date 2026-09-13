@@ -1910,6 +1910,7 @@ function detailRows(
       value,
       facility,
       ownerFacility: item.owner.facility.type,
+      ...(item.effect.scope !== undefined ? { scope: item.effect.scope } : {}),
       category,
       ...(calculation ? { calculation } : {}),
     }));
@@ -1949,16 +1950,18 @@ function operatorContributions(
 ): OperatorEfficiencyContribution[] {
   const skillValues = new Map<string, number>();
   const sourceFacilities = new Map<string, RoomKey>();
-  combinationDetails.forEach((detail) => {
-    skillValues.set(
-      detail.operator,
-      (skillValues.get(detail.operator) ?? 0) + detail.value,
-    );
-    sourceFacilities.set(
-      detail.operator,
-      detail.ownerFacility ?? detail.facility,
-    );
-  });
+  combinationDetails
+    .filter((detail) => detail.scope !== "facility")
+    .forEach((detail) => {
+      skillValues.set(
+        detail.operator,
+        (skillValues.get(detail.operator) ?? 0) + detail.value,
+      );
+      sourceFacilities.set(
+        detail.operator,
+        detail.ownerFacility ?? detail.facility,
+      );
+    });
   const contributions = new Map<string, OperatorEfficiencyContribution>();
   placements.forEach((placement) => {
     const baseEfficiency = zeroed.has(placement.name)
@@ -2075,7 +2078,7 @@ function calculateFacility(
       total: Math.max(1, attributeState.attributes.orderLimit.base + skill),
     };
   }
-  const trainingDetails =
+  const trainingDetails: OperatorEfficiencyDetail[] =
     facility.type === "meeting"
       ? placements
           .map((placement) => ({
@@ -2104,6 +2107,11 @@ function calculateFacility(
     ...detailRows(special, facility.type, "combination", context),
     ...trainingDetails,
   ];
+  const facilitySkillEfficiency = combinationDetails.reduce(
+    (total, detail) => total + (detail.scope === "facility" ? detail.value : 0),
+    0,
+  );
+  const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
   const details = [...baseDetails, ...combinationDetails];
   const cluePreferences =
     facility.type === "meeting" ? cluePreferencesFor(context, facility) : [];
@@ -2115,6 +2123,8 @@ function calculateFacility(
     moodEfficiency,
     operatorEfficiency: moodEfficiency,
     skillEfficiency,
+    operatorSkillEfficiency,
+    facilitySkillEfficiency,
     combinationEfficiency: moodEfficiency + skillEfficiency,
     efficiency: baseEfficiency + moodEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
@@ -2598,6 +2608,11 @@ function calculatePowerGroup(
   });
   const baseEfficiency = 100 + facBase;
   const combinationEfficiency = skillEfficiency;
+  const facilitySkillEfficiency = skillDetails.reduce(
+    (total, detail) => total + (detail.scope === "facility" ? detail.value : 0),
+    0,
+  );
+  const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
   const efficiency =
     baseEfficiency + operatorEfficiency + combinationEfficiency;
   const production: ProductionValue = {
@@ -2621,6 +2636,8 @@ function calculatePowerGroup(
     moodEfficiency: operatorEfficiency,
     operatorEfficiency,
     skillEfficiency,
+    operatorSkillEfficiency,
+    facilitySkillEfficiency,
     combinationEfficiency: operatorEfficiency + combinationEfficiency,
     efficiency,
     attributes: {},
