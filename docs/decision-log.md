@@ -806,3 +806,11 @@
 - **显示设置**：通用设置固定列出当前 17 个基地点数，按名称排序并默认全部显示；用户隐藏的点数仅过滤模拟器展示，不改变计算结果、排班 JSON 或 Maa JSON。
 - **未完成与风险**：仓库没有效率计算自动化测试；当前隔离浏览器不可用，已有浏览器页面没有点数来源，尚未完成包含正向点数区块的真实页面回放。
 - **验证**：目标文件 ESLint、Prettier、`npm run type-check`、`npm run build` 和 `git diff --check` 通过；临时 ESM 计算脚本使用真实爱丽丝/迷迭香技能 JSON 验证 `A=10、B=5、C=10` 的链式派生及两班 skip 结果一致，验证脚本已删除。
+
+## 2026-09-13：压缩效率结果布局并移除冗余心情明细
+
+- **展示布局**：计算步骤的统计摘要、产出与容量、订单、干员贡献、技能明细和心情消耗步骤统一改为内容宽度两列，每行显示一组描述与数据，避免使用 `space-between` 将数值推到容器最右侧。
+- **基地点数**：每个排班队列复用计算步骤设施的 `a-collapse-panel` 样式，默认全部折叠；展开内容保留现有点数卡片和来源明细，来源行使用紧凑两列布局。
+- **心情数据边界**：删除 `FacilityEfficiencyResult.moodDetails`、`moodDetailRows`、模拟器对应展示和对比工具归一化字段。效率数值仍由原有 `moodEfficiency`、技能聚合和 `resolveMoods` 计算，心情步骤继续使用 `MoodSnapshot.rateDetails`。
+- **兼容性**：不修改排班 JSON、Maa JSON 或持久化字段；只改变效率结果的中间字段和对比工具输出结构。
+- **验证与风险**：`npm run lint`、`npm run type-check`、`npm run build`、对比脚本 `node --check`、定向 Prettier 和 `git diff --check` 通过；浏览器桌面回放通过，窄屏尚未在独立移动 viewport 中实测。

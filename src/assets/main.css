@@ -2355,40 +2355,20 @@ a {
 }
 
 .simulator-base-point-results {
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-block: 18px;
   border-block-end: 1px solid #edf1f0;
 }
 
-.simulator-base-point-plan + .simulator-base-point-plan {
-  margin-block-start: 12px;
-}
-
-.simulator-base-point-plan {
-  min-inline-size: max-content;
-}
-
-.simulator-base-point-plan-heading,
 .simulator-base-point-value,
 .simulator-base-point-source {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.simulator-base-point-plan-heading {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
   align-items: baseline;
-  margin-block-end: 8px;
-  color: #425457;
-  font-size: 12px;
+  column-gap: 12px;
 }
 
-.simulator-base-point-plan-heading strong {
-  color: #2e4043;
-  font-size: 13px;
-}
-
-.simulator-base-point-plan-heading span,
 .simulator-base-point-source {
   color: #72807f;
   font-size: 11px;
@@ -2401,12 +2381,12 @@ a {
 }
 
 .simulator-base-point-item {
-  min-inline-size: max-content;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   padding: 12px;
   background: #f8fbfa;
   border: 1px solid #e0e8e5;
   border-radius: 5px;
-  white-space: nowrap;
 }
 
 .simulator-base-point-value {
@@ -2437,17 +2417,11 @@ a {
 }
 
 .simulator-base-point-source {
-  align-items: flex-start;
   padding-block: 2px;
-  white-space: nowrap;
-}
-
-.simulator-base-point-source span {
-  flex: 0 0 auto;
+  overflow-wrap: anywhere;
 }
 
 .simulator-base-point-source strong {
-  flex: 0 0 auto;
   color: #176b68;
   font-size: 11px;
 }
@@ -2546,7 +2520,8 @@ a {
 
 .simulator-step-stat-grid {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr) auto;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
   align-items: center;
   gap: 7px 12px;
   color: #72807f;
@@ -2555,7 +2530,7 @@ a {
 
 .simulator-step-stat-grid strong {
   color: #344447;
-  text-align: end;
+  overflow-wrap: anywhere;
 }
 
 .simulator-inherited-note {
@@ -2577,7 +2552,8 @@ a {
 
 .simulator-production-summary {
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
   align-items: center;
   gap: 7px 12px;
   color: #72807f;
@@ -2588,7 +2564,6 @@ a {
   min-width: 0;
   color: #344447;
   font-weight: 600;
-  text-align: end;
   overflow-wrap: anywhere;
 }
 
@@ -2604,8 +2579,9 @@ a {
 }
 
 .simulator-order-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
   gap: 12px;
   padding-block: 3px;
   color: #72807f;
@@ -2614,7 +2590,6 @@ a {
 
 .simulator-order-row span:last-child {
   color: #344447;
-  text-align: end;
 }
 
 .simulator-step-subheading {
@@ -2634,8 +2609,9 @@ a {
 
 .simulator-operator-contribution,
 .simulator-detail-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
   gap: 12px;
   padding-block: 4px;
   color: #72807f;
@@ -2668,9 +2644,11 @@ a {
 
 .simulator-mood-calculation-header,
 .simulator-mood-rate-step {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  align-items: baseline;
+  column-gap: 12px;
 }
 
 .simulator-mood-calculation-header {
@@ -2697,7 +2675,7 @@ a {
 .simulator-mood-rate-step strong {
   color: #344447;
   font-weight: 600;
-  text-align: end;
+  overflow-wrap: anywhere;
 }
 
 .simulator-step-empty.ant-empty {
@@ -3221,28 +3199,11 @@ a {
     flex-direction: column;
   }
 
-  .simulator-step-stat-grid {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
   .simulator-step-content {
     padding-inline-start: 12px;
   }
 
-  .simulator-operator-contribution,
-  .simulator-detail-row,
-  .simulator-order-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .simulator-production-summary {
-    grid-template-columns: minmax(90px, 1fr) minmax(0, 1.6fr);
-  }
-
-  .simulator-production-summary strong,
-  .simulator-order-row span:last-child {
-    text-align: end;
+  .simulator-base-point-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

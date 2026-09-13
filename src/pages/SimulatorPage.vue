@@ -6415,41 +6415,52 @@ onBeforeUnmount(() => {
                   >来源点数保留，派生点数按比例追加</span
                 >
               </div>
-              <div
-                v-for="entry in plansWithBasePoints"
-                :key="`base-points-${entry.planIndex}`"
-                class="simulator-base-point-plan"
-              >
-                <div class="simulator-base-point-plan-heading">
-                  <strong>{{ entry.plan.name }}</strong>
-                  <span>{{ formatNumber(entry.plan.durationHours) }} 小时</span>
-                </div>
-                <div class="simulator-base-point-grid">
-                  <div
-                    v-for="point in displayedBasePointDetails(entry.plan)"
-                    :key="point.term"
-                    class="simulator-base-point-item"
-                  >
-                    <div class="simulator-base-point-value">
-                      <span>{{ basePointLabel(point.term) }}</span>
-                      <strong>{{ formatNumber(point.value) }}</strong>
+              <a-collapse ghost>
+                <a-collapse-panel
+                  v-for="entry in plansWithBasePoints"
+                  :key="`base-points-${entry.planIndex}`"
+                >
+                  <template #header>
+                    <div class="simulator-step-header">
+                      <span>
+                        {{ entry.plan.name }}
+                        <small
+                          >·
+                          {{ formatNumber(entry.plan.durationHours) }}
+                          小时</small
+                        >
+                      </span>
                     </div>
-                    <div class="simulator-base-point-sources">
-                      <span class="simulator-base-point-source-title"
-                        >来源</span
-                      >
+                  </template>
+                  <div class="simulator-step-content">
+                    <div class="simulator-base-point-grid">
                       <div
-                        v-for="(source, sourceIndex) in point.sources"
-                        :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
-                        class="simulator-base-point-source"
+                        v-for="point in displayedBasePointDetails(entry.plan)"
+                        :key="point.term"
+                        class="simulator-base-point-item"
                       >
-                        <span>{{ basePointSourceText(source) }}</span>
-                        <strong>+{{ formatNumber(source.value) }}</strong>
+                        <div class="simulator-base-point-value">
+                          <span>{{ basePointLabel(point.term) }}</span>
+                          <strong>{{ formatNumber(point.value) }}</strong>
+                        </div>
+                        <div class="simulator-base-point-sources">
+                          <span class="simulator-base-point-source-title"
+                            >来源</span
+                          >
+                          <div
+                            v-for="(source, sourceIndex) in point.sources"
+                            :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
+                            class="simulator-base-point-source"
+                          >
+                            <span>{{ basePointSourceText(source) }}</span>
+                            <strong>+{{ formatNumber(source.value) }}</strong>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </a-collapse-panel>
+              </a-collapse>
             </div>
 
             <div class="simulator-calculation-steps">
@@ -6746,33 +6757,10 @@ onBeforeUnmount(() => {
                         >
                       </div>
                     </div>
-                    <div
-                      v-if="result.facility.moodDetails.length"
-                      class="simulator-detail-list"
-                    >
-                      <span class="simulator-step-subheading"
-                        >心情修正明细</span
-                      >
-                      <div
-                        v-for="(detail, detailIndex) in result.facility
-                          .moodDetails"
-                        :key="`mood-${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
-                        class="simulator-detail-row"
-                      >
-                        <span
-                          >{{ detail.operator
-                          }}<template v-if="detail.skill">
-                            · {{ detail.skill }}</template
-                          ></span
-                        >
-                        <span
-                          >{{ efficiencyStatLabel(detail.stat) }}
-                          {{ signedNumber(detail.value) }}/小时</span
-                        >
-                      </div>
-                    </div>
                     <a-empty
-                      v-else
+                      v-if="
+                        !result.facility.details.length && !result.moods.length
+                      "
                       :image="undefined"
                       class="simulator-step-empty"
                       description="当前设施没有可展开的技能明细"

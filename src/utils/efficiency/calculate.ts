@@ -1901,29 +1901,6 @@ function detailRows(
     }));
 }
 
-function moodDetailRows(
-  context: PlanContext,
-  facility: EfficiencyFacility,
-  catalog: EfficiencyCatalog,
-): OperatorEfficiencyDetail[] {
-  const placements = placementsInFacility(context, facility);
-  return placements
-    .flatMap((placement) =>
-      moodEffectValues(context, placement, catalog, emptyEvaluationData()).map(
-        ({ item, value }) => ({
-          operator: item.owner.name,
-          skill: item.skill,
-          stat: item.effect.stat,
-          value: item.effect.stat === "moodRecover" ? -value : value,
-          facility: facility.type,
-          ownerFacility: item.owner.facility.type,
-          category: "combination" as const,
-        }),
-      ),
-    )
-    .filter((detail) => Math.abs(detail.value) > EPSILON);
-}
-
 function operatorBaseEfficiency(
   facility: EfficiencyFacility,
   placement: Placement,
@@ -2116,7 +2093,6 @@ function calculateFacility(
     details,
     baseDetails,
     combinationDetails,
-    moodDetails: moodDetailRows(context, facility, catalog),
     operatorContributions: operatorContributions(
       placements,
       combinationDetails,
@@ -2624,7 +2600,6 @@ function calculatePowerGroup(
     details: [...skillDetails, ...baseDetails],
     baseDetails,
     combinationDetails: skillDetails,
-    moodDetails: [],
     operatorContributions: operatorContributions(
       placementsInRoomType(context, "power"),
       skillDetails,

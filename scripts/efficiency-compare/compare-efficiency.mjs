@@ -879,7 +879,6 @@ function newFacilityResults(result, scenario) {
             details: mapNumbers(facility.details),
             baseDetails: mapNumbers(facility.baseDetails),
             combinationDetails: mapNumbers(facility.combinationDetails),
-            moodDetails: mapNumbers(facility.moodDetails),
             operatorContributions: mapNumbers(facility.operatorContributions),
           },
         ];

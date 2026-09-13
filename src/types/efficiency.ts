@@ -330,7 +330,6 @@ export interface FacilityEfficiencyResult {
   details: OperatorEfficiencyDetail[];
   baseDetails: OperatorEfficiencyDetail[];
   combinationDetails: OperatorEfficiencyDetail[];
-  moodDetails: OperatorEfficiencyDetail[];
   operatorContributions: OperatorEfficiencyContribution[];
 }
 
