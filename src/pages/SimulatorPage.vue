@@ -3809,12 +3809,7 @@ function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
     ];
   }
   const weightedTerms = calculation.steps
-    .map(
-      (step) =>
-        `第${step.hour}小时 ${formatNumber(step.value)} × ${formatNumber(
-          step.weight,
-        )}`,
-    )
+    .map((step) => `${formatNumber(step.value)} × ${formatNumber(step.weight)}`)
     .join(" + ");
   const weightedTotal = calculation.steps.reduce(
     (total, step) => total + step.value * step.weight,
@@ -6639,13 +6634,17 @@ onBeforeUnmount(() => {
                             ></span
                           >
                           <div
-                            v-for="(
-                              line, lineIndex
-                            ) in operatorCalculationLines(detail)"
-                            :key="`${detailIndex}-${lineIndex}`"
-                            class="simulator-detail-calculation"
+                            v-if="operatorCalculationLines(detail).length"
+                            class="simulator-detail-calculation simulator-step-formula"
                           >
-                            {{ line }}
+                            <div
+                              v-for="(
+                                line, lineIndex
+                              ) in operatorCalculationLines(detail)"
+                              :key="`${detailIndex}-${lineIndex}`"
+                            >
+                              {{ line }}
+                            </div>
                           </div>
                         </div>
                         <span
