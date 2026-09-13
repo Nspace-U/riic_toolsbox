@@ -3808,9 +3808,25 @@ function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
       efficiencyLine,
     ];
   }
-  const weightedTerms = calculation.steps
-    .map((step) => `${formatNumber(step.value)} × ${formatNumber(step.weight)}`)
-    .join(" + ");
+  const capIndex = calculation.steps.findIndex(
+    (step) => step.value >= calculation.cap,
+  );
+  const uncappedSteps =
+    capIndex >= 0 ? calculation.steps.slice(0, capIndex) : calculation.steps;
+  const cappedWeight =
+    capIndex >= 0
+      ? calculation.steps
+          .slice(capIndex)
+          .reduce((total, step) => total + step.weight, 0)
+      : 0;
+  const weightedTerms = [
+    ...uncappedSteps.map(
+      (step) => `${formatNumber(step.value)} × ${formatNumber(step.weight)}`,
+    ),
+    ...(capIndex >= 0
+      ? [`${formatNumber(calculation.cap)} × ${formatNumber(cappedWeight)}`]
+      : []),
+  ].join(" + ");
   const weightedTotal = calculation.steps.reduce(
     (total, step) => total + step.value * step.weight,
     0,
@@ -3831,7 +3847,7 @@ function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
       calculation.startHours,
     )}) × ${formatNumber(calculation.step)}, ${formatNumber(calculation.cap)})`,
     calculation.durationHours > 0
-      ? `加权平均：${weightedTerms || "0"} ÷ ${formatNumber(
+      ? `加权平均：(${weightedTerms || "0"}) ÷ ${formatNumber(
           calculation.durationHours,
         )} = ${formatNumber(detail.value)}%`
       : "加权平均：队列时长为 0，结果为 0%",
