@@ -30,6 +30,7 @@ const props = withDefaults(
     showName?: boolean;
     size?: number;
     moodScattered?: boolean;
+    moodRemaining?: number;
     operatorOwned?: boolean;
     missing?: boolean;
     operatorTrainingUpgraded?: boolean;
@@ -46,6 +47,7 @@ const props = withDefaults(
     showName: false,
     size: 96,
     moodScattered: false,
+    moodRemaining: undefined,
     operatorOwned: true,
     missing: false,
     operatorTrainingUpgraded: false,
@@ -256,6 +258,13 @@ const nameStyle = computed(() =>
 
 const fallbackName = computed(() => props.operator.name.slice(0, 1) || "?");
 
+const moodRemainingLabel = computed(() => {
+  const value = props.moodRemaining;
+  return value === undefined || !Number.isFinite(value)
+    ? ""
+    : String(Math.round(value * 100) / 100);
+});
+
 watch(
   [
     () => props.operator.name,
@@ -338,6 +347,13 @@ onMounted(updateNameFontSize);
         :style="badgeStyle('rarity')"
         @load="handleBadgeLoad('rarity', $event)"
       />
+      <span
+        v-if="moodRemainingLabel"
+        :aria-label="`剩余心情 ${moodRemainingLabel}`"
+        class="operator-avatar-mood-remaining"
+      >
+        {{ moodRemainingLabel }}
+      </span>
       <span v-if="missing" class="operator-avatar-missing-overlay" />
       <span
         v-if="missing"

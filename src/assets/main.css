@@ -2502,7 +2502,8 @@ a {
 }
 
 .simulator-operator-contribution-list,
-.simulator-detail-list {
+.simulator-detail-list,
+.simulator-mood-calculation-list {
   padding-block-start: 10px;
   border-block-start: 1px solid #edf1f0;
 }
@@ -2520,6 +2521,46 @@ a {
 .simulator-operator-contribution span:first-child,
 .simulator-detail-row span:first-child {
   color: #344447;
+}
+
+.simulator-mood-calculation + .simulator-mood-calculation {
+  margin-block-start: 10px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-mood-calculation-header,
+.simulator-mood-rate-step {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-mood-calculation-header {
+  color: #344447;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.simulator-mood-calculation-header strong {
+  color: #176b68;
+}
+
+.simulator-mood-rate-steps {
+  display: grid;
+  gap: 2px;
+  padding-block: 5px;
+}
+
+.simulator-mood-rate-step {
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-mood-rate-step strong {
+  color: #344447;
+  font-weight: 600;
+  text-align: end;
 }
 
 .simulator-step-empty.ant-empty {
@@ -2637,6 +2678,26 @@ a {
 .operator-avatar-frame--plain .operator-avatar-badge--rarity {
   inset-block-end: 0;
   inset-inline-end: 0;
+}
+
+.operator-avatar-mood-remaining {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  box-sizing: border-box;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 3px;
+  color: #ffffff;
+  background: rgba(45, 111, 107, 0.92);
+  border-radius: 0 0 0 4px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .operator-avatar-mood-overlay {

@@ -10,6 +10,7 @@ import type {
   EfficiencyResult,
   FacilityAttributes,
   FacilityEfficiencyResult,
+  MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
   OperatorEfficiencyContribution,
@@ -75,6 +76,7 @@ interface Placement {
   moodStart: number;
   moodEnd: number;
   costRate: number;
+  moodRateDetails: MoodRateDetail[];
   working: boolean;
   workHoursBefore: number;
   owned: boolean;
@@ -290,6 +292,7 @@ function createContexts(
           moodStart: clampMood(state.mood ?? 24),
           moodEnd: clampMood(state.mood ?? 24),
           costRate: 0,
+          moodRateDetails: [],
           working: true,
           workHoursBefore: 0,
           owned: progression.owned,
@@ -1024,12 +1027,22 @@ function resolveMoodRate(
   placement: Placement,
   catalog: EfficiencyCatalog,
   data: EvaluationData,
-): number {
-  if (!isCurrentlyWorking(placement) || !isWorkPlacement(placement)) return 0;
+): { rate: number; details: MoodRateDetail[] } {
+  if (!isCurrentlyWorking(placement) || !isWorkPlacement(placement)) {
+    return { rate: 0, details: [] };
+  }
+  const details: MoodRateDetail[] = [{ kind: "base", value: 1 }];
   const controlWorkers = placementsInRoomType(context, "control").filter(
     (candidate) => isCurrentlyWorking(candidate),
   ).length;
   let rate = 1 - controlWorkers * 0.05;
+  if (controlWorkers > 0) {
+    details.push({
+      kind: "controlWorkers",
+      value: -controlWorkers * 0.05,
+      count: controlWorkers,
+    });
+  }
   if (
     placement.facility.type === "trading" ||
     placement.facility.type === "manufacture"
@@ -1037,8 +1050,21 @@ function resolveMoodRate(
     const count = placementsInFacility(context, placement.facility).filter(
       (candidate) => isCurrentlyWorking(candidate),
     ).length;
-    if (count >= 3) rate -= 0.1;
-    else if (count === 2) rate -= 0.05;
+    if (count >= 3) {
+      rate -= 0.1;
+      details.push({
+        kind: "facilityWorkers",
+        value: -0.1,
+        count,
+      });
+    } else if (count === 2) {
+      rate -= 0.05;
+      details.push({
+        kind: "facilityWorkers",
+        value: -0.05,
+        count,
+      });
+    }
   }
   const zeroMood = context.active
     .filter((item) => item.effect.stat === "zeroOpMood")
@@ -1048,16 +1074,33 @@ function resolveMoodRate(
         (item.effect.group &&
           membersFor(catalog, item.effect.group).includes(placement.name)),
     );
-  const skillCosts = moodEffectValues(context, placement, catalog, data).map(
-    ({ item, value }) => (item.effect.stat === "moodRecover" ? -value : value),
-  );
-  const skillCost = zeroMood
-    ? skillCosts
-        .filter((value) => value <= 0)
-        .reduce((total, value) => total + value, 0)
-    : skillCosts.reduce((total, value) => total + value, 0);
-  rate += skillCost;
-  return Math.max(0, rate);
+  const skillCosts = moodEffectValues(
+    context,
+    placement,
+    catalog,
+    data,
+  ).flatMap(({ item, value }) => {
+    const cost = item.effect.stat === "moodRecover" ? -value : value;
+    return zeroMood && cost > 0
+      ? []
+      : [
+          {
+            cost,
+            detail: {
+              kind: "skill" as const,
+              value: cost,
+              operator: item.owner.name,
+              skill: item.skill,
+              stat: item.effect.stat as "moodCost" | "moodRecover",
+            },
+          },
+        ];
+  });
+  skillCosts.forEach(({ cost, detail }) => {
+    rate += cost;
+    details.push(detail);
+  });
+  return { rate: Math.max(0, rate), details };
 }
 
 function moodEffectValues(
@@ -1219,12 +1262,14 @@ function resolveMoods(
       );
       context.active = collectActive(context, catalog, false);
       context.placements.forEach((placement) => {
-        placement.costRate = resolveMoodRate(
+        const moodRate = resolveMoodRate(
           context,
           placement,
           catalog,
           emptyData,
         );
+        placement.costRate = moodRate.rate;
+        placement.moodRateDetails = moodRate.details;
         placement.moodEnd = isWorkPlacement(placement)
           ? clampMood(
               placement.moodStart - placement.costRate * context.durationHours,
@@ -2384,10 +2429,13 @@ function calculatePlan(
       .map((placement): MoodSnapshot => ({
         operator: placement.name,
         facility: placement.facility.type,
+        facilityId: placement.facility.id,
+        slotIndex: placement.index,
         start: placement.moodStart,
         end: placement.moodEnd,
         costRate: placement.costRate,
         working: isCurrentlyWorking(placement),
+        rateDetails: placement.moodRateDetails,
       })),
     basePoints: context.basePoints,
     warnings: context.warnings,

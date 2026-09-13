@@ -36,8 +36,11 @@ import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
   EfficiencyCatalog,
+  EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  MoodRateDetail,
+  MoodSnapshot,
   ProductionValue,
 } from "@/types/efficiency";
 import type {
@@ -80,6 +83,7 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
+import { facilityId } from "@/utils/efficiency/baseRules";
 import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
@@ -109,6 +113,13 @@ interface FacilityRow {
 interface FacilitySlotRef {
   entry: FacilityEntry;
   slotIndex: number;
+}
+
+interface SimulatorCalculationStep {
+  plan: EfficiencyPlanResult;
+  planIndex: number;
+  facility?: FacilityEfficiencyResult;
+  moods: MoodSnapshot[];
 }
 
 interface OperatorSlotAddress {
@@ -461,6 +472,9 @@ function operatorDragPreviewData():
       operator: Operator;
       room: RoomAssignment | undefined;
       type: RoomKey;
+      planIndex: number;
+      position: number;
+      slotIndex: number;
     }
   | undefined {
   const interaction = operatorPointerInteraction.value;
@@ -484,6 +498,9 @@ function operatorDragPreviewData():
         operator,
         room: roomAt(plan, address.type, address.position),
         type: address.type,
+        planIndex: address.planIndex,
+        position: address.position,
+        slotIndex: address.slotIndex,
       },
     ];
   });
@@ -535,20 +552,31 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   });
 });
 
-const calculationSteps = computed(
-  () =>
-    efficiencyResult.value?.plans.flatMap((plan, planIndex) =>
-      plan.facilities
-        .filter(
-          (facility) =>
-            facility.production !== undefined ||
-            facility.capacity !== undefined ||
-            facility.details.length > 0 ||
-            facility.operatorContributions.length > 0,
-        )
-        .map((facility) => ({ plan, planIndex, facility })),
-    ) ?? [],
-);
+const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
+  const plans = efficiencyResult.value?.plans ?? [];
+  return plans.flatMap((plan, planIndex) => {
+    const facilitySteps = plan.facilities
+      .filter(
+        (facility) =>
+          facility.production !== undefined ||
+          facility.capacity !== undefined ||
+          facility.details.length > 0 ||
+          facility.operatorContributions.length > 0,
+      )
+      .map((facility) => ({
+        plan,
+        planIndex,
+        facility,
+        moods: moodSnapshotsForFacility(plan, facility),
+      }));
+    const controlMoods = plan.moods.filter(
+      (mood) => mood.facility === "control" && mood.working,
+    );
+    return controlMoods.length > 0
+      ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
+      : facilitySteps;
+  });
+});
 
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
@@ -3666,6 +3694,58 @@ function planFacilityResult(
   return plan.facilities.find((result) => result.facility.id === facilityId);
 }
 
+function moodSnapshotsForFacility(
+  plan: EfficiencyPlanResult,
+  result: FacilityEfficiencyResult,
+): MoodSnapshot[] {
+  return plan.moods.filter(
+    (mood) =>
+      mood.working &&
+      (mood.facilityId === result.facility.id ||
+        (result.facility.type === "power" && mood.facility === "power")),
+  );
+}
+
+function operatorMoodRemaining(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+): number | undefined {
+  return efficiencyResult.value?.plans[planIndex]?.moods.find(
+    (mood) =>
+      mood.facilityId === facilityId(type, position) &&
+      mood.slotIndex === slotIndex,
+  )?.end;
+}
+
+function moodRateDetailLabel(detail: MoodRateDetail): string {
+  if (detail.kind === "base") {
+    return "基础消耗速度";
+  }
+  if (detail.kind === "controlWorkers") {
+    return `控制中枢干员减耗（${detail.count ?? 0}人）`;
+  }
+  if (detail.kind === "facilityWorkers") {
+    return `同设施干员减耗（${detail.count ?? 0}人）`;
+  }
+  const source = [detail.operator, detail.skill].filter(Boolean).join(" · ");
+  return `${source || "技能"}${detail.stat === "moodRecover" ? "恢复" : "消耗"}`;
+}
+
+function moodRateFormula(mood: MoodSnapshot): string {
+  const [first, ...rest] = mood.rateDetails;
+  if (!first) {
+    return `0 = ${formatNumber(mood.costRate)}/小时`;
+  }
+  return `${formatNumber(first.value)}${rest
+    .map(
+      (detail) =>
+        ` ${detail.value >= 0 ? "+" : "-"} ${formatNumber(Math.abs(detail.value))}`,
+    )
+    .join("")} = ${formatNumber(mood.costRate)}/小时`;
+}
+
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
   const { facility } = result;
   if (facility.type === "power") {
@@ -5297,6 +5377,14 @@ onBeforeUnmount(() => {
                               slotCommittedName(row, plan, slot),
                             )
                           "
+                          :mood-remaining="
+                            operatorMoodRemaining(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
                           :operator-training-upgraded="
                             operatorTrainingUpgraded(
                               slotRoom(plan, slot),
@@ -5542,6 +5630,14 @@ onBeforeUnmount(() => {
               operatorMoodScattered(
                 operatorDragPreview.room,
                 operatorDragPreview.name,
+              )
+            "
+            :mood-remaining="
+              operatorMoodRemaining(
+                operatorDragPreview.planIndex,
+                operatorDragPreview.type,
+                operatorDragPreview.position,
+                operatorDragPreview.slotIndex,
               )
             "
             :operator-training-upgraded="
@@ -5863,23 +5959,32 @@ onBeforeUnmount(() => {
               <a-collapse ghost>
                 <a-collapse-panel
                   v-for="(result, resultIndex) in calculationSteps"
-                  :key="`${result.planIndex}-${result.facility.facility.id}-${resultIndex}`"
+                  :key="`${result.planIndex}-${result.facility?.facility.id ?? 'control-mood'}-${resultIndex}`"
                 >
                   <template #header>
                     <div class="simulator-step-header">
                       <span>
                         {{ result.plan.name }} ·
-                        {{ facilityResultLabel(result.facility) }}
-                        <small v-if="inheritedSourceLabel(result.facility)">
+                        {{
+                          result.facility
+                            ? facilityResultLabel(result.facility)
+                            : ROOM_LABELS.control
+                        }}
+                        <small
+                          v-if="
+                            result.facility &&
+                            inheritedSourceLabel(result.facility)
+                          "
+                        >
                           · {{ inheritedSourceLabel(result.facility) }}
                         </small>
                       </span>
-                      <strong
+                      <strong v-if="result.facility"
                         >{{ formatNumber(result.facility.efficiency) }}%</strong
                       >
                     </div>
                   </template>
-                  <div class="simulator-step-content">
+                  <div v-if="result.facility" class="simulator-step-content">
                     <div class="simulator-step-formula">
                       基础 {{ formatNumber(result.facility.baseEfficiency) }} +
                       心情 {{ formatNumber(result.facility.moodEfficiency) }} +
@@ -6102,6 +6207,88 @@ onBeforeUnmount(() => {
                       class="simulator-step-empty"
                       description="当前设施没有可展开的技能明细"
                     />
+                    <div
+                      v-if="result.moods.length"
+                      class="simulator-mood-calculation-list"
+                    >
+                      <span class="simulator-step-subheading"
+                        >干员心情消耗步骤</span
+                      >
+                      <div
+                        v-for="mood in result.moods"
+                        :key="`${mood.facilityId}-${mood.slotIndex}-${mood.operator}`"
+                        class="simulator-mood-calculation"
+                      >
+                        <div class="simulator-mood-calculation-header">
+                          <span>{{ mood.operator }}</span>
+                          <strong>剩余 {{ formatNumber(mood.end) }}</strong>
+                        </div>
+                        <div class="simulator-mood-rate-steps">
+                          <div
+                            v-for="(detail, detailIndex) in mood.rateDetails"
+                            :key="`${mood.operator}-${detail.kind}-${detailIndex}`"
+                            class="simulator-mood-rate-step"
+                          >
+                            <span>{{ moodRateDetailLabel(detail) }}</span>
+                            <strong
+                              >{{ signedNumber(detail.value) }}/小时</strong
+                            >
+                          </div>
+                          <div class="simulator-mood-rate-step">
+                            <span>消耗速度</span>
+                            <strong>{{ moodRateFormula(mood) }}</strong>
+                          </div>
+                        </div>
+                        <div class="simulator-step-formula">
+                          {{ formatNumber(mood.start) }} -
+                          {{ formatNumber(mood.costRate) }} ×
+                          {{ formatNumber(result.plan.durationHours) }} =
+                          <strong>{{ formatNumber(mood.end) }}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="simulator-step-content">
+                    <div
+                      v-if="result.moods.length"
+                      class="simulator-mood-calculation-list"
+                    >
+                      <span class="simulator-step-subheading"
+                        >干员心情消耗步骤</span
+                      >
+                      <div
+                        v-for="mood in result.moods"
+                        :key="`${mood.facilityId}-${mood.slotIndex}-${mood.operator}`"
+                        class="simulator-mood-calculation"
+                      >
+                        <div class="simulator-mood-calculation-header">
+                          <span>{{ mood.operator }}</span>
+                          <strong>剩余 {{ formatNumber(mood.end) }}</strong>
+                        </div>
+                        <div class="simulator-mood-rate-steps">
+                          <div
+                            v-for="(detail, detailIndex) in mood.rateDetails"
+                            :key="`${mood.operator}-${detail.kind}-${detailIndex}`"
+                            class="simulator-mood-rate-step"
+                          >
+                            <span>{{ moodRateDetailLabel(detail) }}</span>
+                            <strong
+                              >{{ signedNumber(detail.value) }}/小时</strong
+                            >
+                          </div>
+                          <div class="simulator-mood-rate-step">
+                            <span>消耗速度</span>
+                            <strong>{{ moodRateFormula(mood) }}</strong>
+                          </div>
+                        </div>
+                        <div class="simulator-step-formula">
+                          {{ formatNumber(mood.start) }} -
+                          {{ formatNumber(mood.costRate) }} ×
+                          {{ formatNumber(result.plan.durationHours) }} =
+                          <strong>{{ formatNumber(mood.end) }}</strong>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </a-collapse-panel>
               </a-collapse>

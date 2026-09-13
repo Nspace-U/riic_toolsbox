@@ -291,13 +291,28 @@ export interface FacilityEfficiencyResult {
   operatorContributions: OperatorEfficiencyContribution[];
 }
 
+export type MoodRateDetailKind =
+  "base" | "controlWorkers" | "facilityWorkers" | "skill";
+
+export interface MoodRateDetail {
+  kind: MoodRateDetailKind;
+  value: number;
+  count?: number;
+  operator?: string;
+  skill?: string;
+  stat?: "moodCost" | "moodRecover";
+}
+
 export interface MoodSnapshot {
   operator: string;
   facility: RoomKey;
+  facilityId: string;
+  slotIndex: number;
   start: number;
   end: number;
   costRate: number;
   working: boolean;
+  rateDetails: MoodRateDetail[];
 }
 
 export interface EfficiencyPlanResult {
