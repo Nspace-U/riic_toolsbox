@@ -147,6 +147,7 @@ export interface EfficiencyEffect {
   tagFrom?: string[];
   tagTo?: string;
   text?: string;
+  cluePreference?: CluePreference;
   suppresses?: string[];
   [key: string]: unknown;
 }
@@ -184,6 +185,7 @@ export interface EfficiencyOperator {
 export interface EfficiencyCalculationOptions {
   progressionProfile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
 }
 
 export interface EfficiencyTerm {
@@ -235,8 +237,17 @@ export interface TradeOrderSummary {
   ignoreEfficiency?: boolean;
 }
 
+export type CluePreference = number | "unowned" | "owned";
+
 export interface ProductionValue {
   product: string;
+  cluePreferences?: CluePreference[];
+  conversion?: {
+    label: string;
+    amountPerUnit: number;
+    sourceUnit: string;
+    baseCycleHours: number;
+  };
   baseAmountPerHour?: number;
   baseAmountPerDay?: number;
   amountPerHour: number;
@@ -253,6 +264,36 @@ export interface ProductionValue {
   effectiveMaterialPerHour?: Record<string, number>;
 }
 
+export interface CurveCalculationStep {
+  hour: number;
+  weight: number;
+  value: number;
+}
+
+export type OperatorEfficiencyCalculation =
+  | {
+      type: "curve";
+      beforeHours: number;
+      durationHours: number;
+      startValue: number;
+      startHours: number;
+      step: number;
+      cap: number;
+      steps: CurveCalculationStep[];
+      workHours?: {
+        threshold: number;
+        activeHours: number;
+      };
+    }
+  | {
+      type: "workHours";
+      beforeHours: number;
+      durationHours: number;
+      threshold: number;
+      activeHours: number;
+      baseValue: number;
+    };
+
 export interface OperatorEfficiencyDetail {
   operator: string;
   skill?: string;
@@ -261,6 +302,7 @@ export interface OperatorEfficiencyDetail {
   facility: RoomKey;
   ownerFacility?: RoomKey;
   category?: "base" | "combination";
+  calculation?: OperatorEfficiencyCalculation;
 }
 
 export interface OperatorEfficiencyContribution {
@@ -282,6 +324,7 @@ export interface FacilityEfficiencyResult {
   combinationEfficiency: number;
   efficiency: number;
   attributes: FacilityAttributes;
+  cluePreferences?: CluePreference[];
   capacity?: FacilityCapacity;
   production?: ProductionValue;
   details: OperatorEfficiencyDetail[];

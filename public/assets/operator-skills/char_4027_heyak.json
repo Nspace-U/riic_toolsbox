@@ -72,7 +72,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "必定获得莱茵生命的线索",
+              "text": "更容易获得线索1",
+              "cluePreference": 1,
               "condition": {
                 "type": "onlySelf"
               }

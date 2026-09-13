@@ -1,5 +1,9 @@
 import type { EliteLevel } from "@/types/baseData";
-import type { OperatorSkillFile } from "@/types/efficiency";
+import type {
+  EfficiencySkillChain,
+  EfficiencySkillStage,
+  OperatorSkillFile,
+} from "@/types/efficiency";
 import type {
   OperatorProgressionEntry,
   OperatorProgressionNode,
@@ -8,11 +12,7 @@ import type {
 } from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
 
-const NON_WORK_ROOMS = new Set<RoomKey>([
-  "dormitory",
-  "processing",
-  "training",
-]);
+const NON_WORK_ROOMS = new Set<RoomKey>(["processing", "training"]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -32,6 +32,38 @@ function nodeKey(type: "elite" | "level", value: number): string {
 
 function nodeLabel(type: "elite" | "level", value: number): string {
   return type === "elite" ? `精英${value}` : `${value}级`;
+}
+
+function progressionNodeFromStage(
+  chain: EfficiencySkillChain,
+  stage: EfficiencySkillStage,
+): OperatorProgressionNode | undefined {
+  const type = stage.unlock.type === "level" ? "level" : "elite";
+  const value = Number(stage.unlock.value);
+  if (!Number.isInteger(value)) {
+    return undefined;
+  }
+  return {
+    key: nodeKey(type, value),
+    type,
+    value,
+    label: nodeLabel(type, value),
+    facilities: [chain.room as RoomKey],
+  };
+}
+
+function dormitoryNonMoodProgressionNodes(
+  operatorSkillFile: OperatorSkillFile | undefined,
+): OperatorProgressionNode[] {
+  return (operatorSkillFile?.chains ?? [])
+    .filter((chain) => chain.room === "dormitory")
+    .flatMap((chain) => {
+      const stage = chain.stages.find((candidate) =>
+        candidate.effects.some((effect) => effect.stat !== "moodRecover"),
+      );
+      const node = stage ? progressionNodeFromStage(chain, stage) : undefined;
+      return node ? [node] : [];
+    });
 }
 
 export function progressionEntryFromUnknown(
@@ -171,6 +203,7 @@ export function maximumProgressionForFacility(
   operatorSkillFile: OperatorSkillFile | undefined,
   facility: RoomKey,
   maxEliteLevel: EliteLevel = 0,
+  dormitoryDefaultIncludesMoodRecovery = false,
 ): Pick<OperatorProgressionEntry, "elite" | "level"> {
   if (facility === "meeting") {
     const nodes = progressionNodes(operatorSkillFile).filter((node) =>
@@ -185,6 +218,14 @@ export function maximumProgressionForFacility(
           .map((node) => node.value),
       ),
     };
+  }
+  if (facility === "dormitory") {
+    const nodes = dormitoryDefaultIncludesMoodRecovery
+      ? progressionNodes(operatorSkillFile)
+      : dormitoryNonMoodProgressionNodes(operatorSkillFile);
+    return minimumProgressionForNodes(
+      nodes.filter((node) => node.facilities.includes(facility)),
+    );
   }
   if (NON_WORK_ROOMS.has(facility)) {
     return { elite: 0, level: 0 };
@@ -212,6 +253,7 @@ export function resolveOperatorProgression(
     input.operatorSkillFile,
     input.facility,
     input.maxEliteLevel,
+    input.dormitoryDefaultIncludesMoodRecovery,
   );
   const manualElite =
     input.manualElite === undefined ? undefined : clampElite(input.manualElite);
@@ -231,6 +273,7 @@ export function resolveOperatorProgression(
       input.operatorSkillFile,
       input.facility,
       input.maxEliteLevel,
+      input.dormitoryDefaultIncludesMoodRecovery,
     );
     return {
       elite:

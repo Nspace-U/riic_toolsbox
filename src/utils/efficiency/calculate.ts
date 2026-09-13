@@ -2,14 +2,18 @@ import type {
   EfficiencyCatalog,
   EfficiencyCondition,
   EfficiencyEffect,
+  EfficiencyCalculationOptions,
   EfficiencyFacility,
   EfficiencyOperator,
+  OperatorEfficiencyCalculation,
   FacilityCapacity,
   EfficiencyPer,
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityAttributes,
   FacilityEfficiencyResult,
+  CluePreference,
+  CurveCalculationStep,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -48,10 +52,21 @@ const EPSILON = 0.000001;
 const DEFAULT_DURATION_MINUTES = 720;
 const DRONE_LIMIT = 235;
 const POWER_OUTPUT_PER_HOUR = 10;
-const CLUE_OUTPUT_PER_HOUR = 2;
+const CLUE_BASE_TIME_HOURS = 20;
+const CREDIT_PER_CLUE = 40;
+const CLUE_OUTPUT_PER_HOUR = 1 / CLUE_BASE_TIME_HOURS;
 const HIRE_OUTPUT_PER_HOUR = 1 / 12;
 const CLUE_LIMIT = 11;
 const HIRE_LIMIT = 3;
+const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
+  莱茵生命: 1,
+  企鹅物流: 2,
+  黑钢国际: 3,
+  乌萨斯学生自治团: 4,
+  格拉斯哥帮: 5,
+  喀兰贸易: 6,
+  罗德岛制药: 7,
+};
 const EFFICIENCY_STATS = new Set([
   "tradeSpd",
   "manuProd",
@@ -107,6 +122,11 @@ interface PerValue {
   value: number;
   count: number;
   times: number;
+}
+
+interface CurveEvaluation {
+  value: number;
+  steps: CurveCalculationStep[];
 }
 
 interface EvaluationData {
@@ -189,6 +209,7 @@ function progressionOf(
   facility: EfficiencyFacility,
   state: OperatorState,
   treatSkillsAsUnlocked: boolean,
+  dormitoryDefaultIncludesMoodRecovery: boolean,
 ): ReturnType<typeof resolveOperatorProgression> {
   const operator = catalogOperator(catalog, name);
   return resolveOperatorProgression({
@@ -200,6 +221,7 @@ function progressionOf(
     manualLevel: state.level,
     profile,
     treatSkillsAsUnlocked,
+    dormitoryDefaultIncludesMoodRecovery,
   });
 }
 
@@ -239,6 +261,7 @@ function createContexts(
   catalog: EfficiencyCatalog,
   progressionProfile?: OperatorProgressionProfile,
   treatSkillsAsUnlocked = false,
+  dormitoryDefaultIncludesMoodRecovery = false,
 ): PlanContext[] {
   const facilities = buildFacilities(document.layout);
   return document.plans.map((plan, index) => {
@@ -269,6 +292,7 @@ function createContexts(
           facility,
           state,
           treatSkillsAsUnlocked,
+          dormitoryDefaultIncludesMoodRecovery,
         );
         const effectiveState: OperatorState = {
           ...state,
@@ -503,8 +527,10 @@ function conditionSatisfied(
       break;
     }
     case "onlySelf": {
-      const working = context.placements.filter((placement) =>
-        isCurrentlyWorking(placement),
+      const working = context.placements.filter(
+        (placement) =>
+          placement.facility.id === owner.facility.id &&
+          isCurrentlyWorking(placement),
       );
       result = working.length === 1 && working[0]?.name === owner.name;
       break;
@@ -512,7 +538,7 @@ function conditionSatisfied(
     case "clueExchanging":
       result =
         context.plan.rooms.meeting !== undefined &&
-        context.settings.clueExchanging === true;
+        context.settings.clueExchanging !== false;
       break;
     case "moodCmp":
       result = compare(
@@ -859,12 +885,13 @@ function perCount(
   return { value, count, times };
 }
 
-function curveAverage(
+function curveEvaluation(
   curve: NonNullable<EfficiencyEffect["curve"]>,
   duration: number,
   start: number,
-): number {
+): CurveEvaluation {
   let total = 0;
+  const steps: CurveCalculationStep[] = [];
   for (let hour = 1; hour <= Math.ceil(duration); hour += 1) {
     const weight = Math.max(0, Math.min(1, duration - (hour - 1)));
     const value = Math.min(
@@ -872,8 +899,30 @@ function curveAverage(
       curve.cap,
     );
     total += value * weight;
+    steps.push({ hour, weight, value });
   }
-  return duration > EPSILON ? total / duration : 0;
+  return {
+    value: duration > EPSILON ? total / duration : 0,
+    steps,
+  };
+}
+
+function workHoursCalculation(
+  item: ActiveEffect,
+  context: PlanContext,
+): { threshold: number; activeHours: number } | undefined {
+  if (item.effect.condition?.type !== "workHours") {
+    return undefined;
+  }
+  const threshold = Number(item.effect.condition.value ?? 0);
+  const activeHours = Math.max(
+    0,
+    Math.min(
+      context.durationHours,
+      item.owner.workHoursBefore + context.durationHours - threshold,
+    ),
+  );
+  return { threshold, activeHours };
 }
 
 function effectValue(
@@ -886,29 +935,61 @@ function effectValue(
   const { effect, owner } = item;
   let value: number;
   if (effect.curve) {
-    value = curveAverage(
+    value = curveEvaluation(
       effect.curve,
       context.durationHours,
       owner.workHoursBefore,
-    );
+    ).value;
   } else if (effect.per) {
     value = perCount(effect.per, owner, target, context, catalog, data).value;
   } else {
     value = Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
   }
-  if (effect.condition?.type === "workHours") {
-    const threshold = Number(effect.condition.value ?? 0);
-    const activeHours = Math.max(
-      0,
-      Math.min(
-        context.durationHours,
-        owner.workHoursBefore + context.durationHours - threshold,
-      ),
-    );
+  const workHours = workHoursCalculation(item, context);
+  if (workHours) {
     value *=
-      context.durationHours > EPSILON ? activeHours / context.durationHours : 0;
+      context.durationHours > EPSILON
+        ? workHours.activeHours / context.durationHours
+        : 0;
   }
   return value;
+}
+
+function effectCalculation(
+  item: ActiveEffect,
+  context: PlanContext,
+): OperatorEfficiencyCalculation | undefined {
+  const { effect, owner } = item;
+  const workHours = workHoursCalculation(item, context);
+  if (effect.curve) {
+    const curve = curveEvaluation(
+      effect.curve,
+      context.durationHours,
+      owner.workHoursBefore,
+    );
+    return {
+      type: "curve",
+      beforeHours: owner.workHoursBefore,
+      durationHours: context.durationHours,
+      startValue: effect.curve.startValue,
+      startHours: effect.curve.startHours,
+      step: effect.curve.step,
+      cap: effect.curve.cap,
+      steps: curve.steps,
+      ...(workHours ? { workHours } : {}),
+    };
+  }
+  if (!workHours) {
+    return undefined;
+  }
+  return {
+    type: "workHours",
+    beforeHours: owner.workHoursBefore,
+    durationHours: context.durationHours,
+    threshold: workHours.threshold,
+    activeHours: workHours.activeHours,
+    baseValue: Number(effect.value ?? 0) + Number(effect.baseValue ?? 0),
+  };
 }
 
 function effectAppliesToSubject(
@@ -961,6 +1042,55 @@ function collectActive(
       });
     });
   return active;
+}
+
+function cluePreferenceOf(
+  effect: EfficiencyEffect,
+): CluePreference | undefined {
+  if (
+    typeof effect.cluePreference === "number" ||
+    effect.cluePreference === "unowned" ||
+    effect.cluePreference === "owned"
+  ) {
+    return effect.cluePreference;
+  }
+  const text = effect.text ?? "";
+  if (text.includes("尚未拥有")) return "unowned";
+  if (text.includes("已经拥有")) return "owned";
+  const faction = Object.entries(CLUE_PREFERENCE_BY_FACTION).find(([name]) =>
+    text.includes(name),
+  );
+  return faction?.[1];
+}
+
+function cluePreferenceRank(preference: CluePreference): number {
+  if (typeof preference === "number") return preference;
+  return preference === "unowned" ? 8 : 9;
+}
+
+function sortedCluePreferences(
+  preferences: Iterable<CluePreference>,
+): CluePreference[] {
+  return [...new Set(preferences)].sort(
+    (left, right) => cluePreferenceRank(left) - cluePreferenceRank(right),
+  );
+}
+
+function cluePreferencesFor(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+): CluePreference[] {
+  return sortedCluePreferences(
+    context.active
+      .filter(
+        (item) =>
+          item.target?.id === facility.id && item.effect.stat === "clueChance",
+      )
+      .map((item) => cluePreferenceOf(item.effect))
+      .filter(
+        (preference): preference is CluePreference => preference !== undefined,
+      ),
+  );
 }
 
 function computeBasePoints(
@@ -1648,18 +1778,19 @@ function detailRows(
   aggregate: { details: Array<{ item: ActiveEffect; value: number }> },
   facility: RoomKey,
   category: "base" | "combination",
-): Array<{
-  operator: string;
-  skill?: string;
-  stat: string;
-  value: number;
-  facility: RoomKey;
-  ownerFacility: RoomKey;
-  category: "base" | "combination";
-}> {
+  context: PlanContext,
+): OperatorEfficiencyDetail[] {
   return aggregate.details
-    .filter(({ value }) => Math.abs(value) > EPSILON)
     .map(({ item, value }) => ({
+      item,
+      value,
+      calculation: effectCalculation(item, context),
+    }))
+    .filter(
+      ({ value, calculation }) =>
+        Math.abs(value) > EPSILON || calculation !== undefined,
+    )
+    .map(({ item, value, calculation }) => ({
       operator: item.owner.name,
       skill: item.skill,
       stat: item.effect.stat,
@@ -1667,6 +1798,7 @@ function detailRows(
       facility,
       ownerFacility: item.owner.facility.type,
       category,
+      ...(calculation ? { calculation } : {}),
     }));
 }
 
@@ -1861,13 +1993,15 @@ function calculateFacility(
   );
   const skillEfficiency =
     combinationAggregate.total + special.value + trainingEfficiency;
-  const baseDetails = detailRows(baseAggregate, facility.type, "base");
+  const baseDetails = detailRows(baseAggregate, facility.type, "base", context);
   const combinationDetails = [
-    ...detailRows(combinationAggregate, facility.type, "combination"),
-    ...detailRows(special, facility.type, "combination"),
+    ...detailRows(combinationAggregate, facility.type, "combination", context),
+    ...detailRows(special, facility.type, "combination", context),
     ...trainingDetails,
   ];
   const details = [...baseDetails, ...combinationDetails];
+  const cluePreferences =
+    facility.type === "meeting" ? cluePreferencesFor(context, facility) : [];
   const result: FacilityEfficiencyResult = {
     facility,
     inherited: resolvedAssignment.inherited,
@@ -1879,6 +2013,7 @@ function calculateFacility(
     combinationEfficiency: moodEfficiency + skillEfficiency,
     efficiency: baseEfficiency + moodEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
+    ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
     details,
     baseDetails,
     combinationDetails,
@@ -1901,6 +2036,9 @@ function calculateFacility(
       context.active,
     ),
   );
+  if (result.production && cluePreferences.length > 0) {
+    result.production.cluePreferences = cluePreferences;
+  }
   result.capacity = capacityFor(
     context,
     facility,
@@ -2128,6 +2266,12 @@ function productionFor(
     const amountPerHour = (baseAmountPerHour * efficiency) / 100;
     return {
       product: "Clue",
+      conversion: {
+        label: "信用点",
+        amountPerUnit: CREDIT_PER_CLUE,
+        sourceUnit: "线索",
+        baseCycleHours: CLUE_BASE_TIME_HOURS,
+      },
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
       amountPerHour,
@@ -2327,6 +2471,7 @@ function calculatePowerGroup(
             { details: [{ item, value }] },
             facility.type,
             "combination",
+            context,
           ),
         );
       }
@@ -2337,7 +2482,12 @@ function calculatePowerGroup(
         seenBase.add(key);
         facBase += value;
         baseDetails.push(
-          ...detailRows({ details: [{ item, value }] }, facility.type, "base"),
+          ...detailRows(
+            { details: [{ item, value }] },
+            facility.type,
+            "base",
+            context,
+          ),
         );
       }
     });
@@ -2456,6 +2606,14 @@ function aggregateDaily(
           )?.production,
       )
       .filter((production): production is ProductionValue => !!production);
+    const cluePreferences = sortedCluePreferences(
+      plans.flatMap(
+        (plan) =>
+          plan.facilities.find(
+            (candidate) => candidate.facility.id === result.facility.id,
+          )?.cluePreferences ?? [],
+      ),
+    );
     if (amounts.length === 0 || totalHours <= EPSILON) return result;
     const totals = plans.reduce(
       (sum, plan) => {
@@ -2476,9 +2634,11 @@ function aggregateDaily(
     const effectiveAmountPerHour = totals.effective / totalHours;
     return {
       ...result,
+      ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
       production: {
         ...result.production,
         product: amounts[0]?.product ?? result.production?.product ?? "",
+        ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
         baseAmountPerHour: totals.base / totalHours,
         baseAmountPerDay: (totals.base / totalHours) * 24,
         amountPerHour,
@@ -2508,6 +2668,8 @@ function aggregateDailyProductions(
       basePerCycle: number;
       actualPerCycle: number;
       effectivePerCycle: number;
+      conversion?: ProductionValue["conversion"];
+      cluePreferences: CluePreference[];
       materialsPerCycle: Record<string, number>;
       effectiveMaterialsPerCycle: Record<string, number>;
     }
@@ -2524,9 +2686,18 @@ function aggregateDailyProductions(
         basePerCycle: 0,
         actualPerCycle: 0,
         effectivePerCycle: 0,
+        conversion: production.conversion,
+        cluePreferences: [],
         materialsPerCycle: {},
         effectiveMaterialsPerCycle: {},
       };
+      if (!current.conversion && production.conversion) {
+        current.conversion = production.conversion;
+      }
+      current.cluePreferences = sortedCluePreferences([
+        ...current.cluePreferences,
+        ...(production.cluePreferences ?? []),
+      ]);
       current.basePerCycle +=
         (production.baseAmountPerHour ?? production.amountPerHour) *
         plan.durationHours;
@@ -2567,6 +2738,10 @@ function aggregateDailyProductions(
     );
     return {
       product,
+      ...(value.cluePreferences.length > 0
+        ? { cluePreferences: value.cluePreferences }
+        : {}),
+      ...(value.conversion ? { conversion: value.conversion } : {}),
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
       amountPerHour,
@@ -2589,16 +2764,14 @@ function aggregateDailyProductions(
 export function calculateEfficiency(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
-  options: {
-    progressionProfile?: OperatorProgressionProfile;
-    treatSkillsAsUnlocked?: boolean;
-  } = {},
+  options: EfficiencyCalculationOptions = {},
 ): EfficiencyResult {
   const contexts = createContexts(
     document,
     catalog,
     options.progressionProfile,
     options.treatSkillsAsUnlocked,
+    options.dormitoryDefaultIncludesMoodRecovery,
   );
   resolveMoods(contexts, catalog);
   const plans = contexts.map((context) => calculatePlan(context, catalog));

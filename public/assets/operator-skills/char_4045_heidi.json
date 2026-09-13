@@ -50,7 +50,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "会客室更容易获得格拉斯哥帮线索（工作时长影响概率）"
+              "text": "更容易获得线索5",
+              "cluePreference": 5
             }
           ]
         }

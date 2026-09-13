@@ -8,6 +8,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlusOutlined,
+  SettingOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
 import { message } from "ant-design-vue";
@@ -39,8 +40,10 @@ import type {
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  CluePreference,
   MoodRateDetail,
   MoodSnapshot,
+  OperatorEfficiencyDetail,
   ProductionValue,
 } from "@/types/efficiency";
 import type {
@@ -296,7 +299,11 @@ const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
 const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors } = useFacilityColors();
-const { activeProfile, treatSkillsAsUnlocked } = useOperatorProgression();
+const {
+  activeProfile,
+  dormitoryDefaultIncludesMoodRecovery,
+  treatSkillsAsUnlocked,
+} = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
 
 const simulatorSlotSize = computed(
@@ -549,7 +556,24 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   return calculateEfficiency(document, catalog, {
     progressionProfile: activeProfile.value,
     treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
   });
+});
+
+const efficiencySettingsModalOpen = ref(false);
+const currentEfficiencySettings = computed(() => {
+  const settings = currentDocument.value?.settings;
+  const firstItemProgress = settings?.firstItemProgress;
+  return {
+    clueExchanging: settings?.clueExchanging !== false,
+    dormFullTreat: settings?.dormFullTreat !== false,
+    simulateOverflow: settings?.overflowMode === "zero",
+    firstItemProgress:
+      typeof firstItemProgress === "number"
+        ? Math.max(0, Math.min(100, firstItemProgress * 100))
+        : undefined,
+  };
 });
 
 const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
@@ -915,6 +939,36 @@ function updatePlanDurationHours(
         plan.duration = roundedMinutes;
       }
     }
+  });
+}
+
+function updateEfficiencyBooleanSetting(
+  key: "clueExchanging" | "dormFullTreat",
+  value: boolean,
+): void {
+  updateCurrent((document) => {
+    document.settings = { ...(document.settings ?? {}), [key]: value };
+  });
+}
+
+function updateEfficiencyOverflowSetting(value: boolean): void {
+  updateCurrent((document) => {
+    document.settings = {
+      ...(document.settings ?? {}),
+      overflowMode: value ? "zero" : "continue",
+    };
+  });
+}
+
+function updateEfficiencyFirstItemProgress(value: number | null): void {
+  updateCurrent((document) => {
+    const settings = { ...(document.settings ?? {}) };
+    if (value === null || !Number.isFinite(value)) {
+      delete settings.firstItemProgress;
+    } else {
+      settings.firstItemProgress = Math.max(0, Math.min(1, value / 100));
+    }
+    document.settings = settings;
   });
 }
 
@@ -1805,6 +1859,8 @@ function operatorElite(
     manualLevel: operatorState(room, name).level,
     profile: activeProfile.value,
     treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
   }).elite;
 }
 
@@ -1848,6 +1904,8 @@ function operatorTrainingUpgraded(
     manualLevel: operatorState(room, name).level,
     profile: activeProfile.value,
     treatSkillsAsUnlocked: true,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
   }).upgraded;
 }
 
@@ -3720,8 +3778,115 @@ function signedNumber(value: number): string {
   return `${value >= 0 ? "+" : ""}${formatNumber(value)}`;
 }
 
+function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
+  const calculation = detail.calculation;
+  if (!calculation) {
+    return [];
+  }
+  if (calculation.type === "workHours") {
+    const efficiencyLine =
+      calculation.durationHours > 0
+        ? `效率：${formatNumber(calculation.baseValue)}% × ${formatNumber(
+            calculation.activeHours,
+          )} ÷ ${formatNumber(calculation.durationHours)} = ${formatNumber(
+            detail.value,
+          )}%`
+        : "效率：队列时长为 0，结果为 0%";
+    return [
+      `累计工作时长：${formatNumber(
+        calculation.beforeHours,
+      )} + ${formatNumber(calculation.durationHours)} = ${formatNumber(
+        calculation.beforeHours + calculation.durationHours,
+      )} 小时（阈值 ${formatNumber(calculation.threshold)} 小时）`,
+      `生效时长：max(0, min(${formatNumber(
+        calculation.durationHours,
+      )}, ${formatNumber(calculation.beforeHours)} + ${formatNumber(
+        calculation.durationHours,
+      )} - ${formatNumber(calculation.threshold)})) = ${formatNumber(
+        calculation.activeHours,
+      )} 小时`,
+      efficiencyLine,
+    ];
+  }
+  const weightedTerms = calculation.steps
+    .map(
+      (step) =>
+        `第${step.hour}小时 ${formatNumber(step.value)} × ${formatNumber(
+          step.weight,
+        )}`,
+    )
+    .join(" + ");
+  const weightedTotal = calculation.steps.reduce(
+    (total, step) => total + step.value * step.weight,
+    0,
+  );
+  const weightedAverage =
+    calculation.durationHours > 0
+      ? weightedTotal / calculation.durationHours
+      : 0;
+  const lines = [
+    `累计工作时长：${formatNumber(
+      calculation.beforeHours,
+    )} + ${formatNumber(calculation.durationHours)} = ${formatNumber(
+      calculation.beforeHours + calculation.durationHours,
+    )} 小时`,
+    `档位公式：min(${formatNumber(
+      calculation.startValue,
+    )} + (累计时长 + h - ${formatNumber(
+      calculation.startHours,
+    )}) × ${formatNumber(calculation.step)}, ${formatNumber(calculation.cap)})`,
+    calculation.durationHours > 0
+      ? `加权平均：${weightedTerms || "0"} ÷ ${formatNumber(
+          calculation.durationHours,
+        )} = ${formatNumber(detail.value)}%`
+      : "加权平均：队列时长为 0，结果为 0%",
+  ];
+  if (calculation.workHours) {
+    const efficiencyLine =
+      calculation.durationHours > 0
+        ? `效率：${formatNumber(weightedAverage)}% × ${formatNumber(
+            calculation.workHours.activeHours,
+          )} ÷ ${formatNumber(calculation.durationHours)} = ${formatNumber(
+            detail.value,
+          )}%`
+        : "效率：队列时长为 0，结果为 0%";
+    lines.push(
+      `工作时长条件：生效 ${formatNumber(
+        calculation.workHours.activeHours,
+      )} 小时 / ${formatNumber(calculation.durationHours)} 小时`,
+      efficiencyLine,
+    );
+  }
+  return lines;
+}
+
 function formatProduction(value: number): string {
   return formatNumber(value, 3);
+}
+
+function productionLabel(product: string): string {
+  return product === "Clue" ? "线索" : product;
+}
+
+function cluePreferenceText(preferences: CluePreference[] | undefined): string {
+  if (!preferences?.length) {
+    return "";
+  }
+  return `更容易获得${preferences
+    .map((preference) => {
+      if (typeof preference === "number") {
+        return `线索${preference}`;
+      }
+      return preference === "unowned" ? "尚未拥有的线索" : "已经拥有的线索";
+    })
+    .join("、")}`;
+}
+
+function convertedProductionAmount(
+  value: ProductionValue,
+  amount: number,
+): number {
+  return amount * (value.conversion?.amountPerUnit ?? 1);
 }
 
 function planFacilityResult(
@@ -4084,6 +4249,8 @@ const operatorContextMenuDetails = computed<
       manualLevel: state.level,
       profile: activeProfile.value,
       treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+      dormitoryDefaultIncludesMoodRecovery:
+        dormitoryDefaultIncludesMoodRecovery.value,
     }),
     hasManualProgression:
       state.elite !== undefined || state.level !== undefined,
@@ -6005,6 +6172,74 @@ onBeforeUnmount(() => {
           </a-menu>
         </div>
 
+        <div
+          v-if="efficiencySupported"
+          class="simulator-efficiency-settings-entry"
+        >
+          <a-button @click="efficiencySettingsModalOpen = true">
+            <template #icon><SettingOutlined /></template>
+            计算设置
+          </a-button>
+        </div>
+
+        <a-modal
+          v-model:open="efficiencySettingsModalOpen"
+          :footer="null"
+          title="计算设置"
+        >
+          <a-form layout="vertical">
+            <a-form-item label="会客室">
+              <a-checkbox
+                :checked="currentEfficiencySettings.clueExchanging"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    updateEfficiencyBooleanSetting(
+                      'clueExchanging',
+                      event.target.checked,
+                    )
+                "
+              >
+                线索交流
+              </a-checkbox>
+            </a-form-item>
+            <a-form-item label="宿舍">
+              <a-checkbox
+                :checked="currentEfficiencySettings.dormFullTreat"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    updateEfficiencyBooleanSetting(
+                      'dormFullTreat',
+                      event.target.checked,
+                    )
+                "
+              >
+                按满员计算
+              </a-checkbox>
+            </a-form-item>
+            <a-form-item label="容量">
+              <a-checkbox
+                :checked="currentEfficiencySettings.simulateOverflow"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    updateEfficiencyOverflowSetting(event.target.checked)
+                "
+              >
+                模拟爆仓
+              </a-checkbox>
+            </a-form-item>
+            <a-form-item label="首件进度">
+              <a-input-number
+                :max="100"
+                :min="0"
+                :step="1"
+                :value="currentEfficiencySettings.firstItemProgress"
+                addon-after="%"
+                @update:value="updateEfficiencyFirstItemProgress"
+              />
+            </a-form-item>
+          </a-form>
+        </a-modal>
+
         <a-card
           v-if="efficiencySupported"
           :bordered="false"
@@ -6050,8 +6285,14 @@ onBeforeUnmount(() => {
                   class="simulator-daily-output-item"
                 >
                   <span class="simulator-daily-output-product">{{
-                    production.product
+                    productionLabel(production.product)
                   }}</span>
+                  <span
+                    v-if="production.cluePreferences?.length"
+                    class="simulator-daily-output-rate"
+                  >
+                    {{ cluePreferenceText(production.cluePreferences) }}
+                  </span>
                   <strong
                     >{{ formatProduction(production.amountPerDay) }} /
                     天</strong
@@ -6077,6 +6318,22 @@ onBeforeUnmount(() => {
                     {{ formatProduction(effectiveProductionRate(production)) }}
                     / 小时
                   </span>
+                  <template v-if="production.conversion">
+                    <span class="simulator-daily-output-rate">
+                      折算{{ production.conversion.label }}
+                    </span>
+                    <strong>
+                      {{
+                        formatProduction(
+                          convertedProductionAmount(
+                            production,
+                            production.amountPerDay,
+                          ),
+                        )
+                      }}
+                      / 天
+                    </strong>
+                  </template>
                   <span
                     v-for="material in productionMaterialsForDisplay(
                       production,
@@ -6200,8 +6457,20 @@ onBeforeUnmount(() => {
                         <template v-if="result.facility.production">
                           <span>产物</span>
                           <strong>{{
-                            result.facility.production.product
+                            productionLabel(result.facility.production.product)
                           }}</strong>
+                          <template
+                            v-if="
+                              result.facility.production.cluePreferences?.length
+                            "
+                          >
+                            <span>线索倾向</span>
+                            <strong>{{
+                              cluePreferenceText(
+                                result.facility.production.cluePreferences,
+                              )
+                            }}</strong>
+                          </template>
                           <span>基础速率</span>
                           <strong>
                             {{
@@ -6223,6 +6492,43 @@ onBeforeUnmount(() => {
                           <strong>{{
                             productionRateLabel(result.facility.production)
                           }}</strong>
+                          <template
+                            v-if="result.facility.production.conversion"
+                          >
+                            <span>单位折算</span>
+                            <strong>
+                              {{
+                                result.facility.production.conversion
+                                  .amountPerUnit
+                              }}
+                              {{
+                                result.facility.production.conversion.label
+                              }}/{{
+                                result.facility.production.conversion.sourceUnit
+                              }}
+                            </strong>
+                            <span>基础周期</span>
+                            <strong>
+                              {{
+                                result.facility.production.conversion
+                                  .baseCycleHours
+                              }}
+                              小时/{{
+                                result.facility.production.conversion.sourceUnit
+                              }}
+                            </strong>
+                            <span>折算实际速率</span>
+                            <strong>
+                              {{
+                                formatProduction(
+                                  convertedProductionAmount(
+                                    result.facility.production,
+                                    result.facility.production.amountPerHour,
+                                  ),
+                                )
+                              }}/小时
+                            </strong>
+                          </template>
                           <template v-if="result.facility.production.orderRule">
                             <span>订单规则</span>
                             <strong>{{
@@ -6325,12 +6631,23 @@ onBeforeUnmount(() => {
                         :key="`${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
                         class="simulator-detail-row"
                       >
-                        <span
-                          >{{ detail.operator
-                          }}<template v-if="detail.skill">
-                            · {{ detail.skill }}</template
-                          ></span
-                        >
+                        <div class="simulator-detail-main">
+                          <span
+                            >{{ detail.operator
+                            }}<template v-if="detail.skill">
+                              · {{ detail.skill }}</template
+                            ></span
+                          >
+                          <div
+                            v-for="(
+                              line, lineIndex
+                            ) in operatorCalculationLines(detail)"
+                            :key="`${detailIndex}-${lineIndex}`"
+                            class="simulator-detail-calculation"
+                          >
+                            {{ line }}
+                          </div>
+                        </div>
                         <span
                           >{{ efficiencyStatLabel(detail.stat) }}
                           {{ signedNumber(detail.value) }}</span

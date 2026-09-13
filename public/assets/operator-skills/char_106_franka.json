@@ -30,7 +30,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得黑钢国际线索"
+              "text": "更容易获得线索3",
+              "cluePreference": 3
             },
             {
               "target": "meeting",

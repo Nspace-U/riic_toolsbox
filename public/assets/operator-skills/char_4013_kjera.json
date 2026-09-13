@@ -30,7 +30,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得喀兰贸易线索"
+              "text": "更容易获得线索6",
+              "cluePreference": 6
             },
             {
               "target": "meeting",
@@ -55,7 +56,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "每当新搜集到的线索不是喀兰贸易时，则额外增加喀兰贸易线索的出现概率（工作时长影响概率）"
+              "text": "更容易获得线索6",
+              "cluePreference": 6
             }
           ]
         }

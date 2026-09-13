@@ -55,6 +55,15 @@ const ROOM_TYPE_MAP = {
 const ROOM_LABELS = Object.fromEntries(
   Object.entries(ROOM_MAP).map(([label, key]) => [key, label]),
 );
+const CLUE_PREFERENCE_BY_FACTION = {
+  莱茵生命: 1,
+  企鹅物流: 2,
+  黑钢国际: 3,
+  乌萨斯学生自治团: 4,
+  格拉斯哥帮: 5,
+  喀兰贸易: 6,
+  罗德岛制药: 7,
+};
 const OUTPUT_ROOMS = new Set([
   "control",
   "trading",
@@ -115,6 +124,37 @@ function groupKey(label, groups, warn) {
   return null;
 }
 
+function clueChanceEffect(target, text) {
+  if (text.includes("线索板上尚未拥有的线索")) {
+    return {
+      target,
+      stat: "clueChance",
+      text: "更容易获得尚未拥有的线索",
+      cluePreference: "unowned",
+    };
+  }
+  if (text.includes("线索板上已经拥有的线索")) {
+    return {
+      target,
+      stat: "clueChance",
+      text: "更容易获得已经拥有的线索",
+      cluePreference: "owned",
+    };
+  }
+  const faction = Object.keys(CLUE_PREFERENCE_BY_FACTION).find((name) =>
+    text.includes(name),
+  );
+  if (faction) {
+    return {
+      target,
+      stat: "clueChance",
+      text: `更容易获得线索${CLUE_PREFERENCE_BY_FACTION[faction]}`,
+      cluePreference: CLUE_PREFERENCE_BY_FACTION[faction],
+    };
+  }
+  return { target, stat: "clueChance", text };
+}
+
 // 术语「名称 → key」索引（main() 里加载 gamedata_const 构建，供无标记文字反查）
 let TERM_BY_NAME = null;
 const TERM_ALIASES = {
@@ -172,7 +212,7 @@ function parseValueEffects(text, target, groups, cond, warn) {
   const clueRe =
     /更容易获得[^，。]*线索|必定获得[^，。]*线索|每当新搜集到的线索[^。]*?出现概率[^。]*|提升会客室内另一干员[^。]*线索倾向效果[^。]*/;
   while ((m = text.match(clueRe))) {
-    push({ target: target, stat: "clueChance", text: m[0] });
+    push(clueChanceEffect(target, m[0]));
     text = text.replace(clueRe, "");
   }
 
@@ -356,14 +396,14 @@ function parseOfficeEffects(text, target, groups, cond, warn) {
 
   // 0) 线索概率（办公室：每产生1次联络次数，增加XX线索概率）→ clueChance（只展示，会客室线索倾向）
   if ((m = text.match(/每产生\s*1\s*次联络次数，增加(.+?)线索的概率/))) {
-    push({
-      target: "meeting",
-      stat: "clueChance",
-      text:
+    push(
+      clueChanceEffect(
+        "meeting",
         "每产生1次联络次数，增加" +
-        m[1] +
-        "线索的概率（工作时长和招募位影响概率）",
-    });
+          m[1] +
+          "线索的概率（工作时长和招募位影响概率）",
+      ),
+    );
     text = del(/每产生\s*1\s*次联络次数，增加.+?线索的概率/, text);
   }
 
@@ -2173,11 +2213,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
   cluePatterns.forEach((pattern) => {
     const clue = rest.match(pattern);
     if (!clue) return;
-    pushControlEffect(
-      effects,
-      { target: "meeting", stat: "clueChance", text: clue[0] },
-      condition,
-    );
+    pushControlEffect(effects, clueChanceEffect("meeting", clue[0]), condition);
     rest = rest.replace(clue[0], "");
   });
 

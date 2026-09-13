@@ -82,6 +82,7 @@ const {
   showNoEditableOperators,
   showUnownedOperators,
   treatSkillsAsUnlocked,
+  dormitoryDefaultIncludesMoodRecovery,
   importProfile,
   setActiveProfile,
   updateEntry,
@@ -94,6 +95,7 @@ const {
   setShowNoEditableOperators,
   setShowUnownedOperators,
   setTreatSkillsAsUnlocked,
+  setDormitoryDefaultIncludesMoodRecovery,
 } = useOperatorProgression();
 
 const facilityColorEntries = ROOM_ORDER.map(
@@ -561,6 +563,15 @@ watch(
           "
         >
           基建技能视为已解锁
+        </a-checkbox>
+        <a-checkbox
+          :checked="dormitoryDefaultIncludesMoodRecovery"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setDormitoryDefaultIncludesMoodRecovery(event.target.checked)
+          "
+        >
+          宿舍默认练度包含心情回复技能
         </a-checkbox>
         <a-checkbox
           :checked="showNoEditableOperators"

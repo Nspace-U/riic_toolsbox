@@ -19,6 +19,7 @@ interface StoredProgressionState {
 
 interface StoredProgressionSettings {
   treatSkillsAsUnlocked: boolean;
+  dormitoryDefaultIncludesMoodRecovery: boolean;
   showNoEditableOperators: boolean;
   showUnownedOperators: boolean;
 }
@@ -71,6 +72,7 @@ function readSettings(): StoredProgressionSettings {
   if (typeof window === "undefined") {
     return {
       treatSkillsAsUnlocked: false,
+      dormitoryDefaultIncludesMoodRecovery: false,
       showNoEditableOperators: false,
       showUnownedOperators: true,
     };
@@ -85,6 +87,10 @@ function readSettings(): StoredProgressionSettings {
             typeof value.treatSkillsAsUnlocked === "boolean"
               ? value.treatSkillsAsUnlocked
               : false,
+          dormitoryDefaultIncludesMoodRecovery:
+            typeof value.dormitoryDefaultIncludesMoodRecovery === "boolean"
+              ? value.dormitoryDefaultIncludesMoodRecovery
+              : false,
           showNoEditableOperators:
             typeof value.showNoEditableOperators === "boolean"
               ? value.showNoEditableOperators
@@ -96,12 +102,14 @@ function readSettings(): StoredProgressionSettings {
         }
       : {
           treatSkillsAsUnlocked: false,
+          dormitoryDefaultIncludesMoodRecovery: false,
           showNoEditableOperators: false,
           showUnownedOperators: false,
         };
   } catch {
     return {
       treatSkillsAsUnlocked: false,
+      dormitoryDefaultIncludesMoodRecovery: false,
       showNoEditableOperators: false,
       showUnownedOperators: false,
     };
@@ -158,6 +166,9 @@ const profiles = ref<OperatorProgressionProfile[]>(initialState.profiles);
 const activeProfileId = ref(initialState.activeProfileId);
 const initialSettings = readSettings();
 const treatSkillsAsUnlocked = ref(initialSettings.treatSkillsAsUnlocked);
+const dormitoryDefaultIncludesMoodRecovery = ref(
+  initialSettings.dormitoryDefaultIncludesMoodRecovery,
+);
 const showNoEditableOperators = ref(initialSettings.showNoEditableOperators);
 const showUnownedOperators = ref(initialSettings.showUnownedOperators);
 
@@ -176,6 +187,8 @@ function persist(): void {
       SETTINGS_STORAGE_KEY,
       JSON.stringify({
         treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+        dormitoryDefaultIncludesMoodRecovery:
+          dormitoryDefaultIncludesMoodRecovery.value,
         showNoEditableOperators: showNoEditableOperators.value,
         showUnownedOperators: showUnownedOperators.value,
       }),
@@ -344,6 +357,11 @@ function setTreatSkillsAsUnlocked(value: boolean): void {
   persist();
 }
 
+function setDormitoryDefaultIncludesMoodRecovery(value: boolean): void {
+  dormitoryDefaultIncludesMoodRecovery.value = value;
+  persist();
+}
+
 function setShowNoEditableOperators(value: boolean): void {
   showNoEditableOperators.value = value;
   persist();
@@ -364,6 +382,7 @@ export function useOperatorProgression() {
     activeProfileId,
     activeProfile,
     treatSkillsAsUnlocked,
+    dormitoryDefaultIncludesMoodRecovery,
     showNoEditableOperators,
     showUnownedOperators,
     importProfile,
@@ -377,6 +396,7 @@ export function useOperatorProgression() {
     removeProfile,
     renameProfile,
     setTreatSkillsAsUnlocked,
+    setDormitoryDefaultIncludesMoodRecovery,
     setShowNoEditableOperators,
     setShowUnownedOperators,
     persist,

@@ -16,7 +16,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得格拉斯哥帮线索"
+              "text": "更容易获得线索5",
+              "cluePreference": 5
             }
           ]
         }
@@ -36,7 +37,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "每当新搜集到的线索不是格拉斯哥帮时，则额外增加格拉斯哥帮线索的出现概率（工作时长影响概率）"
+              "text": "更容易获得线索5",
+              "cluePreference": 5
             }
           ]
         }

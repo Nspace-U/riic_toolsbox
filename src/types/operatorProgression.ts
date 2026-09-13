@@ -40,6 +40,7 @@ export interface ResolvedOperatorProgression {
 export interface OperatorProgressionCalculationOptions {
   profile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
 }
 
 export interface OperatorProgressionResolverInput {
@@ -51,4 +52,5 @@ export interface OperatorProgressionResolverInput {
   manualLevel?: number;
   profile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
 }

@@ -16,7 +16,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得线索板上尚未拥有的线索"
+              "text": "更容易获得尚未拥有的线索",
+              "cluePreference": "unowned"
             }
           ]
         },
@@ -30,7 +31,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得线索板上尚未拥有的线索"
+              "text": "更容易获得尚未拥有的线索",
+              "cluePreference": "unowned"
             },
             {
               "target": "meeting",

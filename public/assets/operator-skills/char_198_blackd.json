@@ -41,7 +41,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得喀兰贸易线索"
+              "text": "更容易获得线索6",
+              "cluePreference": 6
             },
             {
               "target": "meeting",

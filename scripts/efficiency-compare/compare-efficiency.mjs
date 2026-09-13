@@ -461,9 +461,14 @@ const OLD_PRODUCT_MAP = {
   信用点: "Clue",
   公开招募标签刷新次数: "Recruit Refresh",
 };
+const CREDIT_PER_CLUE = 40;
 
 function canonicalProduct(value) {
   return OLD_PRODUCT_MAP[value] ?? value;
+}
+
+function productionUnitFactor(product) {
+  return product === "信用点" ? 1 / CREDIT_PER_CLUE : 1;
 }
 
 function normalizedOrders(orders) {
@@ -574,13 +579,15 @@ function normalizedProduction(
   if (!production) return undefined;
   const orderRule = normalizedOrderRule(production);
   const isFixedIgnoreEfficiency = orderRule === "fixed-ignore-efficiency";
+  const sourceProduct = String(production.product ?? "");
+  const unitFactor = productionUnitFactor(sourceProduct);
   const rawRate =
-    Number(
+    (Number(
       production.rawRate ??
         (isFixedIgnoreEfficiency ? production.baseRate : undefined) ??
         production.rate ??
         production.amountPerHour,
-    ) || 0;
+    ) || 0) * unitFactor;
   const capacity = production.capacity ?? facilityCapacity;
   const volume = Number(capacity?.volume ?? capacity?.itemVolume) || 1;
   const itemCount = Math.max(
@@ -589,15 +596,14 @@ function normalizedProduction(
   );
   const rawProgress = Number(settings.firstItemProgress) || 0;
   const progressFraction = rawProgress <= 1 ? rawProgress : rawProgress / 100;
-  const itemRate = Number(production.itemRate ?? rawRate) || 0;
+  const itemRate =
+    (Number(production.itemRate ?? rawRate / unitFactor) || 0) * unitFactor;
+  const explicitCapacityItemRate =
+    capacity?.itemRate ?? production.capacityRate;
   const capacityItemRate =
-    Number(
-      capacity?.itemRate ??
-        production.capacityRate ??
-        (type === "meeting" ? production.itemRate : undefined) ??
-        production.itemRate ??
-        rawRate,
-    ) || 0;
+    explicitCapacityItemRate === undefined
+      ? itemRate
+      : Number(explicitCapacityItemRate) || 0;
   const calculatedBreachTime =
     itemCount > 0 && capacityItemRate > 0
       ? (itemCount - Math.max(0, Math.min(1, progressFraction))) /
@@ -614,10 +620,13 @@ function normalizedProduction(
     overflowed && settings.overflowMode === "zero"
       ? Math.max(0, Math.min(1, breachTime / durationHours))
       : 1;
+  const baseAmountPerHour =
+    (Number(production.baseAmountPerHour ?? production.baseRate) || 0) *
+    unitFactor;
   const efficiencyMultiplier = isFixedIgnoreEfficiency
     ? 1
-    : Number(production.baseAmountPerHour ?? production.baseRate) > 0
-      ? rawRate / Number(production.baseAmountPerHour ?? production.baseRate)
+    : baseAmountPerHour > 0
+      ? rawRate / baseAmountPerHour
       : 1;
   const fallbackBaseMaterialPerHour = Object.fromEntries(
     (production.consumes ?? []).map((item) => [
@@ -670,15 +679,17 @@ function normalizedProduction(
           ]),
         ));
   const effectiveRate =
-    production.effectiveAmountPerHour ??
-    production.rate ??
-    (overflowed ? rawRate * effectiveRatio : rawRate);
+    production.effectiveAmountPerHour !== undefined
+      ? Number(production.effectiveAmountPerHour) * unitFactor
+      : production.rate !== undefined
+        ? Number(production.rate) * unitFactor
+        : overflowed
+          ? rawRate * effectiveRatio
+          : rawRate;
   return {
-    product: canonicalProduct(production.product),
+    product: canonicalProduct(sourceProduct),
     orderRule,
-    baseAmountPerHour: round(
-      production.baseAmountPerHour ?? production.baseRate,
-    ),
+    baseAmountPerHour: round(baseAmountPerHour),
     amountPerHour: round(rawRate),
     effectiveAmountPerHour: round(effectiveRate),
     breachTime: round(breachTime),
@@ -716,10 +727,15 @@ function aggregateOldProductionResults(facilities, schedule) {
         nominal: 0,
         effective: 0,
       });
-      const rate = Number(production.amountPerHour) || 0;
+      const unitFactor = productionUnitFactor(String(production.product ?? ""));
+      const rate = (Number(production.amountPerHour) || 0) * unitFactor;
       current.nominal += rate * duration;
       current.effective +=
-        (Number(production.effectiveAmountPerHour) || rate) * duration;
+        (Number(production.effectiveAmountPerHour) ||
+          Number(production.amountPerHour) ||
+          0) *
+        unitFactor *
+        duration;
     });
   });
   const totalDuration = schedule.queues.reduce(

@@ -30,7 +30,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "更容易获得企鹅物流线索"
+              "text": "更容易获得线索2",
+              "cluePreference": 2
             },
             {
               "target": "meeting",

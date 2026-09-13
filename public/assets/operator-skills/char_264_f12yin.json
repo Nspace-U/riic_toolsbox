@@ -16,7 +16,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "每产生1次联络次数，增加黑钢国际线索的概率（工作时长和招募位影响概率）"
+              "text": "更容易获得线索3",
+              "cluePreference": 3
             },
             {
               "target": "hire",
@@ -41,7 +42,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "每当新搜集到的线索不是莱茵生命时，则额外增加莱茵生命线索的出现概率（工作时长影响概率）"
+              "text": "更容易获得线索1",
+              "cluePreference": 1
             }
           ]
         }

@@ -763,7 +763,7 @@ export function createEmptySchedule(): ScheduleDocument {
     title: "新建排班表",
     description: "",
     settings: {
-      clueExchanging: false,
+      clueExchanging: true,
       dormFullTreat: true,
       featherFixedOps: [],
       preferMaxJieEfficiency: true,

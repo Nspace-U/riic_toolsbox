@@ -16,7 +16,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "每产生1次联络次数，增加格拉斯哥帮线索的概率（工作时长和招募位影响概率）"
+              "text": "更容易获得线索5",
+              "cluePreference": 5
             },
             {
               "target": "hire",

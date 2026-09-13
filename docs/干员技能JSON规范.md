@@ -146,7 +146,36 @@ npm run generate:operator-skills
 | `moodSwap`         | 心情互换规则          | 记录规则，不直接换算效率           |
 | `skillTagConvert`  | 技能类别转换          | 使用 `tagFrom`、`tagTo`            |
 
-解析器遇到没有数字、但仍有展示价值的线索倾向描述时，写入 `clueChance` 和 `text`，而不是生成空效果。
+`clueChance` 效果只表达线索倾向，不参与效率百分比计算。派系线索倾向使用 `cluePreference` 保存线索编号；尚未拥有和已经拥有的线索分别使用字符串值 `unowned` 与 `owned`。`text` 保存统一后的显示文案：
+
+```json
+{
+  "target": "meeting",
+  "stat": "clueChance",
+  "text": "更容易获得线索1",
+  "cluePreference": 1
+}
+```
+
+```json
+{
+  "target": "meeting",
+  "stat": "clueChance",
+  "text": "更容易获得尚未拥有的线索",
+  "cluePreference": "unowned"
+}
+```
+
+```json
+{
+  "target": "meeting",
+  "stat": "clueChance",
+  "text": "更容易获得已经拥有的线索",
+  "cluePreference": "owned"
+}
+```
+
+线索编号固定为：莱茵生命 1、企鹅物流 2、黑钢国际 3、乌萨斯学生自治团 4、格拉斯哥帮 5、喀兰贸易 6、罗德岛制药 7。办公室等其他设施来源的线索效果同样统一为会客室的 `clueChance` 展示效果。
 
 ### 3.3 value、per、curve
 

@@ -72,7 +72,8 @@
             {
               "target": "meeting",
               "stat": "clueChance",
-              "text": "必定获得罗德岛制药的线索",
+              "text": "更容易获得线索7",
+              "cluePreference": 7,
               "condition": {
                 "type": "onlySelf"
               }
