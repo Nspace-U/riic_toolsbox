@@ -3980,21 +3980,33 @@ function progressionMenuNodes(
   operator: Operator,
   type: RoomKey,
 ): OperatorProgressionNode[] {
-  if (type === "meeting") {
-    const maxEliteLevel = operator.maxEliteLevel ?? 0;
-    return Array.from({ length: maxEliteLevel + 1 }, (_, value) => ({
+  const skillFile =
+    efficiencyCatalog.value?.operators[operator.name]?.skillFile;
+  const nodes = progressionNodesForFacility(skillFile, type, operator.rarity);
+  if (type !== "meeting" || operator.rarity <= 2) {
+    return nodes;
+  }
+
+  const maxEliteLevel = Math.min(
+    operator.maxEliteLevel ?? 0,
+    operator.rarity === 3 ? 1 : 2,
+  );
+  const nodeMap = new Map(nodes.map((node) => [node.key, node]));
+  Array.from({ length: maxEliteLevel + 1 }, (_, value) =>
+    nodeMap.set(`elite-${value}`, {
       key: `elite-${value}`,
       type: "elite" as const,
       value,
       label: `精英${value}`,
       facilities: [type],
-    }));
-  }
-  return progressionNodesForFacility(
-    efficiencyCatalog.value?.operators[operator.name]?.skillFile,
-    type,
-    operator.rarity,
+    }),
   );
+  return [...nodeMap.values()].sort((left, right) => {
+    if (left.type !== right.type) {
+      return left.type === "elite" ? -1 : 1;
+    }
+    return left.value - right.value;
+  });
 }
 
 const operatorContextMenuDetails = computed<
@@ -4043,9 +4055,6 @@ function isCurrentProgressionNode(node: OperatorProgressionNode): boolean {
   const details = operatorContextMenuDetails.value;
   if (!details) {
     return false;
-  }
-  if (details.menu.type === "meeting") {
-    return details.currentProgression.elite === node.value;
   }
   return node.type === "elite"
     ? details.currentProgression.elite === node.value
