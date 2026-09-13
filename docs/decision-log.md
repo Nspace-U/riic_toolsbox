@@ -874,3 +874,11 @@
 - **布局规则**：各明细区使用 `max-content` 列宽并按内容决定列宽，保留应在一行的内容；心情步骤按每名干员独立对齐，基地点数队列继续复用设施式折叠面板并默认折叠。
 - **兼容性**：只调整 `src/assets/main.css` 的显示布局，不修改效率计算、排班 JSON、Maa JSON 或持久化字段；窄屏继续沿用原有响应式行为。
 - **验证**：`npm run lint`、`npm run type-check`、`npm run build`、定向 `npx prettier --check src/assets/main.css` 和 `git diff --check` 通过；桌面端 `/simulator` 回放确认各明细区左右列对齐、基地点数来源一行一条。全仓 `npm run format:check` 仍被既有 `src/pages/SimulatorPage.vue` 格式差异提示。
+
+## 2026-09-13：规范化模拟器计算提示
+
+- **等级**：建立统一的 `Info`、`Warning`、`Error` 提示模型；精 0 孑逐单衰减与 `orderProgress` 边界使用 `Info`，心情继承异常和爆仓风险使用 `Warning`，缺失干员技能数据使用 `Error`。
+- **爆仓**：只要当前队列设施在队列时长内达到容量上限就生成 Warning，不受是否截断产出的设置影响；明细显示队列、设施、干员列表和爆仓时间，达到容量时显示“将立即爆仓”。
+- **导入数据异常**：排班 JSON 中超出当前布局数量的设施记录统一使用 Error；导入后显示在设施区域下方、计算结果框体上方，可关闭或在切换排班表时清除，不阻断已登记设施的部分计算。
+- **兼容性**：提示是模拟器展示层状态，不修改排班 JSON、Maa JSON 或效率计算结果中的既有字段；缺失技能数据仍保留部分结果计算。
+- **验证**：`npm run test:efficiency` 增加缺失技能数据仍保留有效设施结果的回归断言并通过；`npm run lint`、`npm run type-check`、`npm run build`、定向 Prettier 和 `git diff --check` 通过。浏览器回放确认提示位于设施区域下方、计算结果上方，心情继承和爆仓为 Warning，爆仓明细使用约定文案且计算结果仍保留；导入额外设施的文件选择与关闭生命周期尚未在当前浏览器桥接中实测。

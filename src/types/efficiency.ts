@@ -264,6 +264,16 @@ export interface ProductionValue {
   effectiveMaterialPerHour?: Record<string, number>;
 }
 
+export type EfficiencyNoticeLevel = "info" | "warning" | "error";
+
+export interface EfficiencyNotice {
+  code: string;
+  level: EfficiencyNoticeLevel;
+  message: string;
+  details: string[];
+  closable?: boolean;
+}
+
 export interface CurveCalculationStep {
   hour: number;
   weight: number;

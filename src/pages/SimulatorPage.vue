@@ -40,11 +40,11 @@ import type {
   BasePointDetail,
   BasePointSource,
   EfficiencyCatalog,
+  EfficiencyNotice,
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
   CluePreference,
-  MoodWarning,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -127,6 +127,14 @@ interface SimulatorCalculationStep {
   planIndex: number;
   facility?: FacilityEfficiencyResult;
   moods: MoodSnapshot[];
+}
+
+interface ExtraRoom {
+  planIndex: number;
+  planName: string;
+  type: RoomKey;
+  index: number;
+  room: RoomAssignment;
 }
 
 interface OperatorSlotAddress {
@@ -417,6 +425,7 @@ const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
 const warningMessage = ref("");
+const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
   successMessage.value = layoutLevelFixNotice;
@@ -566,15 +575,93 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   });
 });
 
-const efficiencyMoodWarnings = computed(() =>
-  (efficiencyResult.value?.plans ?? []).flatMap((plan, planIndex) =>
-    plan.moodWarnings.map((warning: MoodWarning) => ({
-      plan,
-      planIndex,
-      warning,
-    })),
-  ),
-);
+const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
+  const notices: EfficiencyNotice[] = [];
+  if (!efficiencySupported.value) {
+    notices.push({
+      code: "unsupported-data-source",
+      level: "info",
+      message: "效率计算暂只支持 Torappu 数据源",
+      details: [],
+    });
+    return notices;
+  }
+  if (efficiencyError.value) {
+    notices.push({
+      code: "efficiency-data-error",
+      level: "error",
+      message: "效率数据读取失败",
+      details: [efficiencyError.value],
+    });
+    return notices;
+  }
+  const result = efficiencyResult.value;
+  if (!result) {
+    return notices;
+  }
+  notices.push({
+    code: "unsupported-order-state",
+    level: "info",
+    message:
+      "当前版本暂不模拟精 0 孑订单逐单衰减与 orderProgress；爆仓展示仅按容量速率和首件进度设置计算。",
+    details: [],
+  });
+  if (result.warnings.length > 0) {
+    notices.push({
+      code: "missing-skill-data",
+      level: "error",
+      message: "找不到干员技能数据",
+      details: result.warnings,
+    });
+  }
+  const moodDetails = result.plans.flatMap((plan, planIndex) =>
+    plan.moodWarnings.map(
+      (warning) =>
+        `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[warning.facility]} ${warning.facilityIndex + 1} · ${warning.operator}：上一队列结束心情 ${formatNumber(warning.previousEnd)}，当前手动设置为 ${formatNumber(warning.configuredStart)}`,
+    ),
+  );
+  if (moodDetails.length > 0) {
+    notices.push({
+      code: "mood-inheritance",
+      level: "warning",
+      message: "发现心情继承异常",
+      details: moodDetails,
+    });
+  }
+  const overflowDetails = result.plans.flatMap((plan, planIndex) =>
+    plan.facilities.flatMap((facility) => {
+      const production = facility.production;
+      if (!production?.overflowed || production.breachTime === undefined) {
+        return [];
+      }
+      const operators = operatorsForFacilityResult(plan, facility);
+      const timing =
+        production.breachTime <= 0
+          ? "将立即爆仓"
+          : `将在工作 ${formatDurationHours(production.breachTime)}后爆仓`;
+      return [
+        `${plan.name || `队列${planIndex + 1}`} · ${facilityResultLabel(facility)} · ${operators.join("、") || "无干员"}：${timing}`,
+      ];
+    }),
+  );
+  if (overflowDetails.length > 0) {
+    notices.push({
+      code: "overflow-risk",
+      level: "warning",
+      message: "发现爆仓风险",
+      details: overflowDetails,
+    });
+  }
+  return notices;
+});
+
+const simulatorNotices = computed<EfficiencyNotice[]>(() => {
+  const notices = [...efficiencyNotices.value];
+  if (importedScheduleNotice.value) {
+    notices.push(importedScheduleNotice.value);
+  }
+  return notices;
+});
 
 const efficiencySettingsModalOpen = ref(false);
 const currentEfficiencySettings = computed(() => {
@@ -814,12 +901,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
   return rows;
 });
 
-const extraRooms = computed(() => {
-  const document = currentDocument.value;
-  if (!document) {
-    return [];
-  }
-
+function extraRoomsForDocument(document: ScheduleDocument): ExtraRoom[] {
   return document.plans.flatMap((plan, planIndex) =>
     ROOM_ORDER.flatMap((type) => {
       const rooms = plan.rooms[type];
@@ -838,7 +920,46 @@ const extraRooms = computed(() => {
       }));
     }),
   );
-});
+}
+
+function extraRoomNoticeDetail(item: ExtraRoom): string {
+  const operators = item.room.operators?.filter((name): name is string =>
+    Boolean(name),
+  );
+  const operatorDetail = operators?.length ? `：${operators.join("、")}` : "";
+  return `${item.planName} · ${ROOM_LABELS[item.type]} ${item.index + 1}${operatorDetail}`;
+}
+
+function operatorsForFacilityResult(
+  plan: EfficiencyPlanResult,
+  result: FacilityEfficiencyResult,
+): string[] {
+  if (result.facility.type === "power") {
+    return plan.moods
+      .filter((mood) => mood.facility === "power")
+      .map((mood) => mood.operator);
+  }
+  return plan.moods
+    .filter((mood) => mood.facilityId === result.facility.id)
+    .map((mood) => mood.operator);
+}
+
+function clearImportedScheduleNotice(): void {
+  importedScheduleNotice.value = undefined;
+}
+
+function closeSimulatorNotice(notice: EfficiencyNotice): void {
+  if (notice.code === "import-extra-rooms") {
+    clearImportedScheduleNotice();
+  }
+}
+
+function selectDocument(documentId: string): void {
+  if (documentId !== activeDocumentId.value) {
+    clearImportedScheduleNotice();
+  }
+  setActiveDocument(documentId);
+}
 
 function clearMessages(): void {
   errorMessage.value = "";
@@ -4879,6 +5000,7 @@ function handleWindowKeydown(event: KeyboardEvent): void {
 
 function handleCreate(): void {
   clearMessages();
+  clearImportedScheduleNotice();
   createDocument();
   successMessage.value = "已新建排班表。";
 }
@@ -4896,9 +5018,24 @@ async function handleFileChange(event: Event): Promise<void> {
   }
 
   clearMessages();
+  clearImportedScheduleNotice();
   try {
     const parsed = DEFAULT_SCHEDULE_ADAPTER.parse(await file.text());
-    createDocument(parsed.document, parsed.inferredLayout, file.name);
+    const stored = createDocument(
+      parsed.document,
+      parsed.inferredLayout,
+      file.name,
+    );
+    const extraRooms = extraRoomsForDocument(stored.document);
+    if (extraRooms.length > 0) {
+      importedScheduleNotice.value = {
+        code: "import-extra-rooms",
+        level: "error",
+        message: "导入排班表包含未登记设施实例",
+        details: extraRooms.map(extraRoomNoticeDetail),
+        closable: true,
+      };
+    }
     successMessage.value = parsed.inferredLayout
       ? "已导入，布局由文件内容推断。"
       : "已导入排班 JSON。";
@@ -4909,6 +5046,7 @@ async function handleFileChange(event: Event): Promise<void> {
 
 function handleDuplicate(): void {
   clearMessages();
+  clearImportedScheduleNotice();
   const document = activeDocument.value;
   if (!document) {
     return;
@@ -4929,6 +5067,7 @@ function handleDelete(): void {
   ) {
     return;
   }
+  clearImportedScheduleNotice();
   removeDocument(document.id);
   const nextSettings = { ...simulatorEditSettings.value };
   delete nextSettings[document.id];
@@ -5175,7 +5314,7 @@ onBeforeUnmount(() => {
               { 'simulator-document-item--active': isStoredDocument(document) },
             ]"
             type="button"
-            @click="setActiveDocument(document.id)"
+            @click="selectDocument(document.id)"
           >
             <span class="simulator-document-item-title">{{
               document.document.title || "未命名排班表"
@@ -6289,8 +6428,31 @@ onBeforeUnmount(() => {
           </a-form>
         </a-modal>
 
+        <div v-if="simulatorNotices.length" class="simulator-notice-list">
+          <a-alert
+            v-for="notice in simulatorNotices"
+            :key="notice.code"
+            :closable="notice.closable === true"
+            :message="notice.message"
+            show-icon
+            :type="notice.level"
+            @close="closeSimulatorNotice(notice)"
+          >
+            <template v-if="notice.details.length" #description>
+              <div class="simulator-anomaly-list">
+                <span
+                  v-for="(detail, detailIndex) in notice.details"
+                  :key="`${notice.code}-${detailIndex}`"
+                >
+                  {{ detail }}
+                </span>
+              </div>
+            </template>
+          </a-alert>
+        </div>
+
         <a-card
-          v-if="efficiencySupported"
+          v-if="efficiencySupported && !efficiencyError"
           :bordered="false"
           class="simulator-efficiency-panel"
           title="计算结果"
@@ -6301,42 +6463,7 @@ onBeforeUnmount(() => {
             show-icon
             type="info"
           />
-          <a-alert
-            v-else-if="efficiencyError"
-            :message="efficiencyError"
-            show-icon
-            type="error"
-          />
           <template v-else-if="efficiencyResult">
-            <a-alert
-              class="simulator-efficiency-scope-alert"
-              message="当前版本暂不模拟精 0 孑订单逐单衰减与 orderProgress；爆仓展示仅按容量速率和首件进度设置计算。"
-              show-icon
-              type="info"
-            />
-            <a-alert
-              v-if="efficiencyMoodWarnings.length"
-              class="simulator-efficiency-scope-alert"
-              message="发现心情继承异常"
-              show-icon
-              type="warning"
-            >
-              <template #description>
-                <div class="simulator-anomaly-list">
-                  <span
-                    v-for="item in efficiencyMoodWarnings"
-                    :key="`${item.planIndex}-${item.warning.facilityId}-${item.warning.slotIndex}-${item.warning.operator}`"
-                  >
-                    {{ item.plan.name }} ·
-                    {{ ROOM_LABELS[item.warning.facility] }}
-                    {{ item.warning.facilityIndex + 1 }} ·
-                    {{ item.warning.operator }}：上一队列结束心情
-                    {{ formatNumber(item.warning.previousEnd) }}，当前手动设置为
-                    {{ formatNumber(item.warning.configuredStart) }}
-                  </span>
-                </div>
-              </template>
-            </a-alert>
             <div class="simulator-daily-output">
               <div class="simulator-result-section-heading">
                 <div>
@@ -6899,39 +7026,6 @@ onBeforeUnmount(() => {
             </div>
           </template>
         </a-card>
-
-        <a-alert
-          v-else-if="!efficiencySupported"
-          message="效率计算暂只支持 Torappu 数据源"
-          class="simulator-efficiency-source-alert"
-          show-icon
-          type="info"
-        />
-
-        <a-alert
-          v-if="extraRooms.length"
-          :message="`发现 ${extraRooms.length} 个未登记设施实例`"
-          class="simulator-anomaly-alert"
-          show-icon
-          type="warning"
-        >
-          <template #description>
-            <div class="simulator-anomaly-list">
-              <span
-                v-for="item in extraRooms"
-                :key="`${item.planIndex}-${item.type}-${item.index}`"
-              >
-                {{ item.planName }} · {{ ROOM_LABELS[item.type] }}
-                {{ item.index + 1 }}
-                <template v-if="item.room.operators?.some(Boolean)"
-                  >：{{
-                    item.room.operators.filter(Boolean).join("、")
-                  }}</template
-                >
-              </span>
-            </div>
-          </template>
-        </a-alert>
       </main>
 
       <a-empty

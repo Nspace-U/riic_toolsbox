@@ -186,6 +186,24 @@ function assertSkillDetails(result, operators) {
 
 function runTests(runtime) {
   const { calculateEfficiency, catalog } = runtime;
+  const partial = calculateEfficiency(
+    documentFor({
+      manufacture: ["温蒂", "未知干员"],
+      eliteLevels: { 温蒂: 2, 未知干员: 2 },
+    }),
+    catalog,
+  );
+  const partialManufacture = manufactureResult(partial);
+  assert.deepEqual(partial.warnings, [
+    "队列 1：找不到干员“未知干员”的技能数据",
+  ]);
+  assert.ok(partialManufacture.production);
+  assert.ok(
+    partialManufacture.operatorContributions.some(
+      (item) => item.operator === "温蒂",
+    ),
+  );
+
   const wendy = calculateEfficiency(
     documentFor({
       control: ["薇薇安娜"],
