@@ -2574,18 +2574,26 @@ a {
 }
 
 .simulator-order-list {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  column-gap: 12px;
   padding-block-start: 8px;
   border-block-start: 1px solid #edf1f0;
 }
 
+.simulator-order-list .simulator-step-subheading {
+  grid-column: 1 / -1;
+}
+
 .simulator-order-row {
-  display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  gap: 12px;
-  padding-block: 3px;
+  display: contents;
   color: #72807f;
   font-size: 11px;
+}
+
+.simulator-order-row > * {
+  padding-block: 3px;
 }
 
 .simulator-order-row span:last-child {
@@ -2607,15 +2615,29 @@ a {
   border-block-start: 1px solid #edf1f0;
 }
 
-.simulator-operator-contribution,
-.simulator-detail-row {
+.simulator-operator-contribution-list,
+.simulator-detail-list {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   justify-content: start;
-  gap: 12px;
-  padding-block: 4px;
+  column-gap: 12px;
+}
+
+.simulator-operator-contribution-list .simulator-step-subheading,
+.simulator-detail-list .simulator-step-subheading {
+  grid-column: 1 / -1;
+}
+
+.simulator-operator-contribution,
+.simulator-detail-row {
+  display: contents;
   color: #72807f;
   font-size: 12px;
+}
+
+.simulator-operator-contribution > *,
+.simulator-detail-row > * {
+  padding-block: 4px;
 }
 
 .simulator-detail-main {
@@ -2644,11 +2666,7 @@ a {
 
 .simulator-mood-calculation-header,
 .simulator-mood-rate-step {
-  display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  align-items: baseline;
-  column-gap: 12px;
+  display: contents;
 }
 
 .simulator-mood-calculation-header {
@@ -2662,9 +2680,7 @@ a {
 }
 
 .simulator-mood-rate-steps {
-  display: grid;
-  gap: 2px;
-  padding-block: 5px;
+  display: contents;
 }
 
 .simulator-mood-rate-step {
@@ -2676,6 +2692,40 @@ a {
   color: #344447;
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.simulator-mood-calculation {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  column-gap: 12px;
+}
+
+.simulator-mood-calculation > .simulator-step-formula {
+  grid-column: 1 / -1;
+}
+
+.simulator-mood-rate-step > * {
+  padding-block: 2px;
+}
+
+.simulator-base-point-sources {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  column-gap: 12px;
+}
+
+.simulator-base-point-sources .simulator-base-point-source-title {
+  grid-column: 1 / -1;
+}
+
+.simulator-base-point-source {
+  display: contents;
+}
+
+.simulator-base-point-source > * {
+  padding-block: 2px;
 }
 
 .simulator-step-empty.ant-empty {
