@@ -277,6 +277,14 @@ export interface ProductionValue {
   effectiveMaterialPerHour?: Record<string, number>;
 }
 
+export type DailyOutputKind = "production" | "net";
+
+export interface DailyOutput {
+  product: string;
+  kind: DailyOutputKind;
+  amountPerDay: number;
+}
+
 export type EfficiencyNoticeLevel = "info" | "warning" | "error";
 
 export interface EfficiencyNotice {
@@ -432,6 +440,7 @@ export interface EfficiencyResult {
   dailyHours: number;
   dailyFacilities: FacilityEfficiencyResult[];
   dailyProductions: ProductionValue[];
+  dailyOutputs: DailyOutput[];
   fiammetta?: FiammettaCalculation;
   fiammettaWarnings: string[];
   warnings: string[];

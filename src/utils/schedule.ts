@@ -158,6 +158,15 @@ export const PRODUCT_ITEM_ICONS: Record<string, string> = {
   "Originium Shard": "MTL_DIAMOND_SHD.png",
 };
 
+export const RESOURCE_ITEM_ICONS: Record<string, string> = {
+  ...PRODUCT_ITEM_ICONS,
+  Drone: "AP_BASE.png",
+  Credit: "SOCIAL_PT.png",
+  "Recruit Refresh": "TKT_RECRUIT.png",
+  固源岩: "MTL_SL_G2.png",
+  装置: "MTL_SL_BOSS2.png",
+};
+
 export const ROOM_ITEM_ICONS: Partial<Record<RoomKey, string>> = {
   power: "AP_BASE.png",
   meeting: "SOCIAL_PT.png",
@@ -172,6 +181,10 @@ export function facilityProductIconFile(
     return product ? PRODUCT_ITEM_ICONS[product] : undefined;
   }
   return ROOM_ITEM_ICONS[type];
+}
+
+export function resourceItemIconFile(product: string): string | undefined {
+  return RESOURCE_ITEM_ICONS[product];
 }
 
 const ROOM_KEY_SET = new Set<string>(ROOM_KEYS);

@@ -2428,8 +2428,8 @@ a {
 
 .simulator-daily-output-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
 }
 
 .settings-base-point-options {
@@ -2440,22 +2440,40 @@ a {
 }
 
 .simulator-daily-output-item {
-  display: grid;
-  gap: 3px;
-  padding: 12px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  padding: 10px;
   background: #f8fbfa;
   border: 1px solid #e0e8e5;
   border-radius: 5px;
 }
 
-.simulator-daily-output-product {
-  color: #2e4043;
-  font-weight: 650;
+.simulator-daily-output-item--net {
+  background: #fffaf3;
+  border-style: dashed;
 }
 
 .simulator-daily-output-item strong {
+  min-width: 0;
+  overflow: hidden;
   color: #176b68;
   font-size: 16px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-daily-output-item--net strong {
+  color: #a06b27;
+}
+
+.simulator-daily-output-icon {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
 .simulator-daily-output-rate,

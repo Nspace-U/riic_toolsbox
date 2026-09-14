@@ -194,6 +194,7 @@ function documentFor({
   eliteLevels = {},
   moods = {},
   duration = 720,
+  tradingProduct,
   settings = {},
 }) {
   return {
@@ -210,7 +211,12 @@ function documentFor({
         duration,
         rooms: {
           control: [assignment(control, eliteLevels, moods)],
-          trading: [assignment(trading, eliteLevels, moods)],
+          trading: [
+            {
+              ...assignment(trading, eliteLevels, moods),
+              ...(tradingProduct ? { product: tradingProduct } : {}),
+            },
+          ],
           manufacture: [
             {
               ...assignment(manufacture, eliteLevels, moods),
@@ -222,6 +228,79 @@ function documentFor({
             assignment([], eliteLevels),
             assignment([], eliteLevels),
           ],
+        },
+      },
+    ],
+    settings,
+  };
+}
+
+function multipleTradingDocument({ trading, control = [] }) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      { type: "trading", level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment(control, {})],
+          trading: trading.map((operators) => assignment(operators, {})),
+        },
+      },
+    ],
+  };
+}
+
+function tradingWithRoomDocument({ trading, room, roomOperators }) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      { type: room, level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment([], {})],
+          trading: [assignment(trading, {})],
+          [room]: [assignment(roomOperators, {})],
+        },
+      },
+    ],
+  };
+}
+
+function dailyOutputDocument(settings = {}) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "power", level: 3 },
+      { type: "power", level: 3 },
+      { type: "power", level: 3 },
+      { type: "meeting", level: 3 },
+      { type: "hire", level: 3 },
+      { type: "dormitory", level: 5 },
+      { type: "dormitory", level: 1 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          trading: [{ ...assignment(["温蒂"], {}), product: "Orundum" }],
+          manufacture: [{ ...assignment(["砾"], {}), product: "Pure Gold" }],
+          power: [
+            assignment(["Lancet-2"], {}),
+            assignment([], {}),
+            assignment([], {}),
+          ],
+          meeting: [assignment(["夜烟"], {})],
+          hire: [assignment(["琴柳"], {})],
         },
       },
     ],
@@ -283,6 +362,209 @@ function runTests(runtime) {
     partialManufacture.operatorContributions.some(
       (item) => item.operator === "温蒂",
     ),
+  );
+
+  const dailyOutput = calculateEfficiency(dailyOutputDocument(), catalog);
+  assert.deepEqual(
+    dailyOutput.dailyOutputs.map(({ kind, product }) => `${kind}:${product}`),
+    [
+      "production:Orundum",
+      "production:Pure Gold",
+      "production:Drone",
+      "production:Credit",
+      "production:Recruit Refresh",
+      "net:Originium Shard",
+    ],
+  );
+  const dailyClue = dailyOutput.dailyProductions.find(
+    ({ product }) => product === "Clue",
+  );
+  const dailyCredit = dailyOutput.dailyOutputs.find(
+    ({ product }) => product === "Credit",
+  );
+  assert.ok(dailyClue);
+  assert.ok(dailyCredit);
+  assert.ok(
+    Math.abs(
+      dailyCredit.amountPerDay -
+        (40 +
+          30 +
+          20 +
+          15 +
+          10 +
+          5 +
+          210 +
+          30 * 10 +
+          300 / 7 +
+          Math.floor(10 + 5000 / 125) +
+          Math.floor(10 + 1000 / 125) +
+          dailyClue.amountPerDay * 40),
+    ) < 1e-9,
+  );
+  assert.ok(
+    (dailyOutput.dailyOutputs.find(
+      ({ kind, product }) => kind === "net" && product === "Originium Shard",
+    )?.amountPerDay ?? 0) < 0,
+  );
+
+  const huntingParty = calculateEfficiency(
+    multipleTradingDocument({
+      trading: [["焰狐龙梓兰"], ["雷狼龙S空爆", "罗德岛隐秘队"]],
+    }),
+    catalog,
+  );
+  const huntingStations = huntingParty.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(huntingStations[0]?.skillEfficiency, 60);
+  assert.equal(huntingStations[1]?.skillEfficiency, 35);
+
+  const demetrSplit = calculateEfficiency(
+    multipleTradingDocument({
+      trading: [["贝洛内"], ["伺夜"]],
+    }),
+    catalog,
+  );
+  const demetrSplitStation = demetrSplit.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  )[0];
+  assert.equal(demetrSplitStation?.attributes.orderLimit?.skill, 0);
+  assert.equal(
+    demetrSplit.plans[0].moods.find(({ operator }) => operator === "贝洛内")
+      ?.costRate,
+    1,
+  );
+
+  const demetrTogether = calculateEfficiency(
+    multipleTradingDocument({
+      trading: [["贝洛内", "伺夜"], []],
+    }),
+    catalog,
+  );
+  const demetrTogetherStation = demetrTogether.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  )[0];
+  assert.equal(demetrTogetherStation?.attributes.orderLimit?.skill, 2);
+  assert.equal(
+    demetrTogether.plans[0].moods.find(({ operator }) => operator === "贝洛内")
+      ?.costRate,
+    0.85,
+  );
+
+  const glasgowSplit = calculateEfficiency(
+    multipleTradingDocument({
+      trading: [["维娜·维多利亚"], ["推进之王"]],
+    }),
+    catalog,
+  );
+  const glasgowSplitStation = glasgowSplit.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  )[0];
+  assert.equal(glasgowSplitStation?.skillEfficiency, 30);
+
+  const glasgowTogether = calculateEfficiency(
+    multipleTradingDocument({
+      trading: [["维娜·维多利亚", "推进之王"], []],
+    }),
+    catalog,
+  );
+  const glasgowTogetherStation = glasgowTogether.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  )[0];
+  assert.equal(glasgowTogetherStation?.skillEfficiency, 40);
+
+  const hodrerProcessing = calculateEfficiency(
+    tradingWithRoomDocument({
+      trading: ["赫德雷"],
+      room: "processing",
+      roomOperators: ["伊内丝", "W"],
+    }),
+    catalog,
+  );
+  const hodrerProcessingStation = hodrerProcessing.plans[0].facilities.find(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(hodrerProcessingStation?.skillEfficiency, 40);
+
+  const hodrerDormitory = calculateEfficiency(
+    tradingWithRoomDocument({
+      trading: ["赫德雷"],
+      room: "dormitory",
+      roomOperators: ["伊内丝", "W"],
+    }),
+    catalog,
+  );
+  const hodrerDormitoryStation = hodrerDormitory.plans[0].facilities.find(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(hodrerDormitoryStation?.skillEfficiency, 30);
+
+  const wisdelTarget = calculateEfficiency(
+    multipleTradingDocument({
+      control: ["维什戴尔"],
+      trading: [["赫德雷"], ["阿米娅"]],
+    }),
+    catalog,
+  );
+  const wisdelStations = wisdelTarget.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(wisdelStations[0]?.attributes.orderLimit?.skill, 2);
+  assert.equal(wisdelStations[1]?.attributes.orderLimit?.skill ?? 0, 0);
+
+  const wisdelDuplicateTargets = calculateEfficiency(
+    multipleTradingDocument({
+      control: ["维什戴尔"],
+      trading: [["赫德雷"], ["赫德雷"]],
+    }),
+    catalog,
+  );
+  const duplicateTargetStations =
+    wisdelDuplicateTargets.plans[0].facilities.filter(
+      ({ facility }) => facility.type === "trading",
+    );
+  assert.equal(duplicateTargetStations[0]?.attributes.orderLimit?.skill, 2);
+  assert.equal(duplicateTargetStations[1]?.attributes.orderLimit?.skill, 2);
+
+  const overflowContinue = calculateEfficiency(
+    documentFor({
+      trading: ["温蒂"],
+      manufacture: ["Lancet-2"],
+      tradingProduct: "Orundum",
+      duration: 2880,
+    }),
+    catalog,
+  );
+  const overflowZero = calculateEfficiency(
+    documentFor({
+      trading: ["温蒂"],
+      manufacture: ["Lancet-2"],
+      tradingProduct: "Orundum",
+      duration: 2880,
+      settings: { overflowMode: "zero" },
+    }),
+    catalog,
+  );
+  const continuedGold = overflowContinue.dailyOutputs.find(
+    ({ kind, product }) => kind === "production" && product === "Pure Gold",
+  );
+  const truncatedGold = overflowZero.dailyOutputs.find(
+    ({ kind, product }) => kind === "production" && product === "Pure Gold",
+  );
+  assert.ok(continuedGold);
+  assert.ok(truncatedGold);
+  assert.ok(truncatedGold.amountPerDay < continuedGold.amountPerDay);
+  const continuedShard = overflowContinue.dailyOutputs.find(
+    ({ kind, product }) => kind === "net" && product === "Originium Shard",
+  );
+  const truncatedShard = overflowZero.dailyOutputs.find(
+    ({ kind, product }) => kind === "net" && product === "Originium Shard",
+  );
+  assert.ok(continuedShard);
+  assert.ok(truncatedShard);
+  assert.ok(
+    Math.abs(truncatedShard.amountPerDay) <
+      Math.abs(continuedShard.amountPerDay),
   );
 
   const wendy = calculateEfficiency(

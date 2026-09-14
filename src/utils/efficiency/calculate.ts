@@ -19,6 +19,7 @@ import type {
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
+  DailyOutput,
   MoodWarning,
   MoodRateDetail,
   MoodSnapshot,
@@ -69,6 +70,17 @@ const HIRE_OUTPUT_PER_HOUR = 1 / 12;
 const CLUE_LIMIT = 11;
 const HIRE_LIMIT = 3;
 const FIAMMETTA_NAME = "菲亚梅塔";
+const CREDIT_BASE_DAILY = 40 + 30 + 20 + 15 + 10 + 5 + 210 + 30 * 10 + 300 / 7;
+const DAILY_OUTPUT_ORDER = [
+  "LMD",
+  "Orundum",
+  "Pure Gold",
+  "Battle Record",
+  "Originium Shard",
+  "Drone",
+  "Credit",
+  "Recruit Refresh",
+];
 const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
   莱茵生命: 1,
   企鹅物流: 2,
@@ -412,18 +424,6 @@ function placementsInRoomType(
   );
 }
 
-function placementAt(
-  context: PlanContext,
-  name: string,
-  type?: RoomKey,
-): Placement | undefined {
-  return context.placements.find(
-    (placement) =>
-      placement.name === name &&
-      (type === undefined || placement.facility.type === type),
-  );
-}
-
 function workingPlacement(placement: Placement, moodCheck = false): boolean {
   return !moodCheck || placement.moodStart > EPSILON;
 }
@@ -508,13 +508,17 @@ function skillMatchesTag(
   );
 }
 
-function conditionFacilityType(
+function placementsInConditionFacility(
+  context: PlanContext,
   conditionFacility: string | undefined,
   owner: Placement,
-): RoomKey | undefined {
-  return conditionFacility === "same"
-    ? owner.facility.type
-    : (conditionFacility as RoomKey | undefined);
+): Placement[] {
+  if (conditionFacility === "same") {
+    return placementsInFacility(context, owner.facility);
+  }
+  return conditionFacility
+    ? placementsInRoomType(context, conditionFacility as RoomKey)
+    : [];
 }
 
 function conditionSatisfied(
@@ -526,38 +530,48 @@ function conditionSatisfied(
 ): boolean {
   if (!condition) return true;
   let result: boolean;
-  const type = conditionFacilityType(condition.facility, owner);
   const members = membersFor(catalog, condition.group);
   switch (condition.type) {
     case "opAtFacility": {
-      const found = placementAt(context, String(condition.op ?? ""), type);
-      result = !!found && (!condition.moodCheck || found.moodStart > EPSILON);
+      const placements = placementsInConditionFacility(
+        context,
+        condition.facility,
+        owner,
+      );
+      result = placements.some(
+        (placement) =>
+          placement.name === String(condition.op ?? "") &&
+          workingPlacement(placement, condition.moodCheck),
+      );
       break;
     }
     case "opInBase": {
-      const found = placementAt(context, String(condition.op ?? ""));
-      result =
-        !!found &&
-        (!condition.facilities?.length ||
-          condition.facilities.includes(found.facility.type)) &&
-        (!condition.moodCheck || found.moodStart > EPSILON);
+      result = context.placements.some(
+        (placement) =>
+          placement.name === String(condition.op ?? "") &&
+          (!condition.facilities?.length ||
+            condition.facilities.includes(placement.facility.type)) &&
+          workingPlacement(placement, condition.moodCheck),
+      );
       break;
     }
     case "opInFacilityAndTarget": {
-      const found = placementAt(
-        context,
-        String(condition.op ?? ""),
-        condition.facility as RoomKey | undefined,
+      result = context.placements.some(
+        (placement) =>
+          placement.name === String(condition.op ?? "") &&
+          placement.facility.type === condition.facility &&
+          placement.facility.id === target?.id &&
+          workingPlacement(placement, condition.moodCheck),
       );
-      result =
-        !!found &&
-        target?.type === condition.facility &&
-        (!condition.moodCheck || found.moodStart > EPSILON);
       break;
     }
     case "opGroupInFacility":
     case "opGroupNotInFacility": {
-      const placements = placementsInRoomType(context, type as RoomKey)
+      const placements = placementsInConditionFacility(
+        context,
+        condition.facility,
+        owner,
+      )
         .filter((placement) => workingPlacement(placement, condition.moodCheck))
         .filter(
           (placement) => !condition.other || placement.name !== owner.name,
@@ -569,7 +583,11 @@ function conditionSatisfied(
       break;
     }
     case "opGroupCountInFacility": {
-      const count = placementsInRoomType(context, type as RoomKey)
+      const count = placementsInConditionFacility(
+        context,
+        condition.facility,
+        owner,
+      )
         .filter((placement) => workingPlacement(placement, condition.moodCheck))
         .filter((placement) => members.includes(placement.name))
         .filter(
@@ -3951,6 +3969,77 @@ function aggregateDailyProductions(
   });
 }
 
+function selectedDailyAmount(production: ProductionValue): number {
+  return production.effectiveAmountPerDay ?? production.amountPerDay;
+}
+
+function aggregateDailyOutputs(
+  document: ScheduleDocument,
+  productions: ProductionValue[],
+): DailyOutput[] {
+  const gross = new Map<string, number>();
+  const materials = new Map<string, number>();
+  productions.forEach((production) => {
+    if (production.product !== "Clue") {
+      gross.set(production.product, selectedDailyAmount(production));
+    }
+    const rates =
+      production.effectiveMaterialPerHour ?? production.materialPerHour ?? {};
+    Object.entries(rates).forEach(([material, rate]) => {
+      materials.set(
+        material,
+        (materials.get(material) ?? 0) - Math.abs(rate) * 24,
+      );
+    });
+  });
+  const dormitoryCredit = document.layout
+    .filter((entry) => entry.type === "dormitory")
+    .reduce(
+      (total, entry) => total + Math.floor(10 + (entry.level * 1000) / 125),
+      0,
+    );
+  const clue = productions.find((production) => production.product === "Clue");
+  gross.set(
+    "Credit",
+    CREDIT_BASE_DAILY +
+      dormitoryCredit +
+      (clue ? selectedDailyAmount(clue) * CREDIT_PER_CLUE : 0),
+  );
+
+  const grossOutputs = DAILY_OUTPUT_ORDER.flatMap((product) => {
+    const amountPerDay = gross.get(product);
+    return amountPerDay === undefined || Math.abs(amountPerDay) <= EPSILON
+      ? []
+      : [{ product, kind: "production" as const, amountPerDay }];
+  });
+  const netOutputs = Array.from(materials, ([product, consumed]) => ({
+    product,
+    kind: "net" as const,
+    amountPerDay: (gross.get(product) ?? 0) + consumed,
+    consumed,
+  }))
+    .filter(
+      (output) =>
+        output.consumed < -EPSILON && Math.abs(output.amountPerDay) > EPSILON,
+    )
+    .sort(
+      (left, right) =>
+        (DAILY_OUTPUT_ORDER.indexOf(left.product) < 0
+          ? DAILY_OUTPUT_ORDER.length
+          : DAILY_OUTPUT_ORDER.indexOf(left.product)) -
+          (DAILY_OUTPUT_ORDER.indexOf(right.product) < 0
+            ? DAILY_OUTPUT_ORDER.length
+            : DAILY_OUTPUT_ORDER.indexOf(right.product)) ||
+        left.product.localeCompare(right.product),
+    )
+    .map(({ product, kind, amountPerDay }) => ({
+      product,
+      kind,
+      amountPerDay,
+    }));
+  return [...grossOutputs, ...netOutputs];
+}
+
 export function calculateEfficiency(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
@@ -3969,12 +4058,14 @@ export function calculateEfficiency(
     (total, plan) => total + plan.durationHours,
     0,
   );
+  const dailyProductions = aggregateDailyProductions(plans, totalHours);
   return {
     document,
     plans,
     dailyHours: totalHours,
     dailyFacilities: aggregateDaily(plans, totalHours),
-    dailyProductions: aggregateDailyProductions(plans, totalHours),
+    dailyProductions,
+    dailyOutputs: aggregateDailyOutputs(document, dailyProductions),
     ...(fiammetta ? { fiammetta } : {}),
     fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
     warnings: plans.flatMap((plan) => plan.warnings),

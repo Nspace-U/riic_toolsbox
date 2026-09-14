@@ -45,6 +45,7 @@ import type {
   EfficiencyResult,
   FacilityEfficiencyResult,
   CluePreference,
+  DailyOutput,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -88,6 +89,7 @@ import {
   parseLayoutText,
   roomSlotCount,
   roomLevelRange,
+  resourceItemIconFile,
   validateSchedule,
 } from "@/utils/schedule";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
@@ -2404,6 +2406,10 @@ function facilityIconUrl(fileName: string | undefined): string | undefined {
     : undefined;
 }
 
+function dailyOutputIconUrl(product: string): string | undefined {
+  return facilityIconUrl(resourceItemIconFile(product));
+}
+
 function facilityCardIconUrl(row: FacilityRow, plan: Plan): string | undefined {
   const products = roomProducts(row, plan);
   return facilityIconUrl(
@@ -4231,6 +4237,24 @@ function productionLabel(product: string): string {
   return product === "Clue" ? "线索" : product;
 }
 
+const DAILY_OUTPUT_LABELS: Record<string, string> = {
+  LMD: "龙门币",
+  Orundum: "合成玉",
+  "Pure Gold": "赤金",
+  "Battle Record": "作战记录",
+  "Originium Shard": "源石碎片",
+  Drone: "无人机",
+  Credit: "信用点",
+  "Recruit Refresh": "公开招募刷新次数",
+  固源岩: "固源岩",
+  装置: "装置",
+};
+
+function dailyOutputLabel(output: DailyOutput): string {
+  const kind = output.kind === "net" ? "净变化" : "每日产出";
+  return `${kind}${DAILY_OUTPUT_LABELS[output.product] ?? output.product} ${formatProduction(output.amountPerDay)}`;
+}
+
 function cluePreferenceText(preferences: CluePreference[] | undefined): string {
   if (!preferences?.length) {
     return "";
@@ -4367,10 +4391,6 @@ const efficiencyStatLabels: Record<string, string> = {
 
 function efficiencyStatLabel(stat: string): string {
   return efficiencyStatLabels[stat] ?? stat;
-}
-
-function effectiveProductionRate(value: ProductionValue): number {
-  return value.effectiveAmountPerHour ?? value.amountPerHour;
 }
 
 function productionMaterialsForDisplay(
@@ -6746,85 +6766,28 @@ onBeforeUnmount(() => {
                 </a-tag>
               </div>
               <div
-                v-if="efficiencyResult.dailyProductions.length"
+                v-if="efficiencyResult.dailyOutputs.length"
                 class="simulator-daily-output-grid"
               >
                 <div
-                  v-for="production in efficiencyResult.dailyProductions"
-                  :key="production.product"
+                  v-for="output in efficiencyResult.dailyOutputs"
+                  :key="`${output.kind}-${output.product}`"
                   class="simulator-daily-output-item"
+                  :class="{
+                    'simulator-daily-output-item--net': output.kind === 'net',
+                  }"
                 >
-                  <span class="simulator-daily-output-product">{{
-                    productionLabel(production.product)
-                  }}</span>
-                  <span
-                    v-if="production.cluePreferences?.length"
-                    class="simulator-daily-output-rate"
-                  >
-                    {{ cluePreferenceText(production.cluePreferences) }}
-                  </span>
-                  <strong
-                    >{{ formatProduction(production.amountPerDay) }} /
-                    天</strong
-                  >
-                  <span class="simulator-daily-output-rate">
-                    实际 {{ formatProduction(production.amountPerHour) }} / 小时
-                  </span>
-                  <span class="simulator-daily-output-rate">
-                    基础
-                    {{
-                      formatProduction(
-                        production.baseAmountPerHour ??
-                          production.amountPerHour,
-                      )
-                    }}
-                    / 小时
-                  </span>
-                  <span
-                    v-if="production.effectiveAmountPerHour !== undefined"
-                    class="simulator-daily-output-rate simulator-daily-output-rate--effective"
-                  >
-                    有效
-                    {{ formatProduction(effectiveProductionRate(production)) }}
-                    / 小时
-                  </span>
-                  <template v-if="production.conversion">
-                    <span class="simulator-daily-output-rate">
-                      折算{{ production.conversion.label }}
-                    </span>
-                    <strong>
-                      {{
-                        formatProduction(
-                          convertedProductionAmount(
-                            production,
-                            production.amountPerDay,
-                          ),
-                        )
-                      }}
-                      / 天
-                    </strong>
-                  </template>
-                  <span
-                    v-for="material in productionMaterialsForDisplay(
-                      production,
-                    )"
-                    :key="material"
-                    class="simulator-daily-output-material"
-                    >{{ material }}</span
-                  >
-                  <template
-                    v-if="production.effectiveAmountPerHour !== undefined"
-                  >
-                    <span
-                      v-for="material in productionMaterialsForDisplay(
-                        production,
-                        true,
-                      )"
-                      :key="`effective-${material}`"
-                      class="simulator-daily-output-material simulator-daily-output-material--effective"
-                      >有效 {{ material }}</span
-                    >
-                  </template>
+                  <img
+                    v-if="dailyOutputIconUrl(output.product)"
+                    :alt="dailyOutputLabel(output)"
+                    :src="dailyOutputIconUrl(output.product)"
+                    class="simulator-daily-output-icon"
+                  />
+                  <strong>{{
+                    output.kind === "net"
+                      ? signedNumber(output.amountPerDay)
+                      : formatProduction(output.amountPerDay)
+                  }}</strong>
                 </div>
               </div>
               <a-empty
