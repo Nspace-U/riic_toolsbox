@@ -505,7 +505,7 @@ function runTests(runtime) {
     ) < 1e-9,
   );
 
-  const skippedQueueMood = calculateEfficiency(
+  const directPreviousQueueMood = calculateEfficiency(
     {
       layout: [{ type: "manufacture", level: 3 }],
       plans: [
@@ -532,8 +532,53 @@ function runTests(runtime) {
     catalog,
   );
   assert.deepEqual(
-    skippedQueueMood.plans.map((plan) => plan.moods[0]?.start),
+    directPreviousQueueMood.plans.map((plan) => plan.moods[0]?.start),
     [6, undefined, 18],
+  );
+
+  const missingPreviousQueueMood = calculateEfficiency(
+    {
+      layout: [{ type: "manufacture", level: 3 }],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [
+              {
+                operators: ["铅踝"],
+                operatorStates: { 铅踝: { elite: 0, level: 1 } },
+              },
+            ],
+          },
+        },
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [assignmentWithoutMood([])],
+          },
+        },
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [
+              {
+                operators: ["铅踝"],
+                operatorStates: { 铅踝: { elite: 0, level: 1 } },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.deepEqual(
+    missingPreviousQueueMood.plans.map((plan) => plan.moods[0]?.start),
+    [12, undefined, 24],
+  );
+  assert.deepEqual(
+    missingPreviousQueueMood.plans.map((plan) => plan.moods[0]?.end),
+    [0, undefined, 12],
   );
 
   const steadyRecovery = calculateEfficiency(

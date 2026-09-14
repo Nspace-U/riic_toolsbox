@@ -1913,16 +1913,12 @@ function resolveMoods(
     if (contexts.length <= 1) {
       return {};
     }
-    for (let offset = 1; offset < contexts.length; offset += 1) {
-      const previousIndex =
-        (index - offset + contexts.length) % contexts.length;
-      const context = contexts[previousIndex];
-      const placement = context?.placements.find(matches);
-      if (placement) {
-        return { placement, context };
-      }
-    }
-    return {};
+    const previousIndex = (index - 1 + contexts.length) % contexts.length;
+    const context = contexts[previousIndex];
+    return {
+      placement: context?.placements.find(matches),
+      context,
+    };
   };
   const previousWorkPlacement = (
     index: number,
@@ -1964,32 +1960,28 @@ function resolveMoods(
   });
   const unanchoredCycleOperators = new Set(
     contexts.length > 1
-      ? Array.from(
-          new Set(
-            contexts.flatMap((context) =>
-              context.placements.map((placement) => placement.name),
-            ),
-          ),
-        ).filter((name) => {
-          const occurrences = contexts
-            .map((context) =>
-              context.placements.filter((placement) => placement.name === name),
-            )
-            .filter((placements) => placements.length > 0);
-          return (
-            occurrences.length > 1 &&
-            occurrences.every((placements) =>
-              placements.every(
-                (placement) =>
-                  isMoodContinuityPlacement(placement) &&
-                  !placement.explicitMood,
-              ),
-            ) &&
-            occurrences.some((placements) =>
-              placements.some((placement) => isWorkPlacement(placement)),
-            )
-          );
-        })
+      ? contexts[0]?.placements
+          .map((placement) => placement.name)
+          .filter((name) =>
+            contexts.every((context) => {
+              const placement = context.placements.find(
+                (candidate) => candidate.name === name,
+              );
+              return (
+                !!placement &&
+                isMoodContinuityPlacement(placement) &&
+                !placement.explicitMood
+              );
+            }),
+          )
+          .filter((name) =>
+            contexts.some((context) => {
+              const placement = context.placements.find(
+                (candidate) => candidate.name === name,
+              );
+              return !!placement && isWorkPlacement(placement);
+            }),
+          )
       : [],
   );
   const steadyMoodStarts = new Map<string, number>();
