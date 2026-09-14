@@ -107,6 +107,8 @@ const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
 ]);
 const ATTRIBUTE_STATS = new Set(["orderLimit", "storageCap"]);
 const POINT_STATS = new Set(["basePointGain", "basePointConvert"]);
+const FLOW_GOLD_TERM = "cc.t.flow_gold";
+const FLOW_GOLD_DISPLAY_OPERATORS = ["绮良", "鸿雪", "图耶"];
 
 interface Placement {
   name: string;
@@ -211,6 +213,17 @@ function roomAssignments(
     facility.type,
     facility.index,
   ).assignment;
+}
+
+function hasFlowGoldDisplayOperator(context: PlanContext): boolean {
+  return context.facilities
+    .filter((facility) => facility.type === "trading")
+    .some((facility) =>
+      (
+        roomAssignments(context.document, context.index, facility).operators ??
+        []
+      ).some((name) => FLOW_GOLD_DISPLAY_OPERATORS.includes(name)),
+    );
 }
 
 function stateOf(assignment: RoomAssignment, name: string): OperatorState {
@@ -1502,6 +1515,14 @@ function orderedBasePointConversions(active: ActiveEffect[]): ActiveEffect[] {
   return ordered;
 }
 
+function isSelfReferentialBasePointGain(item: ActiveEffect): boolean {
+  return (
+    item.effect.stat === "basePointGain" &&
+    item.effect.per?.source === "basePoint" &&
+    item.effect.per.term === item.effect.term
+  );
+}
+
 function computeBasePointState(
   context: PlanContext,
   active: ActiveEffect[],
@@ -1510,8 +1531,54 @@ function computeBasePointState(
 ): BasePointState {
   const points: Record<string, number> = {};
   const sources: Record<string, BasePointSource[]> = {};
+  context.basePoints = points;
+  context.facilities
+    .filter((facility) => facility.type === "manufacture")
+    .filter((facility) => {
+      const assignment = roomAssignments(
+        context.document,
+        context.index,
+        facility,
+      );
+      return (
+        manufactureRule(assignment.product, assignment.sourceMaterial)
+          ?.recipe === "贵金属"
+      );
+    })
+    .forEach((facility) => {
+      points["cc.t.flow_gold"] = (points["cc.t.flow_gold"] ?? 0) + 1;
+      appendBasePointSource(sources, "cc.t.flow_gold", {
+        kind: "gain",
+        operator: "生产赤金",
+        facility: "manufacture",
+        facilityIndex: facility.index,
+        slotIndex: 0,
+        value: 1,
+      });
+    });
+  const initialPoints = { ...points };
+  context.basePoints = initialPoints;
+  active.filter(isSelfReferentialBasePointGain).forEach((item) => {
+    const term = item.effect.term;
+    if (!term) return;
+    const value = effectValue(item, item.target, context, catalog, data);
+    points[term] = (points[term] ?? 0) + value;
+    if (value > EPSILON) {
+      appendBasePointSource(sources, term, {
+        kind: "gain",
+        operator: item.owner.name,
+        skill: item.skill,
+        facility: item.owner.facility.type,
+        facilityIndex: item.owner.facility.index,
+        slotIndex: item.owner.index,
+        value,
+      });
+    }
+  });
+  context.basePoints = points;
   active
     .filter((item) => item.effect.stat === "basePointGain")
+    .filter((item) => !isSelfReferentialBasePointGain(item))
     .forEach((item) => {
       const term = item.effect.term;
       if (!term) return;
@@ -1555,7 +1622,11 @@ function computeBasePointState(
   return {
     points,
     details: Object.entries(points)
-      .filter(([, value]) => value > EPSILON)
+      .filter(
+        ([term, value]) =>
+          value > EPSILON &&
+          (term !== FLOW_GOLD_TERM || hasFlowGoldDisplayOperator(context)),
+      )
       .map(([term, value]) => ({
         term,
         value,
@@ -1976,21 +2047,30 @@ function resolveMoods(
       );
     });
   });
+  const fiammettaAnchoredOperators = new Set(
+    contexts.flatMap((context) =>
+      context.placements
+        .filter((placement) => placement.fiammettaForced)
+        .map((placement) => placement.name),
+    ),
+  );
   const unanchoredCycleOperators = new Set(
     contexts.length > 1
       ? contexts[0]?.placements
           .map((placement) => placement.name)
-          .filter((name) =>
-            contexts.every((context) => {
-              const placement = context.placements.find(
-                (candidate) => candidate.name === name,
-              );
-              return (
-                !!placement &&
-                isMoodContinuityPlacement(placement) &&
-                !placement.explicitMood
-              );
-            }),
+          .filter(
+            (name) =>
+              !fiammettaAnchoredOperators.has(name) &&
+              contexts.every((context) => {
+                const placement = context.placements.find(
+                  (candidate) => candidate.name === name,
+                );
+                return (
+                  !!placement &&
+                  isMoodContinuityPlacement(placement) &&
+                  !placement.explicitMood
+                );
+              }),
           )
           .filter((name) =>
             contexts.some((context) => {

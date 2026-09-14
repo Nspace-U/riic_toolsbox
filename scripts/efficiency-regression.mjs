@@ -152,6 +152,15 @@ function assignmentWithoutMood(operators) {
   };
 }
 
+function assignmentWithoutMoodAtElite(operators, elite = 2) {
+  return {
+    operators: [...operators],
+    operatorStates: Object.fromEntries(
+      operators.map((name) => [name, { elite, level: 1 }]),
+    ),
+  };
+}
+
 function catalogWithManufactureSkill(catalog, name, effects) {
   const skillFile = {
     id: `test_${name}`,
@@ -232,6 +241,38 @@ function documentFor({
       },
     ],
     settings,
+  };
+}
+
+function flowGoldDocument({
+  trading = [],
+  control = [],
+  manufactureCount = 1,
+  eliteLevels = {},
+  moods = {},
+}) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      ...Array.from({ length: manufactureCount }, () => ({
+        type: "manufacture",
+        level: 3,
+      })),
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment(control, eliteLevels, moods)],
+          trading: [assignment(trading, eliteLevels, moods)],
+          manufacture: Array.from({ length: manufactureCount }, () => ({
+            ...assignment([], eliteLevels, moods),
+            product: "Pure Gold",
+          })),
+        },
+      },
+    ],
   };
 }
 
@@ -892,6 +933,39 @@ function runTests(runtime) {
     [24, 24],
   );
 
+  const fiammettaSteadyMood = calculateEfficiency(
+    fiammettaDocument({
+      mode: "queue",
+      fiammetta: {
+        queue: [
+          { operators: ["雷狼龙S空爆"] },
+          {},
+          { operators: ["雷狼龙S空爆"] },
+        ],
+      },
+      plans: [0, 1, 2].map(() => ({
+        duration: 720,
+        rooms: {
+          trading: [assignmentWithoutMoodAtElite(["雷狼龙S空爆"])],
+          dormitory: [fiammettaAssignment(["菲亚梅塔"])],
+        },
+      })),
+    }),
+    catalog,
+  );
+  const fiammettaSteadyMoodPlan = fiammettaSteadyMood.plans[1];
+  const fiammettaSteadyMoodSnapshot = fiammettaSteadyMoodPlan.moods.find(
+    ({ operator }) => operator === "雷狼龙S空爆",
+  );
+  const fiammettaSteadyMoodTrading = fiammettaSteadyMoodPlan.facilities.find(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(fiammettaSteadyMoodSnapshot?.start, 12);
+  assert.equal(fiammettaSteadyMoodSnapshot?.end, 0);
+  assert.equal(fiammettaSteadyMoodSnapshot?.working, true);
+  assert.equal(fiammettaSteadyMoodTrading?.skillEfficiency, 35);
+  assert.equal(fiammettaSteadyMoodTrading?.efficiency, 136);
+
   const huaihu = calculateEfficiency(
     documentFor({
       manufacture: ["槐琥", "砾"],
@@ -1011,6 +1085,71 @@ function runTests(runtime) {
   assert.equal(tradeFacility.skillEfficiency, 45);
   assert.equal(tradeFacility.operatorSkillEfficiency, 45);
   assertSkillDetails(tradeFacility, ["巫恋"]);
+
+  const hiddenFlowGold = calculateEfficiency(
+    flowGoldDocument({ manufactureCount: 1 }),
+    catalog,
+  );
+  assert.equal(hiddenFlowGold.plans[0].basePoints["cc.t.flow_gold"], 1);
+  assert.equal(
+    hiddenFlowGold.plans[0].basePointDetails.some(
+      ({ term }) => term === "cc.t.flow_gold",
+    ),
+    false,
+  );
+
+  const flowGold = calculateEfficiency(
+    flowGoldDocument({
+      trading: ["绮良", "鸿雪", "图耶"],
+      control: ["至简"],
+      manufactureCount: 2,
+      eliteLevels: { 绮良: 2, 鸿雪: 2, 图耶: 2, 至简: 2 },
+    }),
+    catalog,
+  );
+  const flowGoldTrading = tradingResult(flowGold);
+  assert.equal(flowGold.plans[0].basePoints["cc.t.flow_gold"], 5);
+  assert.equal(
+    flowGold.plans[0].basePointDetails.find(
+      ({ term }) => term === "cc.t.flow_gold",
+    )?.value,
+    5,
+  );
+  assert.equal(flowGoldTrading.skillEfficiency, 65);
+  assert.equal(
+    flowGoldTrading.combinationDetails.find(
+      ({ operator, skill }) => operator === "鸿雪" && skill === "销路宣发",
+    )?.value,
+    25,
+  );
+  assert.equal(
+    flowGoldTrading.combinationDetails.find(
+      ({ operator, skill }) => operator === "图耶" && skill === "物流规划·β",
+    )?.value,
+    30,
+  );
+  assert.equal(
+    flowGoldTrading.combinationDetails.find(
+      ({ operator, skill }) =>
+        operator === "绮良" && skill === "订单流可视化·β",
+    )?.value,
+    5,
+  );
+
+  const exhaustedFlowGold = calculateEfficiency(
+    flowGoldDocument({
+      trading: ["绮良"],
+      moods: { 绮良: 0 },
+      eliteLevels: { 绮良: 2 },
+    }),
+    catalog,
+  );
+  assert.equal(
+    exhaustedFlowGold.plans[0].basePointDetails.some(
+      ({ term }) => term === "cc.t.flow_gold",
+    ),
+    true,
+  );
 
   const queueFiammetta = calculateEfficiency(
     fiammettaDocument({
