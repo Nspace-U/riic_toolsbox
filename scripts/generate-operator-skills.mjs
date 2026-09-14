@@ -1826,7 +1826,6 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
       text,
     );
   }
-  //   d2) 每有一个XX干员进驻贸易站，订单获取效率+Y%（焰狐龙梓兰·队长的自觉）→ per opGroupInFacility same
   if (
     (m = text.match(
       /每有一个(.+?)干员进驻贸易站，订单获取效率([+-]?\d+(?:\.\d+)?)%/,
@@ -1840,7 +1839,7 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
         value: Number(m[2]),
         source: "opGroupInFacility",
         group: groupKey(m[1], groups, warn),
-        facility: "same",
+        facility: "trading",
       },
     });
     text = del(
@@ -2114,6 +2113,8 @@ let WORKSPACE_FACS = [
   "hire",
   "meeting",
   "control",
+  "processing",
+  "training",
 ];
 
 function facilitiesFromTerm(termDescriptions, termKey, fallback) {
@@ -2143,6 +2144,9 @@ function configureFacilityTerms(termDescriptions) {
     "cc.c.room3",
     WORKSPACE_FACS,
   );
+  if (!WORKSPACE_FACS.includes("processing")) {
+    WORKSPACE_FACS.push("processing");
+  }
 }
 
 function cloneEffect(effect) {
@@ -2151,7 +2155,7 @@ function cloneEffect(effect) {
 
 function pushControlEffect(effects, effect, condition) {
   const next = cloneEffect(effect);
-  if (condition) next.condition = condition;
+  if (condition && !next.condition) next.condition = condition;
   effects.push(next);
 }
 

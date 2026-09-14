@@ -28,7 +28,7 @@
               "stat": "orderLimit",
               "value": 1,
               "condition": {
-                "type": "opAtFacility",
+                "type": "opInFacilityAndTarget",
                 "op": "赫德雷",
                 "facility": "trading"
               }
@@ -57,7 +57,7 @@
               "stat": "orderLimit",
               "value": 2,
               "condition": {
-                "type": "opAtFacility",
+                "type": "opInFacilityAndTarget",
                 "op": "赫德雷",
                 "facility": "trading"
               }
