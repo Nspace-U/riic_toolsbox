@@ -15,7 +15,8 @@
           "effects": [
             {
               "target": "manufacture",
-              "stat": "zeroOpMood"
+              "stat": "zeroOpMood",
+              "scope": "room"
             }
           ]
         }

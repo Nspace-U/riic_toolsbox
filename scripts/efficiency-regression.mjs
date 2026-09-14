@@ -241,6 +241,25 @@ function runTests(runtime) {
   assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
   assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
 
+  const huaihuMood = calculateEfficiency(
+    documentFor({
+      manufacture: ["槐琥", "泡普卡"],
+      eliteLevels: { 槐琥: 2, 泡普卡: 0 },
+    }),
+    catalog,
+  );
+  const huaihuMoodSnapshots = huaihuMood.plans[0].moods.filter(
+    ({ facility }) => facility === "manufacture",
+  );
+  assert.equal(
+    huaihuMoodSnapshots.find(({ operator }) => operator === "槐琥")?.costRate,
+    0.95,
+  );
+  assert.equal(
+    huaihuMoodSnapshots.find(({ operator }) => operator === "泡普卡")?.costRate,
+    0.95,
+  );
+
   const clearedDerived = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "槐琥", "砾"],

@@ -986,7 +986,7 @@ function parseManuEffects(text, target, groups, cond, warn) {
   }
   // 0.5) 消除心情消耗（槐琥·团队精神）→ zeroOpMood
   if (text.match(/消除当前制造站内所有干员自身心情消耗的影响/)) {
-    push({ target: "manufacture", stat: "zeroOpMood" });
+    push({ target: "manufacture", stat: "zeroOpMood", scope: "room" });
     text = del(/消除当前制造站内所有干员自身心情消耗的影响/, text);
   }
 
