@@ -2876,10 +2876,6 @@ function operatorBaseEfficiency(
   facility: EfficiencyFacility,
   placement: Placement,
 ): number {
-  const percentage = percentageOperatorValue(placement.name);
-  if (percentage !== undefined) {
-    return 0;
-  }
   if (facility.type === "meeting") {
     return isCurrentlyWorking(placement) ? 5 : 0;
   }
@@ -3821,11 +3817,8 @@ function calculatePowerGroup(
   }
   const powerPlacements = placementsInRoomType(context, "power");
   const operatorEfficiency =
-    powerPlacements.filter(
-      (placement) =>
-        isCurrentlyWorking(placement) &&
-        percentageOperatorValue(placement.name) === undefined,
-    ).length * 5;
+    powerPlacements.filter((placement) => isCurrentlyWorking(placement))
+      .length * 5;
   const seen = new Set<string>();
   const seenBase = new Set<string>();
   let skillEfficiency = powerPlacements.reduce((total, placement) => {

@@ -154,10 +154,7 @@ export function inferScheduleLayout(plans: Plan[]): LayoutEntry[] {
   const functionalCost = (levels: readonly number[]): number =>
     functionalTypes.reduce(
       (total, type, index) =>
-        total +
-        (counts[type] > 0
-          ? -(ROOM_POWER_VALUES[type][levels[index]! - 1] ?? 0)
-          : 0),
+        total - (ROOM_POWER_VALUES[type][levels[index]! - 1] ?? 0),
       0,
     );
   const corePower = powerOfLayout(layout);
@@ -166,7 +163,7 @@ export function inferScheduleLayout(plans: Plan[]): LayoutEntry[] {
   functionalTypes.forEach((type: RoomKey, index) => {
     addLevel(
       type,
-      Array.from({ length: counts[type] }, () => functionalLevels[index]!),
+      Array.from({ length: ROOM_LIMITS[type] }, () => functionalLevels[index]!),
       layout,
     );
   });
@@ -174,7 +171,7 @@ export function inferScheduleLayout(plans: Plan[]): LayoutEntry[] {
   const beforeDormitory = powerOfLayout(layout);
   addLevel(
     "dormitory",
-    dormitoryLevels(counts.dormitory, beforeDormitory.net),
+    dormitoryLevels(ROOM_LIMITS.dormitory, beforeDormitory.net),
     layout,
   );
   return layout;

@@ -85,6 +85,67 @@ EXP 52.2k | 贵金属 46.6k
   );
 
   assert.deepEqual(importLayoutModule.dormitoryLevels(4, 40), [1, 1, 1, 1]);
+  assert.deepEqual(importLayoutModule.dormitoryLevels(4, 60), [3, 1, 1, 1]);
+
+  const fullFunctionalLayout = importLayoutModule.inferScheduleLayout([
+    {
+      rooms: {
+        control: [{}],
+        trading: [{ operators: ["甲", "乙", "丙"] }],
+        manufacture: [{ operators: ["甲", "乙", "丙"] }],
+        power: [{ operators: ["甲"] }, { operators: ["乙"] }],
+      },
+    },
+  ]);
+  assert.deepEqual(
+    fullFunctionalLayout
+      .filter((entry) =>
+        ["meeting", "processing", "hire", "training"].includes(entry.type),
+      )
+      .map(({ type, level }) => [type, level]),
+    [
+      ["meeting", 3],
+      ["processing", 3],
+      ["hire", 3],
+      ["training", 3],
+    ],
+  );
+  assert.deepEqual(
+    fullFunctionalLayout
+      .filter((entry) => entry.type === "dormitory")
+      .map(({ level }) => level),
+    [5, 5, 5, 3],
+  );
+
+  const fallbackFunctionalLayout = importLayoutModule.inferScheduleLayout([
+    {
+      rooms: {
+        control: [{}],
+        trading: [{ operators: ["甲", "乙", "丙"] }],
+        manufacture: [{ operators: ["甲", "乙", "丙"] }],
+        power: [{ operators: ["甲"] }],
+      },
+    },
+  ]);
+  assert.deepEqual(
+    fallbackFunctionalLayout
+      .filter((entry) =>
+        ["meeting", "processing", "hire", "training"].includes(entry.type),
+      )
+      .map(({ type, level }) => [type, level]),
+    [
+      ["meeting", 1],
+      ["processing", 3],
+      ["hire", 1],
+      ["training", 3],
+    ],
+  );
+  assert.deepEqual(
+    fallbackFunctionalLayout
+      .filter((entry) => entry.type === "dormitory")
+      .map(({ level }) => level),
+    [3, 1, 1, 1],
+  );
 
   const characterTable = await import(
     "../public/assets/gamedata/latest/excel/character_table.json",
@@ -160,8 +221,15 @@ EXP 52.2k | 贵金属 46.6k
   const manufactureResult = result.plans[0].facilities.find(
     (facility) => facility.facility.type === "manufacture",
   );
-  assert.equal(manufactureResult?.moodEfficiency, 0);
+  assert.equal(manufactureResult?.moodEfficiency, 3);
   assert.equal(manufactureResult?.operatorSkillEfficiency, 105);
+  assert.equal(manufactureResult?.efficiency, 208);
+  const powerResult = result.plans[0].facilities.find(
+    (facility) => facility.facility.type === "power",
+  );
+  assert.equal(powerResult?.moodEfficiency, 5);
+  assert.equal(powerResult?.operatorSkillEfficiency, 20);
+  assert.equal(powerResult?.efficiency, 125);
 
   const termFallbackCatalog = {
     operators: {
