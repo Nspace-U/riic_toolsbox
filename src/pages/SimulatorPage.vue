@@ -7036,6 +7036,28 @@ onBeforeUnmount(() => {
                             productionRateLabel(result.facility.production)
                           }}</strong>
                           <template
+                            v-if="
+                              (result.facility.facility.type === 'trading' ||
+                                result.facility.facility.type ===
+                                  'manufacture') &&
+                              productionMaterialsForDisplay(
+                                result.facility.production,
+                                currentEfficiencySettings.simulateOverflow,
+                              ).length
+                            "
+                          >
+                            <template
+                              v-for="material in productionMaterialsForDisplay(
+                                result.facility.production,
+                                currentEfficiencySettings.simulateOverflow,
+                              )"
+                              :key="`facility-material-${material}`"
+                            >
+                              <span>材料消耗速率</span>
+                              <strong>{{ material }}</strong>
+                            </template>
+                          </template>
+                          <template
                             v-if="result.facility.production.conversion"
                           >
                             <span>单位折算</span>
