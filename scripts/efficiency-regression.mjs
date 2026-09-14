@@ -273,6 +273,22 @@ function runTests(runtime) {
   assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
   assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
 
+  const seafoam = calculateEfficiency(
+    documentFor({
+      manufacture: ["海沫", "多萝西", "水月"],
+      eliteLevels: { 海沫: 0, 多萝西: 2, 水月: 0 },
+    }),
+    catalog,
+  );
+  const seafoamManufacture = manufactureResult(seafoam);
+  assert.equal(seafoamManufacture.skillEfficiency, 35);
+  assert.equal(
+    seafoamManufacture.combinationDetails.find(
+      ({ operator, skill }) => operator === "水月" && skill === "意识协议",
+    )?.value,
+    5,
+  );
+
   const huaihuMood = calculateEfficiency(
     documentFor({
       manufacture: ["槐琥", "泡普卡"],

@@ -476,6 +476,27 @@ function membersFor(
   return groupMembers(catalog, group);
 }
 
+function skillMatchesTag(
+  placement: Placement,
+  skill: string,
+  tag: string,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+): boolean {
+  if (catalog.terms[tag]?.members?.includes(skill)) {
+    return true;
+  }
+  return context.active.some(
+    (item) =>
+      item.effect.stat === "skillTagConvert" &&
+      item.effect.tagTo === tag &&
+      item.owner.facility.id === placement.facility.id &&
+      item.effect.tagFrom?.some((sourceTag) =>
+        catalog.terms[sourceTag]?.members?.includes(skill),
+      ) === true,
+  );
+}
+
 function conditionFacilityType(
   conditionFacility: string | undefined,
   owner: Placement,
@@ -790,14 +811,20 @@ function perCount(
       break;
     }
     case "skillTagCount": {
-      const members = catalog.terms[per.tag ?? ""]?.members ?? [];
       count = countInFacility(per.facility)
         .filter((placement) => workingPlacement(placement, per.moodCheck))
         .reduce(
           (total, placement) =>
             total +
-            placement.selected.filter((item) => members.includes(item.skill))
-              .length,
+            placement.selected.filter(({ skill }) =>
+              skillMatchesTag(
+                placement,
+                skill,
+                per.tag ?? "",
+                context,
+                catalog,
+              ),
+            ).length,
           0,
         );
       break;
