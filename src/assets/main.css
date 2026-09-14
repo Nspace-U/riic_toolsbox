@@ -1833,9 +1833,21 @@ a {
   margin-block-end: 14px;
 }
 
-.simulator-import-layout-group {
+.simulator-import-layout-panel {
   padding-block: 10px;
   border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-import-layout-panel .simulator-layout-add-grid {
+  margin-block-end: 12px;
+}
+
+.simulator-import-layout-panel .simulator-layout-list {
+  margin-block-start: 12px;
+}
+
+.simulator-import-layout-panel + .ant-checkbox-wrapper {
+  margin-block-start: 12px;
 }
 
 .simulator-import-layout-heading {
@@ -1846,23 +1858,8 @@ a {
   margin-block-end: 8px;
 }
 
-.simulator-import-layout-levels {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px 16px;
-}
-
-.simulator-import-layout-level {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-width: 0;
-}
-
 @media (max-width: 640px) {
-  .simulator-import-power-summary,
-  .simulator-import-layout-levels {
+  .simulator-import-power-summary {
     grid-template-columns: 1fr;
   }
 }
@@ -1931,7 +1928,7 @@ a {
 .simulator-facility-queue {
   position: relative;
   min-width: 0;
-  height: auto;
+  height: var(--simulator-queue-min-height, 135px);
   min-height: var(--simulator-queue-min-height, 135px);
   margin: 0;
   overflow: hidden;

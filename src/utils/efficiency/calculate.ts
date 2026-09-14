@@ -110,6 +110,13 @@ const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
   "clueSpeed",
   "hireSpd",
 ]);
+const PERCENTAGE_EFFICIENCY_FACILITIES = new Set<RoomKey>([
+  "trading",
+  "manufacture",
+  "power",
+  "meeting",
+  "hire",
+]);
 const ATTRIBUTE_STATS = new Set(["orderLimit", "storageCap"]);
 const POINT_STATS = new Set(["basePointGain", "basePointConvert"]);
 const FLOW_GOLD_TERM = "cc.t.flow_gold";
@@ -2871,12 +2878,7 @@ function operatorBaseEfficiency(
 ): number {
   const percentage = percentageOperatorValue(placement.name);
   if (percentage !== undefined) {
-    return isCurrentlyWorking(placement) &&
-      ["trading", "manufacture", "power", "meeting", "hire"].includes(
-        facility.type,
-      )
-      ? percentage
-      : 0;
+    return 0;
   }
   if (facility.type === "meeting") {
     return isCurrentlyWorking(placement) ? 5 : 0;
@@ -2892,6 +2894,18 @@ function operatorBaseEfficiency(
     return isCurrentlyWorking(placement) ? value : 0;
   }
   return 0;
+}
+
+function percentageOperatorEfficiency(
+  facility: EfficiencyFacility,
+  placement: Placement,
+): number {
+  const percentage = percentageOperatorValue(placement.name);
+  return percentage !== undefined &&
+    PERCENTAGE_EFFICIENCY_FACILITIES.has(facility.type) &&
+    isCurrentlyWorking(placement)
+    ? percentage
+    : 0;
 }
 
 function operatorTrainingEfficiency(placement: Placement): number {
@@ -2931,7 +2945,12 @@ function operatorContributions(
       placement.facility,
       placement,
     );
-    const skillEfficiency = skillValues.get(placement.name) ?? 0;
+    const percentageEfficiency = percentageOperatorEfficiency(
+      placement.facility,
+      placement,
+    );
+    const skillEfficiency =
+      (skillValues.get(placement.name) ?? 0) + percentageEfficiency;
     const contribution = {
       operator: placement.name,
       baseEfficiency,
@@ -3065,11 +3084,15 @@ function calculateFacility(
       total: Math.max(1, attributeState.attributes.orderLimit.base + skill),
     };
   }
+  const percentageEfficiency = placements.reduce((total, placement) => {
+    return total + percentageOperatorEfficiency(facility, placement);
+  }, 0);
   const skillEfficiency =
     combinationAggregate.total +
     statAggregate.total +
     special.value +
-    trainingEfficiency;
+    trainingEfficiency +
+    percentageEfficiency;
   const baseDetails = detailRows(baseAggregate, facility.type, "base", context);
   const combinationDetails = [
     ...detailRows(combinationAggregate, facility.type, "combination", context),
@@ -3796,13 +3819,18 @@ function calculatePowerGroup(
   if (!first || !placementsInRoomType(context, "power").length) {
     return undefined;
   }
+  const powerPlacements = placementsInRoomType(context, "power");
   const operatorEfficiency =
-    placementsInRoomType(context, "power").filter((placement) =>
-      isCurrentlyWorking(placement),
+    powerPlacements.filter(
+      (placement) =>
+        isCurrentlyWorking(placement) &&
+        percentageOperatorValue(placement.name) === undefined,
     ).length * 5;
   const seen = new Set<string>();
   const seenBase = new Set<string>();
-  let skillEfficiency = 0;
+  let skillEfficiency = powerPlacements.reduce((total, placement) => {
+    return total + percentageOperatorEfficiency(first, placement);
+  }, 0);
   let facBase = 0;
   const skillDetails: OperatorEfficiencyDetail[] = [];
   const baseDetails: OperatorEfficiencyDetail[] = [];

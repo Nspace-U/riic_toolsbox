@@ -1,5 +1,6 @@
 import type { EfficiencyCatalog } from "@/types/efficiency";
 
+import { groupMembers } from "@/utils/efficiency/catalog";
 import { SPECIAL_OPERATOR_ALIASES } from "@/utils/specialOperatorAliases";
 
 const PERCENTAGE_OPERATOR_PATTERN = /^\d+(?:\.\d+)?%$/;
@@ -56,14 +57,11 @@ export function groupIncludesOperator(
   group: string | undefined,
   name: string,
 ): boolean {
-  if (!group) {
-    return false;
-  }
-  const members = catalog.terms[group]?.members ?? [];
-  if (members.includes(name)) {
-    return true;
-  }
-  return termKeysForSpecialOperator(name, catalog).includes(group);
+  return (
+    groupMembers(catalog, group).includes(name) ||
+    (group !== undefined &&
+      termKeysForSpecialOperator(name, catalog).includes(group))
+  );
 }
 
 export function specialOperatorTermMembers(
@@ -71,7 +69,5 @@ export function specialOperatorTermMembers(
   catalog: EfficiencyCatalog,
 ): string[] {
   const keys = termKeysForSpecialOperator(name, catalog);
-  return Array.from(
-    new Set(keys.flatMap((key) => catalog.terms[key]?.members ?? [])),
-  );
+  return Array.from(new Set(keys.flatMap((key) => groupMembers(catalog, key))));
 }

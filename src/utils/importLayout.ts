@@ -71,9 +71,16 @@ function addLevel(
   });
 }
 
-function dormitoryLevels(count: number, remainingPower: number): number[] {
-  const levels = Array.from({ length: Math.min(count, 4) }, () => 1);
+export function dormitoryLevels(
+  count: number,
+  remainingPower: number,
+): number[] {
+  const levels: number[] = [];
   let remaining = Math.max(0, remainingPower);
+  while (levels.length < Math.min(count, 4) && remaining >= 10) {
+    levels.push(1);
+    remaining -= 10;
+  }
   const costs = [10, 10, 15, 20];
   for (let index = 0; index < levels.length; index += 1) {
     while (levels[index]! < 5) {

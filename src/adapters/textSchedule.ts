@@ -45,6 +45,15 @@ function nonEmptyLines(text: string): string[] {
     .filter(Boolean);
 }
 
+function descriptionText(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim();
+}
+
 function parseOperatorToken(token: string): ParsedOperator {
   let value = token.trim();
   const mood = value.endsWith("!") ? 0 : undefined;
@@ -208,7 +217,6 @@ function appendRoom(
 function buildPlans(
   stations: ParsedStation[],
   queueDescriptions: string[],
-  stats: string,
 ): Plan[] {
   const queueCount = Math.max(
     queueDescriptions.length,
@@ -219,7 +227,6 @@ function buildPlans(
     const plan: Plan = {
       name: `队列${queueIndex + 1}`,
       duration: parseHours(queueDescriptions[queueIndex]),
-      description: stats,
       rooms: {},
     };
     stations.forEach((station) => {
@@ -261,7 +268,8 @@ export function parseTextSchedule(text: string): ParsedSchedule {
     throw new ScheduleError("文件不是支持的排班 TXT 格式");
   }
   const titleLines = nonEmptyLines(sections[0] ?? "");
-  const detailsLines = nonEmptyLines(sections[1] ?? "");
+  const detailsText = descriptionText(sections[1] ?? "");
+  const detailsLines = detailsText ? detailsText.split("\n") : [];
   const bodyLines = nonEmptyLines(sections.slice(2).join("\n-=-\n"));
   const stats = bodyLines.shift() ?? "";
   const queueDescriptions = (bodyLines.shift() ?? "")
@@ -278,15 +286,24 @@ export function parseTextSchedule(text: string): ParsedSchedule {
   if (stations.length === 0) {
     throw new ScheduleError("TXT 排班表没有设施内容");
   }
-  const plans = buildPlans(stations, queueDescriptions, stats);
+  const plans = buildPlans(stations, queueDescriptions);
   const layout = inferScheduleLayout(plans);
-  const fiammettaLine = detailsLines.find((line) => line.includes("菲亚梅塔"));
+  const fiammettaLine = detailsLines.find((line) =>
+    /^菲亚梅塔\s*007(?:\s|$)/.test(line),
+  );
+  const description = [
+    detailsLines
+      .filter((line) => line !== fiammettaLine)
+      .join("\n")
+      .trim(),
+    stats,
+  ]
+    .filter(Boolean)
+    .join("\n");
   const fiammettaTargets = parseFiammetta(fiammettaLine);
   const document: ScheduleDocument = {
     title: titleLines.join(" · ") || "导入排班表",
-    description: detailsLines
-      .filter((line) => line !== fiammettaLine)
-      .join(" "),
+    description,
     layout,
     plans: completeInferredRooms(plans, layout),
     settings: {

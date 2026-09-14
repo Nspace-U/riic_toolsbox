@@ -15,6 +15,8 @@ import {
   serializeMaaSchedule,
 } from "@/adapters/maaSchedule";
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
+import { useBaseData } from "@/composables/useBaseData";
+import { createEfficiencyCatalog } from "@/utils/efficiency/catalog";
 import type {
   LayoutEntry,
   OperatorState,
@@ -44,6 +46,7 @@ const {
   removeDocument,
   duplicateDocument,
 } = useScheduleDocuments();
+const { operators, terms } = useBaseData();
 
 const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
@@ -54,6 +57,9 @@ const rawJson = ref("");
 
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
+const efficiencyCatalog = computed(() =>
+  createEfficiencyCatalog(operators.value, {}, terms.value),
+);
 
 const layoutGroups = computed(() => {
   const document = currentDocument.value;
@@ -77,7 +83,7 @@ const rawJsonDisplay = computed(() => {
   }
 
   try {
-    return serializeMaaSchedule(document);
+    return serializeMaaSchedule(document, { catalog: efficiencyCatalog.value });
   } catch {
     return JSON.stringify(document, null, 2);
   }
@@ -201,7 +207,9 @@ function handleExport(): void {
 
   clearMessages();
   try {
-    const json = serializeMaaSchedule(document);
+    const json = serializeMaaSchedule(document, {
+      catalog: efficiencyCatalog.value,
+    });
     const duplicateWarning = formatDuplicateOperatorWarnings(document);
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
