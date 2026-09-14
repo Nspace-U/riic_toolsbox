@@ -1948,11 +1948,11 @@ a {
 }
 
 .simulator-facility-queue-description {
-  margin-block-end: 6px;
+  block-size: var(--simulator-queue-description-height, 21px);
   overflow: hidden;
   color: #5d716f;
   font-size: 11px;
-  line-height: 1.35;
+  line-height: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

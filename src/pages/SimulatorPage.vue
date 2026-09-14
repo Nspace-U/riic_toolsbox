@@ -2477,6 +2477,7 @@ const FACILITY_TITLE_TAG_PRESETS: [
 ];
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
+const QUEUE_DESCRIPTION_HEIGHT = 21;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
 const EFFICIENCY_SUMMARY_MAX_FONT_SIZE = 16;
 const EFFICIENCY_SUMMARY_MIN_FONT_SIZE = 8;
@@ -2503,8 +2504,12 @@ function facilityColumnStyle(row: FacilityRow): Record<string, string> {
 
 const facilityGridStyle = computed(() => ({
   "--simulator-queue-min-height": `${
-    simulatorSlotSize.value + slotNameBandHeight.value + QUEUE_MIN_HEIGHT_EXTRA
+    simulatorSlotSize.value +
+    slotNameBandHeight.value +
+    QUEUE_MIN_HEIGHT_EXTRA +
+    QUEUE_DESCRIPTION_HEIGHT
   }px`,
+  "--simulator-queue-description-height": `${QUEUE_DESCRIPTION_HEIGHT}px`,
 }));
 
 function showsFacilityLevelTags(type: RoomKey): boolean {
@@ -6590,10 +6595,7 @@ onBeforeUnmount(() => {
                       )
                     "
                   >
-                    <div
-                      v-if="roomDescriptions(row, plan).length"
-                      class="simulator-facility-queue-description"
-                    >
+                    <div class="simulator-facility-queue-description">
                       {{ roomDescriptions(row, plan).join(" · ") }}
                     </div>
                     <div class="simulator-slot-grid" :style="slotGridStyle">
