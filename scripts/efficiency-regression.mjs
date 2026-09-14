@@ -555,6 +555,18 @@ function runTests(runtime) {
     ) < 1e-9,
   );
 
+  const gladyDormitoryHunter = calculateEfficiency(
+    abyssalDocument({ manufacture: [[], []], dormitory: ["斯卡蒂"] }),
+    catalog,
+  );
+  assert.ok(
+    Math.abs(
+      (gladyDormitoryHunter.plans[0].moods.find(
+        ({ operator }) => operator === "歌蕾蒂娅",
+      )?.costRate ?? 0) - 0.4,
+    ) < 1e-9,
+  );
+
   const huntingParty = calculateEfficiency(
     multipleTradingDocument({
       trading: [["焰狐龙梓兰"], ["雷狼龙S空爆", "罗德岛隐秘队"]],
