@@ -36,14 +36,9 @@ Common commit types:
 
 ## 项目协作规则
 
-开始任务前：
-
-- 读 CONTEXT.md
-- 读 docs/decision-log.md
+开始任务前，读 CONTEXT.md 和 docs/decision-log.md 中相关内容
 
 完成任务后：
 
-- 在 CONTEXT.md 中按现有格式写入关键内容，不写日志
-- 把重要技术决定追加到 docs/decision-log.md
-- 明确记录已完成、未完成、风险和下一步
-- 不要把未经验证的内容写成已完成
+- 将关键内容写入 CONTEXT.md，**不写日志**
+- 把重要技术决定追加到 docs/decision-log.md，记录已完成、未完成、风险和下一步，不要把未验证的内容写已完成
