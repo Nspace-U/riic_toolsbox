@@ -313,7 +313,7 @@ const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
 const { selectedDataSource } = useDataSource();
-const { facilityColors, productColors } = useFacilityColors();
+const { facilityColors, productColors, fiammettaColor } = useFacilityColors();
 const {
   activeProfile,
   dormitoryDefaultIncludesMoodRecovery,
@@ -2452,7 +2452,7 @@ function facilityCardStyle(
 
   return {
     "--simulator-facility-accent":
-      commonAccent ??
+      (row.isFiammetta ? fiammettaColor.value : commonAccent) ??
       facilityColors.value[row.type] ??
       ROOM_REPRESENTATIVE_COLORS[row.type],
   };
@@ -2468,7 +2468,7 @@ function facilityQueueStyle(
 
   return {
     "--simulator-facility-accent":
-      accent ??
+      (row.isFiammetta ? fiammettaColor.value : accent) ??
       facilityColors.value[row.type] ??
       ROOM_REPRESENTATIVE_COLORS[row.type],
   };

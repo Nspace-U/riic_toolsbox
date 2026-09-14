@@ -10,9 +10,11 @@ import type { RoomKey } from "@/types/schedule";
 
 const FACILITY_COLORS_STORAGE_KEY = "riic-tools:facility-colors:v1";
 const PRODUCT_COLORS_STORAGE_KEY = "riic-tools:product-colors:v1";
+const FIAMMETTA_COLOR_STORAGE_KEY = "riic-tools:fiammetta-color:v1";
 const LEGACY_FACILITY_COLORS_STORAGE_KEY = "riic-tools:maa-facility-colors:v1";
 const LEGACY_PRODUCT_COLORS_STORAGE_KEY = "riic-tools:maa-product-colors:v1";
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
+const DEFAULT_FIAMMETTA_COLOR = "#A03030";
 
 const PRODUCT_COLOR_KEYS = ["Pure Gold", "Orundum", "Originium Shard"] as const;
 export type ProductColorKey = (typeof PRODUCT_COLOR_KEYS)[number];
@@ -118,8 +120,20 @@ function loadProductColors(): Record<ProductColorKey, string> {
   return defaults;
 }
 
+function loadFiammettaColor(): string {
+  try {
+    const stored = window.localStorage.getItem(FIAMMETTA_COLOR_STORAGE_KEY);
+    return stored && HEX_COLOR_PATTERN.test(stored)
+      ? stored.toUpperCase()
+      : DEFAULT_FIAMMETTA_COLOR;
+  } catch {
+    return DEFAULT_FIAMMETTA_COLOR;
+  }
+}
+
 const facilityColors = ref<Record<RoomKey, string>>(loadFacilityColors());
 const productColors = ref<Record<ProductColorKey, string>>(loadProductColors());
+const fiammettaColor = ref<string>(loadFiammettaColor());
 
 function persistFacilityColors(): void {
   try {
@@ -155,11 +169,30 @@ function setProductColor(product: ProductColorKey, color: string): void {
   persistProductColors();
 }
 
+function persistFiammettaColor(): void {
+  try {
+    window.localStorage.setItem(
+      FIAMMETTA_COLOR_STORAGE_KEY,
+      fiammettaColor.value,
+    );
+  } catch {}
+}
+
+function setFiammettaColor(color: string): void {
+  if (!HEX_COLOR_PATTERN.test(color)) {
+    return;
+  }
+  fiammettaColor.value = color.toUpperCase();
+  persistFiammettaColor();
+}
+
 function resetFacilityColors(): void {
   facilityColors.value = cloneDefaultColors();
   productColors.value = cloneDefaultProductColors();
+  fiammettaColor.value = DEFAULT_FIAMMETTA_COLOR;
   persistFacilityColors();
   persistProductColors();
+  persistFiammettaColor();
 }
 
 export function useFacilityColors() {
@@ -167,6 +200,7 @@ export function useFacilityColors() {
     facilityColors,
     facilityLabels: ROOM_LABELS,
     productColors,
+    fiammettaColor,
     productLabels: {
       "Pure Gold": PRODUCT_LABELS["Pure Gold"] ?? "赤金",
       Orundum: PRODUCT_LABELS.Orundum ?? "合成玉",
@@ -174,6 +208,7 @@ export function useFacilityColors() {
     } satisfies Record<ProductColorKey, string>,
     setFacilityColor,
     setProductColor,
+    setFiammettaColor,
     resetFacilityColors,
   };
 }

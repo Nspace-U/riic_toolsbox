@@ -53,8 +53,10 @@ const {
   facilityLabels,
   productColors,
   productLabels,
+  fiammettaColor,
   setFacilityColor,
   setProductColor,
+  setFiammettaColor,
   resetFacilityColors,
 } = useFacilityColors();
 const { operators, terms, ready: baseDataReady } = useBaseData();
@@ -896,6 +898,36 @@ watch(
                   type,
                   ($event.target as HTMLInputElement).value,
                 )
+              "
+            />
+          </div>
+        </div>
+        <div class="facility-color-item">
+          <div class="facility-color-name">
+            <span
+              :style="{ backgroundColor: fiammettaColor }"
+              class="facility-color-swatch"
+            />
+            <span>菲亚梅塔假设施</span>
+          </div>
+          <div class="facility-color-controls">
+            <input
+              aria-label="菲亚梅塔假设施背景颜色"
+              :value="fiammettaColor"
+              class="facility-color-picker"
+              type="color"
+              @input="
+                setFiammettaColor(($event.target as HTMLInputElement).value)
+              "
+            />
+            <a-input
+              aria-label="菲亚梅塔假设施颜色值"
+              :value="fiammettaColor"
+              class="facility-color-value"
+              :maxlength="7"
+              size="small"
+              @change="
+                setFiammettaColor(($event.target as HTMLInputElement).value)
               "
             />
           </div>
