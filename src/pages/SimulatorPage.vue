@@ -4562,6 +4562,20 @@ function operatorMoodScattered(
   return operatorState(room, name).mood === 0;
 }
 
+function operatorQueueMoodScattered(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  slotIndex: number,
+  room: RoomAssignment | undefined,
+  name: string,
+): boolean {
+  return (
+    operatorMoodScattered(room, name) ||
+    operatorMoodRemaining(planIndex, type, position, slotIndex) === 0
+  );
+}
+
 function progressionMenuNodes(
   operator: Operator,
   type: RoomKey,
@@ -6027,7 +6041,11 @@ onBeforeUnmount(() => {
                             )
                           "
                           :mood-scattered="
-                            operatorMoodScattered(
+                            operatorQueueMoodScattered(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
                               slotRoom(plan, slot),
                               slotCommittedName(row, plan, slot),
                             )
@@ -6364,7 +6382,11 @@ onBeforeUnmount(() => {
               )
             "
             :mood-scattered="
-              operatorMoodScattered(
+              operatorQueueMoodScattered(
+                operatorDragPreview.planIndex,
+                operatorDragPreview.type,
+                operatorDragPreview.position,
+                operatorDragPreview.slotIndex,
                 operatorDragPreview.room,
                 operatorDragPreview.name,
               )
