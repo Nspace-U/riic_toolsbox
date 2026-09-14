@@ -9,6 +9,7 @@ import {
   type ScheduleSettings,
   type ScheduleDocument,
 } from "@/types/schedule";
+import { isKnownSpecialOperator } from "@/utils/specialOperators";
 
 export const ROOM_LABELS: Record<RoomKey, string> = {
   control: "控制中枢",
@@ -696,7 +697,11 @@ export function findDuplicateOperators(
           return;
         }
         room.operators.forEach((name, slotIndex) => {
-          if (typeof name !== "string" || !name) {
+          if (
+            typeof name !== "string" ||
+            !name ||
+            isKnownSpecialOperator(name)
+          ) {
             return;
           }
           const locations = occurrences.get(name) ?? [];

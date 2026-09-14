@@ -33,6 +33,7 @@ export interface RoomAssignment {
   skip?: boolean;
   product?: string;
   sourceMaterial?: string;
+  description?: string;
   operatorStates?: Record<string, OperatorState>;
   [key: string]: unknown;
 }

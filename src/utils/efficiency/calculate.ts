@@ -52,12 +52,17 @@ import {
   TAILOR_PROBABILITIES,
   WORK_ROOM_KEYS,
 } from "@/utils/efficiency/baseRules";
-import { catalogOperator, groupMembers } from "@/utils/efficiency/catalog";
+import { catalogOperator } from "@/utils/efficiency/catalog";
 import { resolveRoomAssignment, roomSlotCount } from "@/utils/schedule";
 import {
   compareBasePointDetails,
   compareBasePointSources,
 } from "@/utils/efficiency/basePoints";
+import {
+  groupIncludesOperator,
+  isSpecialOperator,
+  percentageOperatorValue,
+} from "@/utils/specialOperators";
 
 const EPSILON = 0.000001;
 const DEFAULT_DURATION_MINUTES = 720;
@@ -348,10 +353,11 @@ function createContexts(
           return;
         }
         const profile = catalogOperator(catalog, name);
-        if (!profile) {
+        if (!profile && !isSpecialOperator(name, catalog)) {
           warnings.push(`队列 ${index + 1}：找不到干员“${name}”的技能数据`);
         }
         const state = stateOf(assignment, name);
+        const special = isSpecialOperator(name, catalog);
         const progression = progressionOf(
           progressionProfile,
           name,
@@ -379,14 +385,15 @@ function createContexts(
             facility.type,
             effectiveState,
           ),
-          explicitMood: Object.prototype.hasOwnProperty.call(state, "mood"),
-          moodStart: clampMood(state.mood ?? 24),
-          moodEnd: clampMood(state.mood ?? 24),
+          explicitMood:
+            !special && Object.prototype.hasOwnProperty.call(state, "mood"),
+          moodStart: special ? 24 : clampMood(state.mood ?? 24),
+          moodEnd: special ? 24 : clampMood(state.mood ?? 24),
           costRate: 0,
           moodRateDetails: [],
           working: true,
           workHoursBefore: 0,
-          owned: progression.owned,
+          owned: profile ? progression.owned : true,
           fiammettaForced: false,
         });
       });
@@ -414,8 +421,14 @@ function isWorkPlacement(placement: Placement): boolean {
   return WORK_ROOM_KEYS.includes(placement.facility.type);
 }
 
-function isMoodContinuityPlacement(placement: Placement): boolean {
-  return placement.facility.type !== "dormitory";
+function isMoodContinuityPlacement(
+  placement: Placement,
+  catalog: EfficiencyCatalog,
+): boolean {
+  return (
+    placement.facility.type !== "dormitory" &&
+    !isSpecialOperator(placement.name, catalog)
+  );
 }
 
 function isCurrentlyWorking(placement: Placement): boolean {
@@ -499,13 +512,6 @@ function termValue(
   return value ? (context.basePoints[value] ?? 0) : 0;
 }
 
-function membersFor(
-  catalog: EfficiencyCatalog,
-  group: string | undefined,
-): string[] {
-  return groupMembers(catalog, group);
-}
-
 function skillMatchesTag(
   placement: Placement,
   skill: string,
@@ -549,7 +555,6 @@ function conditionSatisfied(
 ): boolean {
   if (!condition) return true;
   let result: boolean;
-  const members = membersFor(catalog, condition.group);
   switch (condition.type) {
     case "opAtFacility": {
       const placements = placementsInConditionFacility(
@@ -596,7 +601,7 @@ function conditionSatisfied(
           (placement) => !condition.other || placement.name !== owner.name,
         );
       const found = placements.some((placement) =>
-        members.includes(placement.name),
+        groupIncludesOperator(catalog, condition.group, placement.name),
       );
       result = condition.type === "opGroupNotInFacility" ? !found : found;
       break;
@@ -608,7 +613,9 @@ function conditionSatisfied(
         owner,
       )
         .filter((placement) => workingPlacement(placement, condition.moodCheck))
-        .filter((placement) => members.includes(placement.name))
+        .filter((placement) =>
+          groupIncludesOperator(catalog, condition.group, placement.name),
+        )
         .filter(
           (placement) => !condition.other || placement.name !== owner.name,
         ).length;
@@ -621,7 +628,9 @@ function conditionSatisfied(
           (placement) => !condition.exclude?.includes(placement.facility.type),
         )
         .filter((placement) => workingPlacement(placement, condition.moodCheck))
-        .filter((placement) => members.includes(placement.name))
+        .filter((placement) =>
+          groupIncludesOperator(catalog, condition.group, placement.name),
+        )
         .filter(
           (placement) => !condition.other || placement.name !== owner.name,
         ).length;
@@ -863,21 +872,23 @@ function perCount(
         ).length;
       break;
     case "opGroupInBase": {
-      const members = membersFor(catalog, per.group);
       count = context.placements
         .filter((placement) => !per.exclude?.includes(placement.facility.type))
         .filter((placement) => workingPlacement(placement, per.moodCheck))
-        .filter((placement) => members.includes(placement.name))
+        .filter((placement) =>
+          groupIncludesOperator(catalog, per.group, placement.name),
+        )
         .filter(
           (placement) => !per.other || placement.name !== owner.name,
         ).length;
       break;
     }
     case "opGroupInFacility": {
-      const members = membersFor(catalog, per.group);
       count = countInFacility(per.facility)
         .filter((placement) => workingPlacement(placement, per.moodCheck))
-        .filter((placement) => members.includes(placement.name))
+        .filter((placement) =>
+          groupIncludesOperator(catalog, per.group, placement.name),
+        )
         .filter((placement) => !per.other || placement.name !== owner.name)
         .filter(
           (placement) => !per.fullMood || placement.moodStart >= 24 - EPSILON,
@@ -885,11 +896,10 @@ function perCount(
       break;
     }
     case "baseFacilityWithGroup": {
-      const members = membersFor(catalog, per.group);
       count = context.facilities.filter((facility) =>
         placementsInFacility(context, facility).some(
           (placement) =>
-            members.includes(placement.name) &&
+            groupIncludesOperator(catalog, per.group, placement.name) &&
             workingPlacement(placement, per.moodCheck),
         ),
       ).length;
@@ -990,17 +1000,16 @@ function perCount(
       break;
     }
     case "abyssalBoost": {
-      const members = membersFor(catalog, per.group);
       const local = countInFacility("same").filter(
         (placement) =>
-          members.includes(placement.name) &&
+          groupIncludesOperator(catalog, per.group, placement.name) &&
           workingPlacement(placement, per.moodCheck),
       ).length;
       const total = context.placements
         .filter((placement) => placement.facility.type === "manufacture")
         .filter(
           (placement) =>
-            members.includes(placement.name) &&
+            groupIncludesOperator(catalog, per.group, placement.name) &&
             workingPlacement(placement, per.moodCheck),
         ).length;
       const amount = local * total * Number(per.value ?? 0);
@@ -1380,7 +1389,7 @@ function effectAppliesToSubject(
     return false;
   if (
     effect.scopeGroup &&
-    !membersFor(catalog, effect.scopeGroup).includes(subject.name)
+    !groupIncludesOperator(catalog, effect.scopeGroup, subject.name)
   )
     return false;
   if (!effect.scope && effect.target !== "any" && subject.name !== owner.name)
@@ -1677,7 +1686,11 @@ function resolveMoodRate(
   catalog: EfficiencyCatalog,
   data: EvaluationData,
 ): { rate: number; details: MoodRateDetail[] } {
-  if (!isCurrentlyWorking(placement) || !isWorkPlacement(placement)) {
+  if (
+    isSpecialOperator(placement.name, catalog) ||
+    !isCurrentlyWorking(placement) ||
+    !isWorkPlacement(placement)
+  ) {
     return { rate: 0, details: [] };
   }
   const details: MoodRateDetail[] = [{ kind: "base", value: 1 }];
@@ -1721,7 +1734,7 @@ function resolveMoodRate(
       (item) =>
         effectAppliesToSubject(item, placement, placement.facility, catalog) ||
         (item.effect.group &&
-          membersFor(catalog, item.effect.group).includes(placement.name)),
+          groupIncludesOperator(catalog, item.effect.group, placement.name)),
     );
   const skillCosts = moodEffectValues(
     context,
@@ -2073,7 +2086,7 @@ function resolveMoods(
                 );
                 return (
                   !!placement &&
-                  isMoodContinuityPlacement(placement) &&
+                  isMoodContinuityPlacement(placement, catalog) &&
                   !placement.explicitMood
                 );
               }),
@@ -2094,8 +2107,8 @@ function resolveMoods(
     current: Placement,
   ): previous is Placement =>
     !!previous &&
-    isMoodContinuityPlacement(previous) &&
-    isMoodContinuityPlacement(current);
+    isMoodContinuityPlacement(previous, catalog) &&
+    isMoodContinuityPlacement(current, catalog);
   const canContinueWork = (
     previous: Placement | undefined,
     current: Placement,
@@ -2242,8 +2255,8 @@ function resolveMoods(
       const configuredStart = clampMood(placement.state.mood ?? 24);
       if (
         !previous ||
-        !isMoodContinuityPlacement(previous) ||
-        !isMoodContinuityPlacement(placement) ||
+        !isMoodContinuityPlacement(previous, catalog) ||
+        !isMoodContinuityPlacement(placement, catalog) ||
         previous.moodEnd >= configuredStart
       ) {
         return [];
@@ -2856,6 +2869,15 @@ function operatorBaseEfficiency(
   facility: EfficiencyFacility,
   placement: Placement,
 ): number {
+  const percentage = percentageOperatorValue(placement.name);
+  if (percentage !== undefined) {
+    return isCurrentlyWorking(placement) &&
+      ["trading", "manufacture", "power", "meeting", "hire"].includes(
+        facility.type,
+      )
+      ? percentage
+      : 0;
+  }
   if (facility.type === "meeting") {
     return isCurrentlyWorking(placement) ? 5 : 0;
   }
@@ -3976,7 +3998,7 @@ function calculatePlan(
     durationHours: context.durationHours,
     facilities,
     moods: context.placements
-      .filter((placement) => isMoodContinuityPlacement(placement))
+      .filter((placement) => isMoodContinuityPlacement(placement, catalog))
       .map((placement): MoodSnapshot => ({
         operator: placement.name,
         facility: placement.facility.type,

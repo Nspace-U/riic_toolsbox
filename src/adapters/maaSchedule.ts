@@ -1,8 +1,6 @@
 import type {
   JsonValue,
-  LayoutEntry,
   ParsedSchedule,
-  Plan,
   RoomAssignment,
   RoomKey,
   ScheduleDocument,
@@ -10,16 +8,25 @@ import type {
 import { ROOM_KEYS } from "@/types/schedule";
 import {
   DEFAULT_SOURCE_MATERIAL,
-  ROOM_ORDER,
+  ROOM_LABELS,
   ScheduleError,
   cloneSchedule,
-  createDefaultRoomAssignment,
-  roomLevelRange,
   validateLayout,
   validatePlans,
   validateSchedule,
 } from "@/utils/schedule";
 import type { ScheduleAdapter } from "@/adapters";
+import type { EfficiencyCatalog } from "@/types/efficiency";
+import {
+  completeInferredRooms,
+  inferScheduleLayout,
+} from "@/utils/importLayout";
+import { percentageMappingFor } from "@/utils/percentageOperatorMappings";
+import {
+  isPercentageOperator,
+  isTermOperator,
+  specialOperatorTermMembers,
+} from "@/utils/specialOperators";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -58,119 +65,6 @@ function importFiammetta(document: ScheduleDocument): void {
   delete (settings as Record<string, unknown>).featherTargets;
   document.settings = settings;
   document.fiammetta = { ...(document.fiammetta ?? {}), queue };
-}
-
-function clampLevel(type: RoomKey, level: number): number {
-  const range = roomLevelRange(type);
-  return Math.max(range.min, Math.min(range.max, Math.round(level)));
-}
-
-function maxOperatorsForRoom(
-  plans: Plan[],
-  type: RoomKey,
-  position: number,
-): number {
-  let max = 0;
-  plans.forEach((plan) => {
-    const rooms = plan.rooms[type];
-    if (!Array.isArray(rooms)) {
-      return;
-    }
-    const room = rooms[position];
-    if (isRecord(room) && Array.isArray(room.operators)) {
-      max = Math.max(max, room.operators.length);
-    }
-  });
-  return max;
-}
-
-function inferLayout(plans: Plan[]): LayoutEntry[] {
-  const layout: LayoutEntry[] = [];
-  ROOM_ORDER.forEach((type) => {
-    const maxLength = plans.reduce((max, plan) => {
-      const rooms = plan.rooms[type];
-      return Array.isArray(rooms) ? Math.max(max, rooms.length) : max;
-    }, 0);
-    if (maxLength === 0) {
-      return;
-    }
-
-    const count =
-      type === "power"
-        ? Math.max(
-            maxLength,
-            plans.reduce((max, plan) => {
-              const rooms = plan.rooms[type];
-              if (!Array.isArray(rooms)) {
-                return max;
-              }
-              const operatorCount = rooms.reduce((total, room) => {
-                return (
-                  total +
-                  (isRecord(room) && Array.isArray(room.operators)
-                    ? room.operators.length
-                    : 0)
-                );
-              }, 0);
-              return Math.max(max, operatorCount);
-            }, 0),
-          )
-        : maxLength;
-
-    for (let position = 0; position < count; position += 1) {
-      const inferredLevel =
-        type === "control"
-          ? maxOperatorsForRoom(plans, type, 0) || 1
-          : type === "trading" || type === "manufacture"
-            ? maxOperatorsForRoom(plans, type, position) || 3
-            : type === "dormitory"
-              ? 5
-              : 3;
-      layout.push({ type, level: clampLevel(type, inferredLevel) });
-    }
-  });
-  return layout;
-}
-
-function completeInferredRooms(plans: Plan[], layout: LayoutEntry[]): Plan[] {
-  return plans.map((plan) => {
-    const rooms = { ...plan.rooms };
-    ROOM_KEYS.forEach((type) => {
-      const expected = layout.filter((entry) => entry.type === type).length;
-      if (expected === 0) {
-        return;
-      }
-      const existing = Array.isArray(rooms[type]) ? [...rooms[type]] : [];
-      if (type === "power" && existing.length === 1) {
-        const mergedRoom = existing[0];
-        if (
-          isRecord(mergedRoom) &&
-          Array.isArray(mergedRoom.operators) &&
-          mergedRoom.operators.length > 1
-        ) {
-          const typedRoom = mergedRoom as RoomAssignment;
-          const operators = (typedRoom.operators ?? []).filter(Boolean);
-          const operatorStates = typedRoom.operatorStates;
-          const roomMeta = { ...typedRoom };
-          delete roomMeta.operators;
-          delete roomMeta.operatorStates;
-          rooms[type] = operators.map((operator) => ({
-            ...roomMeta,
-            operators: [operator],
-            ...(operatorStates?.[operator]
-              ? { operatorStates: { [operator]: operatorStates[operator] } }
-              : {}),
-          }));
-          return;
-        }
-      }
-      while (existing.length < expected) {
-        existing.push(createDefaultRoomAssignment(type));
-      }
-      rooms[type] = existing;
-    });
-    return { ...plan, rooms };
-  });
 }
 
 function applyDocumentDefaults(document: ScheduleDocument): void {
@@ -214,7 +108,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   const hasLayout = hasOwn(root, "layout");
   const layout = hasLayout ? validateLayout(root.layout) : undefined;
   const plans = validatePlans(root.plans, layout);
-  const resolvedLayout = layout ?? inferLayout(plans);
+  const resolvedLayout = layout ?? inferScheduleLayout(plans);
   if (resolvedLayout.length === 0) {
     fail("layout", "无法从 plans 推断出设施布局");
   }
@@ -232,9 +126,112 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   return { document, inferredLayout: !hasLayout };
 }
 
-export function serializeMaaSchedule(document: ScheduleDocument): string {
+export interface MaaScheduleSerializeOptions {
+  catalog?: EfficiencyCatalog;
+}
+
+function mapSpecialOperators(
+  document: ScheduleDocument,
+  catalog: EfficiencyCatalog | undefined,
+): void {
+  const percentagePositions = new Map<string, number>();
+  document.plans.forEach((plan) => {
+    const used = new Set<string>();
+    Object.values(plan.rooms).forEach((value) => {
+      if (!Array.isArray(value)) {
+        return;
+      }
+      value.forEach((roomValue) => {
+        if (!isRecord(roomValue) || !Array.isArray(roomValue.operators)) {
+          return;
+        }
+        roomValue.operators.forEach((name) => {
+          if (
+            !isPercentageOperator(name) &&
+            !(catalog && isTermOperator(name, catalog))
+          ) {
+            used.add(name);
+          }
+        });
+      });
+    });
+    Object.entries(plan.rooms).forEach(([type, value]) => {
+      if (!Array.isArray(value)) {
+        return;
+      }
+      value.forEach((roomValue) => {
+        if (!isRecord(roomValue) || !Array.isArray(roomValue.operators)) {
+          return;
+        }
+        const room = roomValue as RoomAssignment;
+        const roomType = type as RoomKey;
+        const operators = room.operators ?? [];
+        const states = room.operatorStates;
+        const mappedStates: NonNullable<RoomAssignment["operatorStates"]> = {};
+        room.operators = operators.map((name) => {
+          const mapping = percentageMappingFor(roomType, room.product, name);
+          if (mapping) {
+            const key = `${roomType}|${mapping.product ?? "*"}|${mapping.percentage}`;
+            const position = percentagePositions.get(key) ?? 0;
+            const next = mapping.operators.findIndex(
+              (candidate, index) => index >= position && !used.has(candidate),
+            );
+            if (next < 0) {
+              throw new ScheduleError(
+                `${ROOM_LABELS[roomType]} 中的 ${name} 没有可用的百分比映射干员`,
+              );
+            }
+            const mapped = mapping.operators[next]!;
+            percentagePositions.set(key, next + 1);
+            used.add(mapped);
+            if (states?.[name]) {
+              mappedStates[mapped] = states[name];
+            }
+            return mapped;
+          }
+          if (isPercentageOperator(name)) {
+            throw new ScheduleError(
+              `${ROOM_LABELS[roomType]} 中的百分比干员“${name}”没有配置映射`,
+            );
+          }
+          if (catalog && isTermOperator(name, catalog)) {
+            const mapped = specialOperatorTermMembers(name, catalog).find(
+              (candidate) => !used.has(candidate),
+            );
+            if (!mapped) {
+              throw new ScheduleError(
+                `${ROOM_LABELS[roomType]} 中的术语干员“${name}”没有可用的映射干员`,
+              );
+            }
+            used.add(mapped);
+            if (states?.[name]) {
+              mappedStates[mapped] = states[name];
+            }
+            return mapped;
+          }
+          if (states?.[name]) {
+            mappedStates[name] = states[name];
+          }
+          return name;
+        });
+        if (Object.keys(mappedStates).length > 0) {
+          room.operatorStates = mappedStates;
+        } else {
+          delete room.operatorStates;
+        }
+      });
+    });
+  });
+}
+
+export function serializeMaaSchedule(
+  document: ScheduleDocument,
+  options: MaaScheduleSerializeOptions = {},
+): string {
   validateSchedule(document);
   const normalized = cloneSchedule(document);
+  mapSpecialOperators(normalized, options.catalog);
+  delete normalized.importFiammetta;
   const fiammetta = normalized.fiammetta;
   delete normalized.fiammetta;
   const directTargets = fiammetta?.direct?.operators?.filter(Boolean) ?? [];
@@ -249,6 +246,7 @@ export function serializeMaaSchedule(document: ScheduleDocument): string {
         if (!isRecord(room) || !Array.isArray(room.operators)) {
           return;
         }
+        delete room.description;
         const operators = room.operators.filter(Boolean);
         if (operators.length > 0) {
           room.operators = operators;

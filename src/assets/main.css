@@ -1809,6 +1809,64 @@ a {
   user-select: none;
 }
 
+.simulator-import-power-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-block: 14px;
+  padding: 10px 12px;
+  color: #3c5150;
+  background: #f3f7f6;
+  border: 1px solid #dce9e6;
+  border-radius: 6px;
+}
+
+.simulator-import-power-summary span {
+  min-width: 0;
+}
+
+.simulator-import-power-negative {
+  color: #b42318;
+}
+
+.simulator-import-warning {
+  margin-block-end: 14px;
+}
+
+.simulator-import-layout-group {
+  padding-block: 10px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-import-layout-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 8px;
+}
+
+.simulator-import-layout-levels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.simulator-import-layout-level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .simulator-import-power-summary,
+  .simulator-import-layout-levels {
+    grid-template-columns: 1fr;
+  }
+}
+
 .simulator-facility-grid input,
 .simulator-facility-grid textarea,
 .simulator-facility-grid select {
@@ -1890,6 +1948,16 @@ a {
   z-index: 0;
   height: 100%;
   overflow: hidden;
+}
+
+.simulator-facility-queue-description {
+  margin-block-end: 6px;
+  overflow: hidden;
+  color: #5d716f;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .simulator-facility-queue-content {

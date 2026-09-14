@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
+    "test:schedule-import": "node scripts/schedule-import-regression.mjs",
     "test:efficiency": "node scripts/efficiency-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",

@@ -34,7 +34,8 @@ import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
-import { DEFAULT_SCHEDULE_ADAPTER } from "@/adapters";
+import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
+import { serializeMaaSchedule } from "@/adapters/maaSchedule";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
   BasePointDetail,
@@ -55,6 +56,7 @@ import type {
   LayoutEntry,
   OperatorState,
   Plan,
+  ParsedSchedule,
   RoomAssignment,
   RoomKey,
   FiammettaMode,
@@ -92,6 +94,7 @@ import {
   resourceItemIconFile,
   validateSchedule,
 } from "@/utils/schedule";
+import { importPowerSummary, resizeImportedRooms } from "@/utils/importLayout";
 import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
 import { facilityId } from "@/utils/efficiency/baseRules";
 import {
@@ -209,6 +212,16 @@ interface PowerSummary {
   used: number;
   provided: number;
   net: number;
+}
+
+interface ImportDraftState {
+  parsed: ParsedSchedule;
+  fileName: string;
+  layout: LayoutEntry[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 type SimulatorEditSetting = "layout" | "queue" | "product";
@@ -429,6 +442,7 @@ const fileInput = ref<HTMLInputElement>();
 const errorMessage = ref("");
 const successMessage = ref("");
 const warningMessage = ref("");
+const importDraft = ref<ImportDraftState>();
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
@@ -584,6 +598,96 @@ const powerSummary = computed<PowerSummary>(() => {
     { used: 0, provided: 0, net: 0 },
   );
 });
+
+const importLayoutGroups = computed(() => {
+  const layout = importDraft.value?.layout ?? [];
+  return ROOM_ORDER.map((type) => ({
+    type,
+    label: ROOM_LABELS[type],
+    entries: layout
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => entry.type === type),
+  })).filter((group) => group.entries.length > 0);
+});
+
+const importPowerPreview = computed<PowerSummary>(() =>
+  importPowerSummary(importDraft.value?.layout ?? []),
+);
+
+function importedLayoutEntries(
+  layout: LayoutEntry[],
+  type: RoomKey,
+): LayoutEntry[] {
+  return layout.filter((entry) => entry.type === type);
+}
+
+function importedOperatorLosses(draft: ImportDraftState): string[] {
+  const details: string[] = [];
+  draft.parsed.document.plans.forEach((plan, planIndex) => {
+    ROOM_ORDER.forEach((type) => {
+      const entries = importedLayoutEntries(draft.layout, type);
+      const rooms = plan.rooms[type];
+      if (!Array.isArray(rooms)) {
+        return;
+      }
+      rooms.slice(entries.length).forEach((room) => {
+        if (!isRecord(room)) {
+          return;
+        }
+        const operators = Array.isArray(room.operators)
+          ? room.operators.filter(Boolean)
+          : [];
+        if (operators.length > 0) {
+          details.push(
+            `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[type]}：${operators.join("、")}`,
+          );
+        }
+      });
+      entries.forEach((entry, roomIndex) => {
+        const room = rooms[roomIndex];
+        if (!isRecord(room) || !Array.isArray(room.operators)) {
+          return;
+        }
+        const capacity = roomSlotCount(type, entry.level);
+        const operators = room.operators.slice(capacity).filter(Boolean);
+        if (operators.length > 0) {
+          details.push(
+            `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[type]} ${roomIndex + 1}：${operators.join("、")}`,
+          );
+        }
+      });
+    });
+  });
+  if ((draft.parsed.document.importFiammetta as boolean | undefined) === true) {
+    const dormEntries = importedLayoutEntries(draft.layout, "dormitory");
+    draft.parsed.document.plans.forEach((plan, planIndex) => {
+      const lastRoom = Array.isArray(plan.rooms.dormitory)
+        ? (plan.rooms.dormitory.at(-1) as RoomAssignment | undefined)
+        : undefined;
+      const lastEntry = dormEntries.at(-1);
+      if (!lastEntry || !lastRoom) {
+        details.push(
+          `${plan.name || `队列${planIndex + 1}`}：没有可放置菲亚梅塔的最后一间宿舍`,
+        );
+        return;
+      }
+      const capacity = roomSlotCount("dormitory", lastEntry.level);
+      if (
+        lastRoom.operators?.[capacity - 1] &&
+        lastRoom.operators[capacity - 1] !== "菲亚梅塔"
+      ) {
+        details.push(
+          `${plan.name || `队列${planIndex + 1}`}：最后一间宿舍最后一个槽位已有干员`,
+        );
+      }
+    });
+  }
+  return details;
+}
+
+const importLossWarnings = computed(() =>
+  importDraft.value ? importedOperatorLosses(importDraft.value) : [],
+);
 
 const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   const document = currentDocument.value;
@@ -5326,6 +5430,124 @@ function handleCreate(): void {
   successMessage.value = "已新建排班表。";
 }
 
+function roomDescriptions(row: FacilityRow, plan: Plan): string[] {
+  return roomEntries(row, plan)
+    .map(({ room }) => room?.description?.trim())
+    .filter((description): description is string => Boolean(description));
+}
+
+function updateImportFacilityLevel(
+  type: RoomKey,
+  position: number,
+  value: number | null,
+): void {
+  const draft = importDraft.value;
+  if (!draft || value === null) {
+    return;
+  }
+  const index = draft.layout.findIndex(
+    (entry, entryIndex) =>
+      entry.type === type &&
+      draft.layout.slice(0, entryIndex).filter((item) => item.type === type)
+        .length === position,
+  );
+  const entry = draft.layout[index];
+  if (!entry) {
+    return;
+  }
+  const range = roomLevelRange(type);
+  entry.level = Math.max(range.min, Math.min(range.max, Math.round(value)));
+}
+
+function updateImportDormitoryCount(value: number | null): void {
+  const draft = importDraft.value;
+  if (!draft || value === null) {
+    return;
+  }
+  const count = Math.max(0, Math.min(4, Math.round(value)));
+  const current = importedLayoutEntries(draft.layout, "dormitory");
+  const levels = Array.from(
+    { length: count },
+    (_, index) => current[index]?.level ?? 1,
+  );
+  draft.layout = [
+    ...draft.layout.filter((entry) => entry.type !== "dormitory"),
+    ...levels.map((level) => ({ type: "dormitory" as const, level })),
+  ];
+}
+
+function applyImportedFiammetta(document: ScheduleDocument): void {
+  if (document.importFiammetta !== true) {
+    return;
+  }
+  const dormEntries = document.layout.filter(
+    (entry) => entry.type === "dormitory",
+  );
+  const lastEntry = dormEntries.at(-1);
+  if (!lastEntry) {
+    return;
+  }
+  document.plans.forEach((plan) => {
+    const rooms = plan.rooms.dormitory;
+    const room = Array.isArray(rooms)
+      ? (rooms.at(-1) as RoomAssignment | undefined)
+      : undefined;
+    if (!room || room.operators?.includes("菲亚梅塔")) {
+      return;
+    }
+    const capacity = roomSlotCount("dormitory", lastEntry.level);
+    const operators = [...(room.operators ?? [])];
+    if (operators[capacity - 1]) {
+      return;
+    }
+    while (operators.length < capacity) {
+      operators.push("");
+    }
+    operators[capacity - 1] = "菲亚梅塔";
+    room.operators = operators;
+  });
+}
+
+function confirmImport(): void {
+  const draft = importDraft.value;
+  if (!draft) {
+    return;
+  }
+  clearMessages();
+  try {
+    const document = cloneSchedule(draft.parsed.document);
+    document.layout = draft.layout.map((entry) => ({ ...entry }));
+    document.plans = resizeImportedRooms(document.plans, document.layout);
+    applyImportedFiammetta(document);
+    delete document.importFiammetta;
+    validateSchedule(document);
+    const stored = createDocument(
+      document,
+      draft.parsed.inferredLayout,
+      draft.fileName,
+    );
+    importDraft.value = undefined;
+    clearImportedScheduleNotice();
+    const extraRooms = extraRoomsForDocument(stored.document);
+    if (extraRooms.length > 0) {
+      importedScheduleNotice.value = {
+        code: "import-extra-rooms",
+        level: "error",
+        message: "导入排班表包含未登记设施实例",
+        details: extraRooms.map(extraRoomNoticeDetail),
+        closable: true,
+      };
+    }
+    successMessage.value = "已导入排班表。";
+  } catch (error: unknown) {
+    setError(error);
+  }
+}
+
+function cancelImport(): void {
+  importDraft.value = undefined;
+}
+
 function openFilePicker(): void {
   fileInput.value?.click();
 }
@@ -5341,25 +5563,12 @@ async function handleFileChange(event: Event): Promise<void> {
   clearMessages();
   clearImportedScheduleNotice();
   try {
-    const parsed = DEFAULT_SCHEDULE_ADAPTER.parse(await file.text());
-    const stored = createDocument(
-      parsed.document,
-      parsed.inferredLayout,
-      file.name,
-    );
-    const extraRooms = extraRoomsForDocument(stored.document);
-    if (extraRooms.length > 0) {
-      importedScheduleNotice.value = {
-        code: "import-extra-rooms",
-        level: "error",
-        message: "导入排班表包含未登记设施实例",
-        details: extraRooms.map(extraRoomNoticeDetail),
-        closable: true,
-      };
-    }
-    successMessage.value = parsed.inferredLayout
-      ? "已导入，布局由文件内容推断。"
-      : "已导入排班 JSON。";
+    const parsed = parseScheduleImport(await file.text());
+    importDraft.value = {
+      parsed,
+      fileName: file.name,
+      layout: parsed.document.layout.map((entry) => ({ ...entry })),
+    };
   } catch (error: unknown) {
     setError(error);
   }
@@ -5405,7 +5614,9 @@ function handleExport(): void {
 
   clearMessages();
   try {
-    const json = DEFAULT_SCHEDULE_ADAPTER.serialize(document);
+    const json = serializeMaaSchedule(document, {
+      catalog: efficiencyCatalog.value,
+    });
     const duplicateWarning = formatDuplicateOperatorWarnings(document);
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -5582,6 +5793,90 @@ onBeforeUnmount(() => {
       @close="warningMessage = ''"
     />
 
+    <a-modal
+      :cancel-text="'取消'"
+      :ok-text="'确认导入'"
+      :open="Boolean(importDraft)"
+      title="确认导入排班表设施"
+      width="760px"
+      @cancel="cancelImport"
+      @ok="confirmImport"
+    >
+      <template v-if="importDraft">
+        <a-alert
+          :message="`文件：${importDraft.fileName}`"
+          show-icon
+          type="info"
+        />
+        <div class="simulator-import-power-summary">
+          <span
+            >当前消耗 <strong>{{ importPowerPreview.used }}</strong></span
+          >
+          <span
+            >总共电力 <strong>{{ importPowerPreview.provided }}</strong></span
+          >
+          <span
+            :class="{
+              'simulator-import-power-negative': importPowerPreview.net < 0,
+            }"
+          >
+            净电力 <strong>{{ importPowerPreview.net }}</strong>
+          </span>
+        </div>
+        <a-alert
+          v-if="importLossWarnings.length"
+          class="simulator-import-warning"
+          message="确认后将截断以下干员配置"
+          show-icon
+          type="warning"
+        >
+          <template #description>
+            <div v-for="detail in importLossWarnings" :key="detail">
+              {{ detail }}
+            </div>
+          </template>
+        </a-alert>
+        <a-form layout="vertical">
+          <div
+            v-for="group in importLayoutGroups"
+            :key="group.type"
+            class="simulator-import-layout-group"
+          >
+            <div class="simulator-import-layout-heading">
+              <strong>{{ group.label }}</strong>
+              <a-input-number
+                v-if="group.type === 'dormitory'"
+                :max="4"
+                :min="0"
+                :value="group.entries.length"
+                addon-after="间"
+                @update:value="updateImportDormitoryCount"
+              />
+            </div>
+            <div class="simulator-import-layout-levels">
+              <div
+                v-for="(item, position) in group.entries"
+                :key="`${group.type}-${item.index}`"
+                class="simulator-import-layout-level"
+              >
+                <span>{{ group.label }} {{ position + 1 }}</span>
+                <a-input-number
+                  :max="roomLevelRange(group.type).max"
+                  :min="roomLevelRange(group.type).min"
+                  :value="item.entry.level"
+                  addon-after="级"
+                  @update:value="
+                    (value: number | null) =>
+                      updateImportFacilityLevel(group.type, position, value)
+                  "
+                />
+              </div>
+            </div>
+          </div>
+        </a-form>
+      </template>
+    </a-modal>
+
     <div
       :class="[
         'simulator-layout',
@@ -5616,11 +5911,11 @@ onBeforeUnmount(() => {
         <div class="simulator-sidebar-actions">
           <a-button block @click="openFilePicker">
             <template #icon><UploadOutlined /></template>
-            导入 JSON
+            导入排班表
           </a-button>
           <input
             ref="fileInput"
-            accept=".json,application/json"
+            accept=".json,.txt,application/json,text/plain"
             hidden
             type="file"
             @change="handleFileChange"
@@ -6039,6 +6334,12 @@ onBeforeUnmount(() => {
                       )
                     "
                   >
+                    <div
+                      v-if="roomDescriptions(row, plan).length"
+                      class="simulator-facility-queue-description"
+                    >
+                      {{ roomDescriptions(row, plan).join(" · ") }}
+                    </div>
                     <div class="simulator-slot-grid" :style="slotGridStyle">
                       <div
                         v-for="slot in slotRefs(row)"
@@ -7408,7 +7709,7 @@ onBeforeUnmount(() => {
             </a-button>
             <a-button @click="openFilePicker">
               <template #icon><UploadOutlined /></template>
-              导入 JSON
+              导入排班表
             </a-button>
           </a-space>
         </template>
