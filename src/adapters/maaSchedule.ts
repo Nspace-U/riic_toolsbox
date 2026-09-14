@@ -33,6 +33,33 @@ function fail(path: string, message: string): never {
   throw new ScheduleError(`${path}：${message}`);
 }
 
+function fiammettaTarget(value: unknown): string | undefined {
+  if (
+    !isRecord(value) ||
+    value.enable !== true ||
+    typeof value.target !== "string"
+  ) {
+    return undefined;
+  }
+  return value.target.trim() || undefined;
+}
+
+function importFiammetta(document: ScheduleDocument): void {
+  const queue = document.plans.map((plan) => {
+    const target = fiammettaTarget(plan.Fiammetta);
+    delete plan.Fiammetta;
+    return target ? { operators: [target] } : {};
+  });
+  const settings = {
+    ...(document.settings ?? {}),
+    fiammettaMode: "queue" as const,
+  };
+  delete (settings as Record<string, unknown>).featherFixedOps;
+  delete (settings as Record<string, unknown>).featherTargets;
+  document.settings = settings;
+  document.fiammetta = { ...(document.fiammetta ?? {}), queue };
+}
+
 function clampLevel(type: RoomKey, level: number): number {
   const range = roomLevelRange(type);
   return Math.max(range.min, Math.min(range.max, Math.round(level)));
@@ -199,6 +226,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
     layout: resolvedLayout,
     plans: resolvedPlans,
   };
+  importFiammetta(document);
   applyDocumentDefaults(document);
   validateSchedule(document);
   return { document, inferredLayout: !hasLayout };
@@ -207,7 +235,11 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
 export function serializeMaaSchedule(document: ScheduleDocument): string {
   validateSchedule(document);
   const normalized = cloneSchedule(document);
-  normalized.plans.forEach((plan) => {
+  const fiammetta = normalized.fiammetta;
+  delete normalized.fiammetta;
+  const directTargets = fiammetta?.direct?.operators?.filter(Boolean) ?? [];
+  normalized.plans.forEach((plan, planIndex) => {
+    delete plan.Fiammetta;
     ROOM_KEYS.forEach((type) => {
       const rooms = plan.rooms[type];
       if (!Array.isArray(rooms)) {
@@ -225,6 +257,13 @@ export function serializeMaaSchedule(document: ScheduleDocument): string {
         }
       });
     });
+    const target =
+      normalized.settings?.fiammettaMode === "queue"
+        ? fiammetta?.queue?.[planIndex]?.operators?.find(Boolean)
+        : directTargets[planIndex];
+    if (target) {
+      plan.Fiammetta = { enable: true, target, order: "pre" };
+    }
   });
   applyDocumentDefaults(normalized);
   validateSchedule(normalized);

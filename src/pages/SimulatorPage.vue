@@ -56,6 +56,7 @@ import type {
   Plan,
   RoomAssignment,
   RoomKey,
+  FiammettaMode,
   ScheduleDocument,
   StoredDocument,
 } from "@/types/schedule";
@@ -115,6 +116,7 @@ interface FacilityRow {
   type: RoomKey;
   label: string;
   entries: FacilityEntry[];
+  isFiammetta?: boolean;
 }
 
 interface FacilitySlotRef {
@@ -468,6 +470,7 @@ let catalogRequestVersion = 0;
 const MAX_SCHEDULE_HISTORY = 100;
 
 const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
+const FIAMMETTA_POSITION = -1;
 let pendingOperatorPointerMove: PendingOperatorPointerMove | undefined;
 let operatorPointerMoveFrame: number | undefined;
 
@@ -505,9 +508,7 @@ function operatorDragPreviewData():
   }
   const entries = interaction.sourceAddresses.flatMap((address) => {
     const plan = document.plans[address.planIndex];
-    const name = plan
-      ? operatorNameAt(plan, address.type, address.position, address.slotIndex)
-      : "";
+    const name = plan ? operatorNameAtAddress(document, address) : "";
     const operator = operatorByName(name);
     if (!plan || !name || !operator) {
       return [];
@@ -517,7 +518,7 @@ function operatorDragPreviewData():
         count: 0,
         name,
         operator,
-        room: roomAt(plan, address.type, address.position),
+        room: operatorRoomAtDocument(document, address, false),
         type: address.type,
         planIndex: address.planIndex,
         position: address.position,
@@ -628,6 +629,17 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
       details: moodDetails,
     });
   }
+  if (result.fiammettaWarnings.length > 0) {
+    const directMode = result.fiammetta?.mode === "direct";
+    notices.push({
+      code: "fiammetta-mood",
+      level: "warning",
+      message: directMode
+        ? "菲亚梅塔无法完全恢复这些干员心情"
+        : "发现菲亚梅塔心情恢复异常",
+      details: directMode ? [] : result.fiammettaWarnings,
+    });
+  }
   const overflowDetails = result.plans.flatMap((plan, planIndex) =>
     plan.facilities.flatMap((facility) => {
       const production = facility.production;
@@ -671,6 +683,11 @@ const currentEfficiencySettings = computed(() => {
     clueExchanging: settings?.clueExchanging !== false,
     dormFullTreat: settings?.dormFullTreat !== false,
     simulateOverflow: settings?.overflowMode === "zero",
+    fiammettaMode: settings?.fiammettaMode ?? "direct",
+    fiammettaDirectCount: Math.max(
+      0,
+      Math.floor(settings?.fiammettaDirectCount ?? 3),
+    ),
     firstItemProgress:
       typeof firstItemProgress === "number"
         ? Math.max(0, Math.min(100, firstItemProgress * 100))
@@ -777,7 +794,8 @@ const operatorPickerCandidates = computed<OperatorPickerCandidate[]>(() => {
     .map((operator, index) => ({ operator, index }))
     .filter(
       ({ operator }) =>
-        (operatorHasFacilitySkill(operator, picker.type) ||
+        (picker.position === FIAMMETTA_POSITION ||
+          operatorHasFacilitySkill(operator, picker.type) ||
           overrideIds.has(operator.id)) &&
         (!profession || operator.profession === profession) &&
         (!query || operator.name.toLocaleLowerCase().includes(query)),
@@ -862,6 +880,69 @@ const layoutGroups = computed(() => {
   })).filter((group) => group.entries.length > 0);
 });
 
+function fiammettaMode(document: ScheduleDocument): FiammettaMode {
+  return document.settings?.fiammettaMode === "queue" ? "queue" : "direct";
+}
+
+function hasFiammettaInDormitory(document: ScheduleDocument): boolean {
+  return document.plans.some((plan) => {
+    const rooms = plan.rooms.dormitory;
+    return (
+      Array.isArray(rooms) &&
+      rooms.some((room) =>
+        (room as RoomAssignment).operators?.includes("菲亚梅塔"),
+      )
+    );
+  });
+}
+
+function fiammettaRoomAtDocument(
+  document: ScheduleDocument,
+  planIndex: number,
+  ensure: boolean,
+): RoomAssignment | undefined {
+  const mode = fiammettaMode(document);
+  if (!document.fiammetta) {
+    if (!ensure) {
+      return undefined;
+    }
+    document.fiammetta = {};
+  }
+  if (mode === "direct") {
+    if (planIndex !== 0) {
+      return undefined;
+    }
+    if (!document.fiammetta.direct && ensure) {
+      document.fiammetta.direct = {};
+    }
+    return document.fiammetta.direct;
+  }
+  if (!document.fiammetta.queue && ensure) {
+    document.fiammetta.queue = [];
+  }
+  const queue = document.fiammetta.queue;
+  if (!queue) {
+    return undefined;
+  }
+  if (ensure) {
+    while (queue.length < document.plans.length) {
+      queue.push({});
+    }
+  }
+  return queue[planIndex];
+}
+
+function fiammettaSlotCount(document: ScheduleDocument): number {
+  const mode = fiammettaMode(document);
+  if (mode === "queue") {
+    return 1;
+  }
+  const configured = document.settings?.fiammettaDirectCount ?? 3;
+  const existing =
+    fiammettaRoomAtDocument(document, 0, false)?.operators?.length ?? 0;
+  return Math.max(0, configured, existing);
+}
+
 const facilityRows = computed<FacilityRow[]>(() => {
   const document = currentDocument.value;
   if (!document) {
@@ -898,6 +979,24 @@ const facilityRows = computed<FacilityRow[]>(() => {
       });
     });
   });
+  if (hasFiammettaInDormitory(document)) {
+    rows.push({
+      key: "fiammetta",
+      type: "dormitory",
+      label:
+        fiammettaMode(document) === "queue"
+          ? "菲亚梅塔（按队列互换心情）"
+          : "菲亚梅塔（直接互换心情）",
+      entries: [
+        {
+          entry: { type: "dormitory", level: 5 },
+          index: -1,
+          position: FIAMMETTA_POSITION,
+        },
+      ],
+      isFiammetta: true,
+    });
+  }
   return rows;
 });
 
@@ -1536,6 +1635,13 @@ function updatePlanRoom(
   options: UpdateCurrentOptions = {},
 ): void {
   updateCurrent((document) => {
+    if (position === FIAMMETTA_POSITION) {
+      const room = fiammettaRoomAtDocument(document, planIndex, true);
+      if (room) {
+        update(room);
+      }
+      return;
+    }
     const plan = document.plans[planIndex];
     if (!plan) {
       return;
@@ -1750,10 +1856,61 @@ function operatorDraftValue(
   slotIndex: number,
 ): string {
   const key = operatorSlotKey(planIndex, type, position, slotIndex);
-  return (
-    draftOperatorNames.value[key] ??
-    operatorNameAt(plan, type, position, slotIndex)
-  );
+  const committed =
+    position === FIAMMETTA_POSITION
+      ? fiammettaRoomAtDocument(currentDocument.value!, planIndex, false)
+          ?.operators?.[slotIndex]
+      : operatorNameAt(plan, type, position, slotIndex);
+  return draftOperatorNames.value[key] ?? committed ?? "";
+}
+
+function updateFiammettaMode(mode: FiammettaMode): void {
+  updateCurrent((document) => {
+    const currentMode = fiammettaMode(document);
+    if (currentMode === mode) {
+      return;
+    }
+    const state = document.fiammetta ?? {};
+    if (mode === "direct") {
+      const targets = (state.queue ?? [])
+        .map((room) => room.operators?.find(Boolean) ?? "")
+        .filter(Boolean);
+      state.direct = {
+        ...(state.direct ?? {}),
+        ...(targets.length > 0 ? { operators: targets } : {}),
+      };
+      const currentCount = document.settings?.fiammettaDirectCount ?? 3;
+      document.settings = {
+        ...(document.settings ?? {}),
+        fiammettaMode: mode,
+        fiammettaDirectCount: Math.max(currentCount, targets.length),
+      };
+    } else {
+      const targets = state.direct?.operators ?? [];
+      state.queue = document.plans.map((_, index) =>
+        targets[index] ? { operators: [targets[index]!] } : {},
+      );
+      document.settings = {
+        ...(document.settings ?? {}),
+        fiammettaMode: mode,
+      };
+    }
+    document.fiammetta = state;
+  });
+}
+
+function updateFiammettaDirectCount(value: number | null): void {
+  updateCurrent((document) => {
+    const current = document.fiammetta?.direct?.operators?.length ?? 0;
+    const next =
+      value === null || !Number.isFinite(value)
+        ? 3
+        : Math.max(current, Math.floor(value));
+    document.settings = {
+      ...(document.settings ?? {}),
+      fiammettaDirectCount: next,
+    };
+  });
 }
 
 function handleOperatorDraft(
@@ -1950,12 +2107,7 @@ function beginOperatorNameEdit(
   draftOperatorNames.value[nextSlot.key] =
     initialValue ??
     (currentDocument.value?.plans[planIndex]
-      ? operatorNameAt(
-          currentDocument.value.plans[planIndex],
-          type,
-          position,
-          slotIndex,
-        )
+      ? operatorNameAtAddress(currentDocument.value, nextSlot)
       : "");
   contextMenu.value = undefined;
   if (openPicker) {
@@ -2070,8 +2222,13 @@ function updateOperatorState(
   value: number | null,
   recordHistory = true,
 ): void {
-  const plan = currentDocument.value?.plans[planIndex];
-  const name = plan ? operatorNameAt(plan, type, position, slotIndex) : "";
+  const document = currentDocument.value;
+  const name = document
+    ? operatorNameAtAddress(
+        document,
+        operatorSlotAddress(planIndex, type, position, slotIndex),
+      )
+    : "";
   if (!name) {
     return;
   }
@@ -2104,6 +2261,18 @@ function updateOperatorState(
 }
 
 function slotRefs(row: FacilityRow): FacilitySlotRef[] {
+  if (row.isFiammetta) {
+    const document = currentDocument.value;
+    return document
+      ? Array.from(
+          { length: fiammettaSlotCount(document) },
+          (_, slotIndex) => ({
+            entry: row.entries[0]!,
+            slotIndex,
+          }),
+        )
+      : [];
+  }
   return row.entries.flatMap((entry) =>
     Array.from(
       { length: roomSlotCount(row.type, entry.entry.level) },
@@ -2193,7 +2362,10 @@ function facilityTitleStyle(row: FacilityRow): Record<string, string> {
     facilityCardWidthValue(row) - FACILITY_TITLE_HEAD_SPACE,
   );
   const titleEm = estimateTextEm(row.label);
-  const tagCount = showsFacilityLevelTags(row.type) ? row.entries.length : 0;
+  const tagCount =
+    !row.isFiammetta && showsFacilityLevelTags(row.type)
+      ? row.entries.length
+      : 0;
   const tagTextEm = estimateTextEm(FACILITY_TITLE_TAG_TEXT);
 
   let fontSize = FACILITY_TITLE_MIN_FONT_SIZE;
@@ -2309,6 +2481,9 @@ function slotRoom(
   plan: Plan,
   slot: FacilitySlotRef,
 ): RoomAssignment | undefined {
+  if (slot.entry.position === FIAMMETTA_POSITION) {
+    return undefined;
+  }
   return roomAt(plan, slot.entry.entry.type, slot.entry.position);
 }
 
@@ -2318,6 +2493,14 @@ function slotName(
   planIndex: number,
   slot: FacilitySlotRef,
 ): string {
+  if (row.isFiammetta) {
+    const room = fiammettaRoomAtDocument(
+      currentDocument.value!,
+      planIndex,
+      false,
+    );
+    return room?.operators?.[slot.slotIndex] ?? "";
+  }
   return operatorDraftValue(
     plan,
     planIndex,
@@ -2332,6 +2515,13 @@ function slotCommittedName(
   plan: Plan,
   slot: FacilitySlotRef,
 ): string {
+  if (row.isFiammetta) {
+    const planIndex = currentDocument.value?.plans.indexOf(plan) ?? -1;
+    return (
+      fiammettaRoomAtDocument(currentDocument.value!, planIndex, false)
+        ?.operators?.[slot.slotIndex] ?? ""
+    );
+  }
   return operatorNameAt(plan, row.type, slot.entry.position, slot.slotIndex);
 }
 
@@ -2364,8 +2554,9 @@ function commitOperatorName(
   if (editingOperatorSlot.value?.key !== key) {
     return false;
   }
+  const address = operatorSlotAddress(planIndex, type, position, slotIndex);
   const nextName = draftOperatorNames.value[key]?.trim() ?? "";
-  const previousName = operatorNameAt(plan, type, position, slotIndex);
+  const previousName = operatorNameAtAddress(document, address);
   if (nextName === previousName) {
     resetOperatorSelectAllCycle();
     finishOperatorNameEdit(key);
@@ -2374,26 +2565,15 @@ function commitOperatorName(
 
   const updated = updateCurrent(
     (candidate) => {
-      const candidatePlan = candidate.plans[planIndex];
-      if (!candidatePlan) {
-        return;
-      }
-      const rooms = Array.isArray(candidatePlan.rooms[type])
-        ? [...(candidatePlan.rooms[type] as RoomAssignment[])]
-        : [];
-      const room = rooms[position] ?? {};
-      const capacity = candidate.layout.filter((entry) => entry.type === type)[
-        position
-      ];
-      const slotLimit = capacity ? roomSlotCount(type, capacity.level) : 0;
+      const room = operatorRoomAtDocument(candidate, address, true);
+      if (!room) return;
+      const slotLimit = operatorRoomCapacity(candidate, type, position);
       const names = Array.from(
         { length: slotLimit },
         (_, index) => room.operators?.[index] ?? "",
       );
       names[slotIndex] = nextName;
       setRoomOperators(room, names);
-      rooms[position] = room;
-      candidatePlan.rooms[type] = rooms;
     },
     { recordHistory: true },
   );
@@ -2433,6 +2613,9 @@ function operatorRoomAtDocument(
   address: OperatorSlotAddress,
   ensure: boolean,
 ): RoomAssignment | undefined {
+  if (address.position === FIAMMETTA_POSITION) {
+    return fiammettaRoomAtDocument(document, address.planIndex, ensure);
+  }
   const plan = document.plans[address.planIndex];
   if (!plan) {
     return undefined;
@@ -2461,16 +2644,26 @@ function operatorRoomCapacity(
   type: RoomKey,
   position: number,
 ): number {
+  if (position === FIAMMETTA_POSITION) {
+    return fiammettaSlotCount(document);
+  }
   const entry = document.layout.filter((item) => item.type === type)[position];
   return entry ? roomSlotCount(type, entry.level) : 0;
 }
 
 function operatorRoomAddresses(): OperatorRoomAddress[] {
+  const document = currentDocument.value;
+  if (!document) {
+    return [];
+  }
   return facilityRows.value.flatMap((row) =>
     row.entries.map((entry) => ({
       type: row.type,
       position: entry.position,
-      slotCount: roomSlotCount(row.type, entry.entry.level),
+      slotCount:
+        entry.position === FIAMMETTA_POSITION
+          ? fiammettaSlotCount(document)
+          : roomSlotCount(row.type, entry.entry.level),
     })),
   );
 }
@@ -2499,12 +2692,16 @@ function operatorFacilitySlotIndex(
   address: OperatorSlotAddress,
 ): number | undefined {
   const row = operatorFacilityRow(address.type, address.position);
-  if (!row) {
+  const document = currentDocument.value;
+  if (!row || !document) {
     return undefined;
   }
   let offset = 0;
   for (const entry of row.entries) {
-    const slotCount = roomSlotCount(row.type, entry.entry.level);
+    const slotCount =
+      entry.position === FIAMMETTA_POSITION
+        ? fiammettaSlotCount(document)
+        : roomSlotCount(row.type, entry.entry.level);
     if (entry.position === address.position) {
       return offset + address.slotIndex;
     }
@@ -2526,7 +2723,10 @@ function operatorAddressAtFacilitySlot(
   }
   let offset = 0;
   for (const entry of row.entries) {
-    const slotCount = roomSlotCount(row.type, entry.entry.level);
+    const slotCount =
+      entry.position === FIAMMETTA_POSITION
+        ? fiammettaSlotCount(document)
+        : roomSlotCount(row.type, entry.entry.level);
     if (slotIndex < offset + slotCount) {
       return operatorSlotAddress(
         planIndex,
@@ -2544,9 +2744,15 @@ function operatorSlotAddressesForPlan(
   planIndex: number,
 ): OperatorSlotAddress[] {
   return operatorRoomAddresses().flatMap((room) =>
-    Array.from({ length: room.slotCount }, (_, slotIndex) =>
-      operatorSlotAddress(planIndex, room.type, room.position, slotIndex),
-    ),
+    room.type === "dormitory" &&
+    room.position === FIAMMETTA_POSITION &&
+    currentDocument.value &&
+    fiammettaMode(currentDocument.value) === "direct" &&
+    planIndex !== 0
+      ? []
+      : Array.from({ length: room.slotCount }, (_, slotIndex) =>
+          operatorSlotAddress(planIndex, room.type, room.position, slotIndex),
+        ),
   );
 }
 
@@ -2565,9 +2771,14 @@ function operatorNameAtAddress(
   address: OperatorSlotAddress,
 ): string {
   const plan = document.plans[address.planIndex];
-  return plan
-    ? operatorNameAt(plan, address.type, address.position, address.slotIndex)
-    : "";
+  if (!plan) {
+    return "";
+  }
+  return address.position === FIAMMETTA_POSITION
+    ? (fiammettaRoomAtDocument(document, address.planIndex, false)?.operators?.[
+        address.slotIndex
+      ] ?? "")
+    : operatorNameAt(plan, address.type, address.position, address.slotIndex);
 }
 
 function selectedOperatorSlotAddresses(): OperatorSlotAddress[] {
@@ -2896,9 +3107,7 @@ function operatorSlotSnapshotAt(
   const room = plan
     ? operatorRoomAtDocument(document, address, false)
     : undefined;
-  const name = plan
-    ? operatorNameAt(plan, address.type, address.position, address.slotIndex)
-    : "";
+  const name = plan ? operatorNameAtAddress(document, address) : "";
   const state = name ? room?.operatorStates?.[name] : undefined;
   return {
     name,
@@ -4080,6 +4289,12 @@ function operatorMoodRemaining(
   position: number,
   slotIndex: number,
 ): number | undefined {
+  if (position === FIAMMETTA_POSITION) {
+    const calculation = efficiencyResult.value?.fiammetta;
+    return calculation?.mode === "direct"
+      ? 24
+      : calculation?.plans[planIndex]?.targetMood;
+  }
   return efficiencyResult.value?.plans[planIndex]?.moods.find(
     (mood) =>
       mood.facilityId === facilityId(type, position) &&
@@ -4392,10 +4607,14 @@ const operatorContextMenuDetails = computed<
     return undefined;
   }
   const plan = document.plans[menu.planIndex];
-  const room = plan ? roomAt(plan, menu.type, menu.position) : undefined;
-  const name = plan
-    ? operatorNameAt(plan, menu.type, menu.position, menu.slotIndex)
-    : "";
+  const address = operatorSlotAddress(
+    menu.planIndex,
+    menu.type,
+    menu.position,
+    menu.slotIndex,
+  );
+  const room = operatorRoomAtDocument(document, address, false);
+  const name = plan ? operatorNameAtAddress(document, address) : "";
   const operator = operatorByName(name);
   if (!room || !name || !operator) {
     return undefined;
@@ -5670,7 +5889,7 @@ onBeforeUnmount(() => {
                 >
                   <span>{{ row.label }}</span>
                   <a-space
-                    v-if="showsFacilityLevelTags(row.type)"
+                    v-if="!row.isFiammetta && showsFacilityLevelTags(row.type)"
                     :size="4"
                     wrap
                   >
@@ -5687,6 +5906,11 @@ onBeforeUnmount(() => {
               <div class="simulator-facility-queues">
                 <a-card
                   v-for="(plan, planIndex) in currentDocument.plans"
+                  v-show="
+                    !row.isFiammetta ||
+                    fiammettaMode(currentDocument) === 'queue' ||
+                    planIndex === 0
+                  "
                   :key="`${row.key}-${planIndex}`"
                   :bordered="true"
                   class="simulator-facility-queue"
@@ -6197,7 +6421,11 @@ onBeforeUnmount(() => {
           @click.stop
         >
           <div class="simulator-operator-picker-heading">
-            <span>{{ ROOM_LABELS[operatorPicker.type] }}</span>
+            <span>{{
+              operatorPicker.position === FIAMMETTA_POSITION
+                ? "菲亚梅塔"
+                : ROOM_LABELS[operatorPicker.type]
+            }}</span>
             <span>{{ operatorPickerCandidates.length }}</span>
           </div>
           <div class="simulator-operator-picker-body">
@@ -6423,6 +6651,30 @@ onBeforeUnmount(() => {
                 :value="currentEfficiencySettings.firstItemProgress"
                 addon-after="%"
                 @update:value="updateEfficiencyFirstItemProgress"
+              />
+            </a-form-item>
+            <a-form-item label="菲亚梅塔模式">
+              <a-radio-group
+                :value="currentEfficiencySettings.fiammettaMode"
+                @change="
+                  (event: { target: { value: FiammettaMode } }) =>
+                    updateFiammettaMode(event.target.value)
+                "
+              >
+                <a-radio value="direct">直接互换心情</a-radio>
+                <a-radio value="queue">按照队列互换心情</a-radio>
+              </a-radio-group>
+            </a-form-item>
+            <a-form-item
+              v-if="currentEfficiencySettings.fiammettaMode === 'direct'"
+              label="可互换人数"
+            >
+              <a-input-number
+                :min="0"
+                :precision="0"
+                :step="1"
+                :value="currentEfficiencySettings.fiammettaDirectCount"
+                @update:value="updateFiammettaDirectCount"
               />
             </a-form-item>
           </a-form>

@@ -357,9 +357,6 @@ export const scenarios = [
     id: "mood-feather-swap",
     title: "菲亚梅塔心情互换",
     durationHours: 12,
-    settings: {
-      featherFixedOps: ["德克萨斯"],
-    },
     layout: [
       ["control", 5],
       ["trading", 3],

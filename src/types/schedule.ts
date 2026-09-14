@@ -52,11 +52,18 @@ export interface Plan {
 }
 
 export type OverflowMode = "continue" | "zero";
+export type FiammettaMode = "queue" | "direct";
+
+export interface FiammettaScheduleState {
+  queue?: RoomAssignment[];
+  direct?: RoomAssignment;
+}
 
 export interface ScheduleSettings {
   clueExchanging?: boolean;
   dormFullTreat?: boolean;
-  featherFixedOps?: string[];
+  fiammettaMode?: FiammettaMode;
+  fiammettaDirectCount?: number;
   preferMaxJieEfficiency?: boolean;
   orderProgress?: Record<string, number>;
   overflowMode?: OverflowMode;
@@ -68,6 +75,7 @@ export interface ScheduleDocument {
   description?: string;
   layout: LayoutEntry[];
   plans: Plan[];
+  fiammetta?: FiammettaScheduleState;
   settings?: ScheduleSettings;
   [key: string]: unknown;
 }

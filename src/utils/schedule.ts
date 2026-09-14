@@ -530,14 +530,20 @@ function validateSettings(settings: unknown): ScheduleSettings {
   ) {
     fail("settings.overflowMode", "必须是 continue 或 zero");
   }
-  if (hasOwn(settings, "featherFixedOps")) {
+  if (
+    hasOwn(settings, "fiammettaMode") &&
+    settings.fiammettaMode !== "queue" &&
+    settings.fiammettaMode !== "direct"
+  ) {
+    fail("settings.fiammettaMode", "必须是 queue 或 direct");
+  }
+  if (hasOwn(settings, "fiammettaDirectCount")) {
     if (
-      !Array.isArray(settings.featherFixedOps) ||
-      settings.featherFixedOps.some(
-        (name) => typeof name !== "string" || !name.trim(),
-      )
+      typeof settings.fiammettaDirectCount !== "number" ||
+      !Number.isInteger(settings.fiammettaDirectCount) ||
+      settings.fiammettaDirectCount < 0
     ) {
-      fail("settings.featherFixedOps", "必须是干员名称字符串数组");
+      fail("settings.fiammettaDirectCount", "必须是非负整数");
     }
   }
   if (hasOwn(settings, "orderProgress")) {
@@ -755,7 +761,14 @@ export function validateSchedule(document: ScheduleDocument): void {
 }
 
 export function cloneSchedule(document: ScheduleDocument): ScheduleDocument {
-  return JSON.parse(JSON.stringify(document)) as ScheduleDocument;
+  const clone = JSON.parse(JSON.stringify(document)) as ScheduleDocument;
+  const settings = clone.settings as
+    (ScheduleSettings & Record<string, unknown>) | undefined;
+  if (settings) {
+    delete settings.featherFixedOps;
+    delete settings.featherTargets;
+  }
+  return clone;
 }
 
 export function createEmptySchedule(): ScheduleDocument {
@@ -765,7 +778,8 @@ export function createEmptySchedule(): ScheduleDocument {
     settings: {
       clueExchanging: true,
       dormFullTreat: true,
-      featherFixedOps: [],
+      fiammettaMode: "direct",
+      fiammettaDirectCount: 3,
       preferMaxJieEfficiency: true,
       overflowMode: "continue",
       firstItemProgress: 0,

@@ -92,7 +92,6 @@ function settingsOf(scenario) {
   return {
     clueExchanging: scenario.settings?.clueExchanging === true,
     dormFullTreat: scenario.settings?.dormFullTreat !== false,
-    featherFixedOps: [...(scenario.settings?.featherFixedOps ?? [])],
     tradeZiMax: scenario.settings?.tradeZiMax !== false,
     tradeZiProgress: scenario.settings?.tradeZiProgress ?? 0,
     preferMaxJieEfficiency: true,
@@ -219,7 +218,6 @@ function buildOldSchedule(scenario, runtime) {
     settings: {
       clueExchanging: scenario.settings?.clueExchanging === true,
       dormFullTreat: scenario.settings?.dormFullTreat !== false,
-      featherFixedOps: [...(scenario.settings?.featherFixedOps ?? [])],
       autoRest: false,
     },
   };

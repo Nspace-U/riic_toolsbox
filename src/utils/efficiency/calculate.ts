@@ -12,6 +12,8 @@ import type {
   EfficiencyPer,
   EfficiencyPlanResult,
   EfficiencyResult,
+  FiammettaCalculation,
+  FiammettaPlanResult,
   FacilityAttributes,
   FacilityEfficiencyResult,
   CluePreference,
@@ -65,6 +67,7 @@ const CLUE_OUTPUT_PER_HOUR = 1 / CLUE_BASE_TIME_HOURS;
 const HIRE_OUTPUT_PER_HOUR = 1 / 12;
 const CLUE_LIMIT = 11;
 const HIRE_LIMIT = 3;
+const FIAMMETTA_NAME = "菲亚梅塔";
 const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
   莱茵生命: 1,
   企鹅物流: 2,
@@ -109,6 +112,7 @@ interface Placement {
   working: boolean;
   workHoursBefore: number;
   owned: boolean;
+  fiammettaForced: boolean;
 }
 
 interface PlanContext {
@@ -124,6 +128,8 @@ interface PlanContext {
   basePointDetails: BasePointDetail[];
   statValues: Map<string, number>;
   moodWarnings: MoodWarning[];
+  fiammetta?: FiammettaPlanResult;
+  fiammettaWarnings: string[];
   warnings: string[];
 }
 
@@ -339,6 +345,7 @@ function createContexts(
           working: true,
           workHoursBefore: 0,
           owned: progression.owned,
+          fiammettaForced: false,
         });
       });
     });
@@ -355,6 +362,7 @@ function createContexts(
       basePointDetails: [],
       statValues: new Map(),
       moodWarnings: [],
+      fiammettaWarnings: [],
       warnings,
     };
   });
@@ -1406,10 +1414,194 @@ function moodEffectValues(
   return selected;
 }
 
+function fiammettaMode(settings: ScheduleSettings): "queue" | "direct" {
+  return settings.fiammettaMode === "queue" ? "queue" : "direct";
+}
+
+function fiammettaTargetForPlan(
+  context: PlanContext,
+  planIndex: number,
+): string | undefined {
+  const mode = fiammettaMode(context.settings);
+  const assignment =
+    mode === "queue"
+      ? context.document.fiammetta?.queue?.[planIndex]
+      : planIndex === 0
+        ? context.document.fiammetta?.direct
+        : undefined;
+  return assignment?.operators?.find(Boolean);
+}
+
+function fiammettaDirectTargets(document: ScheduleDocument): string[] {
+  return document.fiammetta?.direct?.operators?.filter(Boolean) ?? [];
+}
+
+function hasFiammetta(contexts: PlanContext[]): boolean {
+  return contexts.some((context) =>
+    context.placements.some(
+      (placement) =>
+        placement.name === FIAMMETTA_NAME &&
+        placement.facility.type === "dormitory",
+    ),
+  );
+}
+
+function isFiammettaForcedTarget(
+  context: PlanContext,
+  placement: Placement,
+  available: boolean,
+): boolean {
+  if (!available || placement.name === FIAMMETTA_NAME) {
+    return false;
+  }
+  if (fiammettaMode(context.settings) === "queue") {
+    return fiammettaTargetForPlan(context, context.index) === placement.name;
+  }
+  return fiammettaDirectTargets(context.document).includes(placement.name);
+}
+
+function fiammettaRecoveryRate(
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+): number {
+  const fiammetta = context.placements.find(
+    (placement) =>
+      placement.name === FIAMMETTA_NAME &&
+      placement.facility.type === "dormitory",
+  );
+  if (!fiammetta) {
+    return 0;
+  }
+  return fiammetta.selected
+    .filter(({ effect }) => effect.stat === "moodRecover")
+    .reduce(
+      (total, { effect, skill }) =>
+        total +
+        effectValue(
+          {
+            owner: fiammetta,
+            effect,
+            skill,
+            target: fiammetta.facility,
+          },
+          fiammetta.facility,
+          context,
+          catalog,
+          emptyEvaluationData(),
+        ),
+      0,
+    );
+}
+
+function resolveFiammetta(
+  contexts: PlanContext[],
+  catalog: EfficiencyCatalog,
+): FiammettaCalculation | undefined {
+  contexts.forEach((context) => {
+    context.fiammettaWarnings = [];
+  });
+  if (!hasFiammetta(contexts)) {
+    contexts.forEach((context) => {
+      context.fiammetta = undefined;
+    });
+    return undefined;
+  }
+
+  const mode = fiammettaMode(contexts[0]?.settings ?? {});
+  const results: Array<FiammettaPlanResult | undefined> = [];
+  if (mode === "queue") {
+    let mood = 24;
+    contexts.forEach((context, index) => {
+      const target = fiammettaTargetForPlan(context, index);
+      const previousIndex = (index - 1 + contexts.length) % contexts.length;
+      const previousTarget = target
+        ? contexts[previousIndex]?.placements.find(
+            (placement) => placement.name === target,
+          )
+        : undefined;
+      const targetMood = previousTarget?.moodEnd ?? 24;
+      if (target && mood < 24 - EPSILON && contexts.length > 1) {
+        const previousContext = contexts[previousIndex];
+        previousContext?.fiammettaWarnings.push(
+          `菲亚梅塔在${previousIndex + 1}队列结束后无法恢复心情`,
+        );
+      }
+      const start = mood;
+      if (target) {
+        mood = targetMood;
+      }
+      const recoverRate = fiammettaRecoveryRate(context, catalog);
+      const recoverHours =
+        recoverRate * context.durationHours > EPSILON
+          ? recoverRate * context.durationHours
+          : 0;
+      const end = clampMood(mood + (recoverRate > EPSILON ? recoverHours : 0));
+      context.fiammetta = {
+        ...(target ? { target } : {}),
+        targetMood,
+        start,
+        end,
+        recoverRate,
+        recoverHours,
+        resting: recoverRate > EPSILON,
+      };
+      results.push(context.fiammetta);
+      mood = end;
+    });
+    return {
+      mode,
+      plans: results,
+      directTargets: [],
+      totalConsumption: 0,
+      totalRecovery: results.reduce(
+        (total, result) => total + (result?.recoverHours ?? 0),
+        0,
+      ),
+    };
+  }
+
+  const directTargets = fiammettaDirectTargets(contexts[0]!.document);
+  let totalConsumption = 0;
+  let totalRecovery = 0;
+  contexts.forEach((context) => {
+    const recoverRate = fiammettaRecoveryRate(context, catalog);
+    const recoverHours = recoverRate * context.durationHours;
+    totalRecovery += recoverHours;
+    context.placements.forEach((placement) => {
+      if (
+        directTargets.includes(placement.name) &&
+        isWorkPlacement(placement)
+      ) {
+        totalConsumption += placement.costRate * context.durationHours;
+      }
+    });
+    context.fiammetta = {
+      target: directTargets[context.index],
+      targetMood: directTargets[context.index] ? 24 : 24,
+      start: 24,
+      end: 24,
+      recoverRate,
+      recoverHours,
+      resting: recoverRate > EPSILON,
+    };
+    results.push(context.fiammetta);
+  });
+  if (totalConsumption > totalRecovery + EPSILON && directTargets.length > 0) {
+    contexts[0]?.fiammettaWarnings.push("菲亚梅塔无法完全恢复这些干员心情");
+  }
+  return {
+    mode,
+    plans: results,
+    directTargets,
+    totalConsumption,
+    totalRecovery,
+  };
+}
+
 function resolveMoods(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
-): void {
+): FiammettaCalculation | undefined {
   const previousWorkPlacement = (
     index: number,
     placement: Placement,
@@ -1445,6 +1637,16 @@ function resolveMoods(
       context,
     };
   };
+  const fiammettaAvailable = hasFiammetta(contexts);
+  contexts.forEach((context) => {
+    context.placements.forEach((placement) => {
+      placement.fiammettaForced = isFiammettaForcedTarget(
+        context,
+        placement,
+        fiammettaAvailable,
+      );
+    });
+  });
   const unanchoredCycleOperators = new Set(
     contexts.length > 1
       ? contexts[0]?.placements
@@ -1497,13 +1699,15 @@ function resolveMoods(
       const previousWork = previousWorkPlacement(index, placement);
       const previousWorkOperator = previousWork.placement;
       const continuesWork = canContinueWork(previousWorkOperator, placement);
-      placement.moodStart = placement.explicitMood
-        ? clampMood(placement.state.mood ?? 24)
-        : inheritsMood
-          ? previousOperator.moodEnd
-          : unanchoredCycleOperators.has(placement.name)
-            ? 0
-            : 24;
+      placement.moodStart = placement.fiammettaForced
+        ? 24
+        : placement.explicitMood
+          ? clampMood(placement.state.mood ?? 24)
+          : inheritsMood
+            ? previousOperator.moodEnd
+            : unanchoredCycleOperators.has(placement.name)
+              ? 0
+              : 24;
       placement.working = true;
       placement.workHoursBefore = continuesWork
         ? previousWorkOperator.workHoursBefore +
@@ -1523,13 +1727,15 @@ function resolveMoods(
         const previousWork = previousWorkPlacement(index, placement);
         const previousWorkOperator = previousWork.placement;
         const continuesWork = canContinueWork(previousWorkOperator, placement);
-        const nextStart = placement.explicitMood
-          ? clampMood(placement.state.mood ?? 24)
-          : inheritsMood
-            ? previousOperator.moodEnd
-            : unanchoredCycleOperators.has(placement.name)
-              ? 0
-              : 24;
+        const nextStart = placement.fiammettaForced
+          ? 24
+          : placement.explicitMood
+            ? clampMood(placement.state.mood ?? 24)
+            : inheritsMood
+              ? previousOperator.moodEnd
+              : unanchoredCycleOperators.has(placement.name)
+                ? 0
+                : 24;
         maxStartDelta = Math.max(
           maxStartDelta,
           Math.abs(nextStart - placement.moodStart),
@@ -1614,6 +1820,7 @@ function resolveMoods(
       ];
     });
   });
+  return resolveFiammetta(contexts, catalog);
 }
 
 function recipeMatches(
@@ -2835,6 +3042,8 @@ function calculatePlan(
         rateDetails: placement.moodRateDetails,
       })),
     moodWarnings: context.moodWarnings,
+    fiammetta: context.fiammetta,
+    fiammettaWarnings: context.fiammettaWarnings,
     basePoints: context.basePoints,
     basePointDetails: context.basePointDetails,
     warnings: context.warnings,
@@ -3022,7 +3231,7 @@ export function calculateEfficiency(
     options.treatSkillsAsUnlocked,
     options.dormitoryDefaultIncludesMoodRecovery,
   );
-  resolveMoods(contexts, catalog);
+  const fiammetta = resolveMoods(contexts, catalog);
   const plans = contexts.map((context) => calculatePlan(context, catalog));
   const totalHours = plans.reduce(
     (total, plan) => total + plan.durationHours,
@@ -3034,6 +3243,8 @@ export function calculateEfficiency(
     dailyHours: totalHours,
     dailyFacilities: aggregateDaily(plans, totalHours),
     dailyProductions: aggregateDailyProductions(plans, totalHours),
+    ...(fiammetta ? { fiammetta } : {}),
+    fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
     warnings: plans.flatMap((plan) => plan.warnings),
   };
 }

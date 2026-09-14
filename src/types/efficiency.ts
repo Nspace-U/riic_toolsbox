@@ -1,4 +1,8 @@
-import type { RoomKey, ScheduleDocument } from "@/types/schedule";
+import type {
+  FiammettaMode,
+  RoomKey,
+  ScheduleDocument,
+} from "@/types/schedule";
 import type { EliteLevel } from "@/types/baseData";
 import type { OperatorProgressionProfile } from "@/types/operatorProgression";
 
@@ -406,6 +410,8 @@ export interface EfficiencyPlanResult {
   facilities: FacilityEfficiencyResult[];
   moods: MoodSnapshot[];
   moodWarnings: MoodWarning[];
+  fiammetta?: FiammettaPlanResult;
+  fiammettaWarnings: string[];
   basePoints: Record<string, number>;
   basePointDetails: BasePointDetail[];
   warnings: string[];
@@ -417,5 +423,25 @@ export interface EfficiencyResult {
   dailyHours: number;
   dailyFacilities: FacilityEfficiencyResult[];
   dailyProductions: ProductionValue[];
+  fiammetta?: FiammettaCalculation;
+  fiammettaWarnings: string[];
   warnings: string[];
+}
+
+export interface FiammettaPlanResult {
+  target?: string;
+  targetMood: number;
+  start: number;
+  end: number;
+  recoverRate: number;
+  recoverHours: number;
+  resting: boolean;
+}
+
+export interface FiammettaCalculation {
+  mode: FiammettaMode;
+  plans: Array<FiammettaPlanResult | undefined>;
+  directTargets: string[];
+  totalConsumption: number;
+  totalRecovery: number;
 }

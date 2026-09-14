@@ -19,11 +19,13 @@ async function loadRuntime() {
     logLevel: "error",
   });
   try {
-    const [parseModule, catalogModule, calculateModule] = await Promise.all([
-      vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
-    ]);
+    const [parseModule, catalogModule, calculateModule, maaModule] =
+      await Promise.all([
+        vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
+        vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
+        vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
+        vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
+      ]);
     const [characterTable, buildingData, gamedataConst, metadata] =
       await Promise.all([
         readJson(
@@ -90,6 +92,8 @@ async function loadRuntime() {
     );
     return {
       calculateEfficiency: calculateModule.calculateEfficiency,
+      parseMaaScheduleText: maaModule.parseMaaScheduleText,
+      serializeMaaSchedule: maaModule.serializeMaaSchedule,
       catalog: catalogModule.createEfficiencyCatalog(
         operators,
         skillFiles,
@@ -101,6 +105,29 @@ async function loadRuntime() {
     await vite.close();
     throw error;
   }
+}
+
+function fiammettaDocument({ plans, mode, fiammetta }) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "dormitory", level: 5 },
+    ],
+    settings: { fiammettaMode: mode, fiammettaDirectCount: 3 },
+    fiammetta,
+    plans,
+  };
+}
+
+function fiammettaAssignment(operators) {
+  return {
+    operators,
+    operatorStates: Object.fromEntries(
+      operators.map((name) => [name, { elite: 2, level: 1, mood: 24 }]),
+    ),
+  };
 }
 
 function assignment(operators, eliteLevels) {
@@ -185,7 +212,12 @@ function assertSkillDetails(result, operators) {
 }
 
 function runTests(runtime) {
-  const { calculateEfficiency, catalog } = runtime;
+  const {
+    calculateEfficiency,
+    catalog,
+    parseMaaScheduleText,
+    serializeMaaSchedule,
+  } = runtime;
   const partial = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "未知干员"],
@@ -319,6 +351,149 @@ function runTests(runtime) {
   assert.equal(tradeFacility.skillEfficiency, 45);
   assert.equal(tradeFacility.operatorSkillEfficiency, 45);
   assertSkillDetails(tradeFacility, ["巫恋"]);
+
+  const queueFiammetta = calculateEfficiency(
+    fiammettaDocument({
+      mode: "queue",
+      fiammetta: {
+        queue: [{ operators: ["德克萨斯"] }, {}, { operators: ["德克萨斯"] }],
+      },
+      plans: [
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [{}],
+          },
+        },
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [fiammettaAssignment(["菲亚梅塔"])],
+          },
+        },
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [{}],
+          },
+        },
+      ],
+    }),
+    catalog,
+  );
+  assert.equal(
+    queueFiammetta.plans[0].moods.find(
+      ({ operator }) => operator === "德克萨斯",
+    ).start,
+    24,
+  );
+  assert.deepEqual(queueFiammetta.fiammettaWarnings, []);
+  assert.equal(queueFiammetta.fiammetta.plans[1].recoverRate, 2);
+
+  const delayedQueueFiammetta = calculateEfficiency(
+    fiammettaDocument({
+      mode: "queue",
+      fiammetta: {
+        queue: [{ operators: ["德克萨斯"] }, {}, { operators: ["德克萨斯"] }],
+      },
+      plans: [
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [{}],
+          },
+        },
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [{}],
+          },
+        },
+        {
+          duration: 60,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            dormitory: [fiammettaAssignment(["菲亚梅塔"])],
+          },
+        },
+      ],
+    }),
+    catalog,
+  );
+  assert.deepEqual(delayedQueueFiammetta.fiammettaWarnings, [
+    "菲亚梅塔在2队列结束后无法恢复心情",
+  ]);
+
+  const directFiammetta = calculateEfficiency(
+    fiammettaDocument({
+      mode: "direct",
+      fiammetta: { direct: { operators: ["德克萨斯", "砾", "红云"] } },
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            trading: [fiammettaAssignment(["德克萨斯"])],
+            manufacture: [fiammettaAssignment(["砾", "红云"])],
+            dormitory: [fiammettaAssignment(["菲亚梅塔"])],
+          },
+        },
+      ],
+    }),
+    catalog,
+  );
+  assert.deepEqual(directFiammetta.fiammettaWarnings, [
+    "菲亚梅塔无法完全恢复这些干员心情",
+  ]);
+  assert.equal(directFiammetta.fiammetta.totalRecovery, 24);
+
+  const maaImported = parseMaaScheduleText(
+    JSON.stringify({
+      layout: [{ type: "dormitory", level: 5 }],
+      plans: [
+        {
+          rooms: { dormitory: [{}] },
+          Fiammetta: { enable: true, target: "德克萨斯", order: "pre" },
+        },
+        { rooms: { dormitory: [{}] } },
+      ],
+    }),
+  ).document;
+  assert.equal(maaImported.settings.fiammettaMode, "queue");
+  assert.deepEqual(maaImported.fiammetta.queue[0].operators, ["德克萨斯"]);
+  const maaExported = JSON.parse(
+    serializeMaaSchedule({
+      ...maaImported,
+      fiammetta: {
+        queue: [{ operators: ["德克萨斯"] }, {}],
+      },
+    }),
+  );
+  assert.deepEqual(maaExported.plans[0].Fiammetta, {
+    enable: true,
+    target: "德克萨斯",
+    order: "pre",
+  });
+  const directMaaExported = JSON.parse(
+    serializeMaaSchedule({
+      ...maaImported,
+      settings: { ...maaImported.settings, fiammettaMode: "direct" },
+      fiammetta: {
+        direct: { operators: ["德克萨斯", "砾"] },
+      },
+    }),
+  );
+  assert.deepEqual(
+    directMaaExported.plans.map(({ Fiammetta }) => Fiammetta),
+    [
+      { enable: true, target: "德克萨斯", order: "pre" },
+      { enable: true, target: "砾", order: "pre" },
+    ],
+  );
 }
 
 async function main() {
