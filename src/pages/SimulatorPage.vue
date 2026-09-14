@@ -564,6 +564,27 @@ const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
     : DEFAULT_SIMULATOR_EDIT_SETTINGS;
 });
 
+const powerSummary = computed<PowerSummary>(() => {
+  const document = currentDocument.value;
+  if (!document) {
+    return { used: 0, provided: 0, net: 0 };
+  }
+
+  return document.layout.reduce<PowerSummary>(
+    (summary, entry) => {
+      const power = facilityPower(entry.type, entry.level);
+      if (power >= 0) {
+        summary.provided += power;
+      } else {
+        summary.used += -power;
+      }
+      summary.net = summary.provided - summary.used;
+      return summary;
+    },
+    { used: 0, provided: 0, net: 0 },
+  );
+});
+
 const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   const document = currentDocument.value;
   const catalog = efficiencyCatalog.value;
@@ -580,6 +601,16 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
 
 const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   const notices: EfficiencyNotice[] = [];
+  if (powerSummary.value.net < 0) {
+    notices.push({
+      code: "negative-power",
+      level: "warning",
+      message: "电力不足",
+      details: [
+        `当前布局提供 ${powerSummary.value.provided} 点电力，消耗 ${powerSummary.value.used} 点电力，净电力 ${powerSummary.value.net} 点`,
+      ],
+    });
+  }
   if (!efficiencySupported.value) {
     notices.push({
       code: "unsupported-data-source",
@@ -846,27 +877,6 @@ const layoutRows = computed<LayoutDisplayRow[]>(() => {
         .map(({ entry, index }, position) => ({ entry, index, position })),
     ),
   }));
-});
-
-const powerSummary = computed<PowerSummary>(() => {
-  const document = currentDocument.value;
-  if (!document) {
-    return { used: 0, provided: 0, net: 0 };
-  }
-
-  return document.layout.reduce<PowerSummary>(
-    (summary, entry) => {
-      const power = facilityPower(entry.type, entry.level);
-      if (power >= 0) {
-        summary.provided += power;
-      } else {
-        summary.used += -power;
-      }
-      summary.net = summary.provided - summary.used;
-      return summary;
-    },
-    { used: 0, provided: 0, net: 0 },
-  );
 });
 
 const layoutGroups = computed(() => {
