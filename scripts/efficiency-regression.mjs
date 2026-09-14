@@ -449,6 +449,93 @@ function runTests(runtime) {
   assert.equal(capacityRecoveryManufacture.production?.overflowed, true);
   assert.equal(capacityRecoveryManufacture.production?.breachTime, 20);
 
+  const redCloudCapacity = calculateEfficiency(
+    documentFor({
+      manufacture: ["红云", "铅踝"],
+      eliteLevels: { 红云: 1, 铅踝: 1 },
+      moods: { 铅踝: 13.2 },
+      duration: 720,
+    }),
+    catalog,
+  );
+  const redCloudCapacityManufacture = manufactureResult(redCloudCapacity);
+  assert.equal(redCloudCapacityManufacture.capacity?.total, 68);
+  assert.equal(redCloudCapacityManufacture.capacity?.segments.length, 2);
+  assert.equal(
+    redCloudCapacityManufacture.capacity?.segments[0]?.startHours,
+    0,
+  );
+  assert.ok(
+    Math.abs(
+      (redCloudCapacityManufacture.capacity?.segments[0]?.endHours ?? 0) -
+        1.263157894736842,
+    ) < 1e-9,
+  );
+  assert.equal(redCloudCapacityManufacture.capacity?.segments[0]?.total, 62);
+  assert.ok(
+    Math.abs(
+      (redCloudCapacityManufacture.capacity?.segments[1]?.startHours ?? 0) -
+        1.263157894736842,
+    ) < 1e-9,
+  );
+  assert.equal(redCloudCapacityManufacture.capacity?.segments[1]?.endHours, 12);
+  assert.equal(redCloudCapacityManufacture.capacity?.segments[1]?.total, 68);
+  assert.ok(
+    Math.abs(
+      (contribution(redCloudCapacityManufacture, "红云").skillEfficiency ?? 0) -
+        26.736842105263158,
+    ) < 1e-9,
+  );
+
+  const bubbleCapacity = calculateEfficiency(
+    documentFor({
+      manufacture: ["泡泡", "红云", "铅踝"],
+      eliteLevels: { 泡泡: 1, 红云: 1, 铅踝: 1 },
+      moods: { 铅踝: 13.2 },
+      duration: 720,
+    }),
+    catalog,
+  );
+  const bubbleCapacityManufacture = manufactureResult(bubbleCapacity);
+  assert.equal(bubbleCapacityManufacture.capacity?.total, 78);
+  assert.ok(
+    Math.abs(
+      (contribution(bubbleCapacityManufacture, "泡泡").skillEfficiency ?? 0) -
+        23.333333333333332,
+    ) < 1e-9,
+  );
+
+  const skippedQueueMood = calculateEfficiency(
+    {
+      layout: [{ type: "manufacture", level: 3 }],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [assignmentWithoutMood(["铅踝"])],
+          },
+        },
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [assignmentWithoutMood([])],
+          },
+        },
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [assignment(["铅踝"], { 铅踝: 0 }, { 铅踝: 18 })],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.deepEqual(
+    skippedQueueMood.plans.map((plan) => plan.moods[0]?.start),
+    [6, undefined, 18],
+  );
+
   const steadyRecovery = calculateEfficiency(
     {
       layout: [{ type: "manufacture", level: 3 }],

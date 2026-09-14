@@ -2573,6 +2573,36 @@ a {
   font-weight: 400;
 }
 
+.simulator-capacity-segment-list {
+  display: grid;
+  gap: 4px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-capacity-segment-row {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  align-items: center;
+  gap: 7px 12px;
+  color: #72807f;
+  font-size: 11px;
+}
+
+.simulator-capacity-segment-row strong {
+  min-width: 0;
+  color: #344447;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.simulator-capacity-segment-row small {
+  color: #879294;
+  font-size: 11px;
+  font-weight: 400;
+}
+
 .simulator-order-list {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);

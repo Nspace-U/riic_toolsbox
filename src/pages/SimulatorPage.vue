@@ -7115,6 +7115,35 @@ onBeforeUnmount(() => {
                         </template>
                       </div>
                       <div
+                        v-if="
+                          result.facility.capacity &&
+                          result.facility.capacity.segments.length > 1
+                        "
+                        class="simulator-capacity-segment-list"
+                      >
+                        <span class="simulator-step-subheading"
+                          >容量时间段</span
+                        >
+                        <div
+                          v-for="segment in result.facility.capacity.segments"
+                          :key="`${segment.startHours}-${segment.endHours}`"
+                          class="simulator-capacity-segment-row"
+                        >
+                          <span>
+                            {{ formatDurationHours(segment.startHours) }} -
+                            {{ formatDurationHours(segment.endHours) }}
+                          </span>
+                          <strong>
+                            {{ formatNumber(segment.total) }}
+                            {{ result.facility.capacity.unit }}
+                            <small>
+                              （基础 {{ formatNumber(segment.base) }}，技能
+                              {{ signedNumber(segment.skill) }}）
+                            </small>
+                          </strong>
+                        </div>
+                      </div>
+                      <div
                         v-if="result.facility.production?.orders?.length"
                         class="simulator-order-list"
                       >
