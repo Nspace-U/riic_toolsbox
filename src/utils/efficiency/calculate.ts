@@ -14,6 +14,7 @@ import type {
   EfficiencyResult,
   FiammettaCalculation,
   FiammettaPlanResult,
+  FacilityCapacitySegment,
   FacilityAttributes,
   FacilityEfficiencyResult,
   CluePreference,
@@ -602,11 +603,11 @@ function conditionSatisfied(
       );
       break;
     case "moodDrop":
-      result =
-        24 -
-          owner.moodStart +
-          (Math.max(0, owner.costRate) * context.durationHours) / 2 >
-        Number(condition.value ?? 0);
+      result = compare(
+        moodDropAverage(owner, context.durationHours),
+        Number(condition.value ?? 0),
+        condition.op ?? "gt",
+      );
       break;
     case "termCmp":
       result = compare(
@@ -661,6 +662,52 @@ function orderCount(
 
 function basePointTerm(context: PlanContext, term: string | undefined): number {
   return term ? (context.basePoints[term] ?? 0) : 0;
+}
+
+function isMoodSensitiveSkill(placement: Placement, skill: string): boolean {
+  return placement.selected.some(
+    (selected) =>
+      selected.skill === skill &&
+      (selected.effect.per?.source === "moodDrop" ||
+        selected.effect.condition?.type === "moodDrop"),
+  );
+}
+
+function isMoodSensitiveEffect(item: ActiveEffect): boolean {
+  return isMoodSensitiveSkill(item.owner, item.skill);
+}
+
+function moodWorkingEnd(placement: Placement, duration: number): number {
+  if (placement.moodStart <= EPSILON) {
+    return 0;
+  }
+  if (placement.costRate > EPSILON) {
+    return Math.min(duration, placement.moodStart / placement.costRate);
+  }
+  return duration;
+}
+
+function moodAtTime(placement: Placement, time: number): number {
+  return clampMood(placement.moodStart - placement.costRate * time);
+}
+
+function moodDropAtTime(placement: Placement, time: number): number {
+  return 24 - moodAtTime(placement, time);
+}
+
+function moodDropAverage(placement: Placement, duration: number): number {
+  if (duration <= EPSILON) {
+    return 0;
+  }
+  const workingEnd = moodWorkingEnd(placement, duration);
+  if (workingEnd <= EPSILON) {
+    return 0;
+  }
+  return (
+    ((moodDropAtTime(placement, 0) + moodDropAtTime(placement, workingEnd)) /
+      2) *
+    (workingEnd / duration)
+  );
 }
 
 function perCount(
@@ -859,12 +906,7 @@ function perCount(
       break;
     }
     case "moodDrop":
-      count = Math.max(
-        0,
-        24 -
-          owner.moodStart +
-          (Math.max(0, owner.costRate) * context.durationHours) / 2,
-      );
+      count = moodDropAverage(owner, context.durationHours);
       break;
     case "orderCount":
       count = target ? orderCount(context, target) : 0;
@@ -964,6 +1006,153 @@ function curveEvaluation(
   };
 }
 
+function moodDropPerValue(per: EfficiencyPer, moodDrop: number): number {
+  const perUnit = Math.max(EPSILON, Number(per.per) || 1);
+  const shouldFloor = per.floor ?? true;
+  const times = shouldFloor
+    ? Math.max(0, Math.floor(moodDrop / perUnit))
+    : Math.max(0, moodDrop / perUnit);
+  const raw = times * (Number(per.value) || 0);
+  if (per.capUnit === "value") {
+    return Math.min(raw, Number(per.cap ?? Infinity));
+  }
+  return per.cap === undefined
+    ? raw
+    : Math.min(times, per.cap) * (Number(per.value) || 0);
+}
+
+function moodConditionValue(
+  condition: EfficiencyCondition,
+  moodDrop: number,
+): boolean {
+  const matched = compare(
+    moodDrop,
+    Number(condition.value ?? 0),
+    condition.op ?? "gt",
+  );
+  return condition.negate ? !matched : matched;
+}
+
+function moodEffectValueAtTime(
+  item: ActiveEffect,
+  target: EfficiencyFacility | undefined,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+  time: number,
+): number {
+  const { effect, owner } = item;
+  const workingEnd = moodWorkingEnd(owner, context.durationHours);
+  if (
+    time > workingEnd + EPSILON ||
+    (time >= workingEnd - EPSILON && moodAtTime(owner, time) <= EPSILON)
+  ) {
+    return 0;
+  }
+  let value: number;
+  if (effect.per?.source === "moodDrop") {
+    value = moodDropPerValue(effect.per, moodDropAtTime(owner, time));
+  } else if (effect.curve) {
+    value = Math.min(
+      effect.curve.startValue +
+        (owner.workHoursBefore + time - effect.curve.startHours) *
+          effect.curve.step,
+      effect.curve.cap,
+    );
+  } else if (effect.per) {
+    value = perCount(
+      effect.per,
+      owner,
+      target,
+      effect.target,
+      context,
+      catalog,
+      data,
+    ).value;
+  } else {
+    value = Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
+  }
+  if (effect.condition?.type === "moodDrop") {
+    if (!moodConditionValue(effect.condition, moodDropAtTime(owner, time))) {
+      return 0;
+    }
+  }
+  if (effect.condition?.type === "workHours") {
+    const threshold = Number(effect.condition.value ?? 0);
+    if (owner.workHoursBefore + time < threshold) {
+      return 0;
+    }
+  }
+  return value;
+}
+
+function moodEffectBoundaries(item: ActiveEffect, duration: number): number[] {
+  const { effect, owner } = item;
+  const workingEnd = moodWorkingEnd(owner, duration);
+  const boundaries = [0, workingEnd];
+  const rate = owner.costRate;
+  if (Math.abs(rate) > EPSILON) {
+    const initialDrop = moodDropAtTime(owner, 0);
+    const addDropBoundary = (moodDrop: number): void => {
+      const time = (moodDrop - initialDrop) / rate;
+      if (time > EPSILON && time < workingEnd - EPSILON) {
+        boundaries.push(time);
+      }
+    };
+    if (effect.per?.source === "moodDrop") {
+      const perUnit = Math.max(EPSILON, Number(effect.per.per) || 1);
+      for (let moodDrop = 0; moodDrop <= 24 + EPSILON; moodDrop += perUnit) {
+        addDropBoundary(moodDrop);
+      }
+    }
+    if (effect.condition?.type === "moodDrop") {
+      addDropBoundary(Number(effect.condition.value ?? 0));
+    }
+  }
+  if (effect.condition?.type === "workHours") {
+    const time = Number(effect.condition.value ?? 0) - owner.workHoursBefore;
+    if (time > EPSILON && time < workingEnd - EPSILON) {
+      boundaries.push(time);
+    }
+  }
+  return Array.from(
+    new Set(boundaries.map((value) => Math.max(0, value))),
+  ).sort((left, right) => left - right);
+}
+
+function moodEffectAverage(
+  item: ActiveEffect,
+  target: EfficiencyFacility | undefined,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+): number {
+  const duration = context.durationHours;
+  if (duration <= EPSILON) {
+    return 0;
+  }
+  const boundaries = moodEffectBoundaries(item, duration);
+  let integral = 0;
+  for (let index = 1; index < boundaries.length; index += 1) {
+    const start = boundaries[index - 1] ?? 0;
+    const end = boundaries[index] ?? start;
+    if (end <= start + EPSILON) {
+      continue;
+    }
+    integral +=
+      moodEffectValueAtTime(
+        item,
+        target,
+        context,
+        catalog,
+        data,
+        (start + end) / 2,
+      ) *
+      (end - start);
+  }
+  return integral / duration;
+}
+
 function workHoursCalculation(
   item: ActiveEffect,
   context: PlanContext,
@@ -989,6 +1178,9 @@ function effectValue(
   catalog: EfficiencyCatalog,
   data: EvaluationData,
 ): number {
+  if (isMoodSensitiveEffect(item)) {
+    return moodEffectAverage(item, target, context, catalog, data);
+  }
   const { effect, owner } = item;
   let value: number;
   if (effect.curve) {
@@ -1093,6 +1285,11 @@ function collectActive(
         const targets = facilityTargets(effect, owner, context.facilities);
         targets.forEach((target) => {
           if (
+            !(
+              effect.condition?.type === "moodDrop" &&
+              (EFFICIENCY_STATS.has(effect.stat) ||
+                ATTRIBUTE_STATS.has(effect.stat))
+            ) &&
             !conditionSatisfied(
               effect.condition,
               owner,
@@ -1377,7 +1574,7 @@ function resolveMoodRate(
     rate += cost;
     details.push(detail);
   });
-  return { rate: Math.max(0, rate), details };
+  return { rate, details };
 }
 
 function moodEffectValues(
@@ -1700,6 +1897,7 @@ function resolveMoods(
           )
       : [],
   );
+  const steadyMoodStarts = new Map<string, number>();
   const canInheritMood = (
     previous: Placement | undefined,
     current: Placement,
@@ -1713,7 +1911,7 @@ function resolveMoods(
   ): previous is Placement =>
     !!previous &&
     isCurrentlyWorking(previous) &&
-    previous.moodStart > EPSILON &&
+    previous.moodEnd > EPSILON &&
     isWorkPlacement(previous) &&
     isWorkPlacement(current) &&
     (!current.explicitMood || clampMood(current.state.mood ?? 24) > EPSILON);
@@ -1726,14 +1924,15 @@ function resolveMoods(
       const previousWork = previousWorkPlacement(index, placement);
       const previousWorkOperator = previousWork.placement;
       const continuesWork = canContinueWork(previousWorkOperator, placement);
+      const steadyMoodStart = steadyMoodStarts.get(placement.name);
       placement.moodStart = placement.fiammettaForced
         ? 24
         : placement.explicitMood
           ? clampMood(placement.state.mood ?? 24)
-          : inheritsMood
-            ? previousOperator.moodEnd
-            : unanchoredCycleOperators.has(placement.name)
-              ? 0
+          : steadyMoodStart !== undefined
+            ? steadyMoodStart
+            : inheritsMood
+              ? previousOperator.moodEnd
               : 24;
       placement.working = true;
       placement.workHoursBefore = continuesWork
@@ -1744,7 +1943,7 @@ function resolveMoods(
     });
   });
 
-  for (let round = 0; round < 8; round += 1) {
+  for (let round = 0; round < 16; round += 1) {
     let maxStartDelta = 0;
     contexts.forEach((context, index) => {
       context.placements.forEach((placement) => {
@@ -1754,14 +1953,15 @@ function resolveMoods(
         const previousWork = previousWorkPlacement(index, placement);
         const previousWorkOperator = previousWork.placement;
         const continuesWork = canContinueWork(previousWorkOperator, placement);
+        const steadyMoodStart = steadyMoodStarts.get(placement.name);
         const nextStart = placement.fiammettaForced
           ? 24
           : placement.explicitMood
             ? clampMood(placement.state.mood ?? 24)
-            : inheritsMood
-              ? previousOperator.moodEnd
-              : unanchoredCycleOperators.has(placement.name)
-                ? 0
+            : steadyMoodStart !== undefined
+              ? steadyMoodStart
+              : inheritsMood
+                ? previousOperator.moodEnd
                 : 24;
         maxStartDelta = Math.max(
           maxStartDelta,
@@ -1815,6 +2015,18 @@ function resolveMoods(
           : placement.moodStart;
       });
     });
+    if (round === 7 && unanchoredCycleOperators.size > 0) {
+      unanchoredCycleOperators.forEach((name) => {
+        const netChange = contexts.reduce((total, context) => {
+          const placement = context.placements.find(
+            (candidate) => candidate.name === name,
+          );
+          return total + (placement?.costRate ?? 0) * context.durationHours;
+        }, 0);
+        steadyMoodStarts.set(name, netChange < -EPSILON ? 24 : 0);
+      });
+      maxStartDelta = Infinity;
+    }
     if (maxStartDelta <= EPSILON) {
       break;
     }
@@ -1865,6 +2077,26 @@ function emptyEvaluationData(): EvaluationData {
   return { capBoosts: {}, bonusByFacility: {} };
 }
 
+function attributeEffectValue(
+  item: ActiveEffect,
+  target: EfficiencyFacility,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+): number {
+  if (!isMoodSensitiveEffect(item)) {
+    return effectValue(item, target, context, catalog, data);
+  }
+  return moodEffectValueAtTime(
+    item,
+    target,
+    context,
+    catalog,
+    data,
+    context.durationHours,
+  );
+}
+
 function rawAttributeState(
   context: PlanContext,
   facility: EfficiencyFacility,
@@ -1900,7 +2132,13 @@ function rawAttributeState(
     )
     .filter((item) => recipeMatches(item.effect, assignment))
     .forEach((item) => {
-      const value = effectValue(item, facility, context, catalog, data);
+      const value = attributeEffectValue(
+        item,
+        facility,
+        context,
+        catalog,
+        data,
+      );
       raw[item.effect.stat] = (raw[item.effect.stat] ?? 0) + value;
       const statBoosts =
         boosts[item.effect.stat] ?? (boosts[item.effect.stat] = {});
@@ -1919,7 +2157,13 @@ function rawAttributeState(
     )
     .filter((item) => recipeMatches(item.effect, assignment))
     .forEach((item) => {
-      const value = effectValue(item, facility, context, catalog, capData);
+      const value = attributeEffectValue(
+        item,
+        facility,
+        context,
+        catalog,
+        capData,
+      );
       raw[item.effect.stat] = (raw[item.effect.stat] ?? 0) + value;
       const statBoosts =
         boosts[item.effect.stat] ?? (boosts[item.effect.stat] = {});
@@ -2520,27 +2764,30 @@ function calculateFacility(
       combinationDetails,
     ),
   };
+  const production = productionFor(
+    context,
+    facility,
+    result.efficiency,
+    catalog,
+    context.active,
+  );
+  result.capacity = capacityFor(
+    context,
+    facility,
+    attributeState,
+    production,
+    catalog,
+    context.active,
+  );
   result.production = decorateProduction(
     context,
     facility,
-    attributeState.attributes,
-    productionFor(
-      context,
-      facility,
-      result.efficiency,
-      catalog,
-      context.active,
-    ),
+    production,
+    result.capacity,
   );
   if (result.production && cluePreferences.length > 0) {
     result.production.cluePreferences = cluePreferences;
   }
-  result.capacity = capacityFor(
-    context,
-    facility,
-    attributeState.attributes,
-    result.production,
-  );
   return result;
 }
 
@@ -2791,21 +3038,149 @@ function productionFor(
   return undefined;
 }
 
+function capacitySkillAtTime(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+  attributeState: AttributeState,
+  active: ActiveEffect[],
+  catalog: EfficiencyCatalog,
+  time: number,
+): number {
+  const assignment = roomAssignments(context.document, context.index, facility);
+  const data: EvaluationData = {
+    capBoosts: attributeState.capBoosts,
+    bonusByFacility: {},
+  };
+  const suppressedSkills = suppressedSkillsFor(context, facility);
+  return active
+    .filter(
+      (item) =>
+        item.target?.id === facility.id &&
+        ATTRIBUTE_STATS.has(item.effect.stat),
+    )
+    .filter((item) => !suppressedSkills.has(item.skill))
+    .filter((item) => item.effect.per?.source !== "stat")
+    .filter((item) => recipeMatches(item.effect, assignment))
+    .reduce(
+      (total, item) =>
+        total +
+        (isMoodSensitiveEffect(item)
+          ? moodEffectValueAtTime(item, facility, context, catalog, data, time)
+          : effectValue(item, facility, context, catalog, data)),
+      0,
+    );
+}
+
+function capacitySegmentsFor(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+  attributeState: AttributeState,
+  active: ActiveEffect[],
+  catalog: EfficiencyCatalog,
+  base: number,
+  skill: number,
+  minimum = 0,
+): FacilityCapacitySegment[] {
+  const duration = context.durationHours;
+  const dynamic = active.filter(
+    (item) =>
+      item.target?.id === facility.id &&
+      ATTRIBUTE_STATS.has(item.effect.stat) &&
+      isMoodSensitiveEffect(item),
+  );
+  if (dynamic.length === 0) {
+    return [
+      {
+        startHours: 0,
+        endHours: duration,
+        base,
+        skill,
+        total: Math.max(minimum, base + skill),
+      },
+    ];
+  }
+  const boundaries = [0, duration];
+  dynamic.forEach((item) => {
+    boundaries.push(...moodEffectBoundaries(item, duration));
+  });
+  const points = Array.from(
+    new Set(
+      boundaries
+        .map((value) => Math.max(0, Math.min(duration, value)))
+        .sort((left, right) => left - right),
+    ),
+  );
+  const segments: FacilityCapacitySegment[] = [];
+  for (let index = 1; index < points.length; index += 1) {
+    const startHours = points[index - 1] ?? 0;
+    const endHours = points[index] ?? startHours;
+    if (endHours <= startHours + EPSILON) {
+      continue;
+    }
+    const segmentSkill = capacitySkillAtTime(
+      context,
+      facility,
+      attributeState,
+      active,
+      catalog,
+      (startHours + endHours) / 2,
+    );
+    const total = Math.max(minimum, base + segmentSkill);
+    const previous = segments[segments.length - 1];
+    if (previous && Math.abs(previous.total - total) <= EPSILON) {
+      previous.endHours = endHours;
+      continue;
+    }
+    segments.push({
+      startHours,
+      endHours,
+      base,
+      skill: segmentSkill,
+      total,
+    });
+  }
+  return segments.length > 0
+    ? segments
+    : [
+        {
+          startHours: 0,
+          endHours: duration,
+          base,
+          skill,
+          total: Math.max(minimum, base + skill),
+        },
+      ];
+}
+
 function capacityFor(
   context: PlanContext,
   facility: EfficiencyFacility,
-  attributes: FacilityAttributes,
+  attributeState: AttributeState,
   production: ProductionValue | undefined,
+  catalog: EfficiencyCatalog,
+  active: ActiveEffect[],
 ): FacilityCapacity | undefined {
+  const attributes = attributeState.attributes;
   if (facility.type === "trading") {
     const value = attributes.orderLimit;
     if (!value) return undefined;
+    const segments = capacitySegmentsFor(
+      context,
+      facility,
+      attributeState,
+      active,
+      catalog,
+      value.base,
+      value.skill,
+      1,
+    );
     return {
       label: "订单上限",
       unit: "单",
       base: value.base,
       skill: value.skill,
       total: value.total,
+      segments,
     };
   }
   if (facility.type === "manufacture") {
@@ -2817,12 +3192,37 @@ function capacityFor(
       facility,
     );
     const rule = manufactureRule(assignment.product, assignment.sourceMaterial);
+    const segments = capacitySegmentsFor(
+      context,
+      facility,
+      attributeState,
+      active,
+      catalog,
+      value.base,
+      value.skill,
+    );
+    const endSkill = active.some(
+      (item) =>
+        item.target?.id === facility.id &&
+        ATTRIBUTE_STATS.has(item.effect.stat) &&
+        isMoodSensitiveEffect(item),
+    )
+      ? capacitySkillAtTime(
+          context,
+          facility,
+          attributeState,
+          active,
+          catalog,
+          context.durationHours,
+        )
+      : value.skill;
     return {
       label: "仓库容量",
       unit: "格",
       base: value.base,
-      skill: value.skill,
-      total: value.total,
+      skill: endSkill,
+      total: value.base + endSkill,
+      segments,
       itemVolume: rule?.volume,
     };
   }
@@ -2833,6 +3233,15 @@ function capacityFor(
       base: DRONE_LIMIT,
       skill: 0,
       total: DRONE_LIMIT,
+      segments: [
+        {
+          startHours: 0,
+          endHours: context.durationHours,
+          base: DRONE_LIMIT,
+          skill: 0,
+          total: DRONE_LIMIT,
+        },
+      ],
     };
   }
   if (facility.type === "meeting") {
@@ -2842,6 +3251,15 @@ function capacityFor(
       base: CLUE_LIMIT,
       skill: 0,
       total: CLUE_LIMIT,
+      segments: [
+        {
+          startHours: 0,
+          endHours: context.durationHours,
+          base: CLUE_LIMIT,
+          skill: 0,
+          total: CLUE_LIMIT,
+        },
+      ],
     };
   }
   if (facility.type === "hire") {
@@ -2851,6 +3269,15 @@ function capacityFor(
       base: HIRE_LIMIT,
       skill: 0,
       total: HIRE_LIMIT,
+      segments: [
+        {
+          startHours: 0,
+          endHours: context.durationHours,
+          base: HIRE_LIMIT,
+          skill: 0,
+          total: HIRE_LIMIT,
+        },
+      ],
     };
   }
   void production;
@@ -2860,23 +3287,48 @@ function capacityFor(
 function decorateProduction(
   context: PlanContext,
   facility: EfficiencyFacility,
-  attributes: FacilityAttributes,
   production: ProductionValue | undefined,
+  capacity: FacilityCapacity | undefined,
 ): ProductionValue | undefined {
   if (!production) return undefined;
-  const capacity = capacityFor(context, facility, attributes, production);
   if (!capacity || !production.itemRate || production.itemRate <= EPSILON) {
     return production;
   }
-  const itemCapacity =
-    facility.type === "manufacture" && capacity.itemVolume
-      ? Math.floor(capacity.total / capacity.itemVolume)
-      : capacity.total;
+  const itemRate = production.itemRate;
   const progress = firstItemProgress(context.settings, facility.id);
-  const breachTime = Math.max(
-    0,
-    (itemCapacity - progress) / production.itemRate,
-  );
+  let inventory = progress;
+  let breachTime = Number.POSITIVE_INFINITY;
+  capacity.segments.forEach((segment) => {
+    if (Number.isFinite(breachTime)) {
+      return;
+    }
+    const itemCapacity =
+      facility.type === "manufacture" && capacity.itemVolume
+        ? Math.floor(segment.total / capacity.itemVolume)
+        : segment.total;
+    const startHours = segment.startHours;
+    const segmentHours = Math.max(0, segment.endHours - startHours);
+    if (inventory >= itemCapacity - EPSILON) {
+      breachTime = startHours;
+      return;
+    }
+    const timeToBreach = (itemCapacity - inventory) / itemRate;
+    if (timeToBreach <= segmentHours + EPSILON) {
+      breachTime = startHours + Math.max(0, timeToBreach);
+      return;
+    }
+    inventory += itemRate * segmentHours;
+  });
+  if (!Number.isFinite(breachTime)) {
+    const itemCapacity =
+      facility.type === "manufacture" && capacity.itemVolume
+        ? Math.floor(capacity.total / capacity.itemVolume)
+        : capacity.total;
+    breachTime =
+      inventory >= itemCapacity - EPSILON
+        ? context.durationHours
+        : context.durationHours + (itemCapacity - inventory) / itemRate;
+  }
   const overflowed = breachTime <= context.durationHours + EPSILON;
   if (!overflowed || context.settings.overflowMode !== "zero") {
     return {
@@ -3012,7 +3464,22 @@ function calculatePowerGroup(
     base: DRONE_LIMIT,
     skill: 0,
     total: DRONE_LIMIT,
+    segments: [
+      {
+        startHours: 0,
+        endHours: context.durationHours,
+        base: DRONE_LIMIT,
+        skill: 0,
+        total: DRONE_LIMIT,
+      },
+    ],
   };
+  const decoratedProduction = decorateProduction(
+    context,
+    first,
+    production,
+    capacity,
+  );
   return {
     facility: first,
     baseEfficiency,
@@ -3024,7 +3491,7 @@ function calculatePowerGroup(
     combinationEfficiency: operatorEfficiency + combinationEfficiency,
     efficiency,
     attributes: {},
-    production: decorateProduction(context, first, {}, production),
+    production: decoratedProduction,
     capacity,
     details: [...skillDetails, ...baseDetails],
     baseDetails,

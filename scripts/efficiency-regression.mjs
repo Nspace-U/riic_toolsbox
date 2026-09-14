@@ -130,15 +130,60 @@ function fiammettaAssignment(operators) {
   };
 }
 
-function assignment(operators, eliteLevels) {
+function assignment(operators, eliteLevels, moods = {}) {
   return {
     operators: [...operators],
     operatorStates: Object.fromEntries(
       operators.map((name) => [
         name,
-        { elite: eliteLevels[name] ?? 2, level: 1, mood: 24 },
+        {
+          elite: eliteLevels[name] ?? 2,
+          level: 1,
+          mood: moods[name] ?? 24,
+        },
       ]),
     ),
+  };
+}
+
+function assignmentWithoutMood(operators) {
+  return {
+    operators: [...operators],
+  };
+}
+
+function catalogWithManufactureSkill(catalog, name, effects) {
+  const skillFile = {
+    id: `test_${name}`,
+    name,
+    chains: [
+      {
+        slot: 1,
+        room: "manufacture",
+        stages: [
+          {
+            unlock: { type: "elite", value: 0 },
+            name: "测试技能",
+            effects,
+          },
+        ],
+      },
+    ],
+  };
+  return {
+    ...catalog,
+    operators: {
+      ...catalog.operators,
+      [name]: {
+        id: skillFile.id,
+        name,
+        maxEliteLevel: 2,
+        rarity: 1,
+        termKeys: [],
+        skillFile,
+        skillNames: ["测试技能"],
+      },
+    },
   };
 }
 
@@ -147,6 +192,9 @@ function documentFor({
   trading = [],
   manufacture = [],
   eliteLevels = {},
+  moods = {},
+  duration = 720,
+  settings = {},
 }) {
   return {
     layout: [
@@ -159,13 +207,13 @@ function documentFor({
     ],
     plans: [
       {
-        duration: 720,
+        duration,
         rooms: {
-          control: [assignment(control, eliteLevels)],
-          trading: [assignment(trading, eliteLevels)],
+          control: [assignment(control, eliteLevels, moods)],
+          trading: [assignment(trading, eliteLevels, moods)],
           manufacture: [
             {
-              ...assignment(manufacture, eliteLevels),
+              ...assignment(manufacture, eliteLevels, moods),
               product: "Pure Gold",
             },
           ],
@@ -177,6 +225,7 @@ function documentFor({
         },
       },
     ],
+    settings,
   };
 }
 
@@ -259,6 +308,175 @@ function runTests(runtime) {
     sourceFacility: "manufacture",
   });
   assert.equal(contribution(wendyManufacture, "温蒂").skillEfficiency, 45);
+
+  const totterStageOne = calculateEfficiency(
+    documentFor({
+      manufacture: ["铅踝"],
+      eliteLevels: { 铅踝: 0 },
+      moods: { 铅踝: 13.2 },
+      duration: 720,
+    }),
+    catalog,
+  );
+  const totterStageOneManufacture = manufactureResult(totterStageOne);
+  assert.ok(Math.abs(totterStageOneManufacture.skillEfficiency - 11.5) < 1e-9);
+  assert.equal(totterStageOneManufacture.capacity?.total, 54);
+  assert.equal(totterStageOneManufacture.capacity?.segments.length, 1);
+  assert.ok(
+    Math.abs((totterStageOne.plans[0].moods[0]?.end ?? 0) - 1.2) < 1e-9,
+  );
+
+  const totterStageTwo = calculateEfficiency(
+    documentFor({
+      manufacture: ["铅踝"],
+      eliteLevels: { 铅踝: 1 },
+      moods: { 铅踝: 13.2 },
+      duration: 720,
+    }),
+    catalog,
+  );
+  const totterStageTwoManufacture = manufactureResult(totterStageTwo);
+  assert.ok(Math.abs(totterStageTwoManufacture.skillEfficiency - 20.5) < 1e-9);
+  assert.equal(totterStageTwoManufacture.capacity?.total, 60);
+  assert.equal(totterStageTwoManufacture.capacity?.skill, 6);
+  assert.equal(totterStageTwoManufacture.capacity?.segments.length, 2);
+
+  const exhaustedTotter = calculateEfficiency(
+    documentFor({
+      manufacture: ["铅踝"],
+      eliteLevels: { 铅踝: 0 },
+      duration: 2880,
+    }),
+    catalog,
+  );
+  const exhaustedTotterManufacture = manufactureResult(exhaustedTotter);
+  assert.equal(exhaustedTotter.plans[0].moods[0]?.end, 0);
+  assert.ok(Math.abs(exhaustedTotterManufacture.skillEfficiency - 8.75) < 1e-9);
+
+  const weightedTotter = calculateEfficiency(
+    {
+      layout: [{ type: "manufacture", level: 3 }],
+      plans: [
+        {
+          duration: 360,
+          rooms: {
+            manufacture: [
+              {
+                ...assignment(["铅踝"], { 铅踝: 0 }, { 铅踝: 24 }),
+                product: "Pure Gold",
+              },
+            ],
+          },
+        },
+        {
+          duration: 720,
+          rooms: {
+            manufacture: [
+              {
+                ...assignment(["铅踝"], { 铅踝: 0 }, { 铅踝: 18 }),
+                product: "Pure Gold",
+              },
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.ok(
+    Math.abs(
+      (weightedTotter.dailyFacilities[0]?.production?.amountPerHour ?? 0) -
+        1.0175925925925926,
+    ) < 1e-9,
+  );
+
+  const recoveryCatalog = catalogWithManufactureSkill(catalog, "恢复铅踝", [
+    { target: "manufacture", stat: "moodRecover", value: 1.2 },
+    { target: "manufacture", stat: "manuProd", value: 30 },
+    {
+      target: "manufacture",
+      stat: "manuProd",
+      per: { per: 4, value: -5, source: "moodDrop" },
+    },
+  ]);
+  const recoveringTotter = calculateEfficiency(
+    documentFor({
+      manufacture: ["恢复铅踝"],
+      moods: { 恢复铅踝: 18 },
+      duration: 1200,
+    }),
+    recoveryCatalog,
+  );
+  const recoveringTotterManufacture = manufactureResult(recoveringTotter);
+  assert.ok(
+    Math.abs((recoveringTotter.plans[0].moods[0]?.costRate ?? 0) + 0.2) < 1e-9,
+  );
+  assert.ok(
+    Math.abs((recoveringTotter.plans[0].moods[0]?.end ?? 0) - 22) < 1e-9,
+  );
+  assert.ok(
+    Math.abs(recoveringTotterManufacture.skillEfficiency - 27.5) < 1e-9,
+  );
+
+  const capacityCatalog = catalogWithManufactureSkill(
+    catalog,
+    "容量恢复测试员",
+    [
+      { target: "manufacture", stat: "moodRecover", value: 1.1 },
+      { target: "manufacture", stat: "manuProd", value: 75 },
+      {
+        target: "manufacture",
+        stat: "storageCap",
+        value: 6,
+        condition: { type: "moodDrop", value: 12 },
+      },
+    ],
+  );
+  const capacityRecovery = calculateEfficiency(
+    documentFor({
+      manufacture: ["容量恢复测试员"],
+      moods: { 容量恢复测试员: 10 },
+      duration: 1200,
+    }),
+    capacityCatalog,
+  );
+  const capacityRecoveryManufacture = manufactureResult(capacityRecovery);
+  assert.ok(
+    Math.abs((capacityRecovery.plans[0].moods[0]?.costRate ?? 0) + 0.1) < 1e-9,
+  );
+  assert.equal(capacityRecoveryManufacture.capacity?.total, 54);
+  assert.equal(capacityRecoveryManufacture.capacity?.segments[0]?.total, 60);
+  assert.equal(capacityRecoveryManufacture.production?.overflowed, true);
+  assert.equal(capacityRecoveryManufacture.production?.breachTime, 20);
+
+  const steadyRecovery = calculateEfficiency(
+    {
+      layout: [{ type: "manufacture", level: 3 }],
+      plans: [
+        {
+          duration: 600,
+          rooms: {
+            manufacture: [assignmentWithoutMood(["恢复铅踝"])],
+          },
+        },
+        {
+          duration: 600,
+          rooms: {
+            manufacture: [assignmentWithoutMood(["恢复铅踝"])],
+          },
+        },
+      ],
+    },
+    recoveryCatalog,
+  );
+  assert.deepEqual(
+    steadyRecovery.plans.map((plan) => plan.moods[0]?.start),
+    [24, 24],
+  );
+  assert.deepEqual(
+    steadyRecovery.plans.map((plan) => plan.moods[0]?.end),
+    [24, 24],
+  );
 
   const huaihu = calculateEfficiency(
     documentFor({

@@ -222,7 +222,16 @@ export interface FacilityCapacity {
   base: number;
   skill: number;
   total: number;
+  segments: FacilityCapacitySegment[];
   itemVolume?: number;
+}
+
+export interface FacilityCapacitySegment {
+  startHours: number;
+  endHours: number;
+  base: number;
+  skill: number;
+  total: number;
 }
 
 export interface FacilityAttributes {
