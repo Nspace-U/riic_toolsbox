@@ -983,10 +983,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
     rows.push({
       key: "fiammetta",
       type: "dormitory",
-      label:
-        fiammettaMode(document) === "queue"
-          ? "菲亚梅塔（按队列互换心情）"
-          : "菲亚梅塔（直接互换心情）",
+      label: "菲亚梅塔",
       entries: [
         {
           entry: { type: "dormitory", level: 5 },
