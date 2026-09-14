@@ -273,6 +273,18 @@ function runTests(runtime) {
   assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
   assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
 
+  const suppressed = calculateEfficiency(
+    documentFor({
+      manufacture: ["红云", "泡泡"],
+      eliteLevels: { 红云: 2, 泡泡: 2 },
+    }),
+    catalog,
+  );
+  const suppressedManufacture = manufactureResult(suppressed);
+  assert.equal(suppressedManufacture.attributes.storageCap?.total, 72);
+  assert.equal(suppressedManufacture.skillEfficiency, 18);
+  assertSkillDetails(suppressedManufacture, ["泡泡"]);
+
   const seafoam = calculateEfficiency(
     documentFor({
       manufacture: ["海沫", "多萝西", "水月"],

@@ -280,12 +280,15 @@ npm run generate:operator-skills
 | `other`      | 受众/计数是否排除自身                                         |
 | `stack`      | `max` 表示同组取最高；缺省表示累加                            |
 | `maxGroup`   | `stack: max` 的显式分组名                                     |
+| `suppresses` | 同一目标设施上被该技能压制的技能名列表，优先生效              |
 | `baseValue`  | 与 `per` 共存的固定基础值，最终值为基础值加线性值             |
 | `recipe`     | 制造站配方类别，例如 `贵金属`                                 |
 
 `stack: "max"` 的含义是：先按每个目标设施、条件和 `per` 计算候选值，再在相同 `maxGroup` 中取满足条件的最大值；不能把标记为 `max` 的效果与普通效果混为一组。玛恩纳、重岳、维什戴尔针对 `部分设施/其他设施` 的心情恢复使用 `maxGroup: "otherFacRec"`，由每个设施分别取最高。
 
 控制中枢直接提供目标设施效率的效果，如果描述包含“同种效果取最高”，使用 `stack: "max"`。计算器据此将 `tradeSpd`、`manuProd`、`droneCharge`、`clueSpeed` 和 `hireSpd` 的效果归入设施效率，而不是干员个人贡献。
+
+`suppresses` 按技能名表达互斥。计算器在同一目标设施上忽略被列出的技能效率效果；未被列出的其他技能节点，例如独立的 `storageCap` 效果，仍然生效。
 
 ## 4. condition
 

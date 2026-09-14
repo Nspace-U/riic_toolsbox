@@ -1884,12 +1884,14 @@ function rawAttributeState(
     orderLimit: {},
     storageCap: {},
   };
+  const suppressedSkills = suppressedSkillsFor(context, facility);
   active
     .filter(
       (item) =>
         item.target?.id === facility.id &&
         ATTRIBUTE_STATS.has(item.effect.stat),
     )
+    .filter((item) => !suppressedSkills.has(item.skill))
     .filter(
       (item) =>
         item.effect.per?.source !== "stat" &&
@@ -1911,6 +1913,7 @@ function rawAttributeState(
         item.target?.id === facility.id &&
         ATTRIBUTE_STATS.has(item.effect.stat),
     )
+    .filter((item) => !suppressedSkills.has(item.skill))
     .filter((item) =>
       ["facCap", "capTier"].includes(item.effect.per?.source ?? ""),
     )
@@ -1927,6 +1930,7 @@ function rawAttributeState(
     active.some(
       (item) =>
         item.target?.id === facility.id &&
+        !suppressedSkills.has(item.skill) &&
         item.effect.per?.source === "stat" &&
         item.effect.stat === "orderLimit",
     );
@@ -1982,6 +1986,17 @@ function zeroedSkillOperators(
   );
 }
 
+function suppressedSkillsFor(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+): Set<string> {
+  return new Set(
+    context.active
+      .filter((item) => item.target?.id === facility.id)
+      .flatMap((item) => item.effect.suppresses ?? []),
+  );
+}
+
 function isFacilitySkillEffect(item: ActiveEffect): boolean {
   return (
     item.effect.stack === "max" &&
@@ -2017,6 +2032,7 @@ function aggregateEffectValues(
   category: "all" | "base" | "combination" = "all",
   source: "regular" | "stat" = "regular",
 ): { total: number; details: Array<{ item: ActiveEffect; value: number }> } {
+  const suppressedSkills = suppressedSkillsFor(context, facility);
   const matchesCategory = (item: ActiveEffect): boolean => {
     const base = isFacilityBaseEffect(item);
     return category === "all" || (category === "base" ? base : !base);
@@ -2042,6 +2058,7 @@ function aggregateEffectValues(
     .filter(matchesSource)
     .filter((item) => !["moodCost", "moodRecover"].includes(item.effect.stat))
     .filter((item) => item.effect.stack !== "max")
+    .filter((item) => !suppressedSkills.has(item.skill))
     .filter((item) => shouldIncludeZeroedEffect(item, zeroed))
     .forEach((item) =>
       normal.push({
@@ -2067,6 +2084,7 @@ function aggregateEffectValues(
     .filter(matchesSource)
     .filter((item) => item.effect.stack === "max")
     .filter((item) => item.effect.stat !== "tradeNetEff")
+    .filter((item) => !suppressedSkills.has(item.skill))
     .filter((item) => shouldIncludeZeroedEffect(item, zeroed))
     .forEach((item) => {
       const groupKey =
@@ -2180,9 +2198,11 @@ function tradeSpecialEfficiency(
   if (facility.type !== "trading") {
     return { value: 0, orderLimitNet: state.rawOrderLimit, details: [] };
   }
+  const suppressedSkills = suppressedSkillsFor(context, facility);
   const jieEffects = active.filter(
     (item) =>
       item.target?.id === facility.id &&
+      !suppressedSkills.has(item.skill) &&
       item.effect.stat === "orderLimit" &&
       item.effect.per?.source === "stat",
   );
@@ -2191,11 +2211,13 @@ function tradeSpecialEfficiency(
       (item) =>
         item.target?.id === facility.id && item.effect.stat === "tradeNetEff",
     )
+    .filter((item) => !suppressedSkills.has(item.skill))
     .filter((item) => shouldIncludeZeroedEffect(item, zeroed));
   const orderEffects = active
     .filter(
       (item) =>
         item.target?.id === facility.id &&
+        !suppressedSkills.has(item.skill) &&
         item.effect.stat === "tradeSpd" &&
         item.effect.per?.source === "orderCount",
     )
