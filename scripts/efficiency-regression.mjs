@@ -244,6 +244,36 @@ function documentFor({
   };
 }
 
+function abyssalDocument({
+  manufacture,
+  control = ["歌蕾蒂娅"],
+  dormitory = [],
+  eliteLevels = {},
+  moods = {},
+}) {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "dormitory", level: 5 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment(control, eliteLevels, moods)],
+          manufacture: manufacture.map((operators) => ({
+            ...assignment(operators, eliteLevels, moods),
+            product: "Pure Gold",
+          })),
+          dormitory: [assignment(dormitory, eliteLevels, moods)],
+        },
+      },
+    ],
+  };
+}
+
 function flowGoldDocument({
   trading = [],
   control = [],
@@ -446,6 +476,83 @@ function runTests(runtime) {
     (dailyOutput.dailyOutputs.find(
       ({ kind, product }) => kind === "net" && product === "Originium Shard",
     )?.amountPerDay ?? 0) < 0,
+  );
+
+  const gladyBetaSplit = calculateEfficiency(
+    abyssalDocument({
+      manufacture: [["斯卡蒂", "幽灵鲨"], ["安哲拉"]],
+    }),
+    catalog,
+  );
+  const gladyBetaStations = gladyBetaSplit.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "manufacture",
+  );
+  assert.deepEqual(
+    gladyBetaStations.map(
+      (facility) =>
+        facility.combinationDetails.find(
+          ({ operator, skill }) =>
+            operator === "歌蕾蒂娅" && skill === "集群狩猎·β",
+        )?.value ?? 0,
+    ),
+    [60, 30],
+  );
+
+  const gladyAlphaSplit = calculateEfficiency(
+    abyssalDocument({
+      manufacture: [["斯卡蒂", "幽灵鲨", "安哲拉"], ["乌尔比安"]],
+      eliteLevels: { 歌蕾蒂娅: 1 },
+    }),
+    catalog,
+  );
+  const gladyAlphaStations = gladyAlphaSplit.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "manufacture",
+  );
+  assert.deepEqual(
+    gladyAlphaStations.map(
+      (facility) =>
+        facility.combinationDetails.find(
+          ({ operator, skill }) =>
+            operator === "歌蕾蒂娅" && skill === "集群狩猎·α",
+        )?.value ?? 0,
+    ),
+    [45, 20],
+  );
+
+  const gladyZeroMoodHunter = calculateEfficiency(
+    abyssalDocument({
+      manufacture: [["斯卡蒂"], ["幽灵鲨"]],
+      moods: { 幽灵鲨: 0 },
+    }),
+    catalog,
+  );
+  const gladyZeroMoodStations = gladyZeroMoodHunter.plans[0].facilities.filter(
+    ({ facility }) => facility.type === "manufacture",
+  );
+  assert.equal(
+    gladyZeroMoodStations[1]?.combinationDetails.find(
+      ({ operator, skill }) =>
+        operator === "歌蕾蒂娅" && skill === "集群狩猎·β",
+    )?.value,
+    20,
+  );
+  assert.ok(
+    Math.abs(
+      (gladyZeroMoodHunter.plans[0].moods.find(
+        ({ operator }) => operator === "歌蕾蒂娅",
+      )?.costRate ?? 0) - 2.4,
+    ) < 1e-9,
+  );
+
+  const gladyAlone = calculateEfficiency(
+    abyssalDocument({ manufacture: [[], []] }),
+    catalog,
+  );
+  assert.ok(
+    Math.abs(
+      (gladyAlone.plans[0].moods.find(({ operator }) => operator === "歌蕾蒂娅")
+        ?.costRate ?? 0) - 0.9,
+    ) < 1e-9,
   );
 
   const huntingParty = calculateEfficiency(
@@ -1085,6 +1192,98 @@ function runTests(runtime) {
   assert.equal(tradeFacility.skillEfficiency, 45);
   assert.equal(tradeFacility.operatorSkillEfficiency, 45);
   assertSkillDetails(tradeFacility, ["巫恋"]);
+
+  const jieMax = calculateEfficiency(
+    documentFor({
+      trading: ["孑"],
+      eliteLevels: { 孑: 0 },
+      settings: { preferMaxJieEfficiency: true },
+    }),
+    catalog,
+  );
+  const jieMaxFacility = tradingResult(jieMax);
+  const jieMaxDetail = jieMaxFacility.combinationDetails.find(
+    ({ stat }) => stat === "tradeGapEff",
+  );
+  assert.equal(jieMaxFacility.efficiency, 141);
+  assert.equal(jieMaxDetail?.value, 40);
+  assert.equal(jieMaxDetail?.calculation?.type, "tradeGap");
+  assert.equal(jieMaxDetail?.calculation?.mode, "max");
+
+  const jieIntegral = calculateEfficiency(
+    documentFor({
+      trading: ["孑"],
+      eliteLevels: { 孑: 0 },
+      settings: { preferMaxJieEfficiency: false },
+    }),
+    catalog,
+  );
+  const jieIntegralFacility = tradingResult(jieIntegral);
+  const jieIntegralDetail = jieIntegralFacility.combinationDetails.find(
+    ({ stat }) => stat === "tradeGapEff",
+  );
+  assert.ok(jieIntegralDetail);
+  assert.equal(jieIntegralDetail.calculation?.type, "tradeGap");
+  assert.equal(jieIntegralDetail.calculation?.mode, "integral");
+  assert.ok(jieIntegralDetail.value < jieMaxDetail.value);
+  assert.ok((jieIntegralDetail.calculation?.completedOrders ?? 0) > 0);
+
+  const jieProgress = calculateEfficiency(
+    documentFor({
+      trading: ["孑"],
+      eliteLevels: { 孑: 0 },
+      settings: { preferMaxJieEfficiency: false, firstItemProgress: 0.5 },
+    }),
+    catalog,
+  );
+  const jieProgressDetail = tradingResult(jieProgress).combinationDetails.find(
+    ({ stat }) => stat === "tradeGapEff",
+  );
+  assert.ok(jieProgressDetail);
+  assert.ok(jieProgressDetail.value < jieIntegralDetail.value);
+
+  const jieFixedOrder = calculateEfficiency(
+    documentFor({
+      trading: ["孑", "佩佩"],
+      eliteLevels: { 孑: 0, 佩佩: 2 },
+      settings: { preferMaxJieEfficiency: false },
+    }),
+    catalog,
+  );
+  const jieFixedOrderDetail = tradingResult(
+    jieFixedOrder,
+  ).combinationDetails.find(({ stat }) => stat === "tradeGapEff");
+  assert.equal(jieFixedOrderDetail?.calculation?.mode, "max");
+  assert.equal(jieFixedOrderDetail?.calculation?.fallbackReason, "fixedOrder");
+
+  const jieUnlocked = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "trading", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: { control: [{}], trading: [{ operators: ["孑"] }] },
+        },
+      ],
+    },
+    catalog,
+    { treatSkillsAsUnlocked: true },
+  );
+  assert.equal(tradingResult(jieUnlocked).efficiency, 141);
+
+  const jieManualElite = calculateEfficiency(
+    documentFor({
+      trading: ["孑"],
+      eliteLevels: { 孑: 1 },
+      settings: { preferMaxJieEfficiency: true },
+    }),
+    catalog,
+    { treatSkillsAsUnlocked: true },
+  );
+  assert.equal(tradingResult(jieManualElite).efficiency, 145);
 
   const hiddenFlowGold = calculateEfficiency(
     flowGoldDocument({ manufactureCount: 1 }),

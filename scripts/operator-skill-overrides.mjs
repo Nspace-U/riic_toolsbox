@@ -52,6 +52,13 @@ export const OPERATOR_SKILL_OVERRIDES = {
     },
   ],
   // “市井之道”同时读取其他干员提供的效率和当前订单数，无法归结为普通固定值。
+  "char_272_strong#摊贩经济": [
+    {
+      target: TRADING,
+      stat: "tradeGapEff",
+      value: 4,
+    },
+  ],
   "char_272_strong#市井之道": [
     {
       target: TRADING,

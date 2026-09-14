@@ -8,6 +8,7 @@ import type { OperatorProgressionProfile } from "@/types/operatorProgression";
 
 export type EfficiencyStat =
   | "tradeSpd"
+  | "tradeGapEff"
   | "tradeNetEff"
   | "manuProd"
   | "clueSpeed"
@@ -302,6 +303,20 @@ export interface CurveCalculationStep {
 }
 
 export type OperatorEfficiencyCalculation =
+  | {
+      type: "tradeGap";
+      mode: "max" | "integral";
+      durationHours: number;
+      gapBase: number;
+      gapValue: number;
+      initialEfficiency: number;
+      averageEfficiency: number;
+      expectedOrderHours?: number;
+      firstItemProgress: number;
+      completedOrders: number;
+      decrement: number;
+      fallbackReason?: "fixedOrder" | "missingOrders";
+    }
   | {
       type: "curve";
       beforeHours: number;

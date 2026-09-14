@@ -155,6 +155,12 @@ interface ActiveEffect {
   target?: EfficiencyFacility;
 }
 
+interface EffectDetail {
+  item: ActiveEffect;
+  value: number;
+  calculation?: OperatorEfficiencyCalculation;
+}
+
 interface PerValue {
   value: number;
   count: number;
@@ -985,7 +991,7 @@ function perCount(
     }
     case "abyssalBoost": {
       const members = membersFor(catalog, per.group);
-      const local = placementsInRoomType(context, "manufacture").filter(
+      const local = countInFacility("same").filter(
         (placement) =>
           members.includes(placement.name) &&
           workingPlacement(placement, per.moodCheck),
@@ -2635,10 +2641,11 @@ function tradeSpecialEfficiency(
   data: EvaluationData,
   zeroed: Set<string>,
   ordinarySkill: number,
+  baseEfficiencyWithoutSpecial: number,
 ): {
   value: number;
   orderLimitNet: number;
-  details: Array<{ item: ActiveEffect; value: number }>;
+  details: EffectDetail[];
 } {
   if (facility.type !== "trading") {
     return { value: 0, orderLimitNet: state.rawOrderLimit, details: [] };
@@ -2667,11 +2674,20 @@ function tradeSpecialEfficiency(
         item.effect.per?.source === "orderCount",
     )
     .filter((item) => shouldIncludeZeroedEffect(item, zeroed));
+  const gapEffects = active
+    .filter(
+      (item) =>
+        item.target?.id === facility.id &&
+        !suppressedSkills.has(item.skill) &&
+        item.effect.stat === "tradeGapEff",
+    )
+    .filter((item) => shouldIncludeZeroedEffect(item, zeroed));
   const baseOrder = TRADE_ORDER_LIMIT[facility.level] ?? 0;
   if (
     jieEffects.length === 0 &&
     netEffects.length === 0 &&
-    orderEffects.length === 0
+    orderEffects.length === 0 &&
+    gapEffects.length === 0
   ) {
     return { value: 0, orderLimitNet: state.rawOrderLimit, details: [] };
   }
@@ -2685,7 +2701,7 @@ function tradeSpecialEfficiency(
     jieEffects.length > 0
       ? Math.max(1, state.rawOrderLimit - cut)
       : state.rawOrderLimit;
-  const details: Array<{ item: ActiveEffect; value: number }> = [];
+  const details: EffectDetail[] = [];
   let value = 0;
   netEffects.forEach((item) => {
     const specialData: EvaluationData = {
@@ -2708,20 +2724,116 @@ function tradeSpecialEfficiency(
     value += specialValue;
     details.push({ item, value: specialValue });
   });
+  if (gapEffects.length > 0) {
+    const gapBase =
+      orderEffects.length > 0
+        ? orderLimitNet
+        : Math.max(1, baseOrder + state.rawOrderLimit);
+    const gapValues = gapEffects.map(
+      (item) => gapBase * Number(item.effect.value ?? 0),
+    );
+    const maxGapValue = gapValues.reduce((total, item) => total + item, 0);
+    const initialEfficiency =
+      baseEfficiencyWithoutSpecial + value + maxGapValue;
+    const preferMax = context.settings.preferMaxJieEfficiency !== false;
+    const orderProduction = preferMax
+      ? undefined
+      : tradeProduction(context, facility, 100, active);
+    const orders = orderProduction?.orders ?? [];
+    const expectedOrderHours = orders.reduce(
+      (total, order) => total + order.probability * order.time,
+      0,
+    );
+    const fixedOrder = orders.length === 1 && orders[0]?.ignoreEfficiency;
+    const fallbackReason = fixedOrder
+      ? "fixedOrder"
+      : orders.length === 0 || expectedOrderHours <= EPSILON
+        ? "missingOrders"
+        : undefined;
+    const shouldIntegrate =
+      !preferMax && !fallbackReason && context.durationHours > EPSILON;
+    let averageEfficiency = initialEfficiency;
+    let completedOrders = 0;
+    const progress = firstItemProgress(context.settings, facility.id);
+    const decrement = gapEffects.reduce(
+      (total, item) => total + Number(item.effect.value ?? 0),
+      0,
+    );
+    if (shouldIntegrate) {
+      let elapsed = 0;
+      let currentEfficiency = initialEfficiency;
+      let integratedEfficiency = 0;
+      while (
+        elapsed < context.durationHours - EPSILON &&
+        currentEfficiency > EPSILON
+      ) {
+        const remainingProgress = completedOrders === 0 ? 1 - progress : 1;
+        const orderHours =
+          (expectedOrderHours / (currentEfficiency / 100)) * remainingProgress;
+        if (orderHours <= EPSILON) {
+          completedOrders += 1;
+          currentEfficiency -= decrement;
+          continue;
+        }
+        if (elapsed + orderHours > context.durationHours + EPSILON) {
+          break;
+        }
+        integratedEfficiency += currentEfficiency * orderHours;
+        elapsed += orderHours;
+        completedOrders += 1;
+        currentEfficiency -= decrement;
+      }
+      averageEfficiency =
+        (integratedEfficiency +
+          Math.max(0, currentEfficiency) *
+            Math.max(0, context.durationHours - elapsed)) /
+        context.durationHours;
+    }
+    const averageGapValue = shouldIntegrate
+      ? averageEfficiency - baseEfficiencyWithoutSpecial - value
+      : maxGapValue;
+    const calculation: OperatorEfficiencyCalculation = {
+      type: "tradeGap",
+      mode: shouldIntegrate ? "integral" : "max",
+      durationHours: context.durationHours,
+      gapBase,
+      gapValue: maxGapValue,
+      initialEfficiency,
+      averageEfficiency: shouldIntegrate
+        ? averageEfficiency
+        : initialEfficiency,
+      ...(shouldIntegrate || fallbackReason ? { expectedOrderHours } : {}),
+      firstItemProgress: progress,
+      completedOrders,
+      decrement,
+      ...(fallbackReason ? { fallbackReason } : {}),
+    };
+    gapEffects.forEach((item, index) => {
+      const maxValue = gapValues[index] ?? 0;
+      const ratio =
+        Math.abs(maxGapValue) > EPSILON ? maxValue / maxGapValue : 0;
+      details.push({
+        item,
+        value: shouldIntegrate ? averageGapValue * ratio : maxValue,
+        calculation,
+      });
+    });
+    value += shouldIntegrate ? averageGapValue : maxGapValue;
+  }
   return { value, orderLimitNet, details };
 }
 
 function detailRows(
-  aggregate: { details: Array<{ item: ActiveEffect; value: number }> },
+  aggregate: { details: EffectDetail[] },
   facility: RoomKey,
   category: "base" | "combination",
   context: PlanContext,
 ): OperatorEfficiencyDetail[] {
   return aggregate.details
-    .map(({ item, value }) => ({
+    .map(({ item, value, calculation }) => ({
       item,
       value,
-      calculation: effectCalculation(item, context),
+      calculation: calculation ?? effectCalculation(item, context),
     }))
     .filter(
       ({ value, calculation }) =>
@@ -2890,25 +3002,6 @@ function calculateFacility(
     baseEfficiency += meetingAtmosphereBonus(atmosphere);
   }
   baseEfficiency += baseAggregate.total;
-  const special = tradeSpecialEfficiency(
-    context,
-    facility,
-    catalog,
-    attributeState,
-    context.active,
-    data,
-    zeroed,
-    combinationAggregate.total,
-  );
-  if (facility.type === "trading" && attributeState.attributes.orderLimit) {
-    const raw = attributeState.rawOrderLimit;
-    const skill = attributeState.linked ? special.orderLimitNet : raw;
-    attributeState.attributes.orderLimit = {
-      base: attributeState.attributes.orderLimit.base,
-      skill,
-      total: Math.max(1, attributeState.attributes.orderLimit.base + skill),
-    };
-  }
   const trainingDetails: OperatorEfficiencyDetail[] =
     facility.type === "meeting"
       ? placements
@@ -2926,6 +3019,30 @@ function calculateFacility(
     (total, detail) => total + detail.value,
     0,
   );
+  const special = tradeSpecialEfficiency(
+    context,
+    facility,
+    catalog,
+    attributeState,
+    context.active,
+    data,
+    zeroed,
+    combinationAggregate.total,
+    baseEfficiency +
+      moodEfficiency +
+      combinationAggregate.total +
+      statAggregate.total +
+      trainingEfficiency,
+  );
+  if (facility.type === "trading" && attributeState.attributes.orderLimit) {
+    const raw = attributeState.rawOrderLimit;
+    const skill = attributeState.linked ? special.orderLimitNet : raw;
+    attributeState.attributes.orderLimit = {
+      base: attributeState.attributes.orderLimit.base,
+      skill,
+      total: Math.max(1, attributeState.attributes.orderLimit.base + skill),
+    };
+  }
   const skillEfficiency =
     combinationAggregate.total +
     statAggregate.total +

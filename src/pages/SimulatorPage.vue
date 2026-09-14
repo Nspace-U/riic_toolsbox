@@ -633,13 +633,31 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   if (!result) {
     return notices;
   }
-  notices.push({
-    code: "unsupported-order-state",
-    level: "info",
-    message:
-      "当前版本暂不模拟精 0 孑订单逐单衰减与 orderProgress；爆仓展示仅按容量速率和首件进度设置计算。",
-    details: [],
-  });
+  const tradeGapFallbacks = result.plans.flatMap((plan, planIndex) =>
+    plan.facilities.flatMap((facility) =>
+      facility.details.flatMap((detail) => {
+        const calculation = detail.calculation;
+        if (calculation?.type !== "tradeGap" || !calculation.fallbackReason) {
+          return [];
+        }
+        const reason =
+          calculation.fallbackReason === "fixedOrder"
+            ? "固定订单不参与逐单衰减"
+            : "没有可用的订单分布";
+        return [
+          `${plan.name || `队列${planIndex + 1}`} · ${facilityResultLabel(facility)} · ${detail.operator}：${reason}`,
+        ];
+      }),
+    ),
+  );
+  if (tradeGapFallbacks.length > 0) {
+    notices.push({
+      code: "jie-trade-gap-fallback",
+      level: "info",
+      message: "精 0 孑积分平均已回退为最大效率",
+      details: tradeGapFallbacks,
+    });
+  }
   if (result.warnings.length > 0) {
     notices.push({
       code: "missing-skill-data",
@@ -721,6 +739,7 @@ const currentEfficiencySettings = computed(() => {
       0,
       Math.floor(settings?.fiammettaDirectCount ?? 3),
     ),
+    preferMaxJieEfficiency: settings?.preferMaxJieEfficiency !== false,
     firstItemProgress:
       typeof firstItemProgress === "number"
         ? Math.max(0, Math.min(100, firstItemProgress * 100))
@@ -1216,6 +1235,15 @@ function updateEfficiencyOverflowSetting(value: boolean): void {
     document.settings = {
       ...(document.settings ?? {}),
       overflowMode: value ? "zero" : "continue",
+    };
+  });
+}
+
+function updateEfficiencyJieMode(value: boolean): void {
+  updateCurrent((document) => {
+    document.settings = {
+      ...(document.settings ?? {}),
+      preferMaxJieEfficiency: value,
     };
   });
 }
@@ -4151,6 +4179,38 @@ function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
   if (!calculation) {
     return [];
   }
+  if (calculation.type === "tradeGap") {
+    const mode = calculation.mode === "max" ? "最大效率" : "积分平均";
+    const lines = [
+      `模式：${mode}`,
+      `差值基数：${formatNumber(calculation.gapBase)} × ${formatNumber(
+        calculation.gapValue / Math.max(calculation.gapBase, 1),
+      )}% = ${formatNumber(calculation.gapValue)}%`,
+    ];
+    if (calculation.mode === "integral") {
+      lines.push(
+        `期望单耗时：${formatNumber(
+          calculation.expectedOrderHours ?? 0,
+        )} 小时，首件进度：${formatNumber(
+          calculation.firstItemProgress * 100,
+        )}%`,
+        `完成订单：${formatNumber(calculation.completedOrders)}，每单衰减：-${formatNumber(
+          calculation.decrement,
+        )}%`,
+        `整站效率平均：${formatNumber(
+          calculation.averageEfficiency,
+        )}%（初始 ${formatNumber(calculation.initialEfficiency)}%）`,
+      );
+    }
+    if (calculation.fallbackReason) {
+      lines.push(
+        calculation.fallbackReason === "fixedOrder"
+          ? "固定订单不参与逐单衰减，按最大效率计算"
+          : "没有可用的订单分布，按最大效率计算",
+      );
+    }
+    return lines;
+  }
   if (calculation.type === "workHours") {
     const efficiencyLine =
       calculation.durationHours > 0
@@ -4387,6 +4447,7 @@ function basePointSourceText(source: BasePointSource): string {
 
 const efficiencyStatLabels: Record<string, string> = {
   tradeSpd: "贸易效率",
+  tradeGapEff: "订单差值效率",
   tradeNetEff: "贸易净效率",
   manuProd: "制造效率",
   clueSpeed: "线索速度",
@@ -6690,6 +6751,17 @@ onBeforeUnmount(() => {
                 "
               >
                 模拟爆仓
+              </a-checkbox>
+            </a-form-item>
+            <a-form-item label="精0孑效率">
+              <a-checkbox
+                :checked="currentEfficiencySettings.preferMaxJieEfficiency"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    updateEfficiencyJieMode(event.target.checked)
+                "
+              >
+                按最高效率计算
               </a-checkbox>
             </a-form-item>
             <a-form-item label="首件进度">

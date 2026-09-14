@@ -15,7 +15,7 @@
           "effects": [
             {
               "target": "trading",
-              "stat": "tradeSpd",
+              "stat": "tradeGapEff",
               "value": 4
             }
           ]

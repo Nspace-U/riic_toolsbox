@@ -249,12 +249,16 @@ export function resolveOperatorProgression(
   input: OperatorProgressionResolverInput,
 ): ResolvedOperatorProgression {
   const profileEntry = input.profile?.entries[input.operatorId];
-  const defaultProgression = maximumProgressionForFacility(
-    input.operatorSkillFile,
-    input.facility,
-    input.maxEliteLevel,
-    input.dormitoryDefaultIncludesMoodRecovery,
-  );
+  const jieTradingDefault =
+    input.operatorId === "char_272_strong" && input.facility === "trading";
+  const defaultProgression = jieTradingDefault
+    ? { elite: 0 as EliteLevel, level: 1 }
+    : maximumProgressionForFacility(
+        input.operatorSkillFile,
+        input.facility,
+        input.maxEliteLevel,
+        input.dormitoryDefaultIncludesMoodRecovery,
+      );
   const manualElite =
     input.manualElite === undefined ? undefined : clampElite(input.manualElite);
   const manualLevel =
@@ -269,12 +273,14 @@ export function resolveOperatorProgression(
   };
 
   if (input.treatSkillsAsUnlocked) {
-    const maximum = maximumProgressionForFacility(
-      input.operatorSkillFile,
-      input.facility,
-      input.maxEliteLevel,
-      input.dormitoryDefaultIncludesMoodRecovery,
-    );
+    const maximum = jieTradingDefault
+      ? defaultProgression
+      : maximumProgressionForFacility(
+          input.operatorSkillFile,
+          input.facility,
+          input.maxEliteLevel,
+          input.dormitoryDefaultIncludesMoodRecovery,
+        );
     return {
       elite:
         manualElite ?? (Math.max(sourceElite, maximum.elite) as EliteLevel),
