@@ -259,6 +259,38 @@ EXP 52.2k | 贵金属 46.6k
     ),
     "自定",
   );
+  const resolveDynamicAvatarLabel =
+    specialOperatorsModule.createSpecialOperatorAvatarLabelResolver(
+      dynamicTerms,
+    );
+  assert.equal(resolveDynamicAvatarLabel("阿米娅"), undefined);
+  assert.equal(resolveDynamicAvatarLabel("35%"), "35%");
+  assert.equal(resolveDynamicAvatarLabel("自定义术语"), "自定");
+  assert.equal(resolveDynamicAvatarLabel("不存在的术语"), undefined);
+  const resolveUpdatedAvatarLabel =
+    specialOperatorsModule.createSpecialOperatorAvatarLabelResolver({
+      custom: { name: "更新术语" },
+    });
+  assert.equal(resolveUpdatedAvatarLabel("自定义术语"), undefined);
+  assert.equal(resolveUpdatedAvatarLabel("更新术语"), "更新");
+  let termEnumerationCount = 0;
+  const trackedTerms = new Proxy(
+    { custom: { name: "缓存术语" } },
+    {
+      ownKeys(target) {
+        termEnumerationCount += 1;
+        return Reflect.ownKeys(target);
+      },
+    },
+  );
+  const cachedAvatarLabel =
+    specialOperatorsModule.createSpecialOperatorAvatarLabelResolver(
+      trackedTerms,
+    );
+  assert.equal(cachedAvatarLabel("缓存术语"), "缓存");
+  assert.equal(cachedAvatarLabel("缓存术语"), "缓存");
+  assert.equal(cachedAvatarLabel("缓存术语"), "缓存");
+  assert.equal(termEnumerationCount, 1);
   assert.equal(
     specialOperatorsModule.isKnownSpecialOperator("自定义术语", dynamicTerms),
     true,

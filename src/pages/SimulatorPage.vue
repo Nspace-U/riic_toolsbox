@@ -113,7 +113,7 @@ import {
   resolveOperatorProgression,
 } from "@/utils/operatorProgression";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
-import { specialOperatorAvatarLabel } from "@/utils/specialOperators";
+import { createSpecialOperatorAvatarLabelResolver } from "@/utils/specialOperators";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -330,6 +330,18 @@ const {
   duplicateDocument,
 } = useScheduleDocuments();
 const { operators, terms, ready: baseDataReady } = useBaseData();
+const operatorByNameMap = computed(() => {
+  const map = new Map<string, Operator>();
+  operators.value.forEach((operator) => {
+    if (!map.has(operator.name)) {
+      map.set(operator.name, operator);
+    }
+  });
+  return map;
+});
+const specialOperatorAvatarLabelResolver = computed(() =>
+  createSpecialOperatorAvatarLabelResolver(terms.value),
+);
 const { isBasePointVisible } = useBasePointDisplaySettings();
 const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
@@ -536,7 +548,7 @@ function operatorDragPreviewData():
     const plan = document.plans[address.planIndex];
     const name = plan ? operatorNameAtAddress(document, address) : "";
     const operator = operatorByName(name);
-    const specialLabel = specialOperatorAvatarLabel(name, terms.value);
+    const specialLabel = specialOperatorAvatarLabelResolver.value(name);
     if (!plan || !name || (!operator && !specialLabel)) {
       return [];
     }
@@ -2732,9 +2744,8 @@ function slotSpecialAvatarLabel(
   planIndex: number,
   slot: FacilitySlotRef,
 ): string | undefined {
-  return specialOperatorAvatarLabel(
+  return specialOperatorAvatarLabelResolver.value(
     slotName(row, plan, planIndex, slot),
-    terms.value,
   );
 }
 
@@ -4701,7 +4712,7 @@ async function refreshEfficiencyCatalog(): Promise<void> {
 }
 
 function operatorByName(name: string): Operator | undefined {
-  return operators.value.find((operator) => operator.name === name);
+  return operatorByNameMap.value.get(name);
 }
 
 function operatorHasFacilitySkill(operator: Operator, type: RoomKey): boolean {

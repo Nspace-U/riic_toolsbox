@@ -79,6 +79,20 @@ export function specialOperatorAvatarLabel(
   return Array.from(termName).slice(0, 2).join("");
 }
 
+export function createSpecialOperatorAvatarLabelResolver(
+  terms: SpecialOperatorTerms,
+): (name: string) => string | undefined {
+  const labels = new Map<string, string | undefined>();
+  return function resolveSpecialOperatorAvatarLabel(
+    name: string,
+  ): string | undefined {
+    if (!labels.has(name)) {
+      labels.set(name, specialOperatorAvatarLabel(name, terms));
+    }
+    return labels.get(name);
+  };
+}
+
 export function groupIncludesOperator(
   catalog: EfficiencyCatalog,
   group: string | undefined,
