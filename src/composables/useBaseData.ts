@@ -8,6 +8,7 @@ import type {
   Operator,
   RichTextStyles,
 } from "@/types/baseData";
+import type { TorappuItemTable } from "@/types/torappu";
 import { parseOperatorCsv } from "@/utils/parseOperatorCsv";
 import {
   clearBaseDataAssetCache,
@@ -26,6 +27,7 @@ interface UseBaseDataResult {
   richTextStyles: Readonly<typeof richTextStyles>;
   terms: Readonly<typeof terms>;
   metadata: Readonly<typeof metadata>;
+  itemTable: Readonly<typeof itemTable>;
   loading: Readonly<typeof loading>;
   assetsLoading: Readonly<typeof assetsLoading>;
   assetsReady: Readonly<typeof assetsReady>;
@@ -40,6 +42,7 @@ const operators = ref<Operator[]>([]);
 const richTextStyles = ref<RichTextStyles>({});
 const terms = ref<BaseSkillTerms>({});
 const metadata = ref<BaseDataMetadata>();
+const itemTable = ref<TorappuItemTable>();
 const loading = ref(false);
 const assetsLoading = ref(false);
 const assetsReady = ref(false);
@@ -81,7 +84,7 @@ async function fetchLegacyData(): Promise<BaseData> {
 }
 
 async function fetchTorappuData(): Promise<BaseData> {
-  const [characterTable, buildingData, gamedataConst, metadata] =
+  const [characterTable, buildingData, gamedataConst, metadata, itemTable] =
     await Promise.all([
       fetchJson<TorappuCharacterTable>(
         "assets/gamedata/latest/excel/character_table.json",
@@ -98,6 +101,10 @@ async function fetchTorappuData(): Promise<BaseData> {
       fetchJson<BaseDataMetadata>(
         "assets/gamedata/latest/torappu-meta.json",
         "Torappu 版本信息",
+      ),
+      fetchJson<TorappuItemTable>(
+        "assets/gamedata/latest/excel/item_table.json",
+        "Torappu 物品数据",
       ),
     ]);
   const terms: BaseSkillTerms = Object.fromEntries(
@@ -123,6 +130,7 @@ async function fetchTorappuData(): Promise<BaseData> {
     richTextStyles: gamedataConst.richTextStyles ?? {},
     terms,
     metadata,
+    itemTable,
   };
 }
 
@@ -196,6 +204,7 @@ async function load(): Promise<void> {
       richTextStyles.value = data.richTextStyles;
       terms.value = data.terms;
       metadata.value = data.metadata;
+      itemTable.value = data.itemTable;
       loadedSourceId = sourceId;
       ready.value = true;
       startAssetPreload(sourceId, data);
@@ -205,6 +214,7 @@ async function load(): Promise<void> {
       richTextStyles.value = {};
       terms.value = {};
       metadata.value = undefined;
+      itemTable.value = undefined;
       ready.value = false;
       errorMessage.value =
         error instanceof Error ? error.message : "数据读取失败";
@@ -244,6 +254,7 @@ const result: UseBaseDataResult = {
   richTextStyles,
   terms,
   metadata,
+  itemTable,
   loading,
   assetsLoading,
   assetsReady,

@@ -23,6 +23,7 @@ import {
   useOperatorPickerSettings,
 } from "@/composables/useOperatorPickerSettings";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
+import { useSanitySettings } from "@/composables/useSanitySettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
 import type { OperatorSkillFile } from "@/types/efficiency";
@@ -31,6 +32,7 @@ import type {
   OperatorProgressionNode,
 } from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
+import type { SanitySettings } from "@/utils/sanity";
 import {
   sortBranchValues,
   sortProfessionValues,
@@ -103,6 +105,8 @@ const {
   setTreatSkillsAsUnlocked,
   setDormitoryDefaultIncludesMoodRecovery,
 } = useOperatorProgression();
+const { sanitySettings, sanityValues, setSanitySetting, resetSanitySettings } =
+  useSanitySettings();
 
 const facilityColorEntries = ROOM_ORDER.map(
   (type) => [type, facilityLabels[type]] as [RoomKey, string],
@@ -458,6 +462,110 @@ function setAllBasePointTermsVisible(visible: boolean): void {
   );
 }
 
+function handleSanitySettingChange(
+  key: keyof SanitySettings,
+  value: number | null,
+): void {
+  setSanitySetting(key, value);
+}
+
+function updateLmd(value: number | null): void {
+  handleSanitySettingChange("lmd", value);
+}
+
+function updateGoldExperienceRatio(value: number | null): void {
+  handleSanitySettingChange("goldExperienceRatio", value);
+}
+
+function updateOrundum(value: number | null): void {
+  handleSanitySettingChange("orundum", value);
+}
+
+function updateCredit(value: number | null): void {
+  handleSanitySettingChange("credit", value);
+}
+
+function updateRecruitRefresh(value: number | null): void {
+  handleSanitySettingChange("recruitRefresh", value);
+}
+
+function updateSolidRock(value: number | null): void {
+  handleSanitySettingChange("solidRock", value);
+}
+
+function updateDevice(value: number | null): void {
+  handleSanitySettingChange("device", value);
+}
+
+function formatSanityValue(value: number | null): string {
+  return value === null
+    ? "未设置"
+    : value.toLocaleString("zh-CN", { maximumFractionDigits: 8 });
+}
+
+const sanityDisplayRows = computed(() => [
+  {
+    label: "龙门币",
+    value: sanityValues.value.lmd,
+    unit: "理智/龙门币",
+    source: "可修改",
+  },
+  {
+    label: "钱书价值比",
+    value: sanityValues.value.goldExperienceRatio,
+    unit: "龙门币价值 / 经验价值",
+    source: "可修改",
+  },
+  {
+    label: "赤金点数",
+    value: sanityValues.value.pureGoldPoint,
+    unit: "理智/赤金点数",
+    source: "按当前基础时间计算",
+  },
+  {
+    label: "作战记录（经验）",
+    value: sanityValues.value.experience,
+    unit: "理智/经验",
+    source: "按当前基础时间计算",
+  },
+  {
+    label: "无人机",
+    value: sanityValues.value.drone,
+    unit: "理智/无人机",
+    source: "按当前基础时间计算",
+  },
+  {
+    label: "信用点",
+    value: sanityValues.value.credit,
+    unit: "理智/信用点",
+    source: "可修改",
+  },
+  {
+    label: "公开招募刷新次数",
+    value: sanityValues.value.recruitRefresh,
+    unit: "理智/次",
+    source: "可修改",
+  },
+  {
+    label: "源石碎片",
+    value: sanityValues.value.originiumShard,
+    unit: "理智/源石碎片",
+    source: "按开采协力订单反推",
+  },
+  {
+    label: "固源岩",
+    value: sanityValues.value.solidRock,
+    unit: "理智/固源岩",
+    source: "用户填写",
+  },
+  {
+    label: "装置",
+    value: sanityValues.value.device,
+    unit: "理智/装置",
+    source: "用户填写",
+  },
+]);
+
 watch(selectedProgressionProfession, () => {
   selectedProgressionBranch.value = "";
 });
@@ -536,6 +644,95 @@ watch(
         :image="undefined"
         description="当前数据源没有可用的基地点数"
       />
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-sanity-panel"
+      title="理智计算"
+    >
+      <p class="settings-panel-description">
+        设置资源的理智价值。赤金和作战记录按当前效率计算中的基础时间推导，无人机固定按每个加速
+        3 分钟基础时间计算。
+      </p>
+      <a-form layout="vertical" class="settings-sanity-form">
+        <a-form-item extra="每 1 龙门币" label="龙门币理智">
+          <a-input-number
+            :min="0"
+            :step="0.0001"
+            :value="sanitySettings.lmd"
+            @update:value="updateLmd"
+          />
+        </a-form-item>
+        <a-form-item extra="龙门币价值 ÷ 经验价值" label="钱书价值比">
+          <a-input-number
+            :min="0"
+            :step="0.01"
+            :value="sanitySettings.goldExperienceRatio"
+            @update:value="updateGoldExperienceRatio"
+          />
+        </a-form-item>
+        <a-form-item extra="用于反推源石碎片价值" label="合成玉理智">
+          <a-input-number
+            :min="0"
+            :step="0.01"
+            :value="sanitySettings.orundum"
+            @update:value="updateOrundum"
+          />
+        </a-form-item>
+        <a-form-item
+          extra="每 1 信用点，线索产出已并入信用点"
+          label="信用点理智"
+        >
+          <a-input-number
+            :min="0"
+            :step="0.0001"
+            :value="sanitySettings.credit"
+            @update:value="updateCredit"
+          />
+        </a-form-item>
+        <a-form-item extra="每 1 次刷新" label="公开招募刷新次数理智">
+          <a-input-number
+            :min="0"
+            :step="0.01"
+            :value="sanitySettings.recruitRefresh"
+            @update:value="updateRecruitRefresh"
+          />
+        </a-form-item>
+        <a-form-item
+          extra="不填写时，相关总理智显示为不完整"
+          label="固源岩理智"
+        >
+          <a-input-number
+            :min="0"
+            placeholder="未设置"
+            :step="0.01"
+            :value="sanitySettings.solidRock"
+            @update:value="updateSolidRock"
+          />
+        </a-form-item>
+        <a-form-item extra="不填写时，相关总理智显示为不完整" label="装置理智">
+          <a-input-number
+            :min="0"
+            placeholder="未设置"
+            :step="0.01"
+            :value="sanitySettings.device"
+            @update:value="updateDevice"
+          />
+        </a-form-item>
+      </a-form>
+      <div class="settings-sanity-values">
+        <div
+          v-for="row in sanityDisplayRows"
+          :key="row.label"
+          class="settings-sanity-value"
+        >
+          <span>{{ row.label }}</span>
+          <strong>{{ formatSanityValue(row.value) }}</strong>
+          <small>{{ row.unit }} · {{ row.source }}</small>
+        </div>
+      </div>
+      <a-button @click="resetSanitySettings">恢复默认理智设置</a-button>
     </a-card>
 
     <a-card

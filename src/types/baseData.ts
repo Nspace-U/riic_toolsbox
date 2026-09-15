@@ -1,3 +1,5 @@
+import type { TorappuItemTable } from "@/types/torappu";
+
 export type EliteLevel = 0 | 1 | 2;
 
 export interface OperatorAvatars {
@@ -73,4 +75,5 @@ export interface BaseData {
   richTextStyles: RichTextStyles;
   terms: BaseSkillTerms;
   metadata?: BaseDataMetadata;
+  itemTable?: TorappuItemTable;
 }

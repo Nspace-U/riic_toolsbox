@@ -33,6 +33,7 @@ import {
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
+import { useSanitySettings } from "@/composables/useSanitySettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import {
   DEFAULT_SCHEDULE_ADAPTER,
@@ -115,6 +116,13 @@ import {
 } from "@/utils/operatorProgression";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
 import { createSpecialOperatorAvatarLabelResolver } from "@/utils/specialOperators";
+import {
+  addProductionFlow,
+  calculateSanityResult,
+  type SanityResourceAmounts,
+  type SanityResult,
+} from "@/utils/sanity";
+import { torappuItemIconPath } from "@/utils/torappuItems";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -175,6 +183,7 @@ interface DailyOutputQueueDetail {
   plan: EfficiencyPlanResult;
   planIndex: number;
   products: DailyOutputProductDetail[];
+  sanity: SanityResult;
 }
 
 interface ExtraRoom {
@@ -365,7 +374,7 @@ const {
   removeDocument,
   duplicateDocument,
 } = useScheduleDocuments();
-const { operators, terms, ready: baseDataReady } = useBaseData();
+const { operators, terms, itemTable, ready: baseDataReady } = useBaseData();
 const operatorByNameMap = computed(() => {
   const map = new Map<string, Operator>();
   operators.value.forEach((operator) => {
@@ -390,6 +399,7 @@ const {
   treatSkillsAsUnlocked,
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
+const { sanityValues } = useSanitySettings();
 
 const simulatorSlotSize = computed(
   () => avatarDisplaySizes.value.simulatorSlot,
@@ -972,14 +982,17 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
   if (!result || result.dailyHours <= 0) {
     return [];
   }
+
   return result.plans
     .map((plan, planIndex) => {
       const products = new Map<string, DailyOutputProductDetail>();
+      const queueAmounts: SanityResourceAmounts = {};
       plan.facilities.forEach((facility) => {
         const production = facility.production;
         if (!production) {
           return;
         }
+        addProductionFlow(queueAmounts, production, plan.durationHours);
         const baseRate =
           production.baseAmountPerHour ?? production.amountPerHour;
         const totalOutputPerHour = production.amountPerHour;
@@ -1033,9 +1046,36 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
             (product.selectedOutputPerHour * plan.durationHours * 24) /
             result.dailyHours,
         })),
+        sanity: calculateSanityResult(
+          Object.fromEntries(
+            Object.entries(queueAmounts).map(([resource, amount]) => [
+              resource,
+              (amount * 24) / result.dailyHours,
+            ]),
+          ) as SanityResourceAmounts,
+          sanityValues.value,
+        ),
       };
     })
     .filter((queue) => queue.products.length > 0);
+});
+
+const dailySanityResult = computed<SanityResult | undefined>(() => {
+  const result = efficiencyResult.value;
+  if (!result || result.dailyHours <= 0) {
+    return undefined;
+  }
+  const amounts: SanityResourceAmounts = {};
+  result.dailyProductions.forEach((production) => {
+    addProductionFlow(amounts, production, 24);
+  });
+  const dailyCredit = result.dailyOutputs.find(
+    (output) => output.product === "Credit",
+  );
+  if (dailyCredit) {
+    amounts.Credit = dailyCredit.amountPerDay;
+  }
+  return calculateSanityResult(amounts, sanityValues.value);
 });
 
 const plansWithBasePoints = computed(() =>
@@ -2715,6 +2755,10 @@ function facilityIconUrl(fileName: string | undefined): string | undefined {
 }
 
 function dailyOutputIconUrl(product: string): string | undefined {
+  const torappuIconPath = torappuItemIconPath(product, itemTable.value);
+  if (torappuIconPath) {
+    return `${import.meta.env.BASE_URL}assets/${torappuIconPath}`;
+  }
   return facilityIconUrl(resourceItemIconFile(product));
 }
 
@@ -7757,9 +7801,116 @@ onBeforeUnmount(() => {
                           </div>
                         </div>
                       </div>
+                      <div class="simulator-queue-sanity">
+                        <div class="simulator-daily-output-product-heading">
+                          <strong>队列等效理智</strong>
+                          <span>按队列时长折算到每日</span>
+                        </div>
+                        <a-alert
+                          v-if="!queue.sanity.complete"
+                          :message="
+                            '总理智不完整：未设置' +
+                            queue.sanity.missing.join('、') +
+                            '价值'
+                          "
+                          show-icon
+                          type="warning"
+                        />
+                        <div class="simulator-sanity-grid">
+                          <div
+                            v-for="item in queue.sanity.items"
+                            :key="item.resource"
+                            class="simulator-sanity-item"
+                          >
+                            <img
+                              v-if="dailyOutputIconUrl(item.resource)"
+                              :alt="item.label"
+                              :src="dailyOutputIconUrl(item.resource)"
+                              class="simulator-daily-output-icon"
+                            />
+                            <div class="simulator-sanity-item-copy">
+                              <strong>{{ item.label }}</strong>
+                              <span
+                                >{{ signedNumber(item.amount) }}
+                                {{ item.amountUnit }}</span
+                              >
+                            </div>
+                            <strong v-if="item.contribution !== undefined">
+                              {{ signedNumber(item.contribution) }} 理智
+                            </strong>
+                            <span v-else class="simulator-sanity-missing"
+                              >未计入</span
+                            >
+                          </div>
+                        </div>
+                        <div class="simulator-sanity-total">
+                          <span>{{
+                            queue.sanity.complete
+                              ? "队列等效理智合计"
+                              : "队列等效理智合计（部分）"
+                          }}</span>
+                          <strong
+                            >{{ signedNumber(queue.sanity.total) }} 理智</strong
+                          >
+                        </div>
+                      </div>
                     </div>
                   </a-collapse-panel>
                 </a-collapse>
+              </div>
+              <div v-if="dailySanityResult" class="simulator-sanity-results">
+                <div class="simulator-daily-output-breakdown-heading">
+                  <span class="simulator-step-subheading">等效理智</span>
+                  <span class="simulator-result-hint"
+                    >按净产出计算 · 钱书价值比
+                    {{ formatNumber(sanityValues.goldExperienceRatio) }}</span
+                  >
+                </div>
+                <a-alert
+                  v-if="!dailySanityResult.complete"
+                  :message="
+                    '总理智不完整：未设置' +
+                    dailySanityResult.missing.join('、') +
+                    '价值'
+                  "
+                  show-icon
+                  type="warning"
+                />
+                <div class="simulator-sanity-grid">
+                  <div
+                    v-for="item in dailySanityResult.items"
+                    :key="item.resource"
+                    class="simulator-sanity-item"
+                  >
+                    <img
+                      v-if="dailyOutputIconUrl(item.resource)"
+                      :alt="item.label"
+                      :src="dailyOutputIconUrl(item.resource)"
+                      class="simulator-daily-output-icon"
+                    />
+                    <div class="simulator-sanity-item-copy">
+                      <strong>{{ item.label }}</strong>
+                      <span
+                        >{{ signedNumber(item.amount) }}
+                        {{ item.amountUnit }}</span
+                      >
+                    </div>
+                    <strong v-if="item.contribution !== undefined">
+                      {{ signedNumber(item.contribution) }} 理智
+                    </strong>
+                    <span v-else class="simulator-sanity-missing">未计入</span>
+                  </div>
+                </div>
+                <div class="simulator-sanity-total">
+                  <span>{{
+                    dailySanityResult.complete
+                      ? "每日等效理智合计"
+                      : "每日等效理智合计（部分）"
+                  }}</span>
+                  <strong
+                    >{{ signedNumber(dailySanityResult.total) }} 理智</strong
+                  >
+                </div>
               </div>
             </div>
 

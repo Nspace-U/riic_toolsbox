@@ -16,6 +16,7 @@
     "test:schedule-import": "node scripts/schedule-import-regression.mjs",
     "test:simulator-layout": "node scripts/simulator-layout-regression.mjs",
     "test:efficiency": "node scripts/efficiency-regression.mjs",
+    "test:sanity": "node scripts/sanity-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",
     "sync:torappu": "node scripts/sync-torappu.mjs",

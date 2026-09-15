@@ -42,12 +42,15 @@ import type {
 } from "@/types/schedule";
 import {
   buildFacilities,
+  CLUE_BASE_TIME_HOURS,
+  CREDIT_PER_CLUE,
   eliteEfficiency,
   facilityBaseEfficiency,
   MANUFACTURE_STORAGE,
   manufactureRule,
   meetingAtmosphereBonus,
   rarityEfficiency,
+  ORUNDUM_TRADE_ORDER,
   TRADE_ORDER_LIMIT,
   TRADE_ORDERS,
   TAILOR_PROBABILITIES,
@@ -69,8 +72,6 @@ const EPSILON = 0.000001;
 const DEFAULT_DURATION_MINUTES = 720;
 const DRONE_LIMIT = 235;
 const POWER_OUTPUT_PER_HOUR = 10;
-const CLUE_BASE_TIME_HOURS = 20;
-const CREDIT_PER_CLUE = 40;
 const CLUE_OUTPUT_PER_HOUR = 1 / CLUE_BASE_TIME_HOURS;
 const HIRE_OUTPUT_PER_HOUR = 1 / 12;
 const CLUE_LIMIT = 11;
@@ -3160,26 +3161,31 @@ function tradeProduction(
   const product = assignment.product ?? "LMD";
   if (product === "Orundum") {
     const multiplier = efficiency / 100;
-    const baseAmountPerHour = 20 / 2;
+    const baseAmountPerHour =
+      ORUNDUM_TRADE_ORDER.productAmount / ORUNDUM_TRADE_ORDER.hours;
     return {
       product,
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
       amountPerHour: baseAmountPerHour * multiplier,
       amountPerDay: baseAmountPerHour * multiplier * 24,
-      itemRate: multiplier / 2,
+      itemRate: multiplier / ORUNDUM_TRADE_ORDER.hours,
       orderRule: "开采协力",
       orders: [
         {
           name: "源石订单",
           probability: 1,
-          quantity: 20,
-          time: 2,
+          quantity: ORUNDUM_TRADE_ORDER.productAmount,
+          time: ORUNDUM_TRADE_ORDER.hours,
           material: "Originium Shard",
-          amount: 2,
+          amount: ORUNDUM_TRADE_ORDER.materialAmount,
         },
       ],
-      materialPerHour: { "Originium Shard": (-2 / 2) * multiplier },
+      materialPerHour: {
+        "Originium Shard":
+          (-ORUNDUM_TRADE_ORDER.materialAmount / ORUNDUM_TRADE_ORDER.hours) *
+          multiplier,
+      },
     };
   }
   const orders = uniqueTradeOrders(active, facility);

@@ -36,6 +36,15 @@ export const TRADE_ORDER_LIMIT: Record<number, number> = {
   3: 10,
 };
 
+export const CLUE_BASE_TIME_HOURS = 20;
+export const CREDIT_PER_CLUE = 40;
+
+export const ORUNDUM_TRADE_ORDER = {
+  productAmount: 20,
+  materialAmount: 2,
+  hours: 2,
+} as const;
+
 export interface ManufactureRule {
   product: string;
   recipe: string;
