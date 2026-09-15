@@ -10,6 +10,7 @@ import {
   cluePreferenceText,
   convertedProductionAmount,
   efficiencyStatLabel,
+  efficiencyStatValue,
   facilityOverflowLabel,
   formatDurationHours,
   formatEfficiencyNumber,
@@ -44,39 +45,49 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
 <template>
   <div class="simulator-step-content">
     <template v-if="step.facility">
-      <div class="simulator-step-formula">
-        基础 {{ formatNumber(step.facility.baseEfficiency) }} + 心情
-        {{ formatNumber(step.facility.moodEfficiency) }} + 干员技能
-        {{ formatNumber(step.facility.operatorSkillEfficiency) }} =
-        <strong>{{ formatNumber(step.facility.efficiency) }}%</strong>
-      </div>
-      <div class="simulator-step-stat-grid">
-        <span>基础效率</span>
-        <strong>{{ formatNumber(step.facility.baseEfficiency) }}</strong>
-        <span>干员效率</span>
-        <strong>{{ formatNumber(step.facility.moodEfficiency) }}</strong>
-        <span>干员技能效率</span>
-        <strong>{{
-          signedNumber(step.facility.operatorSkillEfficiency)
-        }}</strong>
-        <span>组合效率</span>
-        <strong
-          >{{
-            formatEfficiencyNumber(step.facility.combinationEfficiency)
-          }}%</strong
-        >
-      </div>
-      <div v-if="step.facility.inherited" class="simulator-inherited-note">
-        本队列为跳过队列，已继承
-        {{ inheritedLabel.replace(/^继承自 /, "") }}
-        的干员与练度；心情按当前队列重新计算。
-      </div>
+      <section class="simulator-step-section">
+        <span class="simulator-step-subheading">效率汇总</span>
+        <div class="simulator-step-detail-grid">
+          <span>基础效率</span>
+          <strong>{{ formatNumber(step.facility.baseEfficiency) }}%</strong>
+          <span>干员效率</span>
+          <strong>{{ signedNumber(step.facility.moodEfficiency) }}%</strong>
+          <span>干员技能效率</span>
+          <strong
+            >{{ signedNumber(step.facility.operatorSkillEfficiency) }}%</strong
+          >
+          <span>组合效率</span>
+          <strong
+            >{{ formatEfficiencyNumber(step.facility.combinationEfficiency) }}%
+          </strong>
+          <span>整体效率</span>
+          <strong>{{ formatNumber(step.facility.efficiency) }}%</strong>
+          <span>计算公式</span>
+          <span>
+            基础 {{ formatNumber(step.facility.baseEfficiency) }}% + 心情
+            {{ formatNumber(step.facility.moodEfficiency) }}% + 干员技能
+            {{ formatNumber(step.facility.operatorSkillEfficiency) }}% =
+            {{ formatNumber(step.facility.efficiency) }}%
+          </span>
+        </div>
+      </section>
+      <section v-if="step.facility.inherited" class="simulator-step-section">
+        <span class="simulator-step-subheading">继承说明</span>
+        <div class="simulator-step-detail-grid">
+          <span>说明</span>
+          <span>
+            本队列为跳过队列，已继承
+            {{ inheritedLabel.replace(/^继承自 /, "") }}
+            的干员与练度；心情按当前队列重新计算。
+          </span>
+        </div>
+      </section>
       <div
         v-if="step.facility.capacity || step.facility.production"
-        class="simulator-production-panel"
+        class="simulator-step-section"
       >
         <span class="simulator-step-subheading">产出与容量</span>
-        <div class="simulator-production-summary">
+        <div class="simulator-step-detail-grid">
           <template v-if="step.facility.production">
             <span>产物</span>
             <strong>{{
@@ -180,85 +191,95 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           v-if="
             step.facility.capacity && step.facility.capacity.segments.length > 1
           "
-          class="simulator-capacity-segment-list"
+          class="simulator-step-subsection"
         >
           <span class="simulator-step-subheading">容量时间段</span>
-          <div
-            v-for="segment in step.facility.capacity.segments"
-            :key="`${segment.startHours}-${segment.endHours}`"
-            class="simulator-capacity-segment-row"
-          >
-            <span>
-              {{ formatDurationHours(segment.startHours) }} -
-              {{ formatDurationHours(segment.endHours) }}
-            </span>
-            <strong>
-              {{ formatNumber(segment.total) }}
-              {{ step.facility.capacity.unit }}
-              <small>
-                （基础 {{ formatNumber(segment.base) }}，技能
-                {{ signedNumber(segment.skill) }}）
-              </small>
-            </strong>
+          <div class="simulator-step-detail-grid">
+            <div
+              v-for="segment in step.facility.capacity.segments"
+              :key="`${segment.startHours}-${segment.endHours}`"
+              class="simulator-step-detail-row"
+            >
+              <span>
+                {{ formatDurationHours(segment.startHours) }} -
+                {{ formatDurationHours(segment.endHours) }}
+              </span>
+              <strong>
+                {{ formatNumber(segment.total) }}
+                {{ step.facility.capacity.unit }}
+                <small>
+                  （基础 {{ formatNumber(segment.base) }}，技能
+                  {{ signedNumber(segment.skill) }}）
+                </small>
+              </strong>
+            </div>
           </div>
         </div>
         <div
           v-if="step.facility.production?.orders?.length"
-          class="simulator-order-list"
+          class="simulator-step-subsection"
         >
           <span class="simulator-step-subheading">订单摘要</span>
-          <div
-            v-for="order in step.facility.production.orders"
-            :key="`${order.name}-${order.time}-${order.quantity}`"
-            class="simulator-order-row"
-          >
-            <span>
-              {{ order.name }} · {{ formatNumber(order.probability * 100) }}%
-            </span>
-            <span>
-              {{ formatNumber(order.quantity) }} /
-              {{ formatNumber(order.time) }} 小时
-              <template v-if="order.material">
-                · {{ resourceLabel(order.material) }} ×
-                {{ formatNumber(order.amount ?? 0) }}
-              </template>
-            </span>
+          <div class="simulator-step-detail-grid">
+            <div
+              v-for="order in step.facility.production.orders"
+              :key="`${order.name}-${order.time}-${order.quantity}`"
+              class="simulator-step-detail-row"
+            >
+              <span>
+                {{ order.name }} · {{ formatNumber(order.probability * 100) }}%
+              </span>
+              <span>
+                {{ formatNumber(order.quantity) }} /
+                {{ formatNumber(order.time) }} 小时
+                <template v-if="order.material">
+                  · {{ resourceLabel(order.material) }} ×
+                  {{ formatNumber(order.amount ?? 0) }}
+                </template>
+              </span>
+            </div>
           </div>
         </div>
       </div>
       <div
         v-if="step.facility.operatorContributions.length"
-        class="simulator-operator-contribution-list"
+        class="simulator-step-section"
       >
         <span class="simulator-step-subheading">干员组合贡献</span>
-        <div
-          v-for="contribution in step.facility.operatorContributions"
-          :key="contribution.operator"
-          class="simulator-operator-contribution"
-        >
-          <span>{{ contribution.operator }}</span>
-          <span>
-            {{ signedNumber(contribution.efficiency) }}（基础
-            {{ signedNumber(contribution.baseEfficiency) }}，技能
-            {{ signedNumber(contribution.skillEfficiency) }}）
-          </span>
+        <div class="simulator-step-detail-grid">
+          <div
+            v-for="contribution in step.facility.operatorContributions"
+            :key="contribution.operator"
+            class="simulator-step-detail-row"
+          >
+            <span>{{ contribution.operator }}</span>
+            <span>
+              {{ signedNumber(contribution.efficiency) }}（基础
+              {{ signedNumber(contribution.baseEfficiency) }}，技能
+              {{ signedNumber(contribution.skillEfficiency) }}）
+            </span>
+          </div>
         </div>
       </div>
-      <div v-if="step.facility.details.length" class="simulator-detail-list">
+      <div v-if="step.facility.details.length" class="simulator-step-section">
         <span class="simulator-step-subheading">生效技能明细</span>
-        <div
-          v-for="(detail, detailIndex) in step.facility.details"
-          :key="`${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
-          class="simulator-detail-row"
-        >
-          <div class="simulator-detail-main">
+        <div class="simulator-skill-detail-list">
+          <div
+            v-for="(detail, detailIndex) in step.facility.details"
+            :key="`${detail.operator}-${detail.skill ?? 'skill'}-${detail.stat}-${detailIndex}`"
+            class="simulator-skill-detail-row"
+          >
             <span>
               {{ detail.operator
               }}<template v-if="detail.skill"> · {{ detail.skill }}</template>
             </span>
+            <span>
+              {{ efficiencyStatLabel(detail.stat) }}
+              {{ efficiencyStatValue(detail.stat, detail.value) }}
+            </span>
             <div
               v-if="operatorCalculationLines(detail).length"
-              class="simulator-detail-calculation simulator-step-formula"
+              class="simulator-skill-detail-calculation"
             >
               <div
                 v-for="(line, lineIndex) in operatorCalculationLines(detail)"
@@ -268,10 +289,6 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               </div>
             </div>
           </div>
-          <span>
-            {{ efficiencyStatLabel(detail.stat) }}
-            {{ signedNumber(detail.value) }}
-          </span>
         </div>
       </div>
       <a-empty
@@ -281,36 +298,33 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
         description="当前设施没有可展开的技能明细"
       />
     </template>
-    <div v-if="step.moods.length" class="simulator-mood-calculation-list">
+    <div v-if="step.moods.length" class="simulator-step-section">
       <span class="simulator-step-subheading">干员心情消耗步骤</span>
-      <div
-        v-for="mood in step.moods"
-        :key="`${mood.facilityId}-${mood.slotIndex}-${mood.operator}`"
-        class="simulator-mood-calculation"
-      >
-        <div class="simulator-mood-calculation-header">
-          <span>{{ mood.operator }}</span>
-          <strong>剩余 {{ formatNumber(mood.end) }}</strong>
-        </div>
-        <div class="simulator-mood-rate-steps">
-          <div
+      <div class="simulator-step-detail-grid">
+        <template
+          v-for="mood in step.moods"
+          :key="`${mood.facilityId}-${mood.slotIndex}-${mood.operator}`"
+        >
+          <span>干员</span>
+          <strong>{{ mood.operator }}</strong>
+          <template
             v-for="(detail, detailIndex) in mood.rateDetails"
             :key="`${mood.operator}-${detail.kind}-${detailIndex}`"
-            class="simulator-mood-rate-step"
           >
             <span>{{ moodRateDetailLabel(detail) }}</span>
             <strong>{{ signedNumber(detail.value) }}/小时</strong>
-          </div>
-          <div class="simulator-mood-rate-step">
-            <span>消耗速度</span>
-            <strong>{{ moodRateFormula(mood) }}</strong>
-          </div>
-        </div>
-        <div class="simulator-step-formula">
-          {{ formatNumber(mood.start) }} - {{ formatNumber(mood.costRate) }} ×
-          {{ formatNumber(step.plan.durationHours) }} =
+          </template>
+          <span>消耗速度</span>
+          <strong>{{ moodRateFormula(mood) }}</strong>
+          <span>计算过程</span>
+          <span>
+            {{ formatNumber(mood.start) }} - {{ formatNumber(mood.costRate) }} ×
+            {{ formatNumber(step.plan.durationHours) }} =
+            {{ formatNumber(mood.end) }}
+          </span>
+          <span>剩余心情</span>
           <strong>{{ formatNumber(mood.end) }}</strong>
-        </div>
+        </template>
       </div>
     </div>
   </div>

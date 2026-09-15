@@ -2903,45 +2903,86 @@ a {
 
 .simulator-step-content {
   display: grid;
+  min-width: 0;
   gap: 12px;
+  overflow-x: auto;
   padding: 4px 12px 12px 36px;
 }
 
 .simulator-step-formula {
-  padding: 8px 10px;
   color: #425457;
-  background: #f8fbfa;
-  border: 1px solid #e0e8e5;
-  border-radius: 4px;
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .simulator-step-formula strong {
-  color: #176b68;
+  color: #344447;
 }
 
-.simulator-step-stat-grid {
+.simulator-step-section,
+.simulator-step-subsection {
+  display: grid;
+  gap: 6px;
+}
+
+.simulator-step-section {
+  padding-block-start: 10px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-step-content > .simulator-step-section:first-child {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.simulator-step-subsection {
+  padding-block-start: 8px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-step-detail-grid {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  align-items: center;
-  gap: 7px 12px;
-  color: #72807f;
+  gap: 4px 12px;
+  width: max-content;
+  min-width: 100%;
+  align-items: start;
+  color: #344447;
   font-size: 12px;
+  white-space: nowrap;
 }
 
-.simulator-step-stat-grid strong {
+.simulator-step-detail-grid > span:nth-child(odd) {
+  color: #72807f;
+}
+
+.simulator-step-detail-grid > strong,
+.simulator-step-detail-grid > span:nth-child(even) {
   color: #344447;
-  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.simulator-step-detail-row {
+  display: contents;
+}
+
+.simulator-step-detail-row > span:first-child {
+  color: #72807f;
+}
+
+.simulator-step-detail-row > :last-child {
+  color: #344447;
+  font-weight: 600;
+}
+
+.simulator-step-section > .simulator-step-subheading,
+.simulator-step-subsection > .simulator-step-subheading {
+  margin-block-end: 0;
 }
 
 .simulator-inherited-note {
-  padding: 8px 10px;
-  color: #6f5b35;
-  background: #fff8e8;
-  border: 1px solid #ead8bd;
-  border-radius: 4px;
+  color: #344447;
   font-size: 12px;
   line-height: 1.5;
 }
@@ -2949,31 +2990,11 @@ a {
 .simulator-production-panel {
   display: grid;
   gap: 8px;
-  padding-block-start: 10px;
-  border-block-start: 1px solid #edf1f0;
 }
 
 .simulator-production-summary {
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  align-items: center;
-  gap: 7px 12px;
-  color: #72807f;
-  font-size: 12px;
-}
-
-.simulator-production-summary strong {
-  min-width: 0;
-  color: #344447;
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-
-.simulator-production-summary small {
-  color: #879294;
-  font-size: 11px;
-  font-weight: 400;
+  grid-template-columns: subgrid;
 }
 
 .simulator-capacity-segment-list {
@@ -3046,6 +3067,52 @@ a {
 .simulator-mood-calculation-list {
   padding-block-start: 10px;
   border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-skill-detail-list {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  gap: 4px 12px;
+  width: max-content;
+  min-width: 100%;
+  color: #344447;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.simulator-skill-detail-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.simulator-skill-detail-row > span {
+  padding-block: 2px;
+}
+
+.simulator-skill-detail-row > span:first-child {
+  color: #72807f;
+}
+
+.simulator-skill-detail-row > span:nth-child(2) {
+  color: #344447;
+  font-weight: 600;
+}
+
+.simulator-skill-detail-calculation {
+  display: grid;
+  grid-column: 2;
+  gap: 2px;
+  padding-inline-start: 1em;
+  color: #344447;
+  font-family: "Cascadia Code", Consolas, monospace;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.simulator-calculation-steps .simulator-step-header strong,
+.simulator-calculation-step-column-header strong {
+  color: #344447;
 }
 
 .simulator-operator-contribution-list,

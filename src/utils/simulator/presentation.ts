@@ -241,8 +241,27 @@ const EFFICIENCY_STAT_LABELS: Record<string, string> = {
   abyssalBoost: "深海效果",
 };
 
+const PERCENTAGE_EFFICIENCY_STATS = new Set([
+  "tradeSpd",
+  "tradeGapEff",
+  "tradeNetEff",
+  "manuProd",
+  "clueSpeed",
+  "clueChance",
+  "hireSpd",
+  "droneCharge",
+  "facBase",
+  "abyssalBoost",
+]);
+
 export function efficiencyStatLabel(stat: string): string {
   return EFFICIENCY_STAT_LABELS[stat] ?? stat;
+}
+
+export function efficiencyStatValue(stat: string, value: number): string {
+  return `${signedNumber(value)}${
+    PERCENTAGE_EFFICIENCY_STATS.has(stat) ? "%" : ""
+  }`;
 }
 
 export function productionMaterialsForDisplay(
