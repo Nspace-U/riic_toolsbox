@@ -16,6 +16,7 @@ import type {
   FiammettaPlanResult,
   FacilityCapacitySegment,
   FacilityAttributes,
+  EfficiencyStat,
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
@@ -110,13 +111,13 @@ const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
   "clueSpeed",
   "hireSpd",
 ]);
-const PERCENTAGE_EFFICIENCY_FACILITIES = new Set<RoomKey>([
-  "trading",
-  "manufacture",
-  "power",
-  "meeting",
-  "hire",
-]);
+const PERCENTAGE_EFFICIENCY_STATS: Partial<Record<RoomKey, EfficiencyStat>> = {
+  trading: "tradeSpd",
+  manufacture: "manuProd",
+  power: "droneCharge",
+  meeting: "clueSpeed",
+  hire: "hireSpd",
+};
 const ATTRIBUTE_STATS = new Set(["orderLimit", "storageCap"]);
 const POINT_STATS = new Set(["basePointGain", "basePointConvert"]);
 const FLOW_GOLD_TERM = "cc.t.flow_gold";
@@ -315,23 +316,34 @@ function unlocksStage(
 }
 
 function selectedSkills(
+  name: string,
   skillFile: OperatorSkillFile | undefined,
   facility: RoomKey,
   state: OperatorState,
 ): Array<{ skill: string; effect: EfficiencyEffect }> {
-  if (!skillFile) {
-    return [];
-  }
-  return skillFile.chains
-    .filter((chain) => chain.room === facility)
-    .flatMap((chain) => {
-      const stage = chain.stages
-        .filter((candidate) => unlocksStage(candidate, state))
-        .at(-1);
-      return stage
-        ? stage.effects.map((effect) => ({ skill: stage.name, effect }))
-        : [];
-    });
+  const selected = skillFile
+    ? skillFile.chains
+        .filter((chain) => chain.room === facility)
+        .flatMap((chain) => {
+          const stage = chain.stages
+            .filter((candidate) => unlocksStage(candidate, state))
+            .at(-1);
+          return stage
+            ? stage.effects.map((effect) => ({ skill: stage.name, effect }))
+            : [];
+        })
+    : [];
+  const percentage = percentageOperatorValue(name);
+  const stat = PERCENTAGE_EFFICIENCY_STATS[facility];
+  return percentage !== undefined && stat !== undefined
+    ? [
+        ...selected,
+        {
+          skill: `${name}效率`,
+          effect: { target: facility, stat, value: percentage },
+        },
+      ]
+    : selected;
 }
 
 function createContexts(
@@ -387,6 +399,7 @@ function createContexts(
           profile,
           skillFile: profile?.skillFile,
           selected: selectedSkills(
+            name,
             profile?.skillFile,
             facility.type,
             effectiveState,
@@ -2899,18 +2912,6 @@ function operatorBaseEfficiency(
   return 0;
 }
 
-function percentageOperatorEfficiency(
-  facility: EfficiencyFacility,
-  placement: Placement,
-): number {
-  const percentage = percentageOperatorValue(placement.name);
-  return percentage !== undefined &&
-    PERCENTAGE_EFFICIENCY_FACILITIES.has(facility.type) &&
-    isCurrentlyWorking(placement)
-    ? percentage
-    : 0;
-}
-
 function operatorTrainingEfficiency(placement: Placement): number {
   return (
     rarityEfficiency(placement.profile?.rarity ?? 0) +
@@ -2940,12 +2941,7 @@ function operatorContributions(
       placement.facility,
       placement,
     );
-    const percentageEfficiency = percentageOperatorEfficiency(
-      placement.facility,
-      placement,
-    );
-    const skillEfficiency =
-      (skillValues.get(placement.name) ?? 0) + percentageEfficiency;
+    const skillEfficiency = skillValues.get(placement.name) ?? 0;
     const contribution = {
       operator: placement.name,
       baseEfficiency,
@@ -3079,15 +3075,11 @@ function calculateFacility(
       total: Math.max(1, attributeState.attributes.orderLimit.base + skill),
     };
   }
-  const percentageEfficiency = placements.reduce((total, placement) => {
-    return total + percentageOperatorEfficiency(facility, placement);
-  }, 0);
   const skillEfficiency =
     combinationAggregate.total +
     statAggregate.total +
     special.value +
-    trainingEfficiency +
-    percentageEfficiency;
+    trainingEfficiency;
   const baseDetails = detailRows(baseAggregate, facility.type, "base", context);
   const combinationDetails = [
     ...detailRows(combinationAggregate, facility.type, "combination", context),
@@ -3821,9 +3813,7 @@ function calculatePowerGroup(
       .length * 5;
   const seen = new Set<string>();
   const seenBase = new Set<string>();
-  let skillEfficiency = powerPlacements.reduce((total, placement) => {
-    return total + percentageOperatorEfficiency(first, placement);
-  }, 0);
+  let skillEfficiency = 0;
   let facBase = 0;
   const skillDetails: OperatorEfficiencyDetail[] = [];
   const baseDetails: OperatorEfficiencyDetail[] = [];

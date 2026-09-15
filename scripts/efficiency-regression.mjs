@@ -244,6 +244,28 @@ function documentFor({
   };
 }
 
+function percentageFacilityDocument(type, operators) {
+  const room = assignment(operators, {});
+  if (type === "manufacture") {
+    room.product = "Pure Gold";
+  }
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type, level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          control: [assignment([], {})],
+          [type]: [room],
+        },
+      },
+    ],
+  };
+}
+
 function abyssalDocument({
   manufacture,
   control = ["歌蕾蒂娅"],
@@ -390,6 +412,14 @@ function manufactureResult(result) {
 function tradingResult(result) {
   const facility = result.plans[0].facilities.find(
     ({ facility: value }) => value.type === "trading",
+  );
+  assert.ok(facility);
+  return facility;
+}
+
+function facilityResult(result, type) {
+  const facility = result.plans[0].facilities.find(
+    ({ facility: value }) => value.type === type,
   );
   assert.ok(facility);
   return facility;
@@ -749,6 +779,71 @@ function runTests(runtime) {
     sourceFacility: "manufacture",
   });
   assert.equal(contribution(wendyManufacture, "温蒂").skillEfficiency, 45);
+
+  const percentageWendy = calculateEfficiency(
+    documentFor({
+      manufacture: ["温蒂", "35%"],
+      eliteLevels: { 温蒂: 2 },
+    }),
+    catalog,
+  );
+  const percentageWendyManufacture = manufactureResult(percentageWendy);
+  assert.equal(percentageWendyManufacture.skillEfficiency, 45);
+  assertSkillDetails(percentageWendyManufacture, ["温蒂"]);
+  assert.equal(
+    contribution(percentageWendyManufacture, "35%").skillEfficiency,
+    0,
+  );
+
+  const percentageHuaihu = calculateEfficiency(
+    documentFor({
+      manufacture: ["槐琥", "35%"],
+      eliteLevels: { 槐琥: 2 },
+    }),
+    catalog,
+  );
+  const percentageHuaihuManufacture = manufactureResult(percentageHuaihu);
+  assert.equal(percentageHuaihuManufacture.skillEfficiency, 70);
+  assert.equal(
+    contribution(percentageHuaihuManufacture, "槐琥").skillEfficiency,
+    35,
+  );
+  assert.equal(
+    contribution(percentageHuaihuManufacture, "35%").skillEfficiency,
+    35,
+  );
+
+  const percentageTrading = calculateEfficiency(
+    percentageFacilityDocument("trading", ["35%"]),
+    catalog,
+  );
+  assert.equal(
+    facilityResult(percentageTrading, "trading").skillEfficiency,
+    35,
+  );
+
+  const percentagePower = calculateEfficiency(
+    percentageFacilityDocument("power", ["20%"]),
+    catalog,
+  );
+  assert.equal(facilityResult(percentagePower, "power").skillEfficiency, 20);
+
+  const percentageMeeting = calculateEfficiency(
+    percentageFacilityDocument("meeting", ["35%"]),
+    catalog,
+  );
+  assert.equal(
+    facilityResult(percentageMeeting, "meeting").combinationDetails.find(
+      ({ operator, stat }) => operator === "35%" && stat === "clueSpeed",
+    )?.value,
+    35,
+  );
+
+  const percentageHire = calculateEfficiency(
+    percentageFacilityDocument("hire", ["35%"]),
+    catalog,
+  );
+  assert.equal(facilityResult(percentageHire, "hire").skillEfficiency, 35);
 
   const totterStageOne = calculateEfficiency(
     documentFor({
