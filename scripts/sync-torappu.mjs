@@ -42,6 +42,7 @@ const TARGET_ITEM_IDS = [
 const ITEM_TABLE_PATH = "gamedata/latest/excel/item_table.json";
 const ITEM_ICON_SOURCE_PATH = "assets/item_icon";
 const ITEM_ICON_LOCAL_PATH = "raw/item_icon";
+const SANITY_ICON_FILE = "AP_GAMEPLAY.png";
 
 async function fetchResponse(url, label) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -319,10 +320,18 @@ async function main() {
     directory: "item_icon",
     fileName: `${fileName}.png`,
   }));
+  const supplementalItemIconTasks = [
+    { directory: "item_icon", fileName: SANITY_ICON_FILE },
+  ];
   const missingAvatars = [];
   const missingItemIcons = [];
   let completed = 0;
-  const imageTasks = [...avatarTasks, ...iconTasks, ...itemIconTasks];
+  const imageTasks = [
+    ...avatarTasks,
+    ...iconTasks,
+    ...itemIconTasks,
+    ...supplementalItemIconTasks,
+  ];
   await runPool(imageTasks, 12, async (task) => {
     const downloaded = await downloadAsset(task.directory, task.fileName);
     if (!downloaded && task.directory === "char_avatar") {

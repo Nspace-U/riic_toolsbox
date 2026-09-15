@@ -119,7 +119,10 @@ import {
   type SanityResourceAmounts,
   type SanityResult,
 } from "@/utils/sanity";
-import { torappuItemIconPath } from "@/utils/torappuItems";
+import {
+  TORAPPU_SANITY_ICON_FILE,
+  torappuItemIconPath,
+} from "@/utils/torappuItems";
 import {
   cascadeLayoutTypes,
   layoutAdditionPlan,
@@ -2750,6 +2753,10 @@ function dailyOutputIconUrl(product: string): string | undefined {
     return `${import.meta.env.BASE_URL}assets/${torappuIconPath}`;
   }
   return facilityIconUrl(resourceItemIconFile(product));
+}
+
+function sanityIconUrl(): string {
+  return `${import.meta.env.BASE_URL}${FACILITY_ICON_URL_BASE}${TORAPPU_SANITY_ICON_FILE}`;
 }
 
 function facilityCardIconUrl(row: FacilityRow, plan: Plan): string | undefined {
@@ -7433,21 +7440,18 @@ onBeforeUnmount(() => {
                 show-icon
                 type="warning"
               />
-              <div v-if="dailySanityResult" class="simulator-sanity-total">
-                <span>
-                  {{
-                    dailySanityResult.complete
-                      ? "每日等效理智合计"
-                      : "每日等效理智合计（部分）"
-                  }}
-                  <small>
-                    · 按净产出计算 · 钱书价值比
-                    {{ formatNumber(sanityValues.goldExperienceRatio) }}
-                  </small>
-                </span>
-                <strong
-                  >{{ signedNumber(dailySanityResult.total) }} 理智</strong
-                >
+              <div
+                v-if="dailySanityResult"
+                class="simulator-daily-output-item simulator-daily-output-item--sanity-total"
+              >
+                <img
+                  :alt="'理智'"
+                  :src="sanityIconUrl()"
+                  class="simulator-daily-output-icon"
+                />
+                <strong class="simulator-daily-output-main-value">
+                  {{ signedNumber(dailySanityResult.total) }}
+                </strong>
               </div>
               <div
                 v-if="dailyOutputQueueDetails.length"

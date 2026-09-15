@@ -13,6 +13,8 @@ export const TORAPPU_RESOURCE_ITEM_IDS: Record<string, string> = {
   装置: "30062",
 };
 
+export const TORAPPU_SANITY_ICON_FILE = "AP_GAMEPLAY.png";
+
 export function torappuItemIconPath(
   resource: string,
   itemTable: TorappuItemTable | undefined,
