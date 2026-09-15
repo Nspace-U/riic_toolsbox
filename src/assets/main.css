@@ -2493,7 +2493,7 @@ a {
 
 .simulator-daily-output-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
 }
 
@@ -2650,7 +2650,8 @@ a {
 }
 
 .simulator-daily-output-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   min-width: 0;
   gap: 8px;
@@ -2665,7 +2666,13 @@ a {
   border-style: dashed;
 }
 
-.simulator-daily-output-item strong {
+.simulator-daily-output-content {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.simulator-daily-output-main-value {
   min-width: 0;
   overflow: hidden;
   color: #176b68;
@@ -2675,7 +2682,7 @@ a {
   white-space: nowrap;
 }
 
-.simulator-daily-output-item--net strong {
+.simulator-daily-output-item--net .simulator-daily-output-main-value {
   color: #a06b27;
 }
 
@@ -2701,16 +2708,40 @@ a {
   color: #8c6b35;
 }
 
-.simulator-sanity-results,
+.simulator-daily-output-card-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.simulator-daily-output-gross-points,
+.simulator-daily-output-net,
+.simulator-daily-output-sanity,
+.simulator-daily-output-sanity-missing {
+  overflow: hidden;
+  color: #72807f;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-daily-output-gross-points {
+  color: #344447;
+}
+
+.simulator-daily-output-sanity {
+  color: #176b68;
+  font-weight: 600;
+}
+
+.simulator-daily-output-sanity-missing {
+  color: #a06b27;
+}
+
 .simulator-queue-sanity {
   display: grid;
   gap: 10px;
-}
-
-.simulator-sanity-results {
-  margin-block-start: 14px;
-  padding-block-start: 12px;
-  border-block-start: 1px solid #edf1f0;
 }
 
 .simulator-queue-sanity {
@@ -2719,7 +2750,6 @@ a {
   border-block-start: 1px solid #edf1f0;
 }
 
-.simulator-sanity-results .ant-alert,
 .simulator-queue-sanity .ant-alert {
   margin-block: 2px;
 }
@@ -2779,6 +2809,12 @@ a {
   padding-block-start: 8px;
   border-block-start: 1px solid #e0e8e5;
   color: #344447;
+}
+
+.simulator-sanity-total small {
+  color: #879294;
+  font-size: 11px;
+  font-weight: 400;
 }
 
 .simulator-sanity-total strong {

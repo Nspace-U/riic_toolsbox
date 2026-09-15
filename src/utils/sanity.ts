@@ -89,6 +89,13 @@ const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
     value: (values) => values.lmd,
   },
   {
+    resource: "Orundum",
+    label: "合成玉",
+    amountUnit: "合成玉",
+    amountFactor: 1,
+    value: (values) => values.orundum,
+  },
+  {
     resource: "Pure Gold",
     label: "赤金点数",
     amountUnit: "赤金点数",

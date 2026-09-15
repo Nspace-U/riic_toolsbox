@@ -114,7 +114,9 @@ import { sortProfessionValues } from "@/utils/operatorOrdering";
 import { createSpecialOperatorAvatarLabelResolver } from "@/utils/specialOperators";
 import {
   addProductionFlow,
+  BATTLE_RECORD_EXPERIENCE,
   calculateSanityResult,
+  PURE_GOLD_POINTS,
   type SanityResourceAmounts,
   type SanityResult,
 } from "@/utils/sanity";
@@ -132,7 +134,6 @@ import {
 import {
   cluePreferenceText,
   convertedProductionAmount,
-  dailyOutputLabel,
   efficiencyStatLabel,
   facilityOverflowLabel,
   formatDurationHours,
@@ -218,6 +219,29 @@ interface DailyOutputQueueDetail {
   planIndex: number;
   products: DailyOutputProductDetail[];
   sanity: SanityResult;
+}
+
+interface DailyOutputCard {
+  product: string;
+  grossAmount?: number;
+  grossPoints?: number;
+  grossPointsLabel?: string;
+  netAmount: number;
+  netUnit: string;
+  netContribution?: number;
+  showNet: boolean;
+}
+
+function dailyOutputPointInfo(
+  product: string,
+): { factor: number; label: string } | undefined {
+  if (product === "Pure Gold") {
+    return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
+  }
+  if (product === "Battle Record") {
+    return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
+  }
+  return undefined;
 }
 
 interface ExtraRoom {
@@ -1109,7 +1133,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
     .filter((queue) => queue.products.length > 0);
 });
 
-const dailySanityResult = computed<SanityResult | undefined>(() => {
+const dailySanityAmounts = computed<SanityResourceAmounts | undefined>(() => {
   const result = efficiencyResult.value;
   if (!result || result.dailyHours <= 0) {
     return undefined;
@@ -1124,7 +1148,78 @@ const dailySanityResult = computed<SanityResult | undefined>(() => {
   if (dailyCredit) {
     amounts.Credit = dailyCredit.amountPerDay;
   }
-  return calculateSanityResult(amounts, sanityValues.value);
+  return amounts;
+});
+
+const dailySanityResult = computed<SanityResult | undefined>(() => {
+  const amounts = dailySanityAmounts.value;
+  return amounts
+    ? calculateSanityResult(amounts, sanityValues.value)
+    : undefined;
+});
+
+const dailyOutputCards = computed<DailyOutputCard[]>(() => {
+  const result = efficiencyResult.value;
+  const amounts = dailySanityAmounts.value;
+  const sanity = dailySanityResult.value;
+  if (!result || !amounts || !sanity) {
+    return [];
+  }
+
+  const sanityItems = new Map<string, SanityResult["items"][number]>(
+    sanity.items.map((item) => [item.resource, item]),
+  );
+  const sanityComplete = sanity.complete;
+  const productionOutputs = result.dailyOutputs.filter(
+    (output) => output.kind === "production",
+  );
+  const productionProducts = new Set(
+    productionOutputs.map((output) => output.product),
+  );
+
+  function createCard(product: string, grossAmount?: number): DailyOutputCard {
+    const pointInfo = dailyOutputPointInfo(product);
+    const rawNetAmount =
+      (amounts as Record<string, number | undefined>)[product] ??
+      grossAmount ??
+      0;
+    const netUnit =
+      pointInfo?.label ??
+      sanityItems.get(product)?.amountUnit ??
+      resourceLabel(product);
+    const netAmount = rawNetAmount * (pointInfo?.factor ?? 1);
+    const netContribution =
+      sanityItems.get(product)?.contribution ??
+      (sanityComplete ? 0 : undefined);
+    const grossPoints =
+      grossAmount === undefined || !pointInfo
+        ? undefined
+        : grossAmount * pointInfo.factor;
+    return {
+      product,
+      ...(grossAmount === undefined ? {} : { grossAmount }),
+      ...(grossPoints === undefined ? {} : { grossPoints }),
+      ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
+      netAmount,
+      netUnit,
+      ...(netContribution === undefined ? {} : { netContribution }),
+      showNet:
+        grossAmount === undefined ||
+        Math.abs(rawNetAmount - grossAmount) > 0.000001,
+    };
+  }
+
+  return [
+    ...productionOutputs.map((output) =>
+      createCard(output.product, output.amountPerDay),
+    ),
+    ...result.dailyOutputs
+      .filter(
+        (output) =>
+          output.kind === "net" && !productionProducts.has(output.product),
+      )
+      .map((output) => createCard(output.product)),
+  ];
 });
 
 const plansWithBasePoints = computed(() =>
@@ -7260,28 +7355,61 @@ onBeforeUnmount(() => {
                 </a-tag>
               </div>
               <div
-                v-if="efficiencyResult.dailyOutputs.length"
+                v-if="dailyOutputCards.length"
                 class="simulator-daily-output-grid"
               >
                 <div
-                  v-for="output in efficiencyResult.dailyOutputs"
-                  :key="`${output.kind}-${output.product}`"
+                  v-for="card in dailyOutputCards"
+                  :key="card.product"
                   class="simulator-daily-output-item"
                   :class="{
-                    'simulator-daily-output-item--net': output.kind === 'net',
+                    'simulator-daily-output-item--net':
+                      card.grossAmount === undefined,
                   }"
                 >
                   <img
-                    v-if="dailyOutputIconUrl(output.product)"
-                    :alt="dailyOutputLabel(output)"
-                    :src="dailyOutputIconUrl(output.product)"
+                    v-if="dailyOutputIconUrl(card.product)"
+                    :alt="resourceLabel(card.product)"
+                    :src="dailyOutputIconUrl(card.product)"
                     class="simulator-daily-output-icon"
                   />
-                  <strong>{{
-                    output.kind === "net"
-                      ? signedNumber(output.amountPerDay)
-                      : formatProduction(output.amountPerDay)
-                  }}</strong>
+                  <div class="simulator-daily-output-content">
+                    <strong class="simulator-daily-output-main-value">
+                      {{
+                        card.grossAmount === undefined
+                          ? signedNumber(card.netAmount)
+                          : formatProduction(card.grossAmount)
+                      }}
+                    </strong>
+                    <div class="simulator-daily-output-card-copy">
+                      <span
+                        v-if="card.grossPoints !== undefined"
+                        class="simulator-daily-output-gross-points"
+                      >
+                        {{ formatProduction(card.grossPoints) }}
+                        {{ card.grossPointsLabel }}
+                      </span>
+                      <span
+                        v-if="card.showNet"
+                        class="simulator-daily-output-net"
+                      >
+                        净收入 {{ signedNumber(card.netAmount) }}
+                        {{ card.netUnit }}
+                      </span>
+                      <strong
+                        v-if="card.netContribution !== undefined"
+                        class="simulator-daily-output-sanity"
+                      >
+                        {{ signedNumber(card.netContribution) }} 理智
+                      </strong>
+                      <span
+                        v-else
+                        class="simulator-daily-output-sanity-missing"
+                      >
+                        未计入
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <a-empty
@@ -7289,6 +7417,32 @@ onBeforeUnmount(() => {
                 :image="undefined"
                 description="当前排班没有可统计的产出"
               />
+              <a-alert
+                v-if="dailySanityResult && !dailySanityResult.complete"
+                :message="
+                  '总理智不完整：未设置' +
+                  dailySanityResult.missing.join('、') +
+                  '价值'
+                "
+                show-icon
+                type="warning"
+              />
+              <div v-if="dailySanityResult" class="simulator-sanity-total">
+                <span>
+                  {{
+                    dailySanityResult.complete
+                      ? "每日等效理智合计"
+                      : "每日等效理智合计（部分）"
+                  }}
+                  <small>
+                    · 按净产出计算 · 钱书价值比
+                    {{ formatNumber(sanityValues.goldExperienceRatio) }}
+                  </small>
+                </span>
+                <strong
+                  >{{ signedNumber(dailySanityResult.total) }} 理智</strong
+                >
+              </div>
               <div
                 v-if="dailyOutputQueueDetails.length"
                 class="simulator-daily-output-breakdown"
@@ -7473,60 +7627,6 @@ onBeforeUnmount(() => {
                     </div>
                   </a-collapse-panel>
                 </a-collapse>
-              </div>
-              <div v-if="dailySanityResult" class="simulator-sanity-results">
-                <div class="simulator-daily-output-breakdown-heading">
-                  <span class="simulator-step-subheading">等效理智</span>
-                  <span class="simulator-result-hint"
-                    >按净产出计算 · 钱书价值比
-                    {{ formatNumber(sanityValues.goldExperienceRatio) }}</span
-                  >
-                </div>
-                <a-alert
-                  v-if="!dailySanityResult.complete"
-                  :message="
-                    '总理智不完整：未设置' +
-                    dailySanityResult.missing.join('、') +
-                    '价值'
-                  "
-                  show-icon
-                  type="warning"
-                />
-                <div class="simulator-sanity-grid">
-                  <div
-                    v-for="item in dailySanityResult.items"
-                    :key="item.resource"
-                    class="simulator-sanity-item"
-                  >
-                    <img
-                      v-if="dailyOutputIconUrl(item.resource)"
-                      :alt="item.label"
-                      :src="dailyOutputIconUrl(item.resource)"
-                      class="simulator-daily-output-icon"
-                    />
-                    <div class="simulator-sanity-item-copy">
-                      <strong>{{ item.label }}</strong>
-                      <span
-                        >{{ signedNumber(item.amount) }}
-                        {{ item.amountUnit }}</span
-                      >
-                    </div>
-                    <strong v-if="item.contribution !== undefined">
-                      {{ signedNumber(item.contribution) }} 理智
-                    </strong>
-                    <span v-else class="simulator-sanity-missing">未计入</span>
-                  </div>
-                </div>
-                <div class="simulator-sanity-total">
-                  <span>{{
-                    dailySanityResult.complete
-                      ? "每日等效理智合计"
-                      : "每日等效理智合计（部分）"
-                  }}</span>
-                  <strong
-                    >{{ signedNumber(dailySanityResult.total) }} 理智</strong
-                  >
-                </div>
               </div>
             </div>
 

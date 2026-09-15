@@ -38,6 +38,7 @@ try {
   const result = calculateSanityResult(
     {
       LMD: 1000,
+      Orundum: 100,
       "Pure Gold": 1,
       "Battle Record": 1,
       Drone: 60,
@@ -49,8 +50,8 @@ try {
   );
 
   assert.equal(result.complete, true);
-  assert.equal(result.items.length, 7);
-  assert.ok(Math.abs(result.total - 22.2058820209763) < 1e-9);
+  assert.equal(result.items.length, 8);
+  assert.ok(Math.abs(result.total - 97.2058820209763) < 1e-9);
 
   const incomplete = calculateSanityResult({ 固源岩: -1 }, values);
   assert.deepEqual(incomplete.missing, ["固源岩"]);

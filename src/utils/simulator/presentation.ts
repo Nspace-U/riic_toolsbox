@@ -1,6 +1,5 @@
 import type {
   CluePreference,
-  DailyOutput,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -14,7 +13,10 @@ export function planDurationHoursValue(plan: { duration?: number }): number {
 }
 
 export function formatNumber(value: number, maximumFractionDigits = 2): string {
-  return value.toLocaleString("zh-CN", { maximumFractionDigits });
+  return value.toLocaleString("zh-CN", {
+    maximumFractionDigits,
+    useGrouping: false,
+  });
 }
 
 export function formatEfficiencyNumber(value: number): string {
@@ -172,11 +174,6 @@ export function resourceLabel(resource: string): string {
 
 export function productionLabel(product: string): string {
   return resourceLabel(product);
-}
-
-export function dailyOutputLabel(output: DailyOutput): string {
-  const kind = output.kind === "net" ? "净变化" : "每日产出";
-  return `${kind}${resourceLabel(output.product)} ${formatProduction(output.amountPerDay)}`;
 }
 
 export function cluePreferenceText(
