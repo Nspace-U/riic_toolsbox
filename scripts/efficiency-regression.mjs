@@ -1231,6 +1231,50 @@ function runTests(runtime) {
   assert.equal(tradeFacility.operatorSkillEfficiency, 45);
   assertSkillDetails(tradeFacility, ["巫恋"]);
 
+  const danshuAlpha = calculateEfficiency(
+    documentFor({
+      trading: ["但书"],
+      eliteLevels: { 但书: 0 },
+    }),
+    catalog,
+  );
+  assert.deepEqual(
+    tradingResult(danshuAlpha).production?.orders?.map(
+      ({ name, quantity, amount }) => ({
+        name,
+        quantity,
+        amount,
+      }),
+    ),
+    [
+      { name: "2贵金属订单", quantity: 1500, amount: 3 },
+      { name: "3贵金属订单", quantity: 2000, amount: 4 },
+      { name: "4贵金属订单", quantity: 2000, amount: 4 },
+    ],
+  );
+
+  const danshuBeta = calculateEfficiency(
+    documentFor({
+      trading: ["但书"],
+      eliteLevels: { 但书: 2 },
+    }),
+    catalog,
+  );
+  assert.deepEqual(
+    tradingResult(danshuBeta).production?.orders?.map(
+      ({ name, quantity, amount }) => ({
+        name,
+        quantity,
+        amount,
+      }),
+    ),
+    [
+      { name: "2贵金属订单", quantity: 2000, amount: 4 },
+      { name: "3贵金属订单", quantity: 2500, amount: 5 },
+      { name: "4贵金属订单", quantity: 2000, amount: 4 },
+    ],
+  );
+
   const jieMax = calculateEfficiency(
     documentFor({
       trading: ["孑"],

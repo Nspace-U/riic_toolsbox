@@ -3268,12 +3268,14 @@ function tradeProduction(
   const invest = fixValues
     ? []
     : orders.filter((order) => order.order?.type === "invest");
-  const breachByAmount = new Map<number, number>();
-  breach.forEach((order) => {
-    if (order.order?.amount !== undefined && order.order.qty !== undefined) {
-      breachByAmount.set(Number(order.order.amount), Number(order.order.qty));
-    }
-  });
+  const breachAmount = breach.reduce(
+    (total, order) => total + Number(order.order?.amount ?? 0),
+    0,
+  );
+  const breachGold = breach.reduce(
+    (total, order) => total + Number(order.order?.qty ?? 0),
+    0,
+  );
   const investAmount = invest.reduce(
     (total, order) => total + Number(order.order?.qty ?? 0),
     0,
@@ -3283,17 +3285,22 @@ function tradeProduction(
   let expectedMaterial = 0;
   const orderSummaries: TradeOrderSummary[] = [];
   sourceOrders.forEach((order) => {
+    const isBreachOrder = breach.length > 0 && [2, 3].includes(order.amount);
     const gold =
       fixValues?.qty !== undefined
         ? Number(fixValues.qty)
         : Number(order.gold) +
-          (breachByAmount.get(order.amount) ?? 0) +
+          (isBreachOrder ? breachGold : 0) +
           (order.amount === 4 ? investAmount : 0);
     const material =
-      fixValues?.amount !== undefined ? Number(fixValues.amount) : order.amount;
+      fixValues?.amount !== undefined
+        ? Number(fixValues.amount)
+        : order.amount + (isBreachOrder ? breachAmount : 0);
     const notes: string[] = [];
     if (fixValues?.qty !== undefined) notes.push("金额替换");
-    if (breachByAmount.has(order.amount)) notes.push("违约索赔");
+    if (isBreachOrder && (breachAmount !== 0 || breachGold !== 0)) {
+      notes.push("违约索赔");
+    }
     if (order.amount === 4 && investAmount > 0) notes.push("投资");
     expectedGold += order.probability * gold;
     expectedTime += order.probability * order.hours;
