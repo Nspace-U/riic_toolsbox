@@ -17,6 +17,7 @@ try {
     parseModule,
     calculateModule,
     importLayoutModule,
+    scheduleModule,
     specialOperatorsModule,
   ] = await Promise.all([
     vite.ssrLoadModule("/src/adapters/textSchedule.ts"),
@@ -25,6 +26,7 @@ try {
     vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
     vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
     vite.ssrLoadModule("/src/utils/importLayout.ts"),
+    vite.ssrLoadModule("/src/utils/schedule.ts"),
     vite.ssrLoadModule("/src/utils/specialOperators.ts"),
   ]);
   const rawText = `满血 252
@@ -244,6 +246,42 @@ EXP 52.2k | 贵金属 46.6k
       termFallbackCatalog,
     ),
     ["甲", "乙"],
+  );
+  const dynamicTerms = { custom: { name: "自定义术语" } };
+  assert.equal(
+    specialOperatorsModule.specialOperatorAvatarLabel("35%", dynamicTerms),
+    "35%",
+  );
+  assert.equal(
+    specialOperatorsModule.specialOperatorAvatarLabel(
+      "自定义术语",
+      dynamicTerms,
+    ),
+    "自定",
+  );
+  assert.equal(
+    specialOperatorsModule.isKnownSpecialOperator("自定义术语", dynamicTerms),
+    true,
+  );
+  assert.equal(
+    specialOperatorsModule.isKnownSpecialOperator("莱茵生命", dynamicTerms),
+    false,
+  );
+  assert.equal(
+    scheduleModule.formatDuplicateOperatorWarnings(
+      {
+        layout: [{ type: "control", level: 5 }],
+        plans: [
+          {
+            rooms: {
+              control: [{ operators: ["自定义术语", "自定义术语"] }],
+            },
+          },
+        ],
+      },
+      dynamicTerms,
+    ),
+    "",
   );
   const termSerialized = JSON.parse(
     maaModule.serializeMaaSchedule(

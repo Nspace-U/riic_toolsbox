@@ -9,6 +9,7 @@ import {
   type ScheduleSettings,
   type ScheduleDocument,
 } from "@/types/schedule";
+import type { BaseSkillTerms } from "@/types/baseData";
 import { isKnownSpecialOperator } from "@/utils/specialOperators";
 
 export const ROOM_LABELS: Record<RoomKey, string> = {
@@ -684,6 +685,7 @@ export interface DuplicateOperatorWarning {
 
 export function findDuplicateOperators(
   document: ScheduleDocument,
+  terms: BaseSkillTerms = {},
 ): DuplicateOperatorWarning[] {
   return document.plans.flatMap((plan, planIndex) => {
     const occurrences = new Map<string, string[]>();
@@ -700,7 +702,7 @@ export function findDuplicateOperators(
           if (
             typeof name !== "string" ||
             !name ||
-            isKnownSpecialOperator(name)
+            isKnownSpecialOperator(name, terms)
           ) {
             return;
           }
@@ -720,8 +722,9 @@ export function findDuplicateOperators(
 
 export function formatDuplicateOperatorWarnings(
   document: ScheduleDocument,
+  terms: BaseSkillTerms = {},
 ): string {
-  return findDuplicateOperators(document)
+  return findDuplicateOperators(document, terms)
     .map(({ planIndex, name, locations }) => {
       const plan = document.plans[planIndex];
       const planName = plan?.name?.trim() || `队列${planIndex + 1}`;

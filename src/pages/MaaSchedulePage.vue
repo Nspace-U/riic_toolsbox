@@ -210,7 +210,10 @@ function handleExport(): void {
     const json = serializeMaaSchedule(document, {
       catalog: efficiencyCatalog.value,
     });
-    const duplicateWarning = formatDuplicateOperatorWarnings(document);
+    const duplicateWarning = formatDuplicateOperatorWarnings(
+      document,
+      terms.value,
+    );
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");

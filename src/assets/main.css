@@ -2911,6 +2911,22 @@ a {
   object-fit: fill;
 }
 
+.operator-avatar-frame--special {
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: #526864;
+}
+
+.operator-avatar-special-label {
+  max-width: 100%;
+  padding-inline: 4px;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
 .operator-avatar-fallback {
   display: grid;
   place-items: center;

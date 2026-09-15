@@ -113,6 +113,7 @@ import {
   resolveOperatorProgression,
 } from "@/utils/operatorProgression";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
+import { specialOperatorAvatarLabel } from "@/utils/specialOperators";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -517,7 +518,8 @@ function operatorDragPreviewData():
   | {
       count: number;
       name: string;
-      operator: Operator;
+      operator?: Operator;
+      specialLabel?: string;
       room: RoomAssignment | undefined;
       type: RoomKey;
       planIndex: number;
@@ -534,7 +536,8 @@ function operatorDragPreviewData():
     const plan = document.plans[address.planIndex];
     const name = plan ? operatorNameAtAddress(document, address) : "";
     const operator = operatorByName(name);
-    if (!plan || !name || !operator) {
+    const specialLabel = specialOperatorAvatarLabel(name, terms.value);
+    if (!plan || !name || (!operator && !specialLabel)) {
       return [];
     }
     return [
@@ -542,6 +545,7 @@ function operatorDragPreviewData():
         count: 0,
         name,
         operator,
+        specialLabel,
         room: operatorRoomAtDocument(document, address, false),
         type: address.type,
         planIndex: address.planIndex,
@@ -2720,6 +2724,18 @@ function slotOperator(
   slot: FacilitySlotRef,
 ): Operator | undefined {
   return operatorByName(slotCommittedName(row, plan, slot));
+}
+
+function slotSpecialAvatarLabel(
+  row: FacilityRow,
+  plan: Plan,
+  planIndex: number,
+  slot: FacilitySlotRef,
+): string | undefined {
+  return specialOperatorAvatarLabel(
+    slotName(row, plan, planIndex, slot),
+    terms.value,
+  );
 }
 
 function roomSkipped(room: RoomAssignment | undefined): boolean {
@@ -5816,7 +5832,10 @@ function handleExport(): void {
     const json = serializeMaaSchedule(document, {
       catalog: efficiencyCatalog.value,
     });
-    const duplicateWarning = formatDuplicateOperatorWarnings(document);
+    const duplicateWarning = formatDuplicateOperatorWarnings(
+      document,
+      terms.value,
+    );
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = window.document.createElement("a");
@@ -6667,7 +6686,10 @@ onBeforeUnmount(() => {
                         "
                       >
                         <OperatorAvatarDisplay
-                          v-if="slotOperator(row, plan, planIndex, slot)"
+                          v-if="
+                            slotOperator(row, plan, planIndex, slot) ||
+                            slotSpecialAvatarLabel(row, plan, planIndex, slot)
+                          "
                           :data-source="selectedDataSource"
                           :display-name="slotName(row, plan, planIndex, slot)"
                           :elite-level="
@@ -6677,48 +6699,67 @@ onBeforeUnmount(() => {
                               row.type,
                             )
                           "
-                          :operator="slotOperator(row, plan, planIndex, slot)!"
+                          :operator="slotOperator(row, plan, planIndex, slot)"
+                          :special-label="
+                            slotSpecialAvatarLabel(row, plan, planIndex, slot)
+                          "
                           :operator-owned="
-                            operatorOwned(
-                              slotRoom(plan, slot),
-                              slotCommittedName(row, plan, slot),
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorOwned(
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                )
+                              : true
                           "
                           :missing="
-                            operatorMissing(
-                              slotRoom(plan, slot),
-                              slotCommittedName(row, plan, slot),
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorMissing(
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                )
+                              : false
                           "
                           :mood-scattered="
-                            operatorQueueMoodScattered(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                              slotRoom(plan, slot),
-                              slotCommittedName(row, plan, slot),
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorQueueMoodScattered(
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                )
+                              : false
                           "
                           :mood-remaining="
-                            operatorMoodRemaining(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorMoodRemaining(
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                )
+                              : undefined
                           "
                           :operator-training-upgraded="
-                            operatorTrainingUpgraded(
-                              slotRoom(plan, slot),
-                              slotCommittedName(row, plan, slot),
-                              row.type,
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorTrainingUpgraded(
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                  row.type,
+                                )
+                              : false
                           "
-                          :show-elite-level="true"
+                          :show-elite-level="
+                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          "
                           :show-name="true"
-                          :show-profession="true"
-                          :show-rarity="true"
+                          :show-profession="
+                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          "
+                          :show-rarity="
+                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          "
                           :name-editing="
                             isOperatorNameInputVisible(
                               operatorSlotAddress(
@@ -6734,10 +6775,18 @@ onBeforeUnmount(() => {
                           :size="simulatorSlotSize"
                           :skipped="
                             roomSkipped(slotRoom(plan, slot)) &&
-                            !operatorMissing(
-                              slotRoom(plan, slot),
-                              slotCommittedName(row, plan, slot),
-                            )
+                            (Boolean(
+                              slotSpecialAvatarLabel(
+                                row,
+                                plan,
+                                planIndex,
+                                slot,
+                              ),
+                            ) ||
+                              !operatorMissing(
+                                slotRoom(plan, slot),
+                                slotCommittedName(row, plan, slot),
+                              ))
                           "
                           @click.stop="
                             selectOperatorSlot(
@@ -6749,13 +6798,20 @@ onBeforeUnmount(() => {
                             )
                           "
                           @contextmenu.stop.prevent="
-                            openOperatorContextMenu(
-                              $event,
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            )
+                            slotOperator(row, plan, planIndex, slot)
+                              ? openOperatorContextMenu(
+                                  $event,
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
+                                )
+                              : openFacilityContextMenu(
+                                  $event,
+                                  planIndex,
+                                  row.type,
+                                  [slot.entry.position],
+                                )
                           "
                           @dblclick.stop="
                             beginOperatorNameEdit(
@@ -7015,55 +7071,72 @@ onBeforeUnmount(() => {
             :data-source="selectedDataSource"
             :display-name="operatorDragPreview.name"
             :elite-level="
-              operatorElite(
-                operatorDragPreview.room,
-                operatorDragPreview.name,
-                operatorDragPreview.type,
-              )
+              operatorDragPreview.operator
+                ? operatorElite(
+                    operatorDragPreview.room,
+                    operatorDragPreview.name,
+                    operatorDragPreview.type,
+                  )
+                : 0
             "
             :operator="operatorDragPreview.operator"
+            :special-label="operatorDragPreview.specialLabel"
             :operator-owned="
-              operatorOwned(operatorDragPreview.room, operatorDragPreview.name)
+              operatorDragPreview.operator
+                ? operatorOwned(
+                    operatorDragPreview.room,
+                    operatorDragPreview.name,
+                  )
+                : true
             "
             :missing="
-              operatorMissing(
-                operatorDragPreview.room,
-                operatorDragPreview.name,
-              )
+              operatorDragPreview.operator
+                ? operatorMissing(
+                    operatorDragPreview.room,
+                    operatorDragPreview.name,
+                  )
+                : false
             "
             :mood-scattered="
-              operatorQueueMoodScattered(
-                operatorDragPreview.planIndex,
-                operatorDragPreview.type,
-                operatorDragPreview.position,
-                operatorDragPreview.slotIndex,
-                operatorDragPreview.room,
-                operatorDragPreview.name,
-              )
+              operatorDragPreview.operator
+                ? operatorQueueMoodScattered(
+                    operatorDragPreview.planIndex,
+                    operatorDragPreview.type,
+                    operatorDragPreview.position,
+                    operatorDragPreview.slotIndex,
+                    operatorDragPreview.room,
+                    operatorDragPreview.name,
+                  )
+                : false
             "
             :mood-remaining="
-              operatorMoodRemaining(
-                operatorDragPreview.planIndex,
-                operatorDragPreview.type,
-                operatorDragPreview.position,
-                operatorDragPreview.slotIndex,
-              )
+              operatorDragPreview.operator
+                ? operatorMoodRemaining(
+                    operatorDragPreview.planIndex,
+                    operatorDragPreview.type,
+                    operatorDragPreview.position,
+                    operatorDragPreview.slotIndex,
+                  )
+                : undefined
             "
             :operator-training-upgraded="
-              operatorTrainingUpgraded(
-                operatorDragPreview.room,
-                operatorDragPreview.name,
-                operatorDragPreview.type,
-              )
+              operatorDragPreview.operator
+                ? operatorTrainingUpgraded(
+                    operatorDragPreview.room,
+                    operatorDragPreview.name,
+                    operatorDragPreview.type,
+                  )
+                : false
             "
-            :show-elite-level="true"
-            :show-name="true"
-            :show-profession="true"
-            :show-rarity="true"
+            :show-elite-level="Boolean(operatorDragPreview.operator)"
+            :show-name="Boolean(operatorDragPreview.operator)"
+            :show-profession="Boolean(operatorDragPreview.operator)"
+            :show-rarity="Boolean(operatorDragPreview.operator)"
             :plain="true"
             :proportional-layout="true"
             :size="simulatorSlotSize"
             :skipped="
+              Boolean(operatorDragPreview.operator) &&
               roomSkipped(operatorDragPreview.room) &&
               !operatorMissing(
                 operatorDragPreview.room,

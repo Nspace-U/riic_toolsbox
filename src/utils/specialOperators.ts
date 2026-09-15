@@ -1,10 +1,12 @@
+import type { BaseSkillTerms } from "@/types/baseData";
 import type { EfficiencyCatalog } from "@/types/efficiency";
 
 import { groupMembers } from "@/utils/efficiency/catalog";
 import { SPECIAL_OPERATOR_ALIASES } from "@/utils/specialOperatorAliases";
 
 const PERCENTAGE_OPERATOR_PATTERN = /^\d+(?:\.\d+)?%$/;
-const KNOWN_TERM_NAMES = new Set(["莱茵生命", "精英干员", "岁", "S.E.E.S."]);
+
+type SpecialOperatorTerms = BaseSkillTerms | EfficiencyCatalog["terms"];
 
 export function percentageOperatorValue(name: string): number | undefined {
   if (!PERCENTAGE_OPERATOR_PATTERN.test(name.trim())) {
@@ -21,11 +23,16 @@ export function termKeysForSpecialOperator(
   name: string,
   catalog: EfficiencyCatalog,
 ): string[] {
-  const target = SPECIAL_OPERATOR_ALIASES[name] ?? name;
-  return Object.entries(catalog.terms)
+  return termKeysForTerms(name, catalog.terms);
+}
+
+function termKeysForTerms(name: string, terms: SpecialOperatorTerms): string[] {
+  const trimmedName = name.trim();
+  const target = SPECIAL_OPERATOR_ALIASES[trimmedName] ?? trimmedName;
+  return Object.entries(terms)
     .filter(
       ([key, term]) =>
-        key === target || term.name === target || term.name === name,
+        key === target || term.name === target || term.name === trimmedName,
     )
     .map(([key]) => key);
 }
@@ -44,12 +51,32 @@ export function isSpecialOperator(
   return isPercentageOperator(name) || isTermOperator(name, catalog);
 }
 
-export function isKnownSpecialOperator(name: string): boolean {
+export function isKnownSpecialOperator(
+  name: string,
+  terms: SpecialOperatorTerms = {},
+): boolean {
   return (
     isPercentageOperator(name) ||
-    KNOWN_TERM_NAMES.has(name) ||
+    termKeysForTerms(name, terms).length > 0 ||
     Object.prototype.hasOwnProperty.call(SPECIAL_OPERATOR_ALIASES, name)
   );
+}
+
+export function specialOperatorAvatarLabel(
+  name: string,
+  terms: SpecialOperatorTerms,
+): string | undefined {
+  const trimmedName = name.trim();
+  if (isPercentageOperator(trimmedName)) {
+    return trimmedName;
+  }
+
+  const termKey = termKeysForTerms(trimmedName, terms)[0];
+  const termName = termKey ? terms[termKey]?.name : undefined;
+  if (!termName) {
+    return undefined;
+  }
+  return Array.from(termName).slice(0, 2).join("");
 }
 
 export function groupIncludesOperator(

@@ -20,9 +20,10 @@ import type { DataSourceId } from "@/composables/useDataSource";
 
 const props = withDefaults(
   defineProps<{
-    operator: Operator;
+    operator?: Operator;
     dataSource: DataSourceId;
     eliteLevel: EliteLevel;
+    specialLabel?: string;
     showRarity?: boolean;
     showEliteLevel?: boolean;
     showProfession?: boolean;
@@ -40,6 +41,7 @@ const props = withDefaults(
     displayName?: string;
   }>(),
   {
+    operator: undefined,
     showRarity: true,
     showEliteLevel: true,
     showProfession: true,
@@ -55,6 +57,7 @@ const props = withDefaults(
     skipped: false,
     nameEditing: false,
     displayName: undefined,
+    specialLabel: undefined,
   },
 );
 
@@ -66,11 +69,13 @@ interface NaturalImageSize {
 }
 
 const sources = computed(() =>
-  getOperatorAvatarLayerSources(
-    props.operator,
-    props.dataSource,
-    props.eliteLevel,
-  ),
+  props.operator
+    ? getOperatorAvatarLayerSources(
+        props.operator,
+        props.dataSource,
+        props.eliteLevel,
+      )
+    : { eliteIconUrl: "" },
 );
 
 const overlay = computed(() =>
@@ -120,7 +125,13 @@ const nameMeasureRef = ref<HTMLSpanElement>();
 const badgeNaturalSizes = reactive<
   Partial<Record<AvatarBadgeKind, NaturalImageSize>>
 >({});
-const renderedName = computed(() => props.displayName ?? props.operator.name);
+const renderedName = computed(
+  () => props.displayName ?? props.operator?.name ?? "",
+);
+
+const specialLabelStyle = computed(() => ({
+  fontSize: `${Math.max(10, Math.round(props.size / 4))}px`,
+}));
 
 function updateNameFontSize(): void {
   const measureElement = nameMeasureRef.value;
@@ -253,7 +264,7 @@ const nameStyle = computed(() =>
     : {},
 );
 
-const fallbackName = computed(() => props.operator.name.slice(0, 1) || "?");
+const fallbackName = computed(() => props.operator?.name.slice(0, 1) || "?");
 
 const moodRemainingLabel = computed(() => {
   const value = props.moodRemaining;
@@ -264,7 +275,7 @@ const moodRemainingLabel = computed(() => {
 
 watch(
   [
-    () => props.operator.name,
+    () => props.operator?.name,
     () => props.displayName,
     () => props.showName,
     () => props.size,
@@ -288,26 +299,38 @@ onMounted(updateNameFontSize);
     class="operator-avatar-display"
   >
     <div
-      :class="{ 'operator-avatar-frame--plain': plain }"
+      :class="{
+        'operator-avatar-frame--plain': plain,
+        'operator-avatar-frame--special': specialLabel,
+      }"
       :style="frameStyle"
       class="operator-avatar-frame"
     >
-      <img
-        v-if="sources.avatarUrl"
-        :alt="`${operator.name}头像`"
-        class="operator-avatar-base"
-        :src="sources.avatarUrl"
-        decoding="async"
-        @load="handleBaseImageLoad"
-      />
-      <a-avatar
-        v-else
-        :size="size"
-        class="operator-avatar-fallback"
-        shape="square"
+      <span
+        v-if="specialLabel"
+        :style="specialLabelStyle"
+        class="operator-avatar-special-label"
       >
-        {{ fallbackName }}
-      </a-avatar>
+        {{ specialLabel }}
+      </span>
+      <template v-else>
+        <img
+          v-if="sources.avatarUrl"
+          :alt="`${operator?.name ?? displayName ?? ''}头像`"
+          class="operator-avatar-base"
+          :src="sources.avatarUrl"
+          decoding="async"
+          @load="handleBaseImageLoad"
+        />
+        <a-avatar
+          v-else
+          :size="size"
+          class="operator-avatar-fallback"
+          shape="square"
+        >
+          {{ fallbackName }}
+        </a-avatar>
+      </template>
       <span
         v-if="overlay === 'unowned'"
         class="operator-avatar-unowned-overlay"
@@ -322,14 +345,14 @@ onMounted(updateNameFontSize);
       />
       <img
         v-if="showProfession && sources.professionIconUrl"
-        :alt="`${operator.profession}职业`"
+        :alt="`${operator?.profession ?? ''}职业`"
         class="operator-avatar-badge operator-avatar-badge--profession"
         :src="sources.professionIconUrl"
         :style="badgeStyle('profession')"
         @load="handleBadgeLoad('profession', $event)"
       />
       <img
-        v-if="showEliteLevel"
+        v-if="showEliteLevel && sources.eliteIconUrl"
         :alt="`精英${eliteLevel}`"
         class="operator-avatar-badge operator-avatar-badge--elite"
         :src="sources.eliteIconUrl"
@@ -338,7 +361,7 @@ onMounted(updateNameFontSize);
       />
       <img
         v-if="showRarity && sources.rarityIconUrl"
-        :alt="`${operator.rarity}星`"
+        :alt="`${operator?.rarity ?? ''}星`"
         class="operator-avatar-badge operator-avatar-badge--rarity"
         :src="sources.rarityIconUrl"
         :style="badgeStyle('rarity')"
