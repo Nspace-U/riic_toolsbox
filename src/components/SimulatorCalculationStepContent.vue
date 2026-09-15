@@ -301,12 +301,12 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
     <div v-if="step.moods.length" class="simulator-step-section">
       <span class="simulator-step-subheading">干员心情消耗步骤</span>
       <div class="simulator-step-detail-grid">
-        <template
+        <div
           v-for="mood in step.moods"
           :key="`${mood.facilityId}-${mood.slotIndex}-${mood.operator}`"
+          class="simulator-mood-detail-row"
         >
-          <span>干员</span>
-          <strong>{{ mood.operator }}</strong>
+          <strong class="simulator-mood-operator">{{ mood.operator }}</strong>
           <template
             v-for="(detail, detailIndex) in mood.rateDetails"
             :key="`${mood.operator}-${detail.kind}-${detailIndex}`"
@@ -324,7 +324,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           </span>
           <span>剩余心情</span>
           <strong>{{ formatNumber(mood.end) }}</strong>
-        </template>
+        </div>
       </div>
     </div>
   </div>

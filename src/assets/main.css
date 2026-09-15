@@ -3110,6 +3110,27 @@ a {
   white-space: nowrap;
 }
 
+.simulator-mood-detail-row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: 4px 12px;
+  align-items: start;
+}
+
+.simulator-mood-detail-row > span {
+  color: #72807f;
+}
+
+.simulator-mood-detail-row > strong {
+  color: #344447;
+  font-weight: 600;
+}
+
+.simulator-mood-operator {
+  grid-column: 1 / -1;
+}
+
 .simulator-calculation-steps .simulator-step-header strong,
 .simulator-calculation-step-column-header strong {
   color: #344447;

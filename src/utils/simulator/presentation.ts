@@ -239,6 +239,17 @@ const EFFICIENCY_STAT_LABELS: Record<string, string> = {
   storageCap: "仓库容量",
   facBase: "设施基础效率",
   abyssalBoost: "深海效果",
+  moodRecover: "心情恢复",
+  moodCost: "心情消耗",
+  facilityCount: "设施数量",
+  basePointGain: "基地点数产出",
+  basePointConvert: "基地点数转化",
+  tradeOrder: "订单规则",
+  zeroOpMood: "干员心情清除",
+  zeroOpBonus: "干员效率清除",
+  moodSwap: "心情交换",
+  skillTagConvert: "技能类别转换",
+  operatorTraining: "干员练度效率",
 };
 
 const PERCENTAGE_EFFICIENCY_STATS = new Set([
@@ -252,10 +263,11 @@ const PERCENTAGE_EFFICIENCY_STATS = new Set([
   "droneCharge",
   "facBase",
   "abyssalBoost",
+  "operatorTraining",
 ]);
 
 export function efficiencyStatLabel(stat: string): string {
-  return EFFICIENCY_STAT_LABELS[stat] ?? stat;
+  return EFFICIENCY_STAT_LABELS[stat] ?? "其他效果";
 }
 
 export function efficiencyStatValue(stat: string, value: number): string {
