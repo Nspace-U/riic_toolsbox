@@ -3101,13 +3101,21 @@ a {
 
 .simulator-skill-detail-calculation {
   display: grid;
-  grid-column: 2;
-  gap: 2px;
-  padding-inline-start: 1em;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  gap: 2px 12px;
   color: #344447;
   font-family: "Cascadia Code", Consolas, monospace;
   line-height: 1.5;
   white-space: nowrap;
+}
+
+.simulator-skill-detail-calculation-row {
+  display: contents;
+}
+
+.simulator-skill-detail-calculation-label {
+  padding-inline-start: 1em;
 }
 
 .simulator-mood-detail-row {

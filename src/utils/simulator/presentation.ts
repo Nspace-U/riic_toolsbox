@@ -154,6 +154,26 @@ export function operatorCalculationLines(
   return lines;
 }
 
+export interface OperatorCalculationRow {
+  label?: string;
+  value: string;
+}
+
+export function operatorCalculationRows(
+  detail: OperatorEfficiencyDetail,
+): OperatorCalculationRow[] {
+  return operatorCalculationLines(detail).map((line) => {
+    const separatorIndex = line.indexOf("：");
+    if (separatorIndex < 0) {
+      return { value: line };
+    }
+    return {
+      label: line.slice(0, separatorIndex + 1),
+      value: line.slice(separatorIndex + 1).trimStart(),
+    };
+  });
+}
+
 export function formatProduction(value: number): string {
   return formatNumber(value, 3);
 }

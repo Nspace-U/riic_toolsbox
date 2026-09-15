@@ -18,7 +18,7 @@ import {
   formatProduction,
   moodRateDetailLabel,
   moodRateFormula,
-  operatorCalculationLines,
+  operatorCalculationRows,
   productionLabel,
   productionMaterialsForDisplay,
   productionRateLabel,
@@ -278,14 +278,22 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               {{ efficiencyStatValue(detail.stat, detail.value) }}
             </span>
             <div
-              v-if="operatorCalculationLines(detail).length"
+              v-if="operatorCalculationRows(detail).length"
               class="simulator-skill-detail-calculation"
             >
               <div
-                v-for="(line, lineIndex) in operatorCalculationLines(detail)"
+                v-for="(line, lineIndex) in operatorCalculationRows(detail)"
                 :key="`${detailIndex}-${lineIndex}`"
+                class="simulator-skill-detail-calculation-row"
               >
-                {{ line }}
+                <span
+                  v-if="line.label"
+                  class="simulator-skill-detail-calculation-label"
+                >
+                  {{ line.label }}
+                </span>
+                <span v-else aria-hidden="true"></span>
+                <span>{{ line.value }}</span>
               </div>
             </div>
           </div>
