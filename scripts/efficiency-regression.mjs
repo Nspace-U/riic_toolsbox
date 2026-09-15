@@ -1474,7 +1474,150 @@ function runTests(runtime) {
     catalog,
     { treatSkillsAsUnlocked: true },
   );
-  assert.equal(tradingResult(jieManualElite).efficiency, 145);
+  const jieManualEliteFacility = tradingResult(jieManualElite);
+  const jieManualEliteCountDetail =
+    jieManualEliteFacility.combinationDetails.find(
+      ({ operator, stat }) => operator === "孑" && stat === "tradeSpd",
+    );
+  const jieManualEliteGapDetail =
+    jieManualEliteFacility.combinationDetails.find(
+      ({ operator, stat }) => operator === "孑" && stat === "tradeGapEff",
+    );
+  assert.equal(jieManualEliteFacility.skillEfficiency, 40);
+  assert.equal(jieManualEliteFacility.efficiency, 141);
+  assert.equal(jieManualEliteFacility.attributes.orderLimit?.skill, 0);
+  assert.equal(jieManualEliteFacility.attributes.orderLimit?.total, 10);
+  assert.equal(jieManualEliteCountDetail?.value, 40);
+  assert.equal(jieManualEliteGapDetail?.value, 0);
+
+  const jieMaxWorkbookCases = [
+    {
+      name: "银灰Ⅱ+琳琅诗怀雅Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰", "琳琅诗怀雅"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 0, 银灰: 2, 琳琅诗怀雅: 2, 灵知: 2 },
+      expected: 145,
+    },
+    {
+      name: "银灰Ⅱ+锏Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰", "锏"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 0, 银灰: 2, 锏: 2, 灵知: 2 },
+      expected: 145,
+    },
+    {
+      name: "银灰Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 0, 银灰: 2, 灵知: 2 },
+      expected: 85,
+    },
+    {
+      name: "银灰Ⅱ",
+      trading: ["孑", "银灰"],
+      eliteLevels: { 孑: 0, 银灰: 2 },
+      expected: 76,
+    },
+    {
+      name: "崖心Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "崖心"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 0, 崖心: 2, 灵知: 2 },
+      expected: 80,
+    },
+    {
+      name: "角峰Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "角峰"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 0, 角峰: 2, 灵知: 2 },
+      expected: 72,
+    },
+    {
+      name: "崖心Ⅱ",
+      trading: ["孑", "崖心"],
+      eliteLevels: { 孑: 0, 崖心: 2 },
+      expected: 71,
+    },
+    {
+      name: "角峰Ⅱ",
+      trading: ["孑", "角峰"],
+      eliteLevels: { 孑: 0, 角峰: 2 },
+      expected: 63,
+    },
+  ];
+  jieMaxWorkbookCases.forEach(
+    ({ name, trading, control = [], eliteLevels, expected }) => {
+      const result = calculateEfficiency(
+        documentFor({
+          trading,
+          control,
+          eliteLevels,
+          settings: { preferMaxJieEfficiency: true },
+        }),
+        catalog,
+        { treatSkillsAsUnlocked: true },
+      );
+      assert.equal(tradingResult(result).skillEfficiency, expected, name);
+    },
+  );
+
+  const jieWorkbookCases = [
+    {
+      name: "银灰Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 1, 银灰: 2, 灵知: 2 },
+      expected: 85,
+    },
+    {
+      name: "银灰Ⅱ+琳琅诗怀雅Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰", "琳琅诗怀雅"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 1, 银灰: 2, 琳琅诗怀雅: 2, 灵知: 2 },
+      expected: 129,
+    },
+    {
+      name: "银灰Ⅱ+锏Ⅱ+灵知Ⅱ（中枢）",
+      trading: ["孑", "银灰", "锏"],
+      control: ["灵知"],
+      eliteLevels: { 孑: 1, 银灰: 2, 锏: 2, 灵知: 2 },
+      expected: 121,
+    },
+    {
+      name: "银灰Ⅱ",
+      trading: ["孑", "银灰"],
+      eliteLevels: { 孑: 1, 银灰: 2 },
+      expected: 68,
+    },
+    {
+      name: "崖心Ⅱ",
+      trading: ["孑", "崖心"],
+      eliteLevels: { 孑: 1, 崖心: 2 },
+      expected: 67,
+    },
+    {
+      name: "角峰Ⅱ",
+      trading: ["孑", "角峰"],
+      eliteLevels: { 孑: 1, 角峰: 2 },
+      expected: 59,
+    },
+    {
+      name: "讯使Ⅱ",
+      trading: ["孑", "讯使"],
+      eliteLevels: { 孑: 1, 讯使: 2 },
+      expected: 59,
+    },
+  ];
+  jieWorkbookCases.forEach(
+    ({ name, trading, control = [], eliteLevels, expected }) => {
+      const result = calculateEfficiency(
+        documentFor({ trading, control, eliteLevels }),
+        catalog,
+        { treatSkillsAsUnlocked: true },
+      );
+      assert.equal(tradingResult(result).skillEfficiency, expected, name);
+    },
+  );
 
   const hiddenFlowGold = calculateEfficiency(
     flowGoldDocument({ manufactureCount: 1 }),

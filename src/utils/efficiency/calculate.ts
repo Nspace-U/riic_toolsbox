@@ -2567,7 +2567,7 @@ function tradeSpecialEfficiency(
   }, 0);
   const orderLimitNet =
     jieEffects.length > 0
-      ? Math.max(1, state.rawOrderLimit - cut)
+      ? Math.max(0, state.rawOrderLimit - cut)
       : state.rawOrderLimit;
   const details: EffectDetail[] = [];
   let value = 0;
