@@ -15,6 +15,7 @@ import {
   useAvatarDisplaySizes,
   type AvatarDisplaySizeTarget,
 } from "@/composables/useAvatarDisplaySizes";
+import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
@@ -64,6 +65,12 @@ const {
 const { operators, terms, ready: baseDataReady } = useBaseData();
 const { isBasePointVisible, setAllBasePointsVisible, setBasePointVisible } =
   useBasePointDisplaySettings();
+const {
+  calculationStepDisplayMode,
+  calculationStepDisplayModeOptions,
+  setCalculationStepDisplayMode,
+  resetCalculationStepDisplayMode,
+} = useCalculationStepDisplaySettings();
 const {
   avatarDisplaySizes,
   avatarDisplaySizeOptions,
@@ -644,6 +651,46 @@ watch(
         :image="undefined"
         description="当前数据源没有可用的基地点数"
       />
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-calculation-step-panel"
+      title="计算步骤"
+    >
+      <p class="settings-panel-description">
+        设置排班模拟器计算步骤的展开方式，修改后立即作用于所有排班表并保存在当前浏览器。
+      </p>
+      <a-form layout="vertical">
+        <a-form-item label="展开方式">
+          <a-radio-group
+            :value="calculationStepDisplayMode"
+            button-style="solid"
+            option-type="button"
+            @change="
+              (event: { target: { value: unknown } }) =>
+                setCalculationStepDisplayMode(event.target.value)
+            "
+          >
+            <a-radio-button
+              v-for="(option, key) in calculationStepDisplayModeOptions"
+              :key="key"
+              :value="key"
+            >
+              {{ option.label }}
+            </a-radio-button>
+          </a-radio-group>
+          <p class="settings-panel-hint">
+            {{
+              calculationStepDisplayModeOptions[calculationStepDisplayMode]
+                .description
+            }}
+          </p>
+        </a-form-item>
+      </a-form>
+      <a-button @click="resetCalculationStepDisplayMode"
+        >恢复默认展开方式</a-button
+      >
     </a-card>
 
     <a-card

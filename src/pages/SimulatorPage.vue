@@ -24,6 +24,7 @@ import {
 import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
+import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDataSource } from "@/composables/useDataSource";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import {
@@ -35,6 +36,9 @@ import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import { useSanitySettings } from "@/composables/useSanitySettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import SimulatorCalculationStepContent, {
+  type SimulatorCalculationStepView,
+} from "@/components/SimulatorCalculationStepContent.vue";
 import {
   DEFAULT_SCHEDULE_ADAPTER,
   isTextSchedule,
@@ -165,11 +169,19 @@ interface FacilitySlotRef {
   slotIndex: number;
 }
 
-interface SimulatorCalculationStep {
+type SimulatorCalculationStep = SimulatorCalculationStepView;
+
+interface SimulatorCalculationStepGroupColumn {
   plan: EfficiencyPlanResult;
   planIndex: number;
-  facility?: FacilityEfficiencyResult;
-  moods: MoodSnapshot[];
+  step?: SimulatorCalculationStep;
+}
+
+interface SimulatorCalculationStepGroup {
+  key: string;
+  label: string;
+  activeColumnCount: number;
+  columns: SimulatorCalculationStepGroupColumn[];
 }
 
 interface DailyOutputOrderDetail {
@@ -394,6 +406,7 @@ const specialOperatorAvatarLabelResolver = computed(() =>
   createSpecialOperatorAvatarLabelResolver(terms.value),
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
+const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
 const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
@@ -981,6 +994,36 @@ const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
       ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
       : facilitySteps;
   });
+});
+
+const calculationStepGroups = computed<SimulatorCalculationStepGroup[]>(() => {
+  const plans = efficiencyResult.value?.plans ?? [];
+  const groups = new Map<string, SimulatorCalculationStepGroup>();
+  calculationSteps.value.forEach((step) => {
+    const key = step.facility?.facility.id ?? "control";
+    const label = step.facility
+      ? facilityResultLabel(step.facility)
+      : ROOM_LABELS.control;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        label,
+        activeColumnCount: 0,
+        columns: plans.map((plan, planIndex) => ({ plan, planIndex })),
+      };
+      groups.set(key, group);
+    }
+    const column = group.columns[step.planIndex];
+    if (!column) {
+      return;
+    }
+    if (!column.step) {
+      group.activeColumnCount += 1;
+    }
+    column.step = step;
+  });
+  return [...groups.values()];
 });
 
 const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
@@ -7558,7 +7601,74 @@ onBeforeUnmount(() => {
                   >展开设施查看生效技能明细</span
                 >
               </div>
-              <a-collapse ghost>
+              <div
+                v-if="calculationStepDisplayMode === 'facility'"
+                class="simulator-calculation-step-facility-view"
+              >
+                <a-collapse ghost>
+                  <a-collapse-panel
+                    v-for="group in calculationStepGroups"
+                    :key="`facility-${group.key}`"
+                  >
+                    <template #header>
+                      <div class="simulator-step-header">
+                        <span>{{ group.label }}</span>
+                        <small
+                          >{{ group.activeColumnCount }} /
+                          {{ group.columns.length }} 个队列</small
+                        >
+                      </div>
+                    </template>
+                    <div class="simulator-calculation-step-columns">
+                      <div
+                        v-for="column in group.columns"
+                        :key="`${group.key}-${column.planIndex}`"
+                        class="simulator-calculation-step-column"
+                      >
+                        <div class="simulator-calculation-step-column-header">
+                          <span>
+                            {{ column.plan.name }}
+                            <small
+                              >·
+                              {{ formatNumber(column.plan.durationHours) }}
+                              小时</small
+                            >
+                            <small
+                              v-if="
+                                column.step?.facility &&
+                                inheritedSourceLabel(column.step.facility)
+                              "
+                            >
+                              · {{ inheritedSourceLabel(column.step.facility) }}
+                            </small>
+                          </span>
+                          <strong v-if="column.step?.facility"
+                            >{{
+                              formatNumber(column.step.facility.efficiency)
+                            }}%</strong
+                          >
+                        </div>
+                        <SimulatorCalculationStepContent
+                          v-if="column.step"
+                          :inherited-source-label="
+                            column.step.facility
+                              ? inheritedSourceLabel(column.step.facility)
+                              : undefined
+                          "
+                          :simulate-overflow="
+                            currentEfficiencySettings.simulateOverflow
+                          "
+                          :step="column.step"
+                        />
+                        <div v-else class="simulator-step-column-empty">
+                          当前队列无此设施计算数据
+                        </div>
+                      </div>
+                    </div>
+                  </a-collapse-panel>
+                </a-collapse>
+              </div>
+              <a-collapse v-else ghost>
                 <a-collapse-panel
                   v-for="(result, resultIndex) in calculationSteps"
                   :key="`${result.planIndex}-${result.facility?.facility.id ?? 'control-mood'}-${resultIndex}`"
