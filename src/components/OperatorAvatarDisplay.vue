@@ -301,13 +301,13 @@ onMounted(updateNameFontSize);
     <div
       :class="{
         'operator-avatar-frame--plain': plain,
-        'operator-avatar-frame--special': specialLabel,
+        'operator-avatar-frame--special': specialLabel && !operator,
       }"
       :style="frameStyle"
       class="operator-avatar-frame"
     >
       <span
-        v-if="specialLabel"
+        v-if="specialLabel && !operator"
         :style="specialLabelStyle"
         class="operator-avatar-special-label"
       >
