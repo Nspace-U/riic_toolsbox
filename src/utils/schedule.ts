@@ -539,6 +539,12 @@ function validateSettings(settings: unknown): ScheduleSettings {
     fail("settings.preferMaxJieEfficiency", "必须是布尔值");
   }
   if (
+    hasOwn(settings, "lmdDroneStrategy") &&
+    typeof settings.lmdDroneStrategy !== "string"
+  ) {
+    fail("settings.lmdDroneStrategy", "必须是字符串");
+  }
+  if (
     hasOwn(settings, "overflowMode") &&
     settings.overflowMode !== "continue" &&
     settings.overflowMode !== "zero"

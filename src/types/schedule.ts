@@ -66,6 +66,7 @@ export interface ScheduleSettings {
   fiammettaMode?: FiammettaMode;
   fiammettaDirectCount?: number;
   preferMaxJieEfficiency?: boolean;
+  lmdDroneStrategy?: string;
   orderProgress?: Record<string, number>;
   overflowMode?: OverflowMode;
   firstItemProgress?: number | Record<string, number>;

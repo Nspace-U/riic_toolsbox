@@ -39,10 +39,7 @@ import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import SimulatorCalculationStepContent, {
   type SimulatorCalculationStepView,
 } from "@/components/SimulatorCalculationStepContent.vue";
-import {
-  DEFAULT_SCHEDULE_ADAPTER,
-  parseScheduleImport,
-} from "@/adapters";
+import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
@@ -93,11 +90,20 @@ import {
   roomSlotCount,
   roomLevelRange,
   resourceItemIconFile,
+  resolveRoomAssignment,
   validateSchedule,
 } from "@/utils/schedule";
 import { importPowerSummary, resizeImportedRooms } from "@/utils/importLayout";
-import { calculateEfficiency, loadEfficiencyCatalog } from "@/utils/efficiency";
+import {
+  calculateDroneAcceleration,
+  calculateEfficiency,
+  loadEfficiencyCatalog,
+} from "@/utils/efficiency";
 import { facilityId } from "@/utils/efficiency/baseRules";
+import type {
+  DroneAccelerationResult,
+  DroneAccelerationScenario,
+} from "@/utils/efficiency/drone";
 import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
@@ -224,6 +230,18 @@ interface DailyOutputCard {
   showNet: boolean;
 }
 
+interface DroneScenarioView {
+  key: "base" | "extra" | "accelerated";
+  label: string;
+  cards: DailyOutputCard[];
+  sanity: SanityResult;
+}
+
+interface DroneScenarioDisplay {
+  scenario: DroneAccelerationScenario;
+  views: DroneScenarioView[];
+}
+
 function dailyOutputPointInfo(
   product: string,
 ): { factor: number; label: string } | undefined {
@@ -234,6 +252,41 @@ function dailyOutputPointInfo(
     return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
   }
   return undefined;
+}
+
+function createDailyOutputCard(
+  product: string,
+  amounts: SanityResourceAmounts,
+  sanity: SanityResult,
+  grossAmount?: number,
+): DailyOutputCard {
+  const pointInfo = dailyOutputPointInfo(product);
+  const sanityItem = sanity.items.find((item) => item.resource === product);
+  const rawNetAmount =
+    (amounts as Record<string, number | undefined>)[product] ??
+    grossAmount ??
+    0;
+  const netUnit =
+    pointInfo?.label ?? sanityItem?.amountUnit ?? resourceLabel(product);
+  const netAmount = rawNetAmount * (pointInfo?.factor ?? 1);
+  const netContribution =
+    sanityItem?.contribution ?? (sanity.complete ? 0 : undefined);
+  const grossPoints =
+    grossAmount === undefined || !pointInfo
+      ? undefined
+      : grossAmount * pointInfo.factor;
+  return {
+    product,
+    ...(grossAmount === undefined ? {} : { grossAmount }),
+    ...(grossPoints === undefined ? {} : { grossPoints }),
+    ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
+    netAmount,
+    netUnit,
+    ...(netContribution === undefined ? {} : { netContribution }),
+    showNet:
+      grossAmount === undefined ||
+      Math.abs(rawNetAmount - grossAmount) > 0.000001,
+  };
 }
 
 interface ExtraRoom {
@@ -321,10 +374,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 type SimulatorEditSetting =
-  | "layout"
-  | "queue"
-  | "product"
-  | "showFacilityDescriptions";
+  "layout" | "queue" | "product" | "showFacilityDescriptions";
 
 interface SimulatorEditSettings {
   layout: boolean;
@@ -552,6 +602,7 @@ const successMessage = ref("");
 const warningMessage = ref("");
 const importDraft = ref<ImportDraftState>();
 const importLayoutText = ref("");
+const lmdDroneStrategyDraft = ref("");
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
@@ -1166,10 +1217,6 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
     return [];
   }
 
-  const sanityItems = new Map<string, SanityResult["items"][number]>(
-    sanity.items.map((item) => [item.resource, item]),
-  );
-  const sanityComplete = sanity.complete;
   const productionOutputs = result.dailyOutputs.filter(
     (output) => output.kind === "production",
   );
@@ -1177,50 +1224,204 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
     productionOutputs.map((output) => output.product),
   );
 
-  function createCard(product: string, grossAmount?: number): DailyOutputCard {
-    const pointInfo = dailyOutputPointInfo(product);
-    const rawNetAmount =
-      (amounts as Record<string, number | undefined>)[product] ??
-      grossAmount ??
-      0;
-    const netUnit =
-      pointInfo?.label ??
-      sanityItems.get(product)?.amountUnit ??
-      resourceLabel(product);
-    const netAmount = rawNetAmount * (pointInfo?.factor ?? 1);
-    const netContribution =
-      sanityItems.get(product)?.contribution ??
-      (sanityComplete ? 0 : undefined);
-    const grossPoints =
-      grossAmount === undefined || !pointInfo
-        ? undefined
-        : grossAmount * pointInfo.factor;
-    return {
-      product,
-      ...(grossAmount === undefined ? {} : { grossAmount }),
-      ...(grossPoints === undefined ? {} : { grossPoints }),
-      ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
-      netAmount,
-      netUnit,
-      ...(netContribution === undefined ? {} : { netContribution }),
-      showNet:
-        grossAmount === undefined ||
-        Math.abs(rawNetAmount - grossAmount) > 0.000001,
-    };
-  }
-
   return [
     ...productionOutputs.map((output) =>
-      createCard(output.product, output.amountPerDay),
+      createDailyOutputCard(
+        output.product,
+        amounts,
+        sanity,
+        output.amountPerDay,
+      ),
     ),
     ...result.dailyOutputs
       .filter(
         (output) =>
           output.kind === "net" && !productionProducts.has(output.product),
       )
-      .map((output) => createCard(output.product)),
+      .map((output) => createDailyOutputCard(output.product, amounts, sanity)),
   ];
 });
+
+const lmdDroneFacilityExists = computed(() => {
+  const document = currentDocument.value;
+  if (!document) {
+    return false;
+  }
+  const tradingPositions = document.layout
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.type === "trading");
+  return tradingPositions.some(({ index }) => {
+    const position =
+      document.layout
+        .slice(0, index + 1)
+        .filter((entry) => entry.type === "trading").length - 1;
+    return document.plans.some(
+      (_plan, planIndex) =>
+        (resolveRoomAssignment(document, planIndex, "trading", position)
+          .assignment.product ?? "LMD") === "LMD",
+    );
+  });
+});
+
+function amountFromFlow(
+  amounts: SanityResourceAmounts,
+  resource: string,
+): number {
+  return (amounts as Record<string, number | undefined>)[resource] ?? 0;
+}
+
+function addResourceFlow(
+  target: SanityResourceAmounts,
+  source: SanityResourceAmounts,
+): void {
+  Object.entries(source).forEach(([resource, amount]) => {
+    if (amount !== undefined) {
+      const values = target as Record<string, number | undefined>;
+      values[resource] = (values[resource] ?? 0) + amount;
+    }
+  });
+}
+
+function scenarioResources(
+  product: string,
+  ...flows: SanityResourceAmounts[]
+): string[] {
+  const resources = new Set<string>([product]);
+  flows.forEach((flow) => {
+    Object.entries(flow).forEach(([resource, amount]) => {
+      if (amount !== undefined && Math.abs(amount) > 0.000001) {
+        resources.add(resource);
+      }
+    });
+  });
+  return [...resources];
+}
+
+function scenarioCards(
+  product: string,
+  amounts: SanityResourceAmounts,
+  sanity: SanityResult,
+  grossAmount: number,
+  resources: string[],
+): DailyOutputCard[] {
+  return resources
+    .filter(
+      (resource) =>
+        resource === product ||
+        Math.abs(amountFromFlow(amounts, resource)) > 0.000001,
+    )
+    .map((resource) =>
+      createDailyOutputCard(
+        resource,
+        amounts,
+        sanity,
+        resource === product ? grossAmount : undefined,
+      ),
+    );
+}
+
+const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
+  const document = currentDocument.value;
+  const catalog = efficiencyCatalog.value;
+  const amounts = dailySanityAmounts.value;
+  if (!document || !catalog || !amounts) {
+    return undefined;
+  }
+  return calculateDroneAcceleration(document, catalog, amounts, {
+    progressionProfile: activeProfile.value,
+    treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
+  });
+});
+
+const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
+  const result = efficiencyResult.value;
+  const acceleration = droneAcceleration.value;
+  const values = sanityValues.value;
+  if (!result || !acceleration || result.dailyHours <= 0) {
+    return [];
+  }
+
+  return acceleration.scenarios.map((scenario) => {
+    const production = result.dailyProductions.find(
+      (candidate) => candidate.product === scenario.product,
+    );
+    const baseAmounts: SanityResourceAmounts = {};
+    if (production) {
+      addProductionFlow(baseAmounts, production, 24);
+    } else {
+      addResourceFlow(baseAmounts, { [scenario.product]: 0 });
+    }
+    const baseGrossAmount = production
+      ? (production.effectiveAmountPerDay ?? production.amountPerDay)
+      : 0;
+    const acceleratedAmounts: SanityResourceAmounts = { ...baseAmounts };
+    addResourceFlow(acceleratedAmounts, scenario.extraFlow);
+    const baseSanity = calculateSanityResult(baseAmounts, values);
+    const extraSanity = calculateSanityResult(scenario.extraFlow, values);
+    const acceleratedSanity = calculateSanityResult(acceleratedAmounts, values);
+    const baseResources = scenarioResources(scenario.product, baseAmounts);
+    const extraResources = scenarioResources(
+      scenario.product,
+      scenario.extraFlow,
+    );
+    const acceleratedResources = scenarioResources(
+      scenario.product,
+      baseAmounts,
+      scenario.extraFlow,
+    );
+    const extraGrossAmount = amountFromFlow(
+      scenario.extraFlow,
+      scenario.product,
+    );
+    return {
+      scenario,
+      views: [
+        {
+          key: "base",
+          label: "无无人机加速",
+          cards: scenarioCards(
+            scenario.product,
+            baseAmounts,
+            baseSanity,
+            baseGrossAmount,
+            baseResources,
+          ),
+          sanity: baseSanity,
+        },
+        {
+          key: "extra",
+          label: "无人机额外产出与消耗",
+          cards: scenarioCards(
+            scenario.product,
+            scenario.extraFlow,
+            extraSanity,
+            extraGrossAmount,
+            extraResources,
+          ),
+          sanity: extraSanity,
+        },
+        {
+          key: "accelerated",
+          label: "全部无人机加速后",
+          cards: scenarioCards(
+            scenario.product,
+            acceleratedAmounts,
+            acceleratedSanity,
+            baseGrossAmount + extraGrossAmount,
+            acceleratedResources,
+          ),
+          sanity: acceleratedSanity,
+        },
+      ],
+    };
+  });
+});
+
+const droneAccelerationVisible = computed(
+  () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
+);
 
 const plansWithBasePoints = computed(() =>
   (efficiencyResult.value?.plans ?? []).flatMap((plan, planIndex) =>
@@ -1694,6 +1895,30 @@ function updateEfficiencyJieMode(value: boolean): void {
       ...(document.settings ?? {}),
       preferMaxJieEfficiency: value,
     };
+  });
+}
+
+function updateLmdDroneStrategyDraft(value: string): void {
+  lmdDroneStrategyDraft.value = value;
+}
+
+function commitLmdDroneStrategy(): void {
+  const document = currentDocument.value;
+  if (!document) {
+    return;
+  }
+  const current = document.settings?.lmdDroneStrategy ?? "";
+  if (current === lmdDroneStrategyDraft.value) {
+    return;
+  }
+  updateCurrent((candidate) => {
+    const settings = { ...(candidate.settings ?? {}) };
+    if (lmdDroneStrategyDraft.value.trim()) {
+      settings.lmdDroneStrategy = lmdDroneStrategyDraft.value;
+    } else {
+      delete settings.lmdDroneStrategy;
+    }
+    candidate.settings = settings;
   });
 }
 
@@ -5741,6 +5966,14 @@ watch(activeDocumentId, () => {
   }
 });
 
+watch(
+  [activeDocumentId, () => currentDocument.value?.settings?.lmdDroneStrategy],
+  ([, strategy]) => {
+    lmdDroneStrategyDraft.value = strategy ?? "";
+  },
+  { immediate: true },
+);
+
 watch(layoutText, (text) => {
   scheduleLayoutTextApply(text);
 });
@@ -6490,7 +6723,9 @@ onBeforeUnmount(() => {
                     "
                   >
                     <div
-                      v-if="currentSimulatorEditSettings.showFacilityDescriptions"
+                      v-if="
+                        currentSimulatorEditSettings.showFacilityDescriptions
+                      "
                       class="simulator-facility-queue-description"
                     >
                       {{ roomDescriptions(row, plan).join(" · ") }}
@@ -7628,6 +7863,164 @@ onBeforeUnmount(() => {
                   </a-collapse-panel>
                 </a-collapse>
               </div>
+            </div>
+
+            <div
+              v-if="droneAccelerationVisible"
+              class="simulator-drone-acceleration"
+            >
+              <div class="simulator-result-section-heading">
+                <div>
+                  <span class="simulator-eyebrow">DRONE ACCELERATION</span>
+                  <h3>无人机使用策略</h3>
+                </div>
+                <span v-if="droneAcceleration" class="simulator-result-hint">
+                  {{ formatNumber(droneAcceleration.dailyDrones) }} 架 ·
+                  {{ formatNumber(droneAcceleration.acceleratedHours) }} 小时
+                </span>
+              </div>
+              <div
+                v-if="lmdDroneFacilityExists"
+                class="simulator-drone-strategy"
+              >
+                <a-form-item label="龙门币贸易站策略">
+                  <a-input
+                    :value="lmdDroneStrategyDraft"
+                    placeholder="例如：3 巫恋 龙舌兰2 但书0"
+                    @blur="commitLmdDroneStrategy"
+                    @press-enter="commitLmdDroneStrategy"
+                    @update:value="updateLmdDroneStrategyDraft"
+                  />
+                </a-form-item>
+                <span class="simulator-result-hint"
+                  >输入一行：贸易站等级，后接干员；干员名末尾的 0、1、2 表示精
+                  0、精 1、精 2。</span
+                >
+              </div>
+              <a-alert
+                v-if="droneAcceleration?.strategyError"
+                :message="droneAcceleration.strategyError"
+                show-icon
+                type="error"
+              />
+              <div
+                v-if="droneScenarioDisplays.length"
+                class="simulator-drone-scenarios"
+              >
+                <div
+                  v-for="entry in droneScenarioDisplays"
+                  :key="entry.scenario.product"
+                  class="simulator-drone-scenario"
+                >
+                  <div class="simulator-drone-scenario-heading">
+                    <strong>{{ resourceLabel(entry.scenario.product) }}</strong>
+                    <span>
+                      基础
+                      {{
+                        formatProduction(entry.scenario.baseAmountPerHour)
+                      }}/小时 ·
+                      {{ formatNumber(entry.scenario.droneAmount) }} 架无人机
+                    </span>
+                  </div>
+                  <div
+                    v-for="view in entry.views"
+                    :key="view.key"
+                    class="simulator-drone-view"
+                  >
+                    <div class="simulator-drone-view-heading">
+                      <strong>{{ view.label }}</strong>
+                      <span v-if="view.key === 'extra'"
+                        >固定按基础 100% 效率计算</span
+                      >
+                    </div>
+                    <div
+                      v-if="view.cards.length"
+                      class="simulator-daily-output-grid simulator-drone-output-grid"
+                    >
+                      <div
+                        v-for="card in view.cards"
+                        :key="`${entry.scenario.product}-${view.key}-${card.product}`"
+                        class="simulator-daily-output-item"
+                        :class="{
+                          'simulator-daily-output-item--net':
+                            card.grossAmount === undefined,
+                        }"
+                      >
+                        <img
+                          v-if="dailyOutputIconUrl(card.product)"
+                          :alt="resourceLabel(card.product)"
+                          :src="dailyOutputIconUrl(card.product)"
+                          class="simulator-daily-output-icon"
+                        />
+                        <div class="simulator-daily-output-content">
+                          <strong class="simulator-daily-output-main-value">
+                            {{
+                              card.grossAmount === undefined
+                                ? signedNumber(card.netAmount)
+                                : formatProduction(card.grossAmount)
+                            }}
+                          </strong>
+                          <div class="simulator-daily-output-card-copy">
+                            <span
+                              v-if="card.grossPoints !== undefined"
+                              class="simulator-daily-output-gross-points"
+                            >
+                              {{ formatProduction(card.grossPoints) }}
+                              {{ card.grossPointsLabel }}
+                            </span>
+                            <span
+                              v-if="card.showNet"
+                              class="simulator-daily-output-net"
+                            >
+                              净收入 {{ signedNumber(card.netAmount) }}
+                              {{ card.netUnit }}
+                            </span>
+                            <strong
+                              v-if="card.netContribution !== undefined"
+                              class="simulator-daily-output-sanity"
+                            >
+                              {{ signedNumber(card.netContribution) }} 理智
+                            </strong>
+                            <span
+                              v-else
+                              class="simulator-daily-output-sanity-missing"
+                            >
+                              未计入
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="simulator-daily-output-item">
+                        <img
+                          :alt="'理智'"
+                          :src="sanityIconUrl()"
+                          class="simulator-daily-output-icon"
+                        />
+                        <strong class="simulator-daily-output-main-value">
+                          {{ signedNumber(view.sanity.total) }}
+                        </strong>
+                      </div>
+                    </div>
+                    <a-alert
+                      v-if="!view.sanity.complete"
+                      :message="
+                        '等效理智不完整：未设置' +
+                        view.sanity.missing.join('、') +
+                        '价值'
+                      "
+                      show-icon
+                      type="warning"
+                    />
+                  </div>
+                </div>
+              </div>
+              <a-empty
+                v-else-if="
+                  lmdDroneFacilityExists && !droneAcceleration?.strategyError
+                "
+                :image="undefined"
+                description="请输入龙门币贸易站策略"
+              />
             </div>
 
             <div

@@ -2419,6 +2419,65 @@ a {
   border-block-end: 1px solid #edf1f0;
 }
 
+.simulator-drone-acceleration {
+  display: grid;
+  gap: 14px;
+  padding-block: 18px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-drone-strategy {
+  display: grid;
+  grid-template-columns: minmax(180px, 320px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.simulator-drone-strategy .ant-form-item {
+  margin-block-end: 0;
+}
+
+.simulator-drone-scenarios {
+  display: grid;
+  gap: 16px;
+}
+
+.simulator-drone-scenario {
+  display: grid;
+  gap: 12px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-drone-scenario-heading,
+.simulator-drone-view-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-drone-scenario-heading strong,
+.simulator-drone-view-heading strong {
+  color: #2e4043;
+}
+
+.simulator-drone-scenario-heading span,
+.simulator-drone-view-heading span {
+  color: #72807f;
+  font-size: 12px;
+  text-align: end;
+}
+
+.simulator-drone-view {
+  display: grid;
+  gap: 8px;
+}
+
+.simulator-drone-output-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
 .simulator-base-point-results {
   overflow-x: hidden;
   padding-block: 18px;
@@ -3587,6 +3646,10 @@ a {
 
   .simulator-document-list {
     max-height: 220px;
+  }
+
+  .simulator-drone-strategy {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

@@ -19,13 +19,19 @@ async function loadRuntime() {
     logLevel: "error",
   });
   try {
-    const [parseModule, catalogModule, calculateModule, maaModule] =
-      await Promise.all([
-        vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
-        vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
-        vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
-        vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
-      ]);
+    const [
+      parseModule,
+      catalogModule,
+      calculateModule,
+      droneModule,
+      maaModule,
+    ] = await Promise.all([
+      vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/drone.ts"),
+      vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
+    ]);
     const [characterTable, buildingData, gamedataConst, metadata] =
       await Promise.all([
         readJson(
@@ -92,6 +98,8 @@ async function loadRuntime() {
     );
     return {
       calculateEfficiency: calculateModule.calculateEfficiency,
+      calculateDroneAcceleration: droneModule.calculateDroneAcceleration,
+      parseLmdDroneStrategy: droneModule.parseLmdDroneStrategy,
       parseMaaScheduleText: maaModule.parseMaaScheduleText,
       serializeMaaSchedule: maaModule.serializeMaaSchedule,
       catalog: catalogModule.createEfficiencyCatalog(
@@ -401,6 +409,33 @@ function dailyOutputDocument(settings = {}) {
   };
 }
 
+function droneDocument(strategy = "1 但书0") {
+  return {
+    layout: [
+      { type: "control", level: 5 },
+      { type: "trading", level: 1 },
+      { type: "trading", level: 2 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          trading: [{ product: "LMD" }, { product: "Orundum" }],
+          manufacture: [
+            { product: "Pure Gold" },
+            { product: "Battle Record" },
+            { product: "Originium Shard", sourceMaterial: "固源岩" },
+          ],
+        },
+      },
+    ],
+    settings: { lmdDroneStrategy: strategy },
+  };
+}
+
 function manufactureResult(result) {
   const facility = result.plans[0].facilities.find(
     ({ facility: value }) => value.type === "manufacture",
@@ -442,11 +477,97 @@ function assertSkillDetails(result, operators) {
 
 function runTests(runtime) {
   const {
+    calculateDroneAcceleration,
     calculateEfficiency,
     catalog,
+    parseLmdDroneStrategy,
     parseMaaScheduleText,
     serializeMaaSchedule,
   } = runtime;
+  const parsedDroneStrategy = parseLmdDroneStrategy(
+    "3 巫恋 龙舌兰2 但书0",
+    catalog,
+  );
+  assert.equal(parsedDroneStrategy.strategy?.level, 3);
+  assert.deepEqual(parsedDroneStrategy.strategy?.operators, [
+    "巫恋",
+    "龙舌兰",
+    "但书",
+  ]);
+  assert.equal(parsedDroneStrategy.strategy?.operatorStates.龙舌兰?.elite, 2);
+  assert.equal(parsedDroneStrategy.strategy?.operatorStates.但书?.elite, 0);
+
+  const droneAcceleration = calculateDroneAcceleration(
+    droneDocument("1"),
+    catalog,
+    { Drone: 240 },
+  );
+  assert.equal(droneAcceleration.acceleratedHours, 12);
+  const droneScenario = (product) =>
+    droneAcceleration.scenarios.find(
+      (scenario) => scenario.product === product,
+    );
+  const lmdDroneScenario = droneScenario("LMD");
+  assert.ok(lmdDroneScenario);
+  assert.ok(Math.abs(lmdDroneScenario.extraFlow.LMD - 5000) < 1e-9);
+  assert.ok(Math.abs(lmdDroneScenario.extraFlow["Pure Gold"] + 10) < 1e-9);
+  assert.equal(lmdDroneScenario.extraFlow.Drone, -240);
+  const orundumDroneScenario = droneScenario("Orundum");
+  assert.ok(orundumDroneScenario);
+  assert.ok(Math.abs(orundumDroneScenario.extraFlow.Orundum - 120) < 1e-9);
+  assert.ok(
+    Math.abs(orundumDroneScenario.extraFlow["Originium Shard"] + 12) < 1e-9,
+  );
+  const pureGoldDroneScenario = droneScenario("Pure Gold");
+  assert.ok(pureGoldDroneScenario);
+  assert.ok(Math.abs(pureGoldDroneScenario.extraFlow["Pure Gold"] - 10) < 1e-9);
+  const battleRecordDroneScenario = droneScenario("Battle Record");
+  assert.ok(battleRecordDroneScenario);
+  assert.ok(
+    Math.abs(battleRecordDroneScenario.extraFlow["Battle Record"] - 4) < 1e-9,
+  );
+  const shardDroneScenario = droneScenario("Originium Shard");
+  assert.ok(shardDroneScenario);
+  assert.ok(
+    Math.abs(shardDroneScenario.extraFlow["Originium Shard"] - 12) < 1e-9,
+  );
+  assert.ok(Math.abs(shardDroneScenario.extraFlow.固源岩 + 24) < 1e-9);
+  assert.ok(Math.abs(shardDroneScenario.extraFlow.LMD + 19200) < 1e-9);
+
+  const efficientDroneDocument = droneDocument("1");
+  efficientDroneDocument.plans[0].rooms.manufacture[0].operators = ["温蒂"];
+  const efficientManufacture = calculateEfficiency(
+    efficientDroneDocument,
+    catalog,
+  ).plans[0].facilities.find(
+    ({ facility }) => facility.type === "manufacture" && facility.index === 0,
+  );
+  assert.ok(efficientManufacture?.production);
+  assert.ok(
+    (efficientManufacture.production?.amountPerHour ?? 0) >
+      (pureGoldDroneScenario.baseAmountPerHour ?? 0),
+  );
+  const efficientDroneScenario = calculateDroneAcceleration(
+    efficientDroneDocument,
+    catalog,
+    { Drone: 240 },
+  ).scenarios.find((scenario) => scenario.product === "Pure Gold");
+  assert.ok(efficientDroneScenario);
+  assert.equal(efficientDroneScenario.baseAmountPerHour, 1 / 1.2);
+  assert.equal(efficientDroneScenario.extraFlow["Pure Gold"], 10);
+
+  const danshuDroneAcceleration = calculateDroneAcceleration(
+    droneDocument("1 但书0"),
+    catalog,
+    { Drone: 240 },
+  );
+  const danshuDroneScenario = danshuDroneAcceleration.scenarios.find(
+    (scenario) => scenario.product === "LMD",
+  );
+  assert.ok(danshuDroneScenario);
+  assert.equal(danshuDroneScenario.extraFlow.LMD, 7500);
+  assert.equal(danshuDroneScenario.extraFlow["Pure Gold"], -15);
+
   const partial = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "未知干员"],
