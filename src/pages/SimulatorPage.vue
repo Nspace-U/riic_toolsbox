@@ -7545,10 +7545,6 @@ onBeforeUnmount(() => {
                       {{
                         formatNumber(result.facility.operatorSkillEfficiency)
                       }}
-                      + 设施技能
-                      {{
-                        formatNumber(result.facility.facilitySkillEfficiency)
-                      }}
                       =
                       <strong
                         >{{ formatNumber(result.facility.efficiency) }}%</strong
@@ -7566,10 +7562,6 @@ onBeforeUnmount(() => {
                       <span>干员技能效率</span>
                       <strong>{{
                         signedNumber(result.facility.operatorSkillEfficiency)
-                      }}</strong>
-                      <span>设施技能效率</span>
-                      <strong>{{
-                        signedNumber(result.facility.facilitySkillEfficiency)
                       }}</strong>
                       <span>组合效率</span>
                       <strong

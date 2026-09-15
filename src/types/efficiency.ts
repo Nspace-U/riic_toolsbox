@@ -369,7 +369,6 @@ export interface FacilityEfficiencyResult {
   operatorEfficiency: number;
   skillEfficiency: number;
   operatorSkillEfficiency: number;
-  facilitySkillEfficiency: number;
   combinationEfficiency: number;
   efficiency: number;
   attributes: FacilityAttributes;

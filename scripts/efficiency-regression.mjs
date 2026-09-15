@@ -739,7 +739,6 @@ function runTests(runtime) {
   assert.equal(wendyManufacture.moodEfficiency, 2);
   assert.equal(wendyManufacture.skillEfficiency, 45);
   assert.equal(wendyManufacture.operatorSkillEfficiency, 45);
-  assert.equal(wendyManufacture.facilitySkillEfficiency, 0);
   assert.equal(wendyManufacture.efficiency, 147);
   assertSkillDetails(wendyManufacture, ["温蒂"]);
   assert.deepEqual(contribution(wendyManufacture, "砾"), {
@@ -1188,10 +1187,37 @@ function runTests(runtime) {
     catalog,
   );
   const facilitySkillManufacture = manufactureResult(facilitySkill);
-  assert.equal(facilitySkillManufacture.skillEfficiency, 48);
+  assert.equal(facilitySkillManufacture.baseEfficiency, 103);
+  assert.equal(facilitySkillManufacture.skillEfficiency, 45);
   assert.equal(facilitySkillManufacture.operatorSkillEfficiency, 45);
-  assert.equal(facilitySkillManufacture.facilitySkillEfficiency, 3);
-  assertSkillDetails(facilitySkillManufacture, ["温蒂", "斩业星熊"]);
+  assertSkillDetails(facilitySkillManufacture, ["温蒂"]);
+
+  const clearedGoldSkill = calculateEfficiency(
+    documentFor({
+      control: ["丰川祥子"],
+      manufacture: ["温蒂"],
+      eliteLevels: { 丰川祥子: 2, 温蒂: 2 },
+    }),
+    catalog,
+  );
+  const clearedGoldManufacture = manufactureResult(clearedGoldSkill);
+  assert.equal(clearedGoldManufacture.baseEfficiency, 100);
+  assert.equal(clearedGoldManufacture.skillEfficiency, 45);
+  assert.equal(clearedGoldManufacture.operatorSkillEfficiency, 45);
+  assertSkillDetails(clearedGoldManufacture, ["温蒂"]);
+
+  const facilityCountSkills = calculateEfficiency(
+    documentFor({
+      manufacture: ["温蒂", "清流", "引星棘刺"],
+      eliteLevels: { 温蒂: 2, 清流: 1, 引星棘刺: 2 },
+    }),
+    catalog,
+  );
+  const facilityCountManufacture = manufactureResult(facilityCountSkills);
+  assert.equal(facilityCountManufacture.skillEfficiency, 68);
+  assert.equal(facilityCountManufacture.operatorSkillEfficiency, 68);
+  assert.equal(facilityCountManufacture.efficiency, 171);
+  assertSkillDetails(facilityCountManufacture, ["温蒂", "清流", "引星棘刺"]);
 
   const trade = calculateEfficiency(
     documentFor({

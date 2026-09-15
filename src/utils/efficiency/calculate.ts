@@ -167,6 +167,16 @@ interface ActiveEffect {
   target?: EfficiencyFacility;
 }
 
+interface ZeroedSkillState {
+  operators: Set<string>;
+  exceptSources: Set<string>;
+}
+
+const EMPTY_ZEROED_SKILL_STATE: ZeroedSkillState = {
+  operators: new Set(),
+  exceptSources: new Set(),
+};
+
 interface EffectDetail {
   item: ActiveEffect;
   value: number;
@@ -267,18 +277,7 @@ function firstItemProgress(
 }
 
 function isFacilityBaseEffect(item: ActiveEffect): boolean {
-  const { effect, owner } = item;
-  if (effect.stat === "facBase") {
-    return true;
-  }
-  return (
-    owner.facility.type === "control" &&
-    DIRECT_FACILITY_EFFICIENCY_STATS.has(effect.stat) &&
-    !effect.per &&
-    !effect.condition &&
-    !effect.scope &&
-    !effect.other
-  );
+  return item.effect.stat === "facBase" || isFacilitySkillEffect(item);
 }
 
 function progressionOf(
@@ -2429,27 +2428,31 @@ function rawAttributeState(
 function zeroedSkillOperators(
   context: PlanContext,
   facility: EfficiencyFacility,
-): Set<string> {
+): ZeroedSkillState {
+  const zeroingEffects = context.active.filter(
+    (item) =>
+      item.target?.id === facility.id && item.effect.stat === "zeroOpBonus",
+  );
   const zeroingOperators = new Set(
-    context.active
-      .filter(
-        (item) =>
-          item.target?.id === facility.id && item.effect.stat === "zeroOpBonus",
-      )
-      .map((item) => item.owner.name),
+    zeroingEffects.map((item) => item.owner.name),
   );
   if (zeroingOperators.size === 0) {
-    return new Set<string>();
+    return EMPTY_ZEROED_SKILL_STATE;
   }
-  return new Set(
-    context.active
-      .filter(
-        (item) =>
-          item.target?.id === facility.id &&
-          !zeroingOperators.has(item.owner.name),
-      )
-      .map((item) => item.owner.name),
-  );
+  return {
+    operators: new Set(
+      context.active
+        .filter(
+          (item) =>
+            item.target?.id === facility.id &&
+            !zeroingOperators.has(item.owner.name),
+        )
+        .map((item) => item.owner.name),
+    ),
+    exceptSources: new Set(
+      zeroingEffects.flatMap((item) => item.effect.except ?? []),
+    ),
+  };
 }
 
 function suppressedSkillsFor(
@@ -2470,21 +2473,25 @@ function isFacilitySkillEffect(item: ActiveEffect): boolean {
   );
 }
 
-function isZeroExemptEffect(item: ActiveEffect): boolean {
+function isZeroExemptEffect(
+  item: ActiveEffect,
+  exceptSources: Set<string>,
+): boolean {
   const source = item.effect.per?.source;
   return (
     isFacilityBaseEffect(item) ||
-    isFacilitySkillEffect(item) ||
-    (typeof source === "string" &&
-      item.effect.except?.includes(source) === true)
+    (typeof source === "string" && exceptSources.has(source))
   );
 }
 
 function shouldIncludeZeroedEffect(
   item: ActiveEffect,
-  zeroed: Set<string>,
+  zeroed: ZeroedSkillState,
 ): boolean {
-  return !zeroed.has(item.owner.name) || isZeroExemptEffect(item);
+  return (
+    !zeroed.operators.has(item.owner.name) ||
+    isZeroExemptEffect(item, zeroed.exceptSources)
+  );
 }
 
 function aggregateEffectValues(
@@ -2493,7 +2500,7 @@ function aggregateEffectValues(
   catalog: EfficiencyCatalog,
   active: ActiveEffect[],
   data: EvaluationData,
-  zeroed: Set<string>,
+  zeroed: ZeroedSkillState,
   stats: Set<string>,
   category: "all" | "base" | "combination" = "all",
   source: "regular" | "stat" = "regular",
@@ -2659,7 +2666,7 @@ function tradeSpecialEfficiency(
   state: AttributeState,
   active: ActiveEffect[],
   data: EvaluationData,
-  zeroed: Set<string>,
+  zeroed: ZeroedSkillState,
   ordinarySkill: number,
   baseEfficiencyWithoutSpecial: number,
 ): {
@@ -2911,30 +2918,22 @@ function operatorTrainingEfficiency(placement: Placement): number {
   );
 }
 
-function isFacilitySkillDetail(detail: OperatorEfficiencyDetail): boolean {
-  return (
-    detail.stack === "max" && DIRECT_FACILITY_EFFICIENCY_STATS.has(detail.stat)
-  );
-}
-
 function operatorContributions(
   placements: Placement[],
   combinationDetails: OperatorEfficiencyDetail[],
 ): OperatorEfficiencyContribution[] {
   const skillValues = new Map<string, number>();
   const sourceFacilities = new Map<string, RoomKey>();
-  combinationDetails
-    .filter((detail) => !isFacilitySkillDetail(detail))
-    .forEach((detail) => {
-      skillValues.set(
-        detail.operator,
-        (skillValues.get(detail.operator) ?? 0) + detail.value,
-      );
-      sourceFacilities.set(
-        detail.operator,
-        detail.ownerFacility ?? detail.facility,
-      );
-    });
+  combinationDetails.forEach((detail) => {
+    skillValues.set(
+      detail.operator,
+      (skillValues.get(detail.operator) ?? 0) + detail.value,
+    );
+    sourceFacilities.set(
+      detail.operator,
+      detail.ownerFacility ?? detail.facility,
+    );
+  });
   const contributions = new Map<string, OperatorEfficiencyContribution>();
   placements.forEach((placement) => {
     const baseEfficiency = operatorBaseEfficiency(
@@ -3001,7 +3000,7 @@ function calculateFacility(
     catalog,
     context.active,
     data,
-    new Set<string>(),
+    EMPTY_ZEROED_SKILL_STATE,
     new Set([...EFFICIENCY_STATS, "facBase"]),
     "base",
   );
@@ -3096,12 +3095,7 @@ function calculateFacility(
     ...detailRows(special, facility.type, "combination", context),
     ...trainingDetails,
   ];
-  const facilitySkillEfficiency = combinationDetails.reduce(
-    (total, detail) =>
-      total + (isFacilitySkillDetail(detail) ? detail.value : 0),
-    0,
-  );
-  const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
+  const operatorSkillEfficiency = skillEfficiency;
   const details = [...baseDetails, ...combinationDetails];
   const cluePreferences =
     facility.type === "meeting" ? cluePreferencesFor(context, facility) : [];
@@ -3114,7 +3108,6 @@ function calculateFacility(
     operatorEfficiency: moodEfficiency,
     skillEfficiency,
     operatorSkillEfficiency,
-    facilitySkillEfficiency,
     combinationEfficiency: moodEfficiency + skillEfficiency,
     efficiency: baseEfficiency + moodEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
@@ -3838,7 +3831,7 @@ function calculatePowerGroup(
       catalog,
       context.active,
       data,
-      new Set(),
+      EMPTY_ZEROED_SKILL_STATE,
       new Set(["droneCharge", "abyssalBoost"]),
       "combination",
     );
@@ -3848,7 +3841,7 @@ function calculatePowerGroup(
       catalog,
       context.active,
       data,
-      new Set(),
+      EMPTY_ZEROED_SKILL_STATE,
       new Set(["droneCharge", "abyssalBoost", "facBase"]),
       "base",
     );
@@ -3885,12 +3878,7 @@ function calculatePowerGroup(
   });
   const baseEfficiency = 100 + facBase;
   const combinationEfficiency = skillEfficiency;
-  const facilitySkillEfficiency = skillDetails.reduce(
-    (total, detail) =>
-      total + (isFacilitySkillDetail(detail) ? detail.value : 0),
-    0,
-  );
-  const operatorSkillEfficiency = skillEfficiency - facilitySkillEfficiency;
+  const operatorSkillEfficiency = skillEfficiency;
   const efficiency =
     baseEfficiency + operatorEfficiency + combinationEfficiency;
   const production: ProductionValue = {
@@ -3930,7 +3918,6 @@ function calculatePowerGroup(
     operatorEfficiency,
     skillEfficiency,
     operatorSkillEfficiency,
-    facilitySkillEfficiency,
     combinationEfficiency: operatorEfficiency + combinationEfficiency,
     efficiency,
     attributes: {},
