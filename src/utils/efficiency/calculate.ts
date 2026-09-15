@@ -3198,9 +3198,10 @@ function tradeProduction(
       baseAmountPerHour * (fixed.order.ignoreEff ? 1 : multiplier);
     const material: Record<string, number> = {};
     if (fixed.order.material && fixed.order.amount) {
-      material[fixed.order.material] =
+      material[fixed.order.material] = -(
         (Number(fixed.order.amount) / Number(fixed.order.time ?? 1)) *
-        (fixed.order.ignoreEff ? 1 : multiplier);
+        (fixed.order.ignoreEff ? 1 : multiplier)
+      );
     }
     return {
       product: "LMD",
@@ -3323,7 +3324,7 @@ function tradeProduction(
         : "龙门商法",
     orders: orderSummaries,
     materialPerHour: {
-      "Pure Gold": (expectedMaterial / expectedTime) * multiplier,
+      "Pure Gold": -((expectedMaterial / expectedTime) * multiplier),
     },
   };
 }
@@ -3353,7 +3354,7 @@ function productionFor(
       materialPerHour: Object.fromEntries(
         Object.entries(rule.materials ?? {}).map(([material, amount]) => [
           material,
-          (amount / rule.hours) * multiplier,
+          -(amount / rule.hours) * multiplier,
         ]),
       ),
     };
@@ -4210,10 +4211,7 @@ function aggregateDailyOutputs(
     const rates =
       production.effectiveMaterialPerHour ?? production.materialPerHour ?? {};
     Object.entries(rates).forEach(([material, rate]) => {
-      materials.set(
-        material,
-        (materials.get(material) ?? 0) - Math.abs(rate) * 24,
-      );
+      materials.set(material, (materials.get(material) ?? 0) + rate * 24);
     });
   });
   const dormitoryCredit = document.layout

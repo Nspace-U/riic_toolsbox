@@ -78,6 +78,7 @@ import {
   LAYOUT_INPUT_ROWS,
   LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
+  PRODUCT_LABELS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_ORDER,
@@ -139,6 +140,41 @@ interface SimulatorCalculationStep {
   planIndex: number;
   facility?: FacilityEfficiencyResult;
   moods: MoodSnapshot[];
+}
+
+interface DailyOutputOrderDetail {
+  name: string;
+  probability: number;
+  baseRate: number;
+  totalRate: number;
+  ignoreEfficiency?: boolean;
+}
+
+interface DailyOutputFacilityDetail {
+  label: string;
+  baseEfficiency: number;
+  totalEfficiency: number;
+  baseOutputPerHour: number;
+  totalOutputPerHour: number;
+  selectedOutputPerHour: number;
+  orders: DailyOutputOrderDetail[];
+}
+
+interface DailyOutputProductDetail {
+  product: string;
+  baseEfficiency: number;
+  totalEfficiency: number;
+  baseOutputPerHour: number;
+  totalOutputPerHour: number;
+  selectedOutputPerHour: number;
+  dailyContribution: number;
+  facilities: DailyOutputFacilityDetail[];
+}
+
+interface DailyOutputQueueDetail {
+  plan: EfficiencyPlanResult;
+  planIndex: number;
+  products: DailyOutputProductDetail[];
 }
 
 interface ExtraRoom {
@@ -929,6 +965,77 @@ const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
       ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
       : facilitySteps;
   });
+});
+
+const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
+  const result = efficiencyResult.value;
+  if (!result || result.dailyHours <= 0) {
+    return [];
+  }
+  return result.plans
+    .map((plan, planIndex) => {
+      const products = new Map<string, DailyOutputProductDetail>();
+      plan.facilities.forEach((facility) => {
+        const production = facility.production;
+        if (!production) {
+          return;
+        }
+        const baseRate =
+          production.baseAmountPerHour ?? production.amountPerHour;
+        const totalOutputPerHour = production.amountPerHour;
+        const selectedOutputPerHour =
+          production.effectiveAmountPerHour ?? totalOutputPerHour;
+        const current = products.get(production.product) ?? {
+          product: production.product,
+          baseEfficiency: 0,
+          totalEfficiency: 0,
+          baseOutputPerHour: 0,
+          totalOutputPerHour: 0,
+          selectedOutputPerHour: 0,
+          dailyContribution: 0,
+          facilities: [],
+        };
+        current.baseEfficiency += facility.baseEfficiency;
+        current.totalEfficiency += facility.efficiency;
+        current.baseOutputPerHour += (baseRate * facility.baseEfficiency) / 100;
+        current.totalOutputPerHour += totalOutputPerHour;
+        current.selectedOutputPerHour += selectedOutputPerHour;
+        current.facilities.push({
+          label: facilityResultLabel(facility),
+          baseEfficiency: facility.baseEfficiency,
+          totalEfficiency: facility.efficiency,
+          baseOutputPerHour: (baseRate * facility.baseEfficiency) / 100,
+          totalOutputPerHour,
+          selectedOutputPerHour,
+          orders: (production.orders ?? []).map((order) => {
+            const baseOrderRate =
+              order.time > 0 ? order.quantity / order.time : 0;
+            const orderMultiplier = order.ignoreEfficiency
+              ? 1
+              : facility.efficiency / 100;
+            return {
+              name: order.name,
+              probability: order.probability,
+              baseRate: baseOrderRate,
+              totalRate: baseOrderRate * orderMultiplier,
+              ...(order.ignoreEfficiency ? { ignoreEfficiency: true } : {}),
+            };
+          }),
+        });
+        products.set(production.product, current);
+      });
+      return {
+        plan,
+        planIndex,
+        products: Array.from(products.values()).map((product) => ({
+          ...product,
+          dailyContribution:
+            (product.selectedOutputPerHour * plan.durationHours * 24) /
+            result.dailyHours,
+        })),
+      };
+    })
+    .filter((queue) => queue.products.length > 0);
 });
 
 const plansWithBasePoints = computed(() =>
@@ -4477,16 +4584,9 @@ function formatProduction(value: number): string {
   return formatNumber(value, 3);
 }
 
-function productionLabel(product: string): string {
-  return product === "Clue" ? "线索" : product;
-}
-
-const DAILY_OUTPUT_LABELS: Record<string, string> = {
-  LMD: "龙门币",
-  Orundum: "合成玉",
-  "Pure Gold": "赤金",
-  "Battle Record": "作战记录",
-  "Originium Shard": "源石碎片",
+const RESOURCE_LABELS: Record<string, string> = {
+  ...PRODUCT_LABELS,
+  Clue: "线索",
   Drone: "无人机",
   Credit: "信用点",
   "Recruit Refresh": "公开招募刷新次数",
@@ -4494,9 +4594,17 @@ const DAILY_OUTPUT_LABELS: Record<string, string> = {
   装置: "装置",
 };
 
+function resourceLabel(resource: string): string {
+  return RESOURCE_LABELS[resource] ?? resource;
+}
+
+function productionLabel(product: string): string {
+  return resourceLabel(product);
+}
+
 function dailyOutputLabel(output: DailyOutput): string {
   const kind = output.kind === "net" ? "净变化" : "每日产出";
-  return `${kind}${DAILY_OUTPUT_LABELS[output.product] ?? output.product} ${formatProduction(output.amountPerDay)}`;
+  return `${kind}${resourceLabel(output.product)} ${formatProduction(output.amountPerDay)}`;
 }
 
 function cluePreferenceText(preferences: CluePreference[] | undefined): string {
@@ -4646,7 +4754,8 @@ function productionMaterialsForDisplay(
     ? (value.effectiveMaterialPerHour ?? value.materialPerHour)
     : value.materialPerHour;
   return Object.entries(materials ?? {}).map(
-    ([material, amount]) => `${material} ${signedNumber(amount)}/小时`,
+    ([material, amount]) =>
+      `${resourceLabel(material)} ${signedNumber(amount)}/小时`,
   );
 }
 
@@ -7484,7 +7593,7 @@ onBeforeUnmount(() => {
               <div class="simulator-result-section-heading">
                 <div>
                   <span class="simulator-eyebrow">DAILY OUTPUT</span>
-                  <h3>排班表每日产出</h3>
+                  <h3>每日产出</h3>
                 </div>
                 <a-tag color="blue">
                   循环 {{ formatNumber(efficiencyResult.dailyHours) }} 小时
@@ -7520,6 +7629,138 @@ onBeforeUnmount(() => {
                 :image="undefined"
                 description="当前排班没有可统计的产出"
               />
+              <div
+                v-if="dailyOutputQueueDetails.length"
+                class="simulator-daily-output-breakdown"
+              >
+                <div class="simulator-daily-output-breakdown-heading">
+                  <span class="simulator-step-subheading">队列计算明细</span>
+                  <span class="simulator-result-hint"
+                    >按队列时长折算到每日产出</span
+                  >
+                </div>
+                <a-collapse ghost>
+                  <a-collapse-panel
+                    v-for="queue in dailyOutputQueueDetails"
+                    :key="`daily-output-${queue.planIndex}`"
+                  >
+                    <template #header>
+                      <div class="simulator-step-header">
+                        <span>
+                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
+                          <small
+                            >·
+                            {{ formatNumber(queue.plan.durationHours) }}
+                            小时</small
+                          >
+                        </span>
+                        <strong>{{ queue.products.length }} 种产物</strong>
+                      </div>
+                    </template>
+                    <div class="simulator-step-content">
+                      <div
+                        v-for="product in queue.products"
+                        :key="product.product"
+                        class="simulator-daily-output-product"
+                      >
+                        <div class="simulator-daily-output-product-heading">
+                          <strong>{{ resourceLabel(product.product) }}</strong>
+                          <span>
+                            基础效率
+                            {{
+                              formatEfficiencyNumber(product.baseEfficiency)
+                            }}% · 总效率
+                            {{
+                              formatEfficiencyNumber(product.totalEfficiency)
+                            }}%
+                          </span>
+                        </div>
+                        <div class="simulator-daily-output-stat-grid">
+                          <span>基础效率产出</span>
+                          <strong
+                            >{{
+                              formatProduction(product.baseOutputPerHour)
+                            }}/小时</strong
+                          >
+                          <span>总效率产出</span>
+                          <strong
+                            >{{
+                              formatProduction(product.totalOutputPerHour)
+                            }}/小时</strong
+                          >
+                          <span>队列折算每日</span>
+                          <strong>{{
+                            formatProduction(product.dailyContribution)
+                          }}</strong>
+                        </div>
+                        <div class="simulator-daily-output-facilities">
+                          <span class="simulator-step-subheading"
+                            >设施明细</span
+                          >
+                          <div
+                            v-for="facility in product.facilities"
+                            :key="facility.label"
+                            class="simulator-daily-output-facility"
+                          >
+                            <div class="simulator-daily-output-facility-row">
+                              <span>{{ facility.label }}</span>
+                              <span>
+                                基础
+                                {{
+                                  formatEfficiencyNumber(
+                                    facility.baseEfficiency,
+                                  )
+                                }}% / 总
+                                {{
+                                  formatEfficiencyNumber(
+                                    facility.totalEfficiency,
+                                  )
+                                }}%
+                              </span>
+                              <strong>
+                                基础
+                                {{
+                                  formatProduction(facility.baseOutputPerHour)
+                                }}/小时 · 总
+                                {{
+                                  formatProduction(facility.totalOutputPerHour)
+                                }}/小时
+                              </strong>
+                            </div>
+                            <div
+                              v-if="facility.orders.length"
+                              class="simulator-daily-output-orders"
+                            >
+                              <span class="simulator-step-subheading"
+                                >订单产出</span
+                              >
+                              <div
+                                v-for="order in facility.orders"
+                                :key="`${facility.label}-${order.name}`"
+                                class="simulator-daily-output-order"
+                              >
+                                <span>
+                                  {{ order.name }} ·
+                                  {{ formatNumber(order.probability * 100) }}%
+                                </span>
+                                <span>
+                                  基础
+                                  {{ formatProduction(order.baseRate) }}/小时 ·
+                                  总
+                                  {{ formatProduction(order.totalRate) }}/小时
+                                  <template v-if="order.ignoreEfficiency">
+                                    · 固定订单
+                                  </template>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </a-collapse-panel>
+                </a-collapse>
+              </div>
             </div>
 
             <div
@@ -7863,7 +8104,7 @@ onBeforeUnmount(() => {
                             {{ formatNumber(order.quantity) }} /
                             {{ formatNumber(order.time) }} 小时
                             <template v-if="order.material">
-                              · {{ order.material }} ×
+                              · {{ resourceLabel(order.material) }} ×
                               {{ formatNumber(order.amount ?? 0) }}
                             </template>
                           </span>

@@ -2497,6 +2497,105 @@ a {
   gap: 8px;
 }
 
+.simulator-daily-output-breakdown {
+  margin-block-start: 14px;
+  padding-block-start: 12px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-daily-output-breakdown-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-daily-output-product {
+  display: grid;
+  gap: 10px;
+  padding-block: 8px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+.simulator-daily-output-product:last-child {
+  border-block-end: 0;
+}
+
+.simulator-daily-output-product-heading,
+.simulator-daily-output-facility-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-daily-output-product-heading strong {
+  color: #2e4043;
+}
+
+.simulator-daily-output-product-heading span,
+.simulator-daily-output-facility-row span,
+.simulator-daily-output-facility-row strong,
+.simulator-daily-output-order {
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-daily-output-stat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  align-items: center;
+  gap: 6px 12px;
+  color: #72807f;
+  font-size: 12px;
+}
+
+.simulator-daily-output-stat-grid strong {
+  color: #176b68;
+}
+
+.simulator-daily-output-facilities {
+  display: grid;
+  gap: 7px;
+  padding-block-start: 8px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-daily-output-facility {
+  display: grid;
+  gap: 5px;
+}
+
+.simulator-daily-output-facility-row strong {
+  color: #344447;
+  font-weight: 600;
+  text-align: end;
+}
+
+.simulator-daily-output-orders {
+  display: grid;
+  gap: 3px;
+  margin-inline-start: 12px;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid #e0e8e5;
+}
+
+.simulator-daily-output-orders .simulator-step-subheading {
+  margin-block-end: 1px;
+}
+
+.simulator-daily-output-order {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulator-daily-output-order span:last-child {
+  color: #344447;
+  text-align: end;
+}
+
 .settings-base-point-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

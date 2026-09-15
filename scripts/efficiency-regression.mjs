@@ -507,6 +507,20 @@ function runTests(runtime) {
       ({ kind, product }) => kind === "net" && product === "Originium Shard",
     )?.amountPerDay ?? 0) < 0,
   );
+  const signedMaterialResult = calculateEfficiency(
+    documentFor({ trading: ["温蒂"], manufacture: ["砾"] }),
+    catalog,
+  );
+  const signedManufacture = manufactureResult(signedMaterialResult);
+  const signedTrading = signedMaterialResult.plans[0].facilities.find(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.ok(signedManufacture.production);
+  assert.ok(signedTrading?.production);
+  assert.ok((signedManufacture.production?.amountPerHour ?? 0) > 0);
+  assert.ok(
+    (signedTrading?.production?.materialPerHour?.["Pure Gold"] ?? 0) < 0,
+  );
 
   const gladyBetaSplit = calculateEfficiency(
     abyssalDocument({
