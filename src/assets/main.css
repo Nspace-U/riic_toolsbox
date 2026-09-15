@@ -2666,10 +2666,6 @@ a {
   border-style: dashed;
 }
 
-.simulator-daily-output-item--sanity-total {
-  margin-block-start: 8px;
-}
-
 .simulator-daily-output-content {
   display: grid;
   min-width: 0;

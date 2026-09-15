@@ -7424,6 +7424,19 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
                 </div>
+                <div
+                  v-if="dailySanityResult"
+                  class="simulator-daily-output-item"
+                >
+                  <img
+                    :alt="'理智'"
+                    :src="sanityIconUrl()"
+                    class="simulator-daily-output-icon"
+                  />
+                  <strong class="simulator-daily-output-main-value">
+                    {{ signedNumber(dailySanityResult.total) }}
+                  </strong>
+                </div>
               </div>
               <a-empty
                 v-else
@@ -7440,19 +7453,6 @@ onBeforeUnmount(() => {
                 show-icon
                 type="warning"
               />
-              <div
-                v-if="dailySanityResult"
-                class="simulator-daily-output-item simulator-daily-output-item--sanity-total"
-              >
-                <img
-                  :alt="'理智'"
-                  :src="sanityIconUrl()"
-                  class="simulator-daily-output-icon"
-                />
-                <strong class="simulator-daily-output-main-value">
-                  {{ signedNumber(dailySanityResult.total) }}
-                </strong>
-              </div>
               <div
                 v-if="dailyOutputQueueDetails.length"
                 class="simulator-daily-output-breakdown"
