@@ -3015,36 +3015,49 @@ a {
 .simulator-operator-contribution-list,
 .simulator-detail-list {
   display: grid;
+}
+
+.simulator-operator-contribution-list {
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   justify-content: start;
   column-gap: 12px;
 }
 
-.simulator-operator-contribution-list .simulator-step-subheading,
-.simulator-detail-list .simulator-step-subheading {
+.simulator-operator-contribution-list .simulator-step-subheading {
   grid-column: 1 / -1;
 }
 
-.simulator-operator-contribution,
-.simulator-detail-row {
+.simulator-operator-contribution {
   display: contents;
   color: #72807f;
   font-size: 12px;
 }
 
+.simulator-detail-row {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  column-gap: 12px;
+  color: #72807f;
+  font-size: 12px;
+}
+
 .simulator-operator-contribution > *,
-.simulator-detail-row > * {
+.simulator-detail-row > span,
+.simulator-detail-main > span {
   padding-block: 4px;
 }
 
 .simulator-detail-main {
   min-width: 0;
-  display: grid;
-  gap: 2px;
+  display: contents;
 }
 
 .simulator-detail-calculation {
+  grid-column: 1 / -1;
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 2px;
   line-height: 1.5;
   overflow-wrap: anywhere;
