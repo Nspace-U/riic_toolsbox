@@ -3059,6 +3059,12 @@ a {
   column-gap: 12px;
 }
 
+.simulator-detail-list {
+  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
+  justify-content: start;
+  column-gap: 12px;
+}
+
 .simulator-operator-contribution-list .simulator-step-subheading {
   grid-column: 1 / -1;
 }
@@ -3071,9 +3077,8 @@ a {
 
 .simulator-detail-row {
   display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  column-gap: 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   color: #72807f;
   font-size: 12px;
 }
