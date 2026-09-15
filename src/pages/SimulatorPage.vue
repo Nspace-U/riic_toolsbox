@@ -50,12 +50,7 @@ import type {
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
-  CluePreference,
-  DailyOutput,
-  MoodRateDetail,
   MoodSnapshot,
-  OperatorEfficiencyDetail,
-  ProductionValue,
 } from "@/types/efficiency";
 import type {
   LayoutEntry,
@@ -74,12 +69,9 @@ import type {
 } from "@/types/operatorProgression";
 import {
   DEFAULT_SOURCE_MATERIAL,
-  BUILD_CHAIN_REQUIRED,
   createDefaultRoomAssignment,
-  LAYOUT_INPUT_ROWS,
   LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
-  PRODUCT_LABELS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_ORDER,
@@ -123,6 +115,36 @@ import {
   type SanityResult,
 } from "@/utils/sanity";
 import { torappuItemIconPath } from "@/utils/torappuItems";
+import {
+  cascadeLayoutTypes,
+  layoutAdditionPlan,
+  layoutEntryLevelMax,
+  layoutTextFor,
+  layoutWithBuildChain,
+  resizeRoomsForLayout,
+  roomsForLayout,
+  validateAddedLayout,
+} from "@/utils/simulator/layout";
+import {
+  cluePreferenceText,
+  convertedProductionAmount,
+  dailyOutputLabel,
+  efficiencyStatLabel,
+  facilityOverflowLabel,
+  formatDurationHours,
+  formatEfficiencyNumber,
+  formatNumber,
+  formatProduction,
+  moodRateDetailLabel,
+  moodRateFormula,
+  operatorCalculationLines,
+  planDurationHoursValue,
+  productionLabel,
+  productionMaterialsForDisplay,
+  productionRateLabel,
+  resourceLabel,
+  signedNumber,
+} from "@/utils/simulator/presentation";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -254,10 +276,6 @@ interface LayoutDisplayRow {
   entries: FacilityEntry[];
 }
 
-interface LayoutAdditionPlan {
-  types: RoomKey[];
-}
-
 interface PowerSummary {
   used: number;
   provided: number;
@@ -350,18 +368,6 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
 };
 
 const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
-const LAYOUT_BUILD_ORDER: RoomKey[] = [
-  "control",
-  "trading",
-  "manufacture",
-  "power",
-  "meeting",
-  "processing",
-  "hire",
-  "training",
-  "dormitory",
-];
-
 const {
   documents,
   activeDocumentId,
@@ -1565,165 +1571,11 @@ function updateEfficiencyFirstItemProgress(value: number | null): void {
   });
 }
 
-function roomsForLayout(
-  layout: LayoutEntry[],
-): Record<string, RoomAssignment[]> {
-  const rooms: Record<string, RoomAssignment[]> = {};
-  ROOM_ORDER.forEach((type) => {
-    const count = layout.filter((entry) => entry.type === type).length;
-    if (count > 0) {
-      rooms[type] = Array.from({ length: count }, () =>
-        createDefaultRoomAssignment(type),
-      );
-    }
-  });
-  return rooms;
-}
-
-function normalizeRoomCapacity(
-  room: RoomAssignment,
-  type: RoomKey,
-  level: number,
-): RoomAssignment {
-  const capacity = roomSlotCount(type, level);
-  if (!room.operators || room.operators.length <= capacity) {
-    return room;
-  }
-
-  room.operators = room.operators.slice(0, capacity);
-  if (room.operatorStates) {
-    room.operatorStates = Object.fromEntries(
-      Object.entries(room.operatorStates).filter(([name]) =>
-        room.operators?.includes(name),
-      ),
-    );
-    if (Object.keys(room.operatorStates).length === 0) {
-      delete room.operatorStates;
-    }
-  }
-  return room;
-}
-
-function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
-  const nextRooms: Record<string, RoomAssignment[] | unknown> = {
-    ...plan.rooms,
-  };
-  ROOM_ORDER.forEach((type) => {
-    const expected = layout.filter((entry) => entry.type === type).length;
-    if (expected === 0) {
-      delete nextRooms[type];
-      return;
-    }
-    const previous = Array.isArray(plan.rooms[type])
-      ? (plan.rooms[type] as RoomAssignment[])
-      : [];
-    const entries = layout.filter((entry) => entry.type === type);
-    nextRooms[type] = Array.from({ length: expected }, (_, index) =>
-      normalizeRoomCapacity(
-        previous[index] ?? createDefaultRoomAssignment(type),
-        type,
-        entries[index]?.level ?? 1,
-      ),
-    );
-  });
-  plan.rooms = nextRooms;
-}
-
-function layoutEntryLevelMax(type: RoomKey): number {
-  return roomLevelRange(type).max;
-}
-
-function layoutTextFor(layout: LayoutEntry[]): string {
-  function levelsFor(type: RoomKey): string {
-    const levels = layout
-      .filter((entry) => entry.type === type)
-      .map((entry) => entry.level)
-      .join("");
-    return levels || "0";
-  }
-
-  const coreTypes = LAYOUT_INPUT_ROWS[0] ?? [];
-  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 4) ?? [];
-  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[4];
-  return [
-    coreTypes.map((type) => levelsFor(type)).join(" "),
-    `${functionalTypes.map((type) => levelsFor(type)).join("")} ${dormitoryType ? levelsFor(dormitoryType) : "0"}`,
-  ].join("\n");
-}
-
 function layoutFacilityStyle(type: RoomKey): Record<string, string> {
   return {
     "--simulator-facility-accent":
       facilityColors.value[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
   };
-}
-
-function layoutBuildChain(type: RoomKey): RoomKey[] {
-  const requiredType = BUILD_CHAIN_REQUIRED[type];
-  return requiredType ? [...layoutBuildChain(requiredType), type] : [type];
-}
-
-function layoutAdditionPlan(
-  layout: LayoutEntry[],
-  type: RoomKey,
-): LayoutAdditionPlan | undefined {
-  const candidateLayout = [...layout];
-  const chain = layoutBuildChain(type);
-  const typesToAdd = chain.filter(
-    (entryType, index) =>
-      index === chain.length - 1 ||
-      !candidateLayout.some((entry) => entry.type === entryType),
-  );
-
-  for (const entryType of typesToAdd) {
-    const result = canAddLayoutEntry(candidateLayout, entryType);
-    if (!result.ok) {
-      return undefined;
-    }
-    candidateLayout.push({
-      type: entryType,
-      level: layoutEntryLevelMax(entryType),
-    });
-  }
-
-  return { types: typesToAdd };
-}
-
-function layoutWithBuildChain(requestedLayout: LayoutEntry[]): LayoutEntry[] {
-  const requestedByType = new Map<RoomKey, LayoutEntry[]>();
-  const includedTypes = new Set<RoomKey>();
-
-  requestedLayout.forEach((entry) => {
-    const entries = requestedByType.get(entry.type) ?? [];
-    entries.push(entry);
-    requestedByType.set(entry.type, entries);
-    includedTypes.add(entry.type);
-    layoutBuildChain(entry.type)
-      .slice(0, -1)
-      .forEach((requiredType) => includedTypes.add(requiredType));
-  });
-
-  return LAYOUT_BUILD_ORDER.flatMap((type) => {
-    if (!includedTypes.has(type)) {
-      return [];
-    }
-    const requestedEntries = requestedByType.get(type);
-    return requestedEntries?.length
-      ? requestedEntries.map((entry) => ({ ...entry }))
-      : [{ type, level: layoutEntryLevelMax(type) }];
-  });
-}
-
-function validateAddedLayout(layout: LayoutEntry[]): LayoutEntry[] {
-  const validatedLayout: LayoutEntry[] = [];
-  layout.forEach((entry) => {
-    const result = canAddLayoutEntry(validatedLayout, entry.type);
-    if (!result.ok) {
-      throw new ScheduleError(result.reason);
-    }
-    validatedLayout.push(entry);
-  });
-  return validatedLayout;
 }
 
 function addLayoutEntry(type: RoomKey): void {
@@ -1819,19 +1671,6 @@ function updateLayoutLevel(index: number, value: number | null): void {
     },
     { markLayoutExplicit: true },
   );
-}
-
-function cascadeLayoutTypes(type: RoomKey): RoomKey[] {
-  if (type === "meeting") {
-    return ["processing", "hire", "training"];
-  }
-  if (type === "processing") {
-    return ["hire", "training"];
-  }
-  if (type === "hire") {
-    return ["training"];
-  }
-  return [];
 }
 
 function removeLayoutEntry(index: number): void {
@@ -4454,19 +4293,6 @@ function navigateOperatorSlot(
   return Boolean(target);
 }
 
-function planDurationHoursValue(plan: Plan): number {
-  const minutes = Number(plan.duration ?? 720);
-  return Math.round((minutes / 60) * 100) / 100;
-}
-
-function formatNumber(value: number, maximumFractionDigits = 2): string {
-  return value.toLocaleString("zh-CN", { maximumFractionDigits });
-}
-
-function formatEfficiencyNumber(value: number): string {
-  return value < 0 ? `-${formatNumber(Math.abs(value))}` : formatNumber(value);
-}
-
 function efficiencySummaryText(row: FacilityRow, planIndex: number): string {
   const result = planFacilityResult(row, planIndex);
   if (!result) {
@@ -4493,183 +4319,6 @@ function efficiencySummaryStyle(
     ),
   );
   return { fontSize: `${fontSize}px` };
-}
-
-function signedNumber(value: number): string {
-  return `${value >= 0 ? "+" : ""}${formatNumber(value)}`;
-}
-
-function operatorCalculationLines(detail: OperatorEfficiencyDetail): string[] {
-  const calculation = detail.calculation;
-  if (!calculation) {
-    return [];
-  }
-  if (calculation.type === "tradeGap") {
-    const mode = calculation.mode === "max" ? "最大效率" : "积分平均";
-    const lines = [
-      `模式：${mode}`,
-      `差值基数：${formatNumber(calculation.gapBase)} × ${formatNumber(
-        calculation.gapValue / Math.max(calculation.gapBase, 1),
-      )}% = ${formatNumber(calculation.gapValue)}%`,
-    ];
-    if (calculation.mode === "integral") {
-      lines.push(
-        `期望单耗时：${formatNumber(
-          calculation.expectedOrderHours ?? 0,
-        )} 小时，首件进度：${formatNumber(
-          calculation.firstItemProgress * 100,
-        )}%`,
-        `完成订单：${formatNumber(calculation.completedOrders)}，每单衰减：-${formatNumber(
-          calculation.decrement,
-        )}%`,
-        `整站效率平均：${formatNumber(
-          calculation.averageEfficiency,
-        )}%（初始 ${formatNumber(calculation.initialEfficiency)}%）`,
-      );
-    }
-    if (calculation.fallbackReason) {
-      lines.push(
-        calculation.fallbackReason === "fixedOrder"
-          ? "固定订单不参与逐单衰减，按最大效率计算"
-          : "没有可用的订单分布，按最大效率计算",
-      );
-    }
-    return lines;
-  }
-  if (calculation.type === "workHours") {
-    const efficiencyLine =
-      calculation.durationHours > 0
-        ? `效率：${formatNumber(calculation.baseValue)}% × ${formatNumber(
-            calculation.activeHours,
-          )} ÷ ${formatNumber(calculation.durationHours)} = ${formatNumber(
-            detail.value,
-          )}%`
-        : "效率：队列时长为 0，结果为 0%";
-    return [
-      `累计工作时长：${formatNumber(
-        calculation.beforeHours,
-      )} + ${formatNumber(calculation.durationHours)} = ${formatNumber(
-        calculation.beforeHours + calculation.durationHours,
-      )} 小时（阈值 ${formatNumber(calculation.threshold)} 小时）`,
-      `生效时长：max(0, min(${formatNumber(
-        calculation.durationHours,
-      )}, ${formatNumber(calculation.beforeHours)} + ${formatNumber(
-        calculation.durationHours,
-      )} - ${formatNumber(calculation.threshold)})) = ${formatNumber(
-        calculation.activeHours,
-      )} 小时`,
-      efficiencyLine,
-    ];
-  }
-  const capIndex = calculation.steps.findIndex(
-    (step) => step.value >= calculation.cap,
-  );
-  const uncappedSteps =
-    capIndex >= 0 ? calculation.steps.slice(0, capIndex) : calculation.steps;
-  const cappedWeight =
-    capIndex >= 0
-      ? calculation.steps
-          .slice(capIndex)
-          .reduce((total, step) => total + step.weight, 0)
-      : 0;
-  const weightedTerms = [
-    ...uncappedSteps.map(
-      (step) => `${formatNumber(step.value)} × ${formatNumber(step.weight)}`,
-    ),
-    ...(capIndex >= 0
-      ? [`${formatNumber(calculation.cap)} × ${formatNumber(cappedWeight)}`]
-      : []),
-  ].join(" + ");
-  const weightedTotal = calculation.steps.reduce(
-    (total, step) => total + step.value * step.weight,
-    0,
-  );
-  const weightedAverage =
-    calculation.durationHours > 0
-      ? weightedTotal / calculation.durationHours
-      : 0;
-  const lines = [
-    `累计工作时长：${formatNumber(
-      calculation.beforeHours,
-    )} + ${formatNumber(calculation.durationHours)} = ${formatNumber(
-      calculation.beforeHours + calculation.durationHours,
-    )} 小时`,
-    `档位公式：min(${formatNumber(
-      calculation.startValue,
-    )} + (累计时长 + h - ${formatNumber(
-      calculation.startHours,
-    )}) × ${formatNumber(calculation.step)}, ${formatNumber(calculation.cap)})`,
-    calculation.durationHours > 0
-      ? `加权平均：(${weightedTerms || "0"}) ÷ ${formatNumber(
-          calculation.durationHours,
-        )} = ${formatNumber(detail.value)}%`
-      : "加权平均：队列时长为 0，结果为 0%",
-  ];
-  if (calculation.workHours) {
-    const efficiencyLine =
-      calculation.durationHours > 0
-        ? `效率：${formatNumber(weightedAverage)}% × ${formatNumber(
-            calculation.workHours.activeHours,
-          )} ÷ ${formatNumber(calculation.durationHours)} = ${formatNumber(
-            detail.value,
-          )}%`
-        : "效率：队列时长为 0，结果为 0%";
-    lines.push(
-      `工作时长条件：生效 ${formatNumber(
-        calculation.workHours.activeHours,
-      )} 小时 / ${formatNumber(calculation.durationHours)} 小时`,
-      efficiencyLine,
-    );
-  }
-  return lines;
-}
-
-function formatProduction(value: number): string {
-  return formatNumber(value, 3);
-}
-
-const RESOURCE_LABELS: Record<string, string> = {
-  ...PRODUCT_LABELS,
-  Clue: "线索",
-  Drone: "无人机",
-  Credit: "信用点",
-  "Recruit Refresh": "公开招募刷新次数",
-  固源岩: "固源岩",
-  装置: "装置",
-};
-
-function resourceLabel(resource: string): string {
-  return RESOURCE_LABELS[resource] ?? resource;
-}
-
-function productionLabel(product: string): string {
-  return resourceLabel(product);
-}
-
-function dailyOutputLabel(output: DailyOutput): string {
-  const kind = output.kind === "net" ? "净变化" : "每日产出";
-  return `${kind}${resourceLabel(output.product)} ${formatProduction(output.amountPerDay)}`;
-}
-
-function cluePreferenceText(preferences: CluePreference[] | undefined): string {
-  if (!preferences?.length) {
-    return "";
-  }
-  return `更容易获得${preferences
-    .map((preference) => {
-      if (typeof preference === "number") {
-        return `线索${preference}`;
-      }
-      return preference === "unowned" ? "尚未拥有的线索" : "已经拥有的线索";
-    })
-    .join("、")}`;
-}
-
-function convertedProductionAmount(
-  value: ProductionValue,
-  amount: number,
-): number {
-  return amount * (value.conversion?.amountPerUnit ?? 1);
 }
 
 function planFacilityResult(
@@ -4719,33 +4368,6 @@ function operatorMoodRemaining(
   )?.end;
 }
 
-function moodRateDetailLabel(detail: MoodRateDetail): string {
-  if (detail.kind === "base") {
-    return "基础消耗速度";
-  }
-  if (detail.kind === "controlWorkers") {
-    return `控制中枢干员减耗（${detail.count ?? 0}人）`;
-  }
-  if (detail.kind === "facilityWorkers") {
-    return `同设施干员减耗（${detail.count ?? 0}人）`;
-  }
-  const source = [detail.operator, detail.skill].filter(Boolean).join(" · ");
-  return `${source || "技能"}${detail.stat === "moodRecover" ? "恢复" : "消耗"}`;
-}
-
-function moodRateFormula(mood: MoodSnapshot): string {
-  const [first, ...rest] = mood.rateDetails;
-  if (!first) {
-    return `0 = ${formatNumber(mood.costRate)}/小时`;
-  }
-  return `${formatNumber(first.value)}${rest
-    .map(
-      (detail) =>
-        ` ${detail.value >= 0 ? "+" : "-"} ${formatNumber(Math.abs(detail.value))}`,
-    )
-    .join("")} = ${formatNumber(mood.costRate)}/小时`;
-}
-
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
   const { facility } = result;
   if (facility.type === "power") {
@@ -4769,55 +4391,6 @@ function basePointSourceText(source: BasePointSource): string {
     return `${operator}（${facility}，由${basePointLabel(source.from)} × ${formatNumber(source.rate ?? 0)}派生）`;
   }
   return `${operator}（${facility}）`;
-}
-
-const efficiencyStatLabels: Record<string, string> = {
-  tradeSpd: "贸易效率",
-  tradeGapEff: "订单差值效率",
-  tradeNetEff: "贸易净效率",
-  manuProd: "制造效率",
-  clueSpeed: "线索速度",
-  clueChance: "线索概率",
-  hireSpd: "公开招募效率",
-  droneCharge: "无人机充能",
-  orderLimit: "订单上限",
-  storageCap: "仓库容量",
-  facBase: "设施基础效率",
-  abyssalBoost: "深海效果",
-};
-
-function efficiencyStatLabel(stat: string): string {
-  return efficiencyStatLabels[stat] ?? stat;
-}
-
-function productionMaterialsForDisplay(
-  value: ProductionValue,
-  effective = false,
-): string[] {
-  const materials = effective
-    ? (value.effectiveMaterialPerHour ?? value.materialPerHour)
-    : value.materialPerHour;
-  return Object.entries(materials ?? {}).map(
-    ([material, amount]) =>
-      `${resourceLabel(material)} ${signedNumber(amount)}/小时`,
-  );
-}
-
-function formatDurationHours(value: number): string {
-  return `${formatNumber(value)} 小时`;
-}
-
-function productionRateLabel(value: ProductionValue): string {
-  return value.itemRate === undefined
-    ? ""
-    : `${formatProduction(value.itemRate)} / 小时`;
-}
-
-function facilityOverflowLabel(value: ProductionValue): string {
-  if (value.overflowed === undefined) {
-    return "未启用容量模拟";
-  }
-  return value.overflowed ? "计划内会爆仓" : "计划内不爆仓";
 }
 
 function inheritedSourceLabel(result: FacilityEfficiencyResult): string {

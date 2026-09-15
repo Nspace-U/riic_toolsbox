@@ -4,8 +4,6 @@ import type {
   EfficiencyEffect,
   EfficiencyCalculationOptions,
   EfficiencyFacility,
-  EfficiencyOperator,
-  BasePointDetail,
   BasePointSource,
   OperatorEfficiencyCalculation,
   FacilityCapacity,
@@ -16,12 +14,9 @@ import type {
   FiammettaPlanResult,
   FacilityCapacitySegment,
   FacilityAttributes,
-  EfficiencyStat,
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
-  DailyOutput,
-  MoodWarning,
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
@@ -34,7 +29,6 @@ import type { OperatorProgressionProfile } from "@/types/operatorProgression";
 import { resolveOperatorProgression } from "@/utils/operatorProgression";
 import type {
   OperatorState,
-  Plan,
   RoomAssignment,
   RoomKey,
   ScheduleSettings,
@@ -67,216 +61,49 @@ import {
   isSpecialOperator,
   percentageOperatorValue,
 } from "@/utils/specialOperators";
-
-const EPSILON = 0.000001;
-const DEFAULT_DURATION_MINUTES = 720;
-const DRONE_LIMIT = 235;
-const POWER_OUTPUT_PER_HOUR = 10;
-const CLUE_OUTPUT_PER_HOUR = 1 / CLUE_BASE_TIME_HOURS;
-const HIRE_OUTPUT_PER_HOUR = 1 / 12;
-const CLUE_LIMIT = 11;
-const HIRE_LIMIT = 3;
-const FIAMMETTA_NAME = "菲亚梅塔";
-const CREDIT_BASE_DAILY = 40 + 30 + 20 + 15 + 10 + 5 + 210 + 30 * 10 + 300 / 7;
-const DAILY_OUTPUT_ORDER = [
-  "LMD",
-  "Orundum",
-  "Pure Gold",
-  "Battle Record",
-  "Originium Shard",
-  "Drone",
-  "Credit",
-  "Recruit Refresh",
-];
-const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
-  莱茵生命: 1,
-  企鹅物流: 2,
-  黑钢国际: 3,
-  乌萨斯学生自治团: 4,
-  格拉斯哥帮: 5,
-  喀兰贸易: 6,
-  罗德岛制药: 7,
-};
-const EFFICIENCY_STATS = new Set([
-  "tradeSpd",
-  "manuProd",
-  "clueSpeed",
-  "hireSpd",
-  "droneCharge",
-  "abyssalBoost",
-]);
-const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
-  "tradeSpd",
-  "manuProd",
-  "droneCharge",
-  "clueSpeed",
-  "hireSpd",
-]);
-const PERCENTAGE_EFFICIENCY_STATS: Partial<Record<RoomKey, EfficiencyStat>> = {
-  trading: "tradeSpd",
-  manufacture: "manuProd",
-  power: "droneCharge",
-  meeting: "clueSpeed",
-  hire: "hireSpd",
-};
-const ATTRIBUTE_STATS = new Set(["orderLimit", "storageCap"]);
-const POINT_STATS = new Set(["basePointGain", "basePointConvert"]);
-const FLOW_GOLD_TERM = "cc.t.flow_gold";
-const FLOW_GOLD_DISPLAY_OPERATORS = ["绮良", "鸿雪", "图耶"];
-
-interface Placement {
-  name: string;
-  facility: EfficiencyFacility;
-  assignment: RoomAssignment;
-  index: number;
-  state: OperatorState;
-  profile?: EfficiencyOperator;
-  skillFile?: OperatorSkillFile;
-  selected: Array<{ skill: string; effect: EfficiencyEffect }>;
-  explicitMood: boolean;
-  moodStart: number;
-  moodEnd: number;
-  costRate: number;
-  moodRateDetails: MoodRateDetail[];
-  working: boolean;
-  workHoursBefore: number;
-  owned: boolean;
-  fiammettaForced: boolean;
-}
-
-interface PlanContext {
-  document: ScheduleDocument;
-  plan: Plan;
-  settings: ScheduleSettings;
-  index: number;
-  durationHours: number;
-  facilities: EfficiencyFacility[];
-  placements: Placement[];
-  active: ActiveEffect[];
-  basePoints: Record<string, number>;
-  basePointDetails: BasePointDetail[];
-  statValues: Map<string, number>;
-  moodWarnings: MoodWarning[];
-  fiammetta?: FiammettaPlanResult;
-  fiammettaWarnings: string[];
-  warnings: string[];
-}
-
-interface ActiveEffect {
-  owner: Placement;
-  effect: EfficiencyEffect;
-  skill: string;
-  target?: EfficiencyFacility;
-}
-
-interface ZeroedSkillState {
-  operators: Set<string>;
-  exceptSources: Set<string>;
-}
-
-const EMPTY_ZEROED_SKILL_STATE: ZeroedSkillState = {
-  operators: new Set(),
-  exceptSources: new Set(),
-};
-
-interface EffectDetail {
-  item: ActiveEffect;
-  value: number;
-  calculation?: OperatorEfficiencyCalculation;
-}
-
-interface PerValue {
-  value: number;
-  count: number;
-  times: number;
-}
-
-interface CurveEvaluation {
-  value: number;
-  steps: CurveCalculationStep[];
-}
-
-interface EvaluationData {
-  capBoosts: Record<string, Record<string, number>>;
-  bonusByFacility: Record<string, Record<string, Record<string, number>>>;
-  capacitySegments?: CapacityEvaluationSegment[];
-}
-
-interface CapacityEvaluationSegment extends FacilityCapacitySegment {
-  capBoosts: Record<string, Record<string, number>>;
-}
-
-interface CapacityCalculation {
-  capacity: FacilityCapacity;
-  segments: CapacityEvaluationSegment[];
-}
-
-interface AttributeState {
-  attributes: FacilityAttributes;
-  rawOrderLimit: number;
-  capBoosts: Record<string, Record<string, number>>;
-  linked: boolean;
-  orderLimitNet: number;
-}
-
-interface BasePointState {
-  points: Record<string, number>;
-  details: BasePointDetail[];
-}
-
-function clampMood(value: number): number {
-  return Math.max(0, Math.min(24, Number.isFinite(value) ? value : 24));
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function roomAssignments(
-  document: ScheduleDocument,
-  planIndex: number,
-  facility: EfficiencyFacility,
-): RoomAssignment {
-  return resolveRoomAssignment(
-    document,
-    planIndex,
-    facility.type,
-    facility.index,
-  ).assignment;
-}
-
-function hasFlowGoldDisplayOperator(context: PlanContext): boolean {
-  return context.facilities
-    .filter((facility) => facility.type === "trading")
-    .some((facility) =>
-      (
-        roomAssignments(context.document, context.index, facility).operators ??
-        []
-      ).some((name) => FLOW_GOLD_DISPLAY_OPERATORS.includes(name)),
-    );
-}
-
-function stateOf(assignment: RoomAssignment, name: string): OperatorState {
-  return assignment.operatorStates?.[name] ?? {};
-}
-
-function firstItemProgress(
-  settings: ScheduleSettings,
-  facilityId: string,
-): number {
-  const value = settings.firstItemProgress;
-  if (typeof value === "number") {
-    return Math.max(0, Math.min(1, value));
-  }
-  if (isRecord(value)) {
-    const progress =
-      value[facilityId] ?? value[facilityId.replace(/-\d+$/, "")];
-    return typeof progress === "number"
-      ? Math.max(0, Math.min(1, progress))
-      : 0;
-  }
-  return 0;
-}
+import {
+  ATTRIBUTE_STATS,
+  CLUE_LIMIT,
+  CLUE_OUTPUT_PER_HOUR,
+  CLUE_PREFERENCE_BY_FACTION,
+  DEFAULT_DURATION_MINUTES,
+  DIRECT_FACILITY_EFFICIENCY_STATS,
+  DRONE_LIMIT,
+  EFFICIENCY_STATS,
+  EPSILON,
+  EMPTY_ZEROED_SKILL_STATE,
+  FIAMMETTA_NAME,
+  FLOW_GOLD_TERM,
+  HIRE_LIMIT,
+  HIRE_OUTPUT_PER_HOUR,
+  POINT_STATS,
+  POWER_OUTPUT_PER_HOUR,
+  PERCENTAGE_EFFICIENCY_STATS,
+  firstItemProgress,
+  hasFlowGoldDisplayOperator,
+  roomAssignments,
+  stateOf,
+  clampMood,
+} from "@/utils/efficiency/model";
+import type {
+  ActiveEffect,
+  AttributeState,
+  BasePointState,
+  CapacityCalculation,
+  CapacityEvaluationSegment,
+  CurveEvaluation,
+  EffectDetail,
+  EvaluationData,
+  PerValue,
+  Placement,
+  PlanContext,
+  ZeroedSkillState,
+} from "@/utils/efficiency/model";
+import {
+  aggregateDaily,
+  aggregateDailyOutputs,
+  aggregateDailyProductions,
+} from "@/utils/efficiency/aggregate";
 
 function isFacilityBaseEffect(item: ActiveEffect): boolean {
   return item.effect.stat === "facBase" || isFacilitySkillEffect(item);
@@ -4029,243 +3856,6 @@ function calculatePlan(
     basePointDetails: context.basePointDetails,
     warnings: context.warnings,
   };
-}
-
-function aggregateDaily(
-  plans: EfficiencyPlanResult[],
-  totalHours: number,
-): FacilityEfficiencyResult[] {
-  const first = plans[0]?.facilities ?? [];
-  return first.map((result) => {
-    const amounts = plans
-      .map(
-        (plan) =>
-          plan.facilities.find(
-            (candidate) => candidate.facility.id === result.facility.id,
-          )?.production,
-      )
-      .filter((production): production is ProductionValue => !!production);
-    const cluePreferences = sortedCluePreferences(
-      plans.flatMap(
-        (plan) =>
-          plan.facilities.find(
-            (candidate) => candidate.facility.id === result.facility.id,
-          )?.cluePreferences ?? [],
-      ),
-    );
-    if (amounts.length === 0 || totalHours <= EPSILON) return result;
-    const totals = plans.reduce(
-      (sum, plan) => {
-        const production = plan.facilities.find(
-          (candidate) => candidate.facility.id === result.facility.id,
-        )?.production;
-        if (!production) return sum;
-        sum.base += (production.baseAmountPerHour ?? 0) * plan.durationHours;
-        sum.actual += production.amountPerHour * plan.durationHours;
-        sum.effective +=
-          (production.effectiveAmountPerHour ?? production.amountPerHour) *
-          plan.durationHours;
-        return sum;
-      },
-      { base: 0, actual: 0, effective: 0 },
-    );
-    const amountPerHour = totals.actual / totalHours;
-    const effectiveAmountPerHour = totals.effective / totalHours;
-    return {
-      ...result,
-      ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
-      production: {
-        ...result.production,
-        product: amounts[0]?.product ?? result.production?.product ?? "",
-        ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
-        baseAmountPerHour: totals.base / totalHours,
-        baseAmountPerDay: (totals.base / totalHours) * 24,
-        amountPerHour,
-        amountPerDay: amountPerHour * 24,
-        ...(Math.abs(effectiveAmountPerHour - amountPerHour) > EPSILON
-          ? {
-              effectiveAmountPerHour,
-              effectiveAmountPerDay: effectiveAmountPerHour * 24,
-            }
-          : {}),
-      },
-    };
-  });
-}
-
-function aggregateDailyProductions(
-  plans: EfficiencyPlanResult[],
-  totalHours: number,
-): ProductionValue[] {
-  if (totalHours <= EPSILON) {
-    return [];
-  }
-
-  const grouped = new Map<
-    string,
-    {
-      basePerCycle: number;
-      actualPerCycle: number;
-      effectivePerCycle: number;
-      conversion?: ProductionValue["conversion"];
-      cluePreferences: CluePreference[];
-      materialsPerCycle: Record<string, number>;
-      effectiveMaterialsPerCycle: Record<string, number>;
-    }
-  >();
-  plans.forEach((plan) => {
-    plan.facilities.forEach((facility) => {
-      const production = facility.production;
-      if (!production) {
-        return;
-      }
-      const rate =
-        production.effectiveAmountPerHour ?? production.amountPerHour;
-      const current = grouped.get(production.product) ?? {
-        basePerCycle: 0,
-        actualPerCycle: 0,
-        effectivePerCycle: 0,
-        conversion: production.conversion,
-        cluePreferences: [],
-        materialsPerCycle: {},
-        effectiveMaterialsPerCycle: {},
-      };
-      if (!current.conversion && production.conversion) {
-        current.conversion = production.conversion;
-      }
-      current.cluePreferences = sortedCluePreferences([
-        ...current.cluePreferences,
-        ...(production.cluePreferences ?? []),
-      ]);
-      current.basePerCycle +=
-        (production.baseAmountPerHour ?? production.amountPerHour) *
-        plan.durationHours;
-      current.actualPerCycle += production.amountPerHour * plan.durationHours;
-      current.effectivePerCycle += rate * plan.durationHours;
-      Object.entries(production.materialPerHour ?? {}).forEach(
-        ([material, amount]) => {
-          current.materialsPerCycle[material] =
-            (current.materialsPerCycle[material] ?? 0) +
-            amount * plan.durationHours;
-        },
-      );
-      Object.entries(
-        production.effectiveMaterialPerHour ?? production.materialPerHour ?? {},
-      ).forEach(([material, amount]) => {
-        current.effectiveMaterialsPerCycle[material] =
-          (current.effectiveMaterialsPerCycle[material] ?? 0) +
-          amount * plan.durationHours;
-      });
-      grouped.set(production.product, current);
-    });
-  });
-
-  return Array.from(grouped, ([product, value]) => {
-    const baseAmountPerHour = value.basePerCycle / totalHours;
-    const amountPerHour = value.actualPerCycle / totalHours;
-    const effectiveAmountPerHour = value.effectivePerCycle / totalHours;
-    const materialPerHour = Object.fromEntries(
-      Object.entries(value.materialsPerCycle).map(([material, amount]) => [
-        material,
-        amount / totalHours,
-      ]),
-    );
-    const effectiveMaterialPerHour = Object.fromEntries(
-      Object.entries(value.effectiveMaterialsPerCycle).map(
-        ([material, amount]) => [material, amount / totalHours],
-      ),
-    );
-    return {
-      product,
-      ...(value.cluePreferences.length > 0
-        ? { cluePreferences: value.cluePreferences }
-        : {}),
-      ...(value.conversion ? { conversion: value.conversion } : {}),
-      baseAmountPerHour,
-      baseAmountPerDay: baseAmountPerHour * 24,
-      amountPerHour,
-      amountPerDay: amountPerHour * 24,
-      ...(Math.abs(effectiveAmountPerHour - amountPerHour) > EPSILON
-        ? {
-            effectiveAmountPerHour,
-            effectiveAmountPerDay: effectiveAmountPerHour * 24,
-          }
-        : {}),
-      ...(Object.keys(materialPerHour).length > 0 ? { materialPerHour } : {}),
-      ...(Math.abs(effectiveAmountPerHour - amountPerHour) > EPSILON &&
-      Object.keys(effectiveMaterialPerHour).length > 0
-        ? { effectiveMaterialPerHour }
-        : {}),
-    };
-  });
-}
-
-function selectedDailyAmount(production: ProductionValue): number {
-  return production.effectiveAmountPerDay ?? production.amountPerDay;
-}
-
-function aggregateDailyOutputs(
-  document: ScheduleDocument,
-  productions: ProductionValue[],
-): DailyOutput[] {
-  const gross = new Map<string, number>();
-  const materials = new Map<string, number>();
-  productions.forEach((production) => {
-    if (production.product !== "Clue") {
-      gross.set(production.product, selectedDailyAmount(production));
-    }
-    const rates =
-      production.effectiveMaterialPerHour ?? production.materialPerHour ?? {};
-    Object.entries(rates).forEach(([material, rate]) => {
-      materials.set(material, (materials.get(material) ?? 0) + rate * 24);
-    });
-  });
-  const dormitoryCredit = document.layout
-    .filter((entry) => entry.type === "dormitory")
-    .reduce(
-      (total, entry) => total + Math.floor(10 + (entry.level * 1000) / 125),
-      0,
-    );
-  const clue = productions.find((production) => production.product === "Clue");
-  gross.set(
-    "Credit",
-    CREDIT_BASE_DAILY +
-      dormitoryCredit +
-      (clue ? selectedDailyAmount(clue) * CREDIT_PER_CLUE : 0),
-  );
-
-  const grossOutputs = DAILY_OUTPUT_ORDER.flatMap((product) => {
-    const amountPerDay = gross.get(product);
-    return amountPerDay === undefined || Math.abs(amountPerDay) <= EPSILON
-      ? []
-      : [{ product, kind: "production" as const, amountPerDay }];
-  });
-  const netOutputs = Array.from(materials, ([product, consumed]) => ({
-    product,
-    kind: "net" as const,
-    amountPerDay: (gross.get(product) ?? 0) + consumed,
-    consumed,
-  }))
-    .filter(
-      (output) =>
-        output.consumed < -EPSILON && Math.abs(output.amountPerDay) > EPSILON,
-    )
-    .sort(
-      (left, right) =>
-        (DAILY_OUTPUT_ORDER.indexOf(left.product) < 0
-          ? DAILY_OUTPUT_ORDER.length
-          : DAILY_OUTPUT_ORDER.indexOf(left.product)) -
-          (DAILY_OUTPUT_ORDER.indexOf(right.product) < 0
-            ? DAILY_OUTPUT_ORDER.length
-            : DAILY_OUTPUT_ORDER.indexOf(right.product)) ||
-        left.product.localeCompare(right.product),
-    )
-    .map(({ product, kind, amountPerDay }) => ({
-      product,
-      kind,
-      amountPerDay,
-    }));
-  return [...grossOutputs, ...netOutputs];
 }
 
 export function calculateEfficiency(
