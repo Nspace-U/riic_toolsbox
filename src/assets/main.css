@@ -3105,8 +3105,6 @@ a {
   grid-template-columns: subgrid;
   gap: 2px 12px;
   color: #344447;
-  font-family: "Cascadia Code", Consolas, monospace;
-  line-height: 1.5;
   white-space: nowrap;
 }
 
