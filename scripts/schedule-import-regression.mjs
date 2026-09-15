@@ -86,6 +86,27 @@ EXP 52.2k | 贵金属 46.6k
     "105%",
   );
 
+  const maaParsed = maaModule.parseMaaScheduleText(
+    JSON.stringify({
+      layout: [
+        { type: "control", level: 5 },
+        { type: "trading", level: 3 },
+      ],
+      plans: [
+        {
+          rooms: {
+            control: [{}],
+            trading: [{ operators: ["阿米娅"], description: "Maa 描述" }],
+          },
+        },
+      ],
+    }),
+  );
+  assert.equal(
+    maaParsed.document.plans[0].rooms.trading[0].description,
+    "Maa 描述",
+  );
+
   assert.deepEqual(importLayoutModule.dormitoryLevels(4, 40), [1, 1, 1, 1]);
   assert.deepEqual(importLayoutModule.dormitoryLevels(4, 60), [3, 1, 1, 1]);
 

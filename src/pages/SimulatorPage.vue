@@ -41,7 +41,6 @@ import SimulatorCalculationStepContent, {
 } from "@/components/SimulatorCalculationStepContent.vue";
 import {
   DEFAULT_SCHEDULE_ADAPTER,
-  isTextSchedule,
   parseScheduleImport,
 } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
@@ -322,20 +321,23 @@ interface ImportDraftState {
   parsed: ParsedSchedule;
   fileName: string;
   layout: LayoutEntry[];
-  textFormat: boolean;
-  includeFacilityDescriptions: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-type SimulatorEditSetting = "layout" | "queue" | "product";
+type SimulatorEditSetting =
+  | "layout"
+  | "queue"
+  | "product"
+  | "showFacilityDescriptions";
 
 interface SimulatorEditSettings {
   layout: boolean;
   queue: boolean;
   product: boolean;
+  showFacilityDescriptions: boolean;
 }
 
 interface UpdateCurrentOptions {
@@ -401,6 +403,7 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   layout: true,
   queue: true,
   product: true,
+  showFacilityDescriptions: false,
 };
 
 const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
@@ -497,6 +500,10 @@ function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
       typeof candidate.product === "boolean"
         ? candidate.product
         : DEFAULT_SIMULATOR_EDIT_SETTINGS.product,
+    showFacilityDescriptions:
+      typeof candidate.showFacilityDescriptions === "boolean"
+        ? candidate.showFacilityDescriptions
+        : DEFAULT_SIMULATOR_EDIT_SETTINGS.showFacilityDescriptions,
   };
 }
 
@@ -2647,9 +2654,15 @@ const facilityGridStyle = computed(() => ({
     simulatorSlotSize.value +
     slotNameBandHeight.value +
     QUEUE_MIN_HEIGHT_EXTRA +
-    QUEUE_DESCRIPTION_HEIGHT
+    (currentSimulatorEditSettings.value.showFacilityDescriptions
+      ? QUEUE_DESCRIPTION_HEIGHT
+      : 0)
   }px`,
-  "--simulator-queue-description-height": `${QUEUE_DESCRIPTION_HEIGHT}px`,
+  "--simulator-queue-description-height": `${
+    currentSimulatorEditSettings.value.showFacilityDescriptions
+      ? QUEUE_DESCRIPTION_HEIGHT
+      : 0
+  }px`,
 }));
 
 function showsFacilityLevelTags(type: RoomKey): boolean {
@@ -5561,26 +5574,15 @@ function applyImportedFiammetta(document: ScheduleDocument): void {
   });
 }
 
-function removeImportedFacilityDescriptions(document: ScheduleDocument): void {
-  document.plans.forEach((plan) => {
-    ROOM_ORDER.forEach((type) => {
-      const rooms = plan.rooms[type];
-      if (!Array.isArray(rooms)) {
-        return;
-      }
-      rooms.forEach((room) => {
-        if (isRecord(room)) {
-          delete (room as RoomAssignment).description;
-        }
-      });
-    });
-  });
-}
-
 function disableImportedEditSettings(documentId: string): void {
   const nextSettings = {
     ...simulatorEditSettings.value,
-    [documentId]: { layout: false, queue: false, product: false },
+    [documentId]: {
+      layout: false,
+      queue: false,
+      product: false,
+      showFacilityDescriptions: false,
+    },
   };
   simulatorEditSettings.value = nextSettings;
   persistSimulatorEditSettings(nextSettings);
@@ -5596,9 +5598,6 @@ function confirmImport(): void {
     const document = cloneSchedule(draft.parsed.document);
     document.layout = draft.layout.map((entry) => ({ ...entry }));
     document.plans = resizeImportedRooms(document.plans, document.layout);
-    if (draft.textFormat && !draft.includeFacilityDescriptions) {
-      removeImportedFacilityDescriptions(document);
-    }
     applyImportedFiammetta(document);
     delete document.importFiammetta;
     validateSchedule(document);
@@ -5655,8 +5654,6 @@ async function handleFileChange(event: Event): Promise<void> {
       parsed,
       fileName: file.name,
       layout: parsed.document.layout.map((entry) => ({ ...entry })),
-      textFormat: isTextSchedule(text),
-      includeFacilityDescriptions: false,
     };
     importLayoutText.value = layoutTextFor(parsed.document.layout);
   } catch (error: unknown) {
@@ -6023,12 +6020,6 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-        <a-checkbox
-          v-if="importDraft.textFormat"
-          v-model:checked="importDraft.includeFacilityDescriptions"
-        >
-          导入设施组合描述
-        </a-checkbox>
       </template>
     </a-modal>
 
@@ -6143,6 +6134,18 @@ onBeforeUnmount(() => {
               "
             >
               编辑产物
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.showFacilityDescriptions"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting(
+                    'showFacilityDescriptions',
+                    event.target.checked,
+                  )
+              "
+            >
+              显示组合描述
             </a-checkbox>
           </div>
           <a-button type="primary" @click="handleExport">
@@ -6489,7 +6492,10 @@ onBeforeUnmount(() => {
                       )
                     "
                   >
-                    <div class="simulator-facility-queue-description">
+                    <div
+                      v-if="currentSimulatorEditSettings.showFacilityDescriptions"
+                      class="simulator-facility-queue-description"
+                    >
                       {{ roomDescriptions(row, plan).join(" · ") }}
                     </div>
                     <div class="simulator-slot-grid" :style="slotGridStyle">
