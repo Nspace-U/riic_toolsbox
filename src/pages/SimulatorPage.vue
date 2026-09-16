@@ -7652,191 +7652,6 @@ onBeforeUnmount(() => {
                 show-icon
                 type="warning"
               />
-              <div
-                v-if="dailyOutputQueueDetails.length"
-                class="simulator-daily-output-breakdown"
-              >
-                <div class="simulator-daily-output-breakdown-heading">
-                  <span class="simulator-step-subheading">队列计算明细</span>
-                  <span class="simulator-result-hint"
-                    >按队列时长折算到每日产出</span
-                  >
-                </div>
-                <a-collapse ghost>
-                  <a-collapse-panel
-                    v-for="queue in dailyOutputQueueDetails"
-                    :key="`daily-output-${queue.planIndex}`"
-                  >
-                    <template #header>
-                      <div class="simulator-step-header">
-                        <span>
-                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
-                          <small
-                            >·
-                            {{ formatNumber(queue.plan.durationHours) }}
-                            小时</small
-                          >
-                        </span>
-                        <strong>{{ queue.products.length }} 种产物</strong>
-                      </div>
-                    </template>
-                    <div class="simulator-step-content">
-                      <div
-                        v-for="product in queue.products"
-                        :key="product.product"
-                        class="simulator-daily-output-product"
-                      >
-                        <div class="simulator-daily-output-product-heading">
-                          <strong>{{ resourceLabel(product.product) }}</strong>
-                          <span>
-                            基础效率
-                            {{
-                              formatEfficiencyNumber(product.baseEfficiency)
-                            }}% · 总效率
-                            {{
-                              formatEfficiencyNumber(product.totalEfficiency)
-                            }}%
-                          </span>
-                        </div>
-                        <div class="simulator-daily-output-stat-grid">
-                          <span>基础效率产出</span>
-                          <strong
-                            >{{
-                              formatProduction(product.baseOutputPerHour)
-                            }}/小时</strong
-                          >
-                          <span>总效率产出</span>
-                          <strong
-                            >{{
-                              formatProduction(product.totalOutputPerHour)
-                            }}/小时</strong
-                          >
-                          <span>队列折算每日</span>
-                          <strong>{{
-                            formatProduction(product.dailyContribution)
-                          }}</strong>
-                        </div>
-                        <div class="simulator-daily-output-facilities">
-                          <span class="simulator-step-subheading"
-                            >设施明细</span
-                          >
-                          <div
-                            v-for="facility in product.facilities"
-                            :key="facility.label"
-                            class="simulator-daily-output-facility"
-                          >
-                            <div class="simulator-daily-output-facility-row">
-                              <span>{{ facility.label }}</span>
-                              <span>
-                                基础
-                                {{
-                                  formatEfficiencyNumber(
-                                    facility.baseEfficiency,
-                                  )
-                                }}% / 总
-                                {{
-                                  formatEfficiencyNumber(
-                                    facility.totalEfficiency,
-                                  )
-                                }}%
-                              </span>
-                              <strong>
-                                基础
-                                {{
-                                  formatProduction(facility.baseOutputPerHour)
-                                }}/小时 · 总
-                                {{
-                                  formatProduction(facility.totalOutputPerHour)
-                                }}/小时
-                              </strong>
-                            </div>
-                            <div
-                              v-if="facility.orders.length"
-                              class="simulator-daily-output-orders"
-                            >
-                              <span class="simulator-step-subheading"
-                                >订单产出</span
-                              >
-                              <div
-                                v-for="order in facility.orders"
-                                :key="`${facility.label}-${order.name}`"
-                                class="simulator-daily-output-order"
-                              >
-                                <span>
-                                  {{ order.name }} ·
-                                  {{ formatNumber(order.probability * 100) }}%
-                                </span>
-                                <span>
-                                  基础
-                                  {{ formatProduction(order.baseRate) }}/小时 ·
-                                  总
-                                  {{ formatProduction(order.totalRate) }}/小时
-                                  <template v-if="order.ignoreEfficiency">
-                                    · 固定订单
-                                  </template>
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="simulator-queue-sanity">
-                        <div class="simulator-daily-output-product-heading">
-                          <strong>队列等效理智</strong>
-                          <span>按队列时长折算到每日</span>
-                        </div>
-                        <a-alert
-                          v-if="!queue.sanity.complete"
-                          :message="
-                            '总理智不完整：未设置' +
-                            queue.sanity.missing.join('、') +
-                            '价值'
-                          "
-                          show-icon
-                          type="warning"
-                        />
-                        <div class="simulator-sanity-grid">
-                          <div
-                            v-for="item in queue.sanity.items"
-                            :key="item.resource"
-                            class="simulator-sanity-item"
-                          >
-                            <img
-                              v-if="dailyOutputIconUrl(item.resource)"
-                              :alt="item.label"
-                              :src="dailyOutputIconUrl(item.resource)"
-                              class="simulator-daily-output-icon"
-                            />
-                            <div class="simulator-sanity-item-copy">
-                              <strong>{{ item.label }}</strong>
-                              <span
-                                >{{ signedNumber(item.amount) }}
-                                {{ item.amountUnit }}</span
-                              >
-                            </div>
-                            <strong v-if="item.contribution !== undefined">
-                              {{ signedNumber(item.contribution) }} 理智
-                            </strong>
-                            <span v-else class="simulator-sanity-missing"
-                              >未计入</span
-                            >
-                          </div>
-                        </div>
-                        <div class="simulator-sanity-total">
-                          <span>{{
-                            queue.sanity.complete
-                              ? "队列等效理智合计"
-                              : "队列等效理智合计（部分）"
-                          }}</span>
-                          <strong
-                            >{{ signedNumber(queue.sanity.total) }} 理智</strong
-                          >
-                        </div>
-                      </div>
-                    </div>
-                  </a-collapse-panel>
-                </a-collapse>
-              </div>
             </div>
 
             <div
@@ -7970,6 +7785,195 @@ onBeforeUnmount(() => {
                 :image="undefined"
                 description="请输入龙门币贸易站策略"
               />
+            </div>
+
+            <div
+              v-if="dailyOutputQueueDetails.length"
+              class="simulator-daily-output-breakdown"
+            >
+              <a-collapse ghost>
+                <a-collapse-panel key="daily-output-breakdown">
+                  <template #header>
+                    <div class="simulator-step-header">
+                      <span class="simulator-step-subheading"
+                        >队列计算明细</span
+                      >
+                      <span class="simulator-result-hint"
+                        >按队列时长折算到每日产出</span
+                      >
+                    </div>
+                  </template>
+                  <div class="simulator-step-content">
+                    <section
+                      v-for="queue in dailyOutputQueueDetails"
+                      :key="`daily-output-${queue.planIndex}`"
+                      class="simulator-step-section"
+                    >
+                      <div class="simulator-step-header">
+                        <span>
+                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
+                          <small
+                            >·
+                            {{ formatNumber(queue.plan.durationHours) }}
+                            小时</small
+                          >
+                        </span>
+                        <strong>{{ queue.products.length }} 种产物</strong>
+                      </div>
+                      <section
+                        v-for="product in queue.products"
+                        :key="product.product"
+                        class="simulator-step-subsection"
+                      >
+                        <span class="simulator-step-subheading">{{
+                          resourceLabel(product.product)
+                        }}</span>
+                        <div class="simulator-step-detail-grid">
+                          <span>基础效率</span>
+                          <strong
+                            >{{
+                              formatEfficiencyNumber(product.baseEfficiency)
+                            }}%</strong
+                          >
+                          <span>总效率</span>
+                          <strong
+                            >{{
+                              formatEfficiencyNumber(product.totalEfficiency)
+                            }}%</strong
+                          >
+                          <span>基础效率产出</span>
+                          <strong
+                            >{{
+                              formatProduction(product.baseOutputPerHour)
+                            }}/小时</strong
+                          >
+                          <span>总效率产出</span>
+                          <strong
+                            >{{
+                              formatProduction(product.totalOutputPerHour)
+                            }}/小时</strong
+                          >
+                          <span>队列折算每日</span>
+                          <strong>{{
+                            formatProduction(product.dailyContribution)
+                          }}</strong>
+                        </div>
+                        <div
+                          v-if="product.facilities.length"
+                          class="simulator-step-subsection"
+                        >
+                          <span class="simulator-step-subheading"
+                            >设施明细</span
+                          >
+                          <div class="simulator-step-detail-grid">
+                            <template
+                              v-for="facility in product.facilities"
+                              :key="facility.label"
+                            >
+                              <span>{{ facility.label }} · 基础效率</span>
+                              <strong
+                                >{{
+                                  formatEfficiencyNumber(
+                                    facility.baseEfficiency,
+                                  )
+                                }}%</strong
+                              >
+                              <span>{{ facility.label }} · 总效率</span>
+                              <strong
+                                >{{
+                                  formatEfficiencyNumber(
+                                    facility.totalEfficiency,
+                                  )
+                                }}%</strong
+                              >
+                              <span>{{ facility.label }} · 基础产出</span>
+                              <strong
+                                >{{
+                                  formatProduction(facility.baseOutputPerHour)
+                                }}/小时</strong
+                              >
+                              <span>{{ facility.label }} · 总产出</span>
+                              <strong
+                                >{{
+                                  formatProduction(facility.totalOutputPerHour)
+                                }}/小时</strong
+                              >
+                              <template
+                                v-for="order in facility.orders"
+                                :key="`${facility.label}-${order.name}`"
+                              >
+                                <span>
+                                  {{ facility.label }} · 订单产出 ·
+                                  {{ order.name }} ·
+                                  {{ formatNumber(order.probability * 100) }}%
+                                </span>
+                                <span>
+                                  基础
+                                  {{ formatProduction(order.baseRate) }}/小时 ·
+                                  总
+                                  {{ formatProduction(order.totalRate) }}/小时
+                                  <template v-if="order.ignoreEfficiency">
+                                    · 固定订单
+                                  </template>
+                                </span>
+                              </template>
+                            </template>
+                          </div>
+                        </div>
+                      </section>
+                      <section
+                        class="simulator-step-subsection simulator-daily-output-queue-sanity"
+                      >
+                        <span class="simulator-step-subheading"
+                          >队列等效理智</span
+                        >
+                        <a-alert
+                          v-if="!queue.sanity.complete"
+                          :message="
+                            '总理智不完整：未设置' +
+                            queue.sanity.missing.join('、') +
+                            '价值'
+                          "
+                          show-icon
+                          type="warning"
+                        />
+                        <div class="simulator-step-detail-grid">
+                          <template
+                            v-for="item in queue.sanity.items"
+                            :key="item.resource"
+                          >
+                            <span class="simulator-sanity-detail-label">
+                              <img
+                                v-if="dailyOutputIconUrl(item.resource)"
+                                :alt="item.label"
+                                :src="dailyOutputIconUrl(item.resource)"
+                                class="simulator-daily-output-icon"
+                              />
+                              {{ item.label }} ·
+                              {{ signedNumber(item.amount) }}
+                              {{ item.amountUnit }}
+                            </span>
+                            <strong v-if="item.contribution !== undefined">
+                              {{ signedNumber(item.contribution) }} 理智
+                            </strong>
+                            <span v-else class="simulator-sanity-missing"
+                              >未计入</span
+                            >
+                          </template>
+                          <span>{{
+                            queue.sanity.complete
+                              ? "队列等效理智合计"
+                              : "队列等效理智合计（部分）"
+                          }}</span>
+                          <strong
+                            >{{ signedNumber(queue.sanity.total) }} 理智</strong
+                          >
+                        </div>
+                      </section>
+                    </section>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
             </div>
 
             <div

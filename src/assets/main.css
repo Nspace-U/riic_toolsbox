@@ -2577,102 +2577,16 @@ a {
 }
 
 .simulator-daily-output-breakdown {
-  margin-block-start: 14px;
-  padding-block-start: 12px;
-  border-block-start: 1px solid #edf1f0;
-}
-
-.simulator-daily-output-breakdown-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.simulator-daily-output-product {
-  display: grid;
-  gap: 10px;
-  padding-block: 8px;
+  padding-block: 18px;
   border-block-end: 1px solid #edf1f0;
 }
 
-.simulator-daily-output-product:last-child {
-  border-block-end: 0;
+.simulator-daily-output-breakdown .ant-collapse {
+  background: transparent;
 }
 
-.simulator-daily-output-product-heading,
-.simulator-daily-output-facility-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.simulator-daily-output-product-heading strong {
-  color: #2e4043;
-}
-
-.simulator-daily-output-product-heading span,
-.simulator-daily-output-facility-row span,
-.simulator-daily-output-facility-row strong,
-.simulator-daily-output-order {
-  color: #72807f;
-  font-size: 12px;
-}
-
-.simulator-daily-output-stat-grid {
-  display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  justify-content: start;
-  align-items: center;
-  gap: 6px 12px;
-  color: #72807f;
-  font-size: 12px;
-}
-
-.simulator-daily-output-stat-grid strong {
-  color: #176b68;
-}
-
-.simulator-daily-output-facilities {
-  display: grid;
-  gap: 7px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid #edf1f0;
-}
-
-.simulator-daily-output-facility {
-  display: grid;
-  gap: 5px;
-}
-
-.simulator-daily-output-facility-row strong {
-  color: #344447;
-  font-weight: 600;
-  text-align: end;
-}
-
-.simulator-daily-output-orders {
-  display: grid;
-  gap: 3px;
-  margin-inline-start: 12px;
-  padding-inline-start: 10px;
-  border-inline-start: 2px solid #e0e8e5;
-}
-
-.simulator-daily-output-orders .simulator-step-subheading {
-  margin-block-end: 1px;
-}
-
-.simulator-daily-output-order {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.simulator-daily-output-order span:last-child {
-  color: #344447;
-  text-align: end;
+.simulator-daily-output-breakdown .simulator-step-content {
+  padding-block-start: 4px;
 }
 
 .settings-base-point-options {
@@ -2818,86 +2732,23 @@ a {
   color: #a06b27;
 }
 
-.simulator-queue-sanity {
-  display: grid;
+.simulator-daily-output-queue-sanity {
   gap: 10px;
 }
 
-.simulator-queue-sanity {
-  margin-block-start: 10px;
-  padding-block-start: 10px;
-  border-block-start: 1px solid #edf1f0;
-}
-
-.simulator-queue-sanity .ant-alert {
+.simulator-daily-output-queue-sanity .ant-alert {
   margin-block: 2px;
 }
 
-.simulator-sanity-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px;
-}
-
-.simulator-sanity-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 8px;
+.simulator-sanity-detail-label {
+  display: inline-flex;
   align-items: center;
-  min-width: 0;
-  padding: 8px;
-  background: #f8fbfa;
-  border: 1px solid #e0e8e5;
-  border-radius: 5px;
+  gap: 6px;
 }
 
-.simulator-sanity-item > .simulator-daily-output-icon {
-  width: 28px;
-  height: 28px;
-}
-
-.simulator-sanity-item-copy {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-
-.simulator-sanity-item-copy strong {
-  overflow: hidden;
-  color: #2e4043;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.simulator-sanity-item-copy span,
-.simulator-sanity-item > strong,
-.simulator-sanity-missing {
-  color: #72807f;
-  font-size: 12px;
-}
-
-.simulator-sanity-item > strong {
-  color: #176b68;
-  text-align: end;
-}
-
-.simulator-sanity-total {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding-block-start: 8px;
-  border-block-start: 1px solid #e0e8e5;
-  color: #344447;
-}
-
-.simulator-sanity-total small {
-  color: #879294;
-  font-size: 11px;
-  font-weight: 400;
-}
-
-.simulator-sanity-total strong {
-  color: #176b68;
+.simulator-sanity-detail-label .simulator-daily-output-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .simulator-calculation-steps {
