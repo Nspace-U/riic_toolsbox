@@ -1272,6 +1272,9 @@ a {
 .simulator-document-sidebar {
   position: sticky;
   inset-block-start: 92px;
+  display: flex;
+  flex-direction: column;
+  max-block-size: calc(100vh - 108px);
   overflow: hidden;
   background: #ffffff;
 }
@@ -1317,19 +1320,25 @@ a {
 
 .simulator-document-list {
   display: grid;
-  max-height: 60vh;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  max-block-size: none;
   overflow-y: auto;
   padding: 8px;
   gap: 4px;
 }
 
 .simulator-document-item {
+  --simulator-document-actions-width: 84px;
   position: relative;
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   width: 100%;
   padding: 11px 10px;
+  padding-inline-end: calc(
+    10px + var(--simulator-document-actions-width)
+  );
   gap: 4px;
   color: #526164;
   text-align: start;
@@ -1370,6 +1379,7 @@ a {
 }
 
 .simulator-document-item-main {
+  overflow: hidden;
   min-width: 0;
 }
 
@@ -1379,6 +1389,7 @@ a {
 }
 
 .simulator-document-item-title {
+  display: block;
   overflow: hidden;
   font-size: 13px;
   font-weight: 650;
@@ -1397,8 +1408,13 @@ a {
 }
 
 .simulator-document-item-actions {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 50%;
+  inset-inline-end: 10px;
   display: flex;
   gap: 2px;
+  transform: translateY(-50%);
   opacity: 0;
   visibility: hidden;
   transition: opacity 120ms ease;
@@ -1425,23 +1441,14 @@ a {
   min-width: 0;
 }
 
-.simulator-editor-toolbar {
-  margin-block-end: 14px;
-  padding: 8px 10px;
-  background: #ffffff;
-}
-
-.simulator-editor-toolbar--settings-only {
-  justify-content: flex-end;
-}
-
 .simulator-edit-settings {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  margin-inline: auto;
+  margin-block-start: 14px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid #edf1f0;
   color: #526164;
 }
 
@@ -3583,10 +3590,11 @@ a {
 
   .simulator-document-sidebar {
     position: static;
+    max-block-size: calc(100vh - 140px);
   }
 
   .simulator-document-list {
-    max-height: 220px;
+    max-block-size: none;
   }
 
   .simulator-drone-strategy {
@@ -3780,11 +3788,6 @@ a {
   .operator-skill-row {
     grid-template-columns: max-content minmax(0, 1fr);
     gap: 8px;
-  }
-
-  .simulator-editor-toolbar {
-    align-items: stretch;
-    flex-direction: column;
   }
 
   .simulator-meta-panel .ant-card-body {
