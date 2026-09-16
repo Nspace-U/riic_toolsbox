@@ -37,9 +37,9 @@ export const ROOM_REPRESENTATIVE_COLORS: Record<RoomKey, string> = {
 };
 
 export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
-  "Pure Gold": "#B87321",
-  Orundum: "#B52D2D",
-  "Originium Shard": "#B52D2D",
+  赤金: "#B87321",
+  合成玉: "#B52D2D",
+  源石碎片: "#B52D2D",
 };
 
 export const ROOM_ORDER: RoomKey[] = [...ROOM_KEYS];
@@ -117,24 +117,16 @@ export const ROOM_POWER_VALUES: Record<RoomKey, number[]> = {
 };
 
 export const PRODUCT_LABELS: Record<string, string> = {
-  LMD: "龙门币",
-  Orundum: "合成玉",
-  "Pure Gold": "赤金",
-  "Battle Record": "作战记录",
-  "Originium Shard": "源石碎片",
+  龙门币: "龙门币",
+  合成玉: "合成玉",
+  赤金: "赤金",
+  中级作战记录: "作战记录",
+  源石碎片: "源石碎片",
 };
 
 export const RESOURCE_KEY_ALIASES: Readonly<Record<string, string>> = {
-  龙门币: "LMD",
-  合成玉: "Orundum",
-  赤金: "Pure Gold",
-  作战记录: "Battle Record",
-  中级作战记录: "Battle Record",
-  源石碎片: "Originium Shard",
-  无人机: "Drone",
-  线索: "Clue",
-  信用点: "Credit",
-  公开招募标签刷新次数: "Recruit Refresh",
+  作战记录: "中级作战记录",
+  贵金属: "赤金",
 };
 
 export function canonicalResourceKey(resource: string): string {
@@ -142,15 +134,11 @@ export function canonicalResourceKey(resource: string): string {
   return RESOURCE_KEY_ALIASES[normalized] ?? normalized;
 }
 
-export const UNSUPPORTED_PRODUCT_LABELS: Record<string, string> = {
-  Dualchip: "双芯片（仅保留，不参与本工具制造计算）",
-};
-
 export const DEFAULT_SOURCE_MATERIAL = "固源岩";
 
 export const DEFAULT_ROOM_PRODUCTS: Partial<Record<RoomKey, string>> = {
-  trading: "LMD",
-  manufacture: "Pure Gold",
+  trading: "龙门币",
+  manufacture: "赤金",
 };
 
 export function createDefaultRoomAssignment(type: RoomKey): RoomAssignment {
@@ -171,18 +159,18 @@ export const SOURCE_MATERIAL_OPTIONS = [
 ];
 
 export const PRODUCT_ITEM_ICONS: Record<string, string> = {
-  LMD: "GOLD.png",
-  Orundum: "DIAMOND_SHD.png",
-  "Pure Gold": "MTL_GOLD3.png",
-  "Battle Record": "sprite_exp_card_t3.png",
-  "Originium Shard": "MTL_DIAMOND_SHD.png",
+  龙门币: "GOLD.png",
+  合成玉: "DIAMOND_SHD.png",
+  赤金: "MTL_GOLD3.png",
+  中级作战记录: "sprite_exp_card_t3.png",
+  源石碎片: "MTL_DIAMOND_SHD.png",
 };
 
 export const RESOURCE_ITEM_ICONS: Record<string, string> = {
   ...PRODUCT_ITEM_ICONS,
-  Drone: "AP_BASE.png",
-  Credit: "SOCIAL_PT.png",
-  "Recruit Refresh": "TKT_RECRUIT.png",
+  无人机: "AP_BASE.png",
+  信用: "SOCIAL_PT.png",
+  公开招募标签刷新次数: "TKT_RECRUIT.png",
   固源岩: "MTL_SL_G2.png",
   装置: "MTL_SL_BOSS2.png",
 };

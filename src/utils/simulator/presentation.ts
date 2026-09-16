@@ -180,10 +180,10 @@ export function formatProduction(value: number): string {
 
 const RESOURCE_LABELS: Record<string, string> = {
   ...PRODUCT_LABELS,
-  Clue: "线索",
-  Drone: "无人机",
-  Credit: "信用点",
-  "Recruit Refresh": "公开招募刷新次数",
+  线索: "线索",
+  无人机: "无人机",
+  信用: "信用",
+  公开招募标签刷新次数: "公开招募标签刷新次数",
   固源岩: "固源岩",
   装置: "装置",
 };

@@ -44,14 +44,14 @@ export interface SanityValues {
 }
 
 export type SanityFlowResource =
-  | "LMD"
-  | "Orundum"
-  | "Pure Gold"
-  | "Battle Record"
-  | "Originium Shard"
-  | "Drone"
-  | "Credit"
-  | "Recruit Refresh"
+  | "龙门币"
+  | "合成玉"
+  | "赤金"
+  | "中级作战记录"
+  | "源石碎片"
+  | "无人机"
+  | "信用"
+  | "公开招募标签刷新次数"
   | "固源岩"
   | "装置";
 
@@ -83,56 +83,56 @@ interface SanityItemDefinition {
 
 const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
   {
-    resource: "LMD",
+    resource: "龙门币",
     label: "龙门币",
     amountUnit: "龙门币",
     amountFactor: 1,
     value: (values) => values.lmd,
   },
   {
-    resource: "Orundum",
+    resource: "合成玉",
     label: "合成玉",
     amountUnit: "合成玉",
     amountFactor: 1,
     value: (values) => values.orundum,
   },
   {
-    resource: "Pure Gold",
+    resource: "赤金",
     label: "赤金点数",
     amountUnit: "赤金点数",
     amountFactor: PURE_GOLD_POINTS,
     value: (values) => values.pureGoldPoint,
   },
   {
-    resource: "Battle Record",
+    resource: "中级作战记录",
     label: "作战记录（经验）",
     amountUnit: "经验",
     amountFactor: BATTLE_RECORD_EXPERIENCE,
     value: (values) => values.experience,
   },
   {
-    resource: "Drone",
+    resource: "无人机",
     label: "无人机",
     amountUnit: "无人机",
     amountFactor: 1,
     value: (values) => values.drone,
   },
   {
-    resource: "Credit",
-    label: "信用点",
-    amountUnit: "信用点",
+    resource: "信用",
+    label: "信用",
+    amountUnit: "信用",
     amountFactor: 1,
     value: (values) => values.credit,
   },
   {
-    resource: "Recruit Refresh",
-    label: "公开招募刷新次数",
+    resource: "公开招募标签刷新次数",
+    label: "公开招募标签刷新次数",
     amountUnit: "次",
     amountFactor: 1,
     value: (values) => values.recruitRefresh,
   },
   {
-    resource: "Originium Shard",
+    resource: "源石碎片",
     label: "源石碎片",
     amountUnit: "源石碎片",
     amountFactor: 1,
@@ -165,8 +165,8 @@ export function calculateSanityValues(settings: SanitySettings): SanityValues {
       : 0;
   const battleRecord = experience * BATTLE_RECORD_EXPERIENCE;
   const battleRecordHours =
-    manufactureRule("Battle Record", undefined)?.hours ?? 0;
-  const pureGoldHours = manufactureRule("Pure Gold", undefined)?.hours ?? 0;
+    manufactureRule("中级作战记录", undefined)?.hours ?? 0;
+  const pureGoldHours = manufactureRule("赤金", undefined)?.hours ?? 0;
   const battleRecordDrones = dronesForHours(battleRecordHours);
   const drone = battleRecordDrones > 0 ? battleRecord / battleRecordDrones : 0;
   const pureGold = drone * dronesForHours(pureGoldHours);
@@ -214,10 +214,10 @@ export function addProductionFlow(
 ): void {
   const amountPerHour =
     production.effectiveAmountPerHour ?? production.amountPerHour;
-  if (production.product === "Clue") {
+  if (production.product === "线索") {
     addFlow(
       amounts,
-      "Credit",
+      "信用",
       amountPerHour * hours * (production.conversion?.amountPerUnit ?? 0),
     );
   } else {

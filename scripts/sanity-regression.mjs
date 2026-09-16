@@ -15,6 +15,12 @@ try {
     calculateSanityValues,
     DEFAULT_SANITY_SETTINGS,
   } = await vite.ssrLoadModule("/src/utils/sanity.ts");
+  const { manufactureRule } = await vite.ssrLoadModule(
+    "/src/utils/efficiency/baseRules.ts",
+  );
+  assert.equal(manufactureRule("中级作战记录")?.recipe, "作战记录");
+  assert.equal(manufactureRule("赤金")?.recipe, "贵金属");
+  assert.equal(manufactureRule("源石碎片", "固源岩")?.recipe, "源石碎片");
   const values = calculateSanityValues(DEFAULT_SANITY_SETTINGS);
 
   assert.ok(Math.abs(values.experience - 0.003) < 1e-12);
@@ -26,38 +32,37 @@ try {
   addProductionFlow(
     netAmounts,
     {
-      product: "LMD",
-      amountPerHour: 100,
-      materialPerHour: { "Pure Gold": -1 },
-    },
-    24,
-  );
-  assert.equal(netAmounts.LMD, 2400);
-  assert.equal(netAmounts["Pure Gold"], -24);
-
-  const aliasAmounts = {};
-  addProductionFlow(
-    aliasAmounts,
-    {
-      product: "LMD",
+      product: "龙门币",
       amountPerHour: 100,
       materialPerHour: { 赤金: -1 },
     },
     24,
   );
-  assert.equal(aliasAmounts["Pure Gold"], -24);
-  assert.equal(aliasAmounts["赤金"], undefined);
+  assert.equal(netAmounts.龙门币, 2400);
+  assert.equal(netAmounts.赤金, -24);
+
+  const recipeAliasAmounts = {};
+  addProductionFlow(
+    recipeAliasAmounts,
+    {
+      product: "龙门币",
+      amountPerHour: 100,
+      materialPerHour: { 贵金属: -1 },
+    },
+    24,
+  );
+  assert.equal(recipeAliasAmounts.赤金, -24);
 
   const result = calculateSanityResult(
     {
-      LMD: 1000,
-      Orundum: 100,
-      "Pure Gold": 1,
-      "Battle Record": 1,
-      Drone: 60,
-      Credit: 129,
-      "Recruit Refresh": 1,
-      "Originium Shard": -2,
+      龙门币: 1000,
+      合成玉: 100,
+      赤金: 1,
+      中级作战记录: 1,
+      无人机: 60,
+      信用: 129,
+      公开招募标签刷新次数: 1,
+      源石碎片: -2,
     },
     values,
   );

@@ -16,7 +16,7 @@ const LEGACY_PRODUCT_COLORS_STORAGE_KEY = "riic-tools:maa-product-colors:v1";
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const DEFAULT_FIAMMETTA_COLOR = "#A03030";
 
-const PRODUCT_COLOR_KEYS = ["Pure Gold", "Orundum", "Originium Shard"] as const;
+const PRODUCT_COLOR_KEYS = ["赤金", "合成玉", "源石碎片"] as const;
 export type ProductColorKey = (typeof PRODUCT_COLOR_KEYS)[number];
 
 function readStoredColors(key: string, legacyKey: string): string | null {
@@ -76,10 +76,9 @@ function loadFacilityColors(): Record<RoomKey, string> {
 
 function cloneDefaultProductColors(): Record<ProductColorKey, string> {
   return {
-    "Pure Gold": PRODUCT_REPRESENTATIVE_COLORS["Pure Gold"] ?? "#B87321",
-    Orundum: PRODUCT_REPRESENTATIVE_COLORS.Orundum ?? "#B52D2D",
-    "Originium Shard":
-      PRODUCT_REPRESENTATIVE_COLORS["Originium Shard"] ?? "#B52D2D",
+    赤金: PRODUCT_REPRESENTATIVE_COLORS.赤金 ?? "#B87321",
+    合成玉: PRODUCT_REPRESENTATIVE_COLORS.合成玉 ?? "#B52D2D",
+    源石碎片: PRODUCT_REPRESENTATIVE_COLORS.源石碎片 ?? "#B52D2D",
   };
 }
 
@@ -202,9 +201,9 @@ export function useFacilityColors() {
     productColors,
     fiammettaColor,
     productLabels: {
-      "Pure Gold": PRODUCT_LABELS["Pure Gold"] ?? "赤金",
-      Orundum: PRODUCT_LABELS.Orundum ?? "合成玉",
-      "Originium Shard": PRODUCT_LABELS["Originium Shard"] ?? "源石碎片",
+      赤金: PRODUCT_LABELS.赤金 ?? "赤金",
+      合成玉: PRODUCT_LABELS.合成玉 ?? "合成玉",
+      源石碎片: PRODUCT_LABELS.源石碎片 ?? "源石碎片",
     } satisfies Record<ProductColorKey, string>,
     setFacilityColor,
     setProductColor,

@@ -77,7 +77,6 @@ import {
   ROOM_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   SOURCE_MATERIAL_OPTIONS,
-  UNSUPPORTED_PRODUCT_LABELS,
   ScheduleError,
   canAddLayoutEntry,
   cloneSchedule,
@@ -245,10 +244,10 @@ interface DroneScenarioDisplay {
 function dailyOutputPointInfo(
   product: string,
 ): { factor: number; label: string } | undefined {
-  if (product === "Pure Gold") {
+  if (product === "赤金") {
     return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
   }
-  if (product === "Battle Record") {
+  if (product === "中级作战记录") {
     return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
   }
   return undefined;
@@ -1195,10 +1194,10 @@ const dailySanityAmounts = computed<SanityResourceAmounts | undefined>(() => {
     addProductionFlow(amounts, production, 24);
   });
   const dailyCredit = result.dailyOutputs.find(
-    (output) => output.product === "Credit",
+    (output) => output.product === "信用",
   );
   if (dailyCredit) {
-    amounts.Credit = dailyCredit.amountPerDay;
+    amounts.信用 = dailyCredit.amountPerDay;
   }
   return amounts;
 });
@@ -1259,7 +1258,7 @@ const lmdDroneFacilityExists = computed(() => {
     return document.plans.some(
       (_plan, planIndex) =>
         (resolveRoomAssignment(document, planIndex, "trading", position)
-          .assignment.product ?? "LMD") === "LMD",
+          .assignment.product ?? "龙门币") === "龙门币",
     );
   });
 });
@@ -1307,7 +1306,7 @@ function scenarioCards(
   return resources
     .filter(
       (resource) =>
-        resource !== "Drone" &&
+        resource !== "无人机" &&
         (resource === product ||
           Math.abs(amountFromFlow(amounts, resource)) > 0.000001),
     )
@@ -2245,10 +2244,10 @@ function productOptions(
   const options =
     type === "trading"
       ? PRODUCT_OPTIONS.filter(
-          (option) => option.value === "LMD" || option.value === "Orundum",
+          (option) => option.value === "龙门币" || option.value === "合成玉",
         )
       : PRODUCT_OPTIONS.filter(
-          (option) => option.value !== "LMD" && option.value !== "Orundum",
+          (option) => option.value !== "龙门币" && option.value !== "合成玉",
         );
   const result: Array<{ value: string; label: string; disabled?: boolean }> = [
     { value: "", label: "未指定产物" },
@@ -2260,9 +2259,7 @@ function productOptions(
   ) {
     result.push({
       value: currentProduct,
-      label:
-        UNSUPPORTED_PRODUCT_LABELS[currentProduct] ??
-        `${currentProduct}（仅保留）`,
+      label: `${currentProduct}（仅保留）`,
       disabled: true,
     });
   }
@@ -2272,12 +2269,12 @@ function productOptions(
 function sourceValue(room: RoomAssignment | undefined): string {
   return (
     room?.sourceMaterial ??
-    (room?.product === "Originium Shard" ? DEFAULT_SOURCE_MATERIAL : "")
+    (room?.product === "源石碎片" ? DEFAULT_SOURCE_MATERIAL : "")
   );
 }
 
 function sourceVisible(room: RoomAssignment | undefined): boolean {
-  return room?.product === "Originium Shard";
+  return room?.product === "源石碎片";
 }
 
 function updateRoomSkip(
@@ -2308,7 +2305,7 @@ function updateRoomProduct(
       return;
     }
     room.product = product;
-    if (product === "Originium Shard") {
+    if (product === "源石碎片") {
       room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
     } else {
       delete room.sourceMaterial;
@@ -5215,7 +5212,7 @@ function facilityCardContextMenuItems(
         disabled: option.disabled,
         action: () => {
           updateAllPlanRooms(type, position, (room) => {
-            if (option.value === "Originium Shard") {
+            if (option.value === "源石碎片") {
               room.product = option.value;
               room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
             } else {
@@ -5228,10 +5225,7 @@ function facilityCardContextMenuItems(
       });
     });
 
-  if (
-    !rooms.length ||
-    !rooms.every((room) => room?.product === "Originium Shard")
-  ) {
+  if (!rooms.length || !rooms.every((room) => room?.product === "源石碎片")) {
     return items;
   }
 
@@ -7862,7 +7856,7 @@ onBeforeUnmount(() => {
                 <a-form-item label="龙门币贸易站策略">
                   <a-input
                     :value="lmdDroneStrategyDraft"
-                    placeholder="例如：3 巫恋 龙舌兰2 但书0"
+                    placeholder="3 巫恋 龙舌兰2 但书0"
                     @blur="commitLmdDroneStrategy"
                     @press-enter="commitLmdDroneStrategy"
                     @update:value="updateLmdDroneStrategyDraft"

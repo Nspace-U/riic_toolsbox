@@ -26,7 +26,6 @@ import type {
 } from "@/types/schedule";
 import {
   PRODUCT_OPTIONS,
-  UNSUPPORTED_PRODUCT_LABELS,
   DEFAULT_SOURCE_MATERIAL,
   createDefaultRoomAssignment,
   formatDuplicateOperatorWarnings,
@@ -502,7 +501,7 @@ function updateRoomProduct(
   updatePlanRoom(planIndex, type, position, (room) => {
     if (product) {
       room.product = product;
-      if (product === "Originium Shard" && !room.sourceMaterial) {
+      if (product === "源石碎片" && !room.sourceMaterial) {
         room.sourceMaterial = DEFAULT_SOURCE_MATERIAL;
       }
     } else {
@@ -571,10 +570,10 @@ function productOptions(
   const options: Array<{ value: string; label: string; disabled?: boolean }> =
     type === "trading"
       ? PRODUCT_OPTIONS.filter(
-          (option) => option.value === "LMD" || option.value === "Orundum",
+          (option) => option.value === "龙门币" || option.value === "合成玉",
         )
       : PRODUCT_OPTIONS.filter(
-          (option) => option.value !== "LMD" && option.value !== "Orundum",
+          (option) => option.value !== "龙门币" && option.value !== "合成玉",
         );
   if (
     currentProduct &&
@@ -582,9 +581,7 @@ function productOptions(
   ) {
     options.push({
       value: currentProduct,
-      label:
-        UNSUPPORTED_PRODUCT_LABELS[currentProduct] ??
-        `${currentProduct}（仅保留）`,
+      label: `${currentProduct}（仅保留）`,
       disabled: true,
     });
   }
@@ -594,12 +591,12 @@ function productOptions(
 function sourceValue(room: RoomAssignment): string {
   return (
     room.sourceMaterial ??
-    (room.product === "Originium Shard" ? DEFAULT_SOURCE_MATERIAL : "")
+    (room.product === "源石碎片" ? DEFAULT_SOURCE_MATERIAL : "")
   );
 }
 
 function sourceVisible(room: RoomAssignment): boolean {
-  return room.product === "Originium Shard";
+  return room.product === "源石碎片";
 }
 
 watch(

@@ -119,7 +119,7 @@ const facilityColorEntries = ROOM_ORDER.map(
   (type) => [type, facilityLabels[type]] as [RoomKey, string],
 );
 const productColorEntries = Object.entries(productLabels) as Array<
-  ["Pure Gold" | "Orundum" | "Originium Shard", string]
+  ["赤金" | "合成玉" | "源石碎片", string]
 >;
 
 const progressionFileInput = ref<HTMLInputElement>();
@@ -542,13 +542,13 @@ const sanityDisplayRows = computed(() => [
     source: "按当前基础时间计算",
   },
   {
-    label: "信用点",
+    label: "信用",
     value: sanityValues.value.credit,
-    unit: "理智/信用点",
+    unit: "理智/信用",
     source: "可修改",
   },
   {
-    label: "公开招募刷新次数",
+    label: "公开招募标签刷新次数",
     value: sanityValues.value.recruitRefresh,
     unit: "理智/次",
     source: "可修改",
@@ -727,10 +727,7 @@ watch(
             @update:value="updateOrundum"
           />
         </a-form-item>
-        <a-form-item
-          extra="每 1 信用点，线索产出已并入信用点"
-          label="信用点理智"
-        >
+        <a-form-item extra="每 1 信用，线索产出已并入信用" label="信用理智">
           <a-input-number
             :min="0"
             :step="0.0001"
@@ -738,7 +735,7 @@ watch(
             @update:value="updateCredit"
           />
         </a-form-item>
-        <a-form-item extra="每 1 次刷新" label="公开招募刷新次数理智">
+        <a-form-item extra="每 1 次刷新" label="公开招募标签刷新次数理智">
           <a-input-number
             :min="0"
             :step="0.01"

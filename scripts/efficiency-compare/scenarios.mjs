@@ -230,7 +230,7 @@ export const scenarios = [
         [operator("Mon3tr")],
       ],
     },
-    products: ["Pure Gold", "Battle Record", "Originium Shard"],
+    products: ["赤金", "中级作战记录", "源石碎片"],
     sourceMaterials: [undefined, undefined, "固源岩"],
   },
   {
@@ -245,7 +245,7 @@ export const scenarios = [
       power: [[operator("正义骑士号", 0, 30)]],
       manufacture: [[operator("野鬃", 2, 30), operator("槐琥", 2, 30)]],
     },
-    products: ["Pure Gold"],
+    products: ["赤金"],
   },
   {
     id: "manufacture-facility-skill-scope",
@@ -268,7 +268,7 @@ export const scenarios = [
         [operator("远牙", 2), operator("野鬃", 2), operator("灰毫", 2)],
       ],
     },
-    products: ["Battle Record"],
+    products: ["中级作战记录"],
   },
   {
     id: "manufacture-overflow-zero",
@@ -286,7 +286,7 @@ export const scenarios = [
       control: [[]],
       manufacture: [[operator("红云"), operator("泡泡"), operator("槐琥")]],
     },
-    products: ["Pure Gold"],
+    products: ["赤金"],
   },
   {
     id: "control-facility-efficiency-attribution",
@@ -306,7 +306,7 @@ export const scenarios = [
       manufacture: [[operator("机械师")]],
       hire: [[]],
     },
-    products: ["Battle Record"],
+    products: ["中级作战记录"],
   },
   {
     id: "meeting-and-office",
@@ -418,12 +418,12 @@ export function scenarioOperatorNames(scenario) {
 
 export function scenarioProducts(scenario, type, index) {
   if (type === "trading") {
-    return scenario.products?.[index] ?? "LMD";
+    return scenario.products?.[index] ?? "龙门币";
   }
   if (type !== "manufacture") {
     return undefined;
   }
-  return scenario.products?.[index] ?? "Pure Gold";
+  return scenario.products?.[index] ?? "赤金";
 }
 
 export function scenarioSourceMaterial(scenario, type, index) {

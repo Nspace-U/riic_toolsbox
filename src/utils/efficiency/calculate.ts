@@ -2989,8 +2989,8 @@ function tradeProduction(
   active: ActiveEffect[],
 ): ProductionValue | undefined {
   const assignment = roomAssignments(context.document, context.index, facility);
-  const product = canonicalResourceKey(assignment.product ?? "LMD");
-  if (product === "Orundum") {
+  const product = canonicalResourceKey(assignment.product ?? "龙门币");
+  if (product === "合成玉") {
     const multiplier = efficiency / 100;
     const baseAmountPerHour =
       ORUNDUM_TRADE_ORDER.productAmount / ORUNDUM_TRADE_ORDER.hours;
@@ -3008,12 +3008,12 @@ function tradeProduction(
           probability: 1,
           quantity: ORUNDUM_TRADE_ORDER.productAmount,
           time: ORUNDUM_TRADE_ORDER.hours,
-          material: "Originium Shard",
+          material: "源石碎片",
           amount: ORUNDUM_TRADE_ORDER.materialAmount,
         },
       ],
       materialPerHour: {
-        "Originium Shard":
+        源石碎片:
           (-ORUNDUM_TRADE_ORDER.materialAmount / ORUNDUM_TRADE_ORDER.hours) *
           multiplier,
       },
@@ -3044,7 +3044,7 @@ function tradeProduction(
       );
     }
     return {
-      product: "LMD",
+      product: "龙门币",
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
       amountPerHour,
@@ -3143,7 +3143,7 @@ function tradeProduction(
       probability: order.probability,
       quantity: gold,
       time: order.hours,
-      material: "Pure Gold",
+      material: "赤金",
       amount: material,
       ...(notes.length ? { note: notes.join("、") } : {}),
     });
@@ -3152,7 +3152,7 @@ function tradeProduction(
   const baseAmountPerHour = expectedGold / expectedTime;
   const amountPerHour = baseAmountPerHour * multiplier;
   return {
-    product: "LMD",
+    product: "龙门币",
     baseAmountPerHour,
     baseAmountPerDay: baseAmountPerHour * 24,
     amountPerHour,
@@ -3164,7 +3164,7 @@ function tradeProduction(
         : "龙门商法",
     orders: orderSummaries,
     materialPerHour: {
-      "Pure Gold": -((expectedMaterial / expectedTime) * multiplier),
+      赤金: -((expectedMaterial / expectedTime) * multiplier),
     },
   };
 }
@@ -3203,9 +3203,9 @@ function productionFor(
     const baseAmountPerHour = CLUE_OUTPUT_PER_HOUR;
     const amountPerHour = (baseAmountPerHour * efficiency) / 100;
     return {
-      product: "Clue",
+      product: "线索",
       conversion: {
-        label: "信用点",
+        label: "信用",
         amountPerUnit: CREDIT_PER_CLUE,
         sourceUnit: "线索",
         baseCycleHours: CLUE_BASE_TIME_HOURS,
@@ -3221,7 +3221,7 @@ function productionFor(
     const baseAmountPerHour = HIRE_OUTPUT_PER_HOUR;
     const amountPerHour = (baseAmountPerHour * efficiency) / 100;
     return {
-      product: "Recruit Refresh",
+      product: "公开招募标签刷新次数",
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
       amountPerHour,
@@ -3720,7 +3720,7 @@ function calculatePowerGroup(
   const efficiency =
     baseEfficiency + operatorEfficiency + combinationEfficiency;
   const production: ProductionValue = {
-    product: "Drone",
+    product: "无人机",
     baseAmountPerHour: POWER_OUTPUT_PER_HOUR,
     baseAmountPerDay: POWER_OUTPUT_PER_HOUR * 24,
     amountPerHour: (POWER_OUTPUT_PER_HOUR * efficiency) / 100,

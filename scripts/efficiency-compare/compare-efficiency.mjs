@@ -54,11 +54,11 @@ const ROOM_MAP = {
 };
 
 const PRODUCT_MAP = {
-  LMD: "龙门商法",
-  Orundum: "开采协力",
-  "Pure Gold": "贵金属",
-  "Battle Record": "作战记录",
-  "Originium Shard": "源石碎片",
+  龙门币: "龙门商法",
+  合成玉: "开采协力",
+  赤金: "贵金属",
+  中级作战记录: "作战记录",
+  源石碎片: "源石碎片",
 };
 
 const OLD_TO_NEW_ROOM = Object.fromEntries(
@@ -456,7 +456,7 @@ const OLD_PRODUCT_MAP = {
   中级作战记录: "Battle Record",
   源石碎片: "Originium Shard",
   无人机: "Drone",
-  信用点: "Clue",
+  信用: "Clue",
   公开招募标签刷新次数: "Recruit Refresh",
 };
 const CREDIT_PER_CLUE = 40;
@@ -466,7 +466,7 @@ function canonicalProduct(value) {
 }
 
 function productionUnitFactor(product) {
-  return product === "信用点" ? 1 / CREDIT_PER_CLUE : 1;
+  return product === "信用" ? 1 / CREDIT_PER_CLUE : 1;
 }
 
 function normalizedOrders(orders) {

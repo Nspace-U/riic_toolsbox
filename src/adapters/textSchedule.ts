@@ -134,9 +134,9 @@ function stationInfo(title: string): {
     ...(product && PRODUCT_LABELS[product]
       ? { product }
       : type === "trading"
-        ? { product: "LMD" }
+        ? { product: "龙门币" }
         : type === "manufacture"
-          ? { product: "Pure Gold" }
+          ? { product: "赤金" }
           : {}),
   };
 }

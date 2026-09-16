@@ -240,7 +240,7 @@ function documentFor({
           manufacture: [
             {
               ...assignment(manufacture, eliteLevels, moods),
-              product: "Pure Gold",
+              product: "赤金",
             },
           ],
           power: [
@@ -258,7 +258,7 @@ function documentFor({
 function percentageFacilityDocument(type, operators) {
   const room = assignment(operators, {});
   if (type === "manufacture") {
-    room.product = "Pure Gold";
+    room.product = "赤金";
   }
   return {
     layout: [
@@ -298,7 +298,7 @@ function abyssalDocument({
           control: [assignment(control, eliteLevels, moods)],
           manufacture: manufacture.map((operators) => ({
             ...assignment(operators, eliteLevels, moods),
-            product: "Pure Gold",
+            product: "赤金",
           })),
           dormitory: [assignment(dormitory, eliteLevels, moods)],
         },
@@ -331,7 +331,7 @@ function flowGoldDocument({
           trading: [assignment(trading, eliteLevels, moods)],
           manufacture: Array.from({ length: manufactureCount }, () => ({
             ...assignment([], eliteLevels, moods),
-            product: "Pure Gold",
+            product: "赤金",
           })),
         },
       },
@@ -396,8 +396,8 @@ function dailyOutputDocument(settings = {}) {
       {
         duration: 720,
         rooms: {
-          trading: [{ ...assignment(["温蒂"], {}), product: "Orundum" }],
-          manufacture: [{ ...assignment(["砾"], {}), product: "Pure Gold" }],
+          trading: [{ ...assignment(["温蒂"], {}), product: "合成玉" }],
+          manufacture: [{ ...assignment(["砾"], {}), product: "赤金" }],
           power: [
             assignment(["Lancet-2"], {}),
             assignment([], {}),
@@ -426,11 +426,11 @@ function droneDocument(strategy = "1 但书0") {
       {
         duration: 720,
         rooms: {
-          trading: [{ product: "LMD" }, { product: "Orundum" }],
+          trading: [{ product: "龙门币" }, { product: "合成玉" }],
           manufacture: [
-            { product: "Pure Gold" },
-            { product: "Battle Record" },
-            { product: "Originium Shard", sourceMaterial: "固源岩" },
+            { product: "赤金" },
+            { product: "中级作战记录" },
+            { product: "源石碎片", sourceMaterial: "固源岩" },
           ],
         },
       },
@@ -504,39 +504,35 @@ function runTests(runtime) {
   const droneAcceleration = calculateDroneAcceleration(
     droneDocument("1"),
     catalog,
-    { Drone: 240 },
+    { 无人机: 240 },
   );
   assert.equal(droneAcceleration.acceleratedHours, 12);
   const droneScenario = (product) =>
     droneAcceleration.scenarios.find(
       (scenario) => scenario.product === product,
     );
-  const lmdDroneScenario = droneScenario("LMD");
+  const lmdDroneScenario = droneScenario("龙门币");
   assert.ok(lmdDroneScenario);
-  assert.ok(Math.abs(lmdDroneScenario.extraFlow.LMD - 5000) < 1e-9);
-  assert.ok(Math.abs(lmdDroneScenario.extraFlow["Pure Gold"] + 10) < 1e-9);
-  assert.equal(lmdDroneScenario.extraFlow.Drone, -240);
-  const orundumDroneScenario = droneScenario("Orundum");
+  assert.ok(Math.abs(lmdDroneScenario.extraFlow.龙门币 - 5000) < 1e-9);
+  assert.ok(Math.abs(lmdDroneScenario.extraFlow.赤金 + 10) < 1e-9);
+  assert.equal(lmdDroneScenario.extraFlow.无人机, -240);
+  const orundumDroneScenario = droneScenario("合成玉");
   assert.ok(orundumDroneScenario);
-  assert.ok(Math.abs(orundumDroneScenario.extraFlow.Orundum - 120) < 1e-9);
-  assert.ok(
-    Math.abs(orundumDroneScenario.extraFlow["Originium Shard"] + 12) < 1e-9,
-  );
-  const pureGoldDroneScenario = droneScenario("Pure Gold");
+  assert.ok(Math.abs(orundumDroneScenario.extraFlow.合成玉 - 120) < 1e-9);
+  assert.ok(Math.abs(orundumDroneScenario.extraFlow.源石碎片 + 12) < 1e-9);
+  const pureGoldDroneScenario = droneScenario("赤金");
   assert.ok(pureGoldDroneScenario);
-  assert.ok(Math.abs(pureGoldDroneScenario.extraFlow["Pure Gold"] - 10) < 1e-9);
-  const battleRecordDroneScenario = droneScenario("Battle Record");
+  assert.ok(Math.abs(pureGoldDroneScenario.extraFlow.赤金 - 10) < 1e-9);
+  const battleRecordDroneScenario = droneScenario("中级作战记录");
   assert.ok(battleRecordDroneScenario);
   assert.ok(
-    Math.abs(battleRecordDroneScenario.extraFlow["Battle Record"] - 4) < 1e-9,
+    Math.abs(battleRecordDroneScenario.extraFlow.中级作战记录 - 4) < 1e-9,
   );
-  const shardDroneScenario = droneScenario("Originium Shard");
+  const shardDroneScenario = droneScenario("源石碎片");
   assert.ok(shardDroneScenario);
-  assert.ok(
-    Math.abs(shardDroneScenario.extraFlow["Originium Shard"] - 12) < 1e-9,
-  );
+  assert.ok(Math.abs(shardDroneScenario.extraFlow.源石碎片 - 12) < 1e-9);
   assert.ok(Math.abs(shardDroneScenario.extraFlow.固源岩 + 24) < 1e-9);
-  assert.ok(Math.abs(shardDroneScenario.extraFlow.LMD + 19200) < 1e-9);
+  assert.ok(Math.abs(shardDroneScenario.extraFlow.龙门币 + 19200) < 1e-9);
 
   const efficientDroneDocument = droneDocument("1");
   efficientDroneDocument.plans[0].rooms.manufacture[0].operators = ["温蒂"];
@@ -554,23 +550,23 @@ function runTests(runtime) {
   const efficientDroneScenario = calculateDroneAcceleration(
     efficientDroneDocument,
     catalog,
-    { Drone: 240 },
-  ).scenarios.find((scenario) => scenario.product === "Pure Gold");
+    { 无人机: 240 },
+  ).scenarios.find((scenario) => scenario.product === "赤金");
   assert.ok(efficientDroneScenario);
   assert.equal(efficientDroneScenario.baseAmountPerHour, 1 / 1.2);
-  assert.equal(efficientDroneScenario.extraFlow["Pure Gold"], 10);
+  assert.equal(efficientDroneScenario.extraFlow.赤金, 10);
 
   const danshuDroneAcceleration = calculateDroneAcceleration(
     droneDocument("1 但书0"),
     catalog,
-    { Drone: 240 },
+    { 无人机: 240 },
   );
   const danshuDroneScenario = danshuDroneAcceleration.scenarios.find(
-    (scenario) => scenario.product === "LMD",
+    (scenario) => scenario.product === "龙门币",
   );
   assert.ok(danshuDroneScenario);
-  assert.equal(danshuDroneScenario.extraFlow.LMD, 7500);
-  assert.equal(danshuDroneScenario.extraFlow["Pure Gold"], -15);
+  assert.equal(danshuDroneScenario.extraFlow.龙门币, 7500);
+  assert.equal(danshuDroneScenario.extraFlow.赤金, -15);
 
   const partial = calculateEfficiency(
     documentFor({
@@ -594,19 +590,19 @@ function runTests(runtime) {
   assert.deepEqual(
     dailyOutput.dailyOutputs.map(({ kind, product }) => `${kind}:${product}`),
     [
-      "production:Orundum",
-      "production:Pure Gold",
-      "production:Drone",
-      "production:Credit",
-      "production:Recruit Refresh",
-      "net:Originium Shard",
+      "production:合成玉",
+      "production:赤金",
+      "production:无人机",
+      "production:信用",
+      "production:公开招募标签刷新次数",
+      "net:源石碎片",
     ],
   );
   const dailyClue = dailyOutput.dailyProductions.find(
-    ({ product }) => product === "Clue",
+    ({ product }) => product === "线索",
   );
   const dailyCredit = dailyOutput.dailyOutputs.find(
-    ({ product }) => product === "Credit",
+    ({ product }) => product === "信用",
   );
   assert.ok(dailyClue);
   assert.ok(dailyCredit);
@@ -629,7 +625,7 @@ function runTests(runtime) {
   );
   assert.ok(
     (dailyOutput.dailyOutputs.find(
-      ({ kind, product }) => kind === "net" && product === "Originium Shard",
+      ({ kind, product }) => kind === "net" && product === "源石碎片",
     )?.amountPerDay ?? 0) < 0,
   );
   const signedMaterialResult = calculateEfficiency(
@@ -643,9 +639,7 @@ function runTests(runtime) {
   assert.ok(signedManufacture.production);
   assert.ok(signedTrading?.production);
   assert.ok((signedManufacture.production?.amountPerHour ?? 0) > 0);
-  assert.ok(
-    (signedTrading?.production?.materialPerHour?.["Pure Gold"] ?? 0) < 0,
-  );
+  assert.ok((signedTrading?.production?.materialPerHour?.["赤金"] ?? 0) < 0);
 
   const canonicalMaterial = calculateEfficiency(
     {
@@ -660,7 +654,7 @@ function runTests(runtime) {
           rooms: {
             trading: [assignment(["可露希尔"], { 可露希尔: 2 })],
             manufacture: [
-              { ...assignment(["砾"], { 砾: 2 }), product: "Pure Gold" },
+              { ...assignment(["砾"], { 砾: 2 }), product: "赤金" },
             ],
           },
         },
@@ -671,21 +665,23 @@ function runTests(runtime) {
   const canonicalTrading = canonicalMaterial.plans[0].facilities.find(
     ({ facility }) => facility.type === "trading",
   );
-  assert.equal(
-    canonicalTrading?.production?.orders?.[0]?.material,
-    "Pure Gold",
+  assert.equal(canonicalTrading?.production?.orders?.[0]?.material, "赤金");
+  assert.ok(
+    canonicalMaterial.dailyOutputs.some(({ product }) => product === "赤金"),
   );
   assert.ok(
-    !canonicalMaterial.dailyOutputs.some(({ product }) => product === "赤金"),
+    !canonicalMaterial.dailyOutputs.some(
+      ({ product }) => product === "Pure Gold",
+    ),
   );
   const providedFlowOutputs = aggregateDailyOutputs({ layout: [], plans: [] }, [
     {
-      product: "Pure Gold",
+      product: "赤金",
       amountPerHour: 23200 / 24,
       amountPerDay: 23200,
     },
     {
-      product: "LMD",
+      product: "龙门币",
       amountPerHour: 0,
       amountPerDay: 0,
       materialPerHour: { 赤金: -24128.5956007 / 24 },
@@ -694,7 +690,7 @@ function runTests(runtime) {
   assert.ok(
     Math.abs(
       (providedFlowOutputs.find(
-        ({ kind, product }) => kind === "net" && product === "Pure Gold",
+        ({ kind, product }) => kind === "net" && product === "赤金",
       )?.amountPerDay ?? 0) + 928.5956007,
     ) < 1e-9,
   );
@@ -911,7 +907,7 @@ function runTests(runtime) {
     documentFor({
       trading: ["温蒂"],
       manufacture: ["Lancet-2"],
-      tradingProduct: "Orundum",
+      tradingProduct: "合成玉",
       duration: 2880,
     }),
     catalog,
@@ -920,26 +916,26 @@ function runTests(runtime) {
     documentFor({
       trading: ["温蒂"],
       manufacture: ["Lancet-2"],
-      tradingProduct: "Orundum",
+      tradingProduct: "合成玉",
       duration: 2880,
       settings: { overflowMode: "zero" },
     }),
     catalog,
   );
   const continuedGold = overflowContinue.dailyOutputs.find(
-    ({ kind, product }) => kind === "production" && product === "Pure Gold",
+    ({ kind, product }) => kind === "production" && product === "赤金",
   );
   const truncatedGold = overflowZero.dailyOutputs.find(
-    ({ kind, product }) => kind === "production" && product === "Pure Gold",
+    ({ kind, product }) => kind === "production" && product === "赤金",
   );
   assert.ok(continuedGold);
   assert.ok(truncatedGold);
   assert.ok(truncatedGold.amountPerDay < continuedGold.amountPerDay);
   const continuedShard = overflowContinue.dailyOutputs.find(
-    ({ kind, product }) => kind === "net" && product === "Originium Shard",
+    ({ kind, product }) => kind === "net" && product === "源石碎片",
   );
   const truncatedShard = overflowZero.dailyOutputs.find(
-    ({ kind, product }) => kind === "net" && product === "Originium Shard",
+    ({ kind, product }) => kind === "net" && product === "源石碎片",
   );
   assert.ok(continuedShard);
   assert.ok(truncatedShard);
@@ -1090,7 +1086,7 @@ function runTests(runtime) {
             manufacture: [
               {
                 ...assignment(["铅踝"], { 铅踝: 0 }, { 铅踝: 24 }),
-                product: "Pure Gold",
+                product: "赤金",
               },
             ],
           },
@@ -1101,7 +1097,7 @@ function runTests(runtime) {
             manufacture: [
               {
                 ...assignment(["铅踝"], { 铅踝: 0 }, { 铅踝: 18 }),
-                product: "Pure Gold",
+                product: "赤金",
               },
             ],
           },

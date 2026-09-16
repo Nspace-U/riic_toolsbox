@@ -15,13 +15,13 @@ export const PERCENTAGE_OPERATOR_MAPPINGS: PercentageOperatorMapping[] = [
   },
   {
     room: "manufacture",
-    product: "Battle Record",
+    product: "中级作战记录",
     percentage: "35%",
     operators: ["断罪者", "食铁兽", "酒神", "弑君者", "裂响"],
   },
   {
     room: "manufacture",
-    product: "Originium Shard",
+    product: "源石碎片",
     percentage: "35%",
     operators: ["艾雅法拉", "炎熔", "地灵", "锡兰"],
   },

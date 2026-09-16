@@ -37,14 +37,14 @@ export const FIAMMETTA_NAME = "菲亚梅塔";
 export const CREDIT_BASE_DAILY =
   40 + 30 + 20 + 15 + 10 + 5 + 210 + 30 * 10 + 300 / 7;
 export const DAILY_OUTPUT_ORDER = [
-  "LMD",
-  "Orundum",
-  "Pure Gold",
-  "Battle Record",
-  "Originium Shard",
-  "Drone",
-  "Credit",
-  "Recruit Refresh",
+  "龙门币",
+  "合成玉",
+  "赤金",
+  "中级作战记录",
+  "源石碎片",
+  "无人机",
+  "信用",
+  "公开招募标签刷新次数",
 ];
 export const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
   莱茵生命: 1,

@@ -922,7 +922,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
 
 // ===== 制造站效果解析（target 基值为 'manufacture'） =====
 // 制造站主效率 stat 为 manuProd（生产力 %）；新增：
-//   recipe（配方分类：作战记录/贵金属/源石）、storageCap（仓库容量上限，基础值按等级 24/36/54）、
+//   recipe（配方分类：作战记录/贵金属/源石碎片）、storageCap（仓库容量上限，基础值按等级 24/36/54）、
 //   zeroOpMood（消除技能正数心情消耗）、per.source={skillTagCount, stat, opCount, facilityCount,
 //       trainLevel, dormLevel, dormOccupants, facilityLevelTotal, basePoint, opGroupInBase, opGroupInFacility}、
 //   condition={workHours, moodDrop}、curve（描述未写首小时 → 从 0% 开始）。
@@ -939,7 +939,8 @@ function parseManuEffects(text, target, groups, cond, warn) {
   const recipeValue = (label) =>
     String(label || "")
       .replace(/类配方$/, "")
-      .replace(/类$/, "");
+      .replace(/类$/, "")
+      .replace(/^源石(?:材料)?$/, "源石碎片");
 
   // -1) 配方限定的固定效果（须在固定心情/容量之前）：
   //     "生产XX类配方时，仓库容量上限+Y"（稀音·剪辑/圣约送葬人·合理利用）
@@ -1612,7 +1613,7 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
         type: "fixed",
         orderName: "可露希尔特别订单",
         qty: 1200,
-        material: "Pure Gold",
+        material: "赤金",
         amount: 2,
         time: 2.4,
         priority: 2,

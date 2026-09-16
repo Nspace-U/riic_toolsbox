@@ -79,7 +79,7 @@ EXP 52.2k | 贵金属 46.6k
   );
   assert.equal(
     parsed.document.plans[0].rooms.manufacture[0].product,
-    "Battle Record",
+    "中级作战记录",
   );
   assert.equal(
     parsed.document.plans[0].rooms.manufacture[0].description,
@@ -106,6 +106,61 @@ EXP 52.2k | 贵金属 46.6k
     maaParsed.document.plans[0].rooms.trading[0].description,
     "Maa 描述",
   );
+
+  const maaProducts = {
+    layout: [
+      { type: "trading", level: 3 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+    ],
+    plans: [
+      {
+        rooms: {
+          trading: [{ product: "LMD" }, { product: "Orundum" }],
+          manufacture: [
+            { product: "Pure Gold" },
+            { product: "Battle Record" },
+            { product: "Originium Shard" },
+            { product: "Dualchip" },
+          ],
+        },
+      },
+    ],
+  };
+  const maaProductsParsed = maaModule.parseMaaScheduleText(
+    JSON.stringify(maaProducts),
+  );
+  assert.deepEqual(
+    maaProductsParsed.document.plans[0].rooms.trading.map(
+      ({ product }) => product,
+    ),
+    ["龙门币", "合成玉"],
+  );
+  assert.deepEqual(
+    maaProductsParsed.document.plans[0].rooms.manufacture.map(
+      ({ product }) => product,
+    ),
+    ["赤金", "中级作战记录", "源石碎片", "Dualchip"],
+  );
+  assert.equal(
+    maaProductsParsed.document.plans[0].rooms.manufacture[2].sourceMaterial,
+    "固源岩",
+  );
+  const maaProductsSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(maaProductsParsed.document),
+  ).plans[0].rooms;
+  assert.deepEqual(
+    maaProductsSerialized.trading.map(({ product }) => product),
+    ["LMD", "Orundum"],
+  );
+  assert.deepEqual(
+    maaProductsSerialized.manufacture.map(({ product }) => product),
+    ["Pure Gold", "Battle Record", "Originium Shard", "Dualchip"],
+  );
+  assert.equal(maaProductsSerialized.manufacture[2].sourceMaterial, "固源岩");
 
   assert.deepEqual(importLayoutModule.dormitoryLevels(4, 40), [1, 1, 1, 1]);
   assert.deepEqual(importLayoutModule.dormitoryLevels(4, 60), [3, 1, 1, 1]);
@@ -223,7 +278,7 @@ EXP 52.2k | 贵金属 46.6k
         rooms: {
           control: [{ operators: ["莱茵生命"] }],
           manufacture: [
-            { product: "Battle Record", operators: ["35%", "35%", "35%"] },
+            { product: "中级作战记录", operators: ["35%", "35%", "35%"] },
           ],
           power: [{ operators: ["20%"] }],
         },
@@ -265,8 +320,8 @@ EXP 52.2k | 贵金属 46.6k
         duration: 720,
         rooms: {
           manufacture: [
-            { product: "Battle Record", operators: ["35%", "35%", "35%"] },
-            { product: "Battle Record" },
+            { product: "中级作战记录", operators: ["35%", "35%", "35%"] },
+            { product: "中级作战记录" },
           ],
         },
       },
@@ -276,10 +331,10 @@ EXP 52.2k | 贵金属 46.6k
         rooms: {
           manufacture: [
             {
-              product: "Battle Record",
+              product: "中级作战记录",
               operators: ["35%", "35%"],
             },
-            { product: "Battle Record", operators: ["35%", "35%"] },
+            { product: "中级作战记录", operators: ["35%", "35%"] },
           ],
         },
       },
@@ -288,8 +343,8 @@ EXP 52.2k | 贵金属 46.6k
         duration: 720,
         rooms: {
           manufacture: [
-            { product: "Battle Record", operators: ["35%", "35%", "35%"] },
-            { product: "Battle Record" },
+            { product: "中级作战记录", operators: ["35%", "35%", "35%"] },
+            { product: "中级作战记录" },
           ],
         },
       },
@@ -320,11 +375,11 @@ EXP 52.2k | 贵金属 46.6k
             rooms: {
               manufacture: [
                 {
-                  product: "Battle Record",
+                  product: "中级作战记录",
                   operators: ["35%", "35%", "35%"],
                 },
                 {
-                  product: "Battle Record",
+                  product: "中级作战记录",
                   operators: ["35%", "35%", "35%"],
                 },
               ],
@@ -455,8 +510,8 @@ EXP 52.2k | 贵金属 46.6k
         duration: 720,
         rooms: {
           manufacture: [
-            { product: "Pure Gold", operators: ["幽灵鲨"] },
-            { product: "Pure Gold", operators: ["40%"] },
+            { product: "赤金", operators: ["幽灵鲨"] },
+            { product: "赤金", operators: ["40%"] },
           ],
         },
       },

@@ -40,6 +40,41 @@ function fail(path: string, message: string): never {
   throw new ScheduleError(`${path}：${message}`);
 }
 
+const MAA_PRODUCT_TO_INTERNAL: Readonly<Record<string, string>> = {
+  LMD: "龙门币",
+  Orundum: "合成玉",
+  "Pure Gold": "赤金",
+  "Battle Record": "中级作战记录",
+  "Originium Shard": "源石碎片",
+};
+
+const INTERNAL_PRODUCT_TO_MAA: Readonly<Record<string, string>> = {
+  龙门币: "LMD",
+  合成玉: "Orundum",
+  赤金: "Pure Gold",
+  中级作战记录: "Battle Record",
+  源石碎片: "Originium Shard",
+};
+
+function mapMaaProducts(
+  document: ScheduleDocument,
+  mapping: Readonly<Record<string, string>>,
+): void {
+  document.plans.forEach((plan) => {
+    Object.values(plan.rooms).forEach((value) => {
+      if (!Array.isArray(value)) {
+        return;
+      }
+      value.forEach((room) => {
+        if (!isRecord(room) || typeof room.product !== "string") {
+          return;
+        }
+        room.product = mapping[room.product] ?? room.product;
+      });
+    });
+  });
+}
+
 function fiammettaTarget(value: unknown): string | undefined {
   if (
     !isRecord(value) ||
@@ -74,7 +109,7 @@ function applyDocumentDefaults(document: ScheduleDocument): void {
       return;
     }
     rooms.forEach((room) => {
-      if (!isRecord(room) || room.product !== "Originium Shard") {
+      if (!isRecord(room) || room.product !== "源石碎片") {
         return;
       }
       if (!hasOwn(room, "sourceMaterial") || room.sourceMaterial === "") {
@@ -120,6 +155,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
     layout: resolvedLayout,
     plans: resolvedPlans,
   };
+  mapMaaProducts(document, MAA_PRODUCT_TO_INTERNAL);
   importFiammetta(document);
   applyDocumentDefaults(document);
   validateSchedule(document);
@@ -273,6 +309,7 @@ export function serializeMaaSchedule(
     }
   });
   applyDocumentDefaults(normalized);
+  mapMaaProducts(normalized, INTERNAL_PRODUCT_TO_MAA);
   validateSchedule(normalized);
   return JSON.stringify(normalized, null, 2);
 }

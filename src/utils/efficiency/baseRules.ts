@@ -56,35 +56,35 @@ export interface ManufactureRule {
 }
 
 export const MANUFACTURE_RULES: Record<string, ManufactureRule> = {
-  "Battle Record": {
-    product: "Battle Record",
+  中级作战记录: {
+    product: "中级作战记录",
     recipe: "作战记录",
     amount: 1,
     hours: 3,
     volume: 5,
   },
-  "Pure Gold": {
-    product: "Pure Gold",
+  赤金: {
+    product: "赤金",
     recipe: "贵金属",
     amount: 1,
     hours: 1.2,
     volume: 2,
   },
-  "Originium Shard:固源岩": {
-    product: "Originium Shard",
-    recipe: "源石",
+  "源石碎片:固源岩": {
+    product: "源石碎片",
+    recipe: "源石碎片",
     amount: 1,
     hours: 1,
     volume: 3,
-    materials: { 固源岩: 2, LMD: 1600 },
+    materials: { 固源岩: 2, 龙门币: 1600 },
   },
-  "Originium Shard:装置": {
-    product: "Originium Shard",
-    recipe: "源石",
+  "源石碎片:装置": {
+    product: "源石碎片",
+    recipe: "源石碎片",
     amount: 1,
     hours: 1,
     volume: 3,
-    materials: { 装置: 1, LMD: 1000 },
+    materials: { 装置: 1, 龙门币: 1000 },
   },
 };
 
@@ -102,7 +102,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
   1: [
     {
       name: "2贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 2,
       gold: 1000,
       hours: 2.4,
@@ -112,7 +112,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
   2: [
     {
       name: "2贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 2,
       gold: 1000,
       hours: 2.4,
@@ -120,7 +120,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
     },
     {
       name: "3贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 3,
       gold: 1500,
       hours: 3.5,
@@ -130,7 +130,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
   3: [
     {
       name: "2贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 2,
       gold: 1000,
       hours: 2.4,
@@ -138,7 +138,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
     },
     {
       name: "3贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 3,
       gold: 1500,
       hours: 3.5,
@@ -146,7 +146,7 @@ export const TRADE_ORDERS: Record<number, TradeOrder[]> = {
     },
     {
       name: "4贵金属订单",
-      product: "LMD",
+      product: "龙门币",
       amount: 4,
       gold: 2000,
       hours: 4.6,
@@ -198,8 +198,8 @@ export function manufactureRule(
     return undefined;
   }
   const canonicalProduct = canonicalResourceKey(product);
-  if (canonicalProduct === "Originium Shard") {
-    return MANUFACTURE_RULES[`Originium Shard:${sourceMaterial || "固源岩"}`];
+  if (canonicalProduct === "源石碎片") {
+    return MANUFACTURE_RULES[`源石碎片:${sourceMaterial || "固源岩"}`];
   }
   return MANUFACTURE_RULES[canonicalProduct];
 }

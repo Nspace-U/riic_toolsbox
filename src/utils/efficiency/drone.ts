@@ -20,11 +20,11 @@ import type { SanityResourceAmounts } from "@/utils/sanity";
 import { canonicalResourceKey, resolveRoomAssignment } from "@/utils/schedule";
 
 export const DRONE_ACCELERATABLE_PRODUCTS = [
-  "LMD",
-  "Orundum",
-  "Pure Gold",
-  "Battle Record",
-  "Originium Shard",
+  "龙门币",
+  "合成玉",
+  "赤金",
+  "中级作战记录",
+  "源石碎片",
 ] as const;
 
 export type DroneAcceleratableProduct =
@@ -136,7 +136,7 @@ function productForAssignment(
   assignment: RoomAssignment,
 ): string | undefined {
   if (type === "trading") {
-    return canonicalResourceKey(assignment.product ?? "LMD");
+    return canonicalResourceKey(assignment.product ?? "龙门币");
   }
   return assignment.product
     ? canonicalResourceKey(assignment.product)
@@ -149,24 +149,24 @@ function productionFlowForAssignment(
   level = 1,
 ): BaseProductFlow | undefined {
   const product = productForAssignment(type, assignment);
-  if (type === "trading" && product === "LMD") {
+  if (type === "trading" && product === "龙门币") {
     const orders = TRADE_ORDERS[level] ?? TRADE_ORDERS[1] ?? [];
     return baseTradeFlowFromOrders(
       orders.map((order) => ({
         probability: order.probability,
         quantity: order.gold,
         time: order.hours,
-        material: "Pure Gold",
+        material: "赤金",
         amount: order.amount,
       })),
     );
   }
-  if (type === "trading" && product === "Orundum") {
+  if (type === "trading" && product === "合成玉") {
     return {
       amountPerHour:
         ORUNDUM_TRADE_ORDER.productAmount / ORUNDUM_TRADE_ORDER.hours,
       materialPerHour: {
-        "Originium Shard":
+        源石碎片:
           -ORUNDUM_TRADE_ORDER.materialAmount / ORUNDUM_TRADE_ORDER.hours,
       },
     };
@@ -272,7 +272,7 @@ function baseTradeFlowFromOrders(
   const expectedMaterial = orders.reduce(
     (total, order) =>
       total +
-      (canonicalResourceKey(order.material ?? "") === "Pure Gold"
+      (canonicalResourceKey(order.material ?? "") === "赤金"
         ? order.probability * (order.amount ?? 0)
         : 0),
     0,
@@ -280,7 +280,7 @@ function baseTradeFlowFromOrders(
   return {
     amountPerHour: expectedGold / expectedTime,
     materialPerHour: {
-      "Pure Gold": -expectedMaterial / expectedTime,
+      赤金: -expectedMaterial / expectedTime,
     },
   };
 }
@@ -297,7 +297,7 @@ function lmdBaseFlow(
         probability: order.probability,
         quantity: order.gold,
         time: order.hours,
-        material: "Pure Gold",
+        material: "赤金",
         amount: order.amount,
       })),
     );
@@ -314,7 +314,7 @@ function lmdBaseFlow(
           control: [{}],
           trading: [
             {
-              product: "LMD",
+              product: "龙门币",
               operators: strategy.operators,
               operatorStates: strategy.operatorStates,
             },
@@ -353,32 +353,32 @@ export function calculateDroneAcceleration(
   dailyAmounts: SanityResourceAmounts,
   options: EfficiencyCalculationOptions = {},
 ): DroneAccelerationResult {
-  const dailyDrones = Math.max(0, dailyAmounts.Drone ?? 0);
+  const dailyDrones = Math.max(0, dailyAmounts.无人机 ?? 0);
   const acceleratedHours = (dailyDrones * DRONE_ACCELERATION_MINUTES) / 60;
   const parseResult = parseLmdDroneStrategy(
     document.settings?.lmdDroneStrategy ?? "",
     catalog,
   );
   const baseFlows = scheduleBaseFlows(document);
-  const lmdExists = baseFlows.has("LMD");
+  const lmdExists = baseFlows.has("龙门币");
   if (lmdExists && parseResult.strategy) {
     const flow = lmdBaseFlow(parseResult.strategy, catalog, options);
     if (flow) {
-      baseFlows.set("LMD", flow);
+      baseFlows.set("龙门币", flow);
     }
   }
   const scenarios = DRONE_ACCELERATABLE_PRODUCTS.flatMap((product) => {
     if (!baseFlows.has(product)) {
       return [];
     }
-    if (product === "LMD" && !parseResult.strategy) {
+    if (product === "龙门币" && !parseResult.strategy) {
       return [];
     }
     const flow = baseFlows.get(product);
     if (!flow) {
       return [];
     }
-    const extraFlow: SanityResourceAmounts = { Drone: -dailyDrones };
+    const extraFlow: SanityResourceAmounts = { 无人机: -dailyDrones };
     addAmount(extraFlow, product, flow.amountPerHour * acceleratedHours);
     addFlow(extraFlow, flow.materialPerHour, acceleratedHours);
     return [

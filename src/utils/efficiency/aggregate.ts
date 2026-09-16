@@ -213,7 +213,7 @@ export function aggregateDailyOutputs(
   const materials = new Map<string, number>();
   productions.forEach((production) => {
     const product = canonicalResourceKey(production.product);
-    if (product !== "Clue") {
+    if (product !== "线索") {
       gross.set(product, selectedDailyAmount(production));
     }
     const rates =
@@ -230,10 +230,10 @@ export function aggregateDailyOutputs(
       0,
     );
   const clue = productions.find(
-    (production) => canonicalResourceKey(production.product) === "Clue",
+    (production) => canonicalResourceKey(production.product) === "线索",
   );
   gross.set(
-    "Credit",
+    "信用",
     CREDIT_BASE_DAILY +
       dormitoryCredit +
       (clue ? selectedDailyAmount(clue) * CREDIT_PER_CLUE : 0),
