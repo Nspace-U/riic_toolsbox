@@ -6692,24 +6692,6 @@ onBeforeUnmount(() => {
               </a-form-item>
             </div>
           </a-form>
-          <div class="simulator-layout-summary">
-            <span class="simulator-summary-label">设施布局</span>
-            <a-tag
-              v-for="group in layoutGroups"
-              :key="group.type"
-              color="green"
-            >
-              {{ group.label }} × {{ group.entries.length }}
-            </a-tag>
-          </div>
-          <div class="simulator-power-summary">
-            <span class="simulator-summary-label">电力</span>
-            <a-tag color="orange">消耗 {{ powerSummary.used }}</a-tag>
-            <a-tag color="green">提供 {{ powerSummary.provided }}</a-tag>
-            <a-tag :color="powerSummary.net < 0 ? 'red' : 'cyan'">
-              净 {{ powerSummary.net >= 0 ? "+" : "" }}{{ powerSummary.net }}
-            </a-tag>
-          </div>
           <div class="simulator-tag-editor">
             <span class="simulator-summary-label">标签</span>
             <div class="simulator-tag-editor-content">
@@ -6836,6 +6818,24 @@ onBeforeUnmount(() => {
                 </div>
               </div>
             </div>
+          </div>
+          <div class="simulator-layout-summary">
+            <span class="simulator-summary-label">设施布局</span>
+            <a-tag
+              v-for="group in layoutGroups"
+              :key="group.type"
+              color="green"
+            >
+              {{ group.label }} × {{ group.entries.length }}
+            </a-tag>
+          </div>
+          <div class="simulator-power-summary">
+            <span class="simulator-summary-label">电力</span>
+            <a-tag color="orange">消耗 {{ powerSummary.used }}</a-tag>
+            <a-tag color="green">提供 {{ powerSummary.provided }}</a-tag>
+            <a-tag :color="powerSummary.net < 0 ? 'red' : 'cyan'">
+              净 {{ powerSummary.net >= 0 ? "+" : "" }}{{ powerSummary.net }}
+            </a-tag>
           </div>
         </a-card>
 
