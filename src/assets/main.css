@@ -1269,11 +1269,12 @@ a {
 }
 
 .simulator-document-sidebar {
+  --simulator-document-sidebar-max-height: calc(100vh - 108px);
   position: sticky;
   inset-block-start: 92px;
   display: flex;
   flex-direction: column;
-  max-block-size: calc(100vh - 108px);
+  max-block-size: var(--simulator-document-sidebar-max-height);
   overflow: hidden;
   background: #ffffff;
 }
@@ -3588,7 +3589,7 @@ a {
 
   .simulator-document-sidebar {
     position: static;
-    max-block-size: calc(100vh - 140px);
+    --simulator-document-sidebar-max-height: calc(100vh - 140px);
   }
 
   .simulator-document-list {

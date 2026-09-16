@@ -635,6 +635,7 @@ const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
+const documentSidebar = ref<HTMLElement>();
 const editingOperatorSlot = ref<OperatorSlotAddress>();
 const slotNameInput = ref<HTMLInputElement | HTMLInputElement[]>();
 const contextMenu = ref<FacilityContextMenuState>();
@@ -670,6 +671,8 @@ const layoutTextHint =
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let importLayoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
+let documentSidebarMeasureFrame: number | undefined;
+let documentSidebarResizeObserver: ResizeObserver | undefined;
 let catalogRequestVersion = 0;
 
 const MAX_SCHEDULE_HISTORY = 100;
@@ -5632,14 +5635,81 @@ function handleWindowWheel() {
   closeContextMenu();
 }
 
+function updateDocumentSidebarHeight(): void {
+  const sidebar = documentSidebar.value;
+  if (!sidebar || typeof window === "undefined") {
+    return;
+  }
+
+  const sidebarTop = Math.max(sidebar.getBoundingClientRect().top, 0);
+  const minimumHeight = Array.from(sidebar.children)
+    .slice(0, 2)
+    .reduce(
+      (height, child) => height + child.getBoundingClientRect().height,
+      0,
+    );
+  const availableHeight = Math.max(
+    minimumHeight,
+    window.innerHeight - sidebarTop - 16,
+  );
+  const nextValue = `${availableHeight}px`;
+  if (
+    sidebar.style.getPropertyValue(
+      "--simulator-document-sidebar-max-height",
+    ) !== nextValue
+  ) {
+    sidebar.style.setProperty(
+      "--simulator-document-sidebar-max-height",
+      nextValue,
+    );
+  }
+}
+
+function scheduleDocumentSidebarHeightUpdate(): void {
+  if (
+    typeof window === "undefined" ||
+    documentSidebarMeasureFrame !== undefined
+  ) {
+    return;
+  }
+  documentSidebarMeasureFrame = window.requestAnimationFrame(() => {
+    documentSidebarMeasureFrame = undefined;
+    updateDocumentSidebarHeight();
+  });
+}
+
+function cancelDocumentSidebarHeightUpdate(): void {
+  if (documentSidebarMeasureFrame === undefined) {
+    return;
+  }
+  window.cancelAnimationFrame(documentSidebarMeasureFrame);
+  documentSidebarMeasureFrame = undefined;
+}
+
+function observeDocumentSidebar(): void {
+  documentSidebarResizeObserver?.disconnect();
+  documentSidebarResizeObserver = undefined;
+  scheduleDocumentSidebarHeightUpdate();
+  const sidebar = documentSidebar.value;
+  if (!sidebar || typeof ResizeObserver === "undefined") {
+    return;
+  }
+  documentSidebarResizeObserver = new ResizeObserver(() => {
+    scheduleDocumentSidebarHeightUpdate();
+  });
+  documentSidebarResizeObserver.observe(sidebar);
+}
+
 function handleWindowScroll() {
   closeContextMenu();
   void updateOperatorPickerPosition();
+  scheduleDocumentSidebarHeightUpdate();
 }
 
 function handleWindowResize() {
   closeContextMenu();
   void updateOperatorPickerPosition();
+  scheduleDocumentSidebarHeightUpdate();
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
@@ -6231,9 +6301,13 @@ onMounted(() => {
     passive: true,
   });
   window.addEventListener("resize", handleWindowResize);
+  void nextTick(observeDocumentSidebar);
 });
 
 onBeforeUnmount(() => {
+  cancelDocumentSidebarHeightUpdate();
+  documentSidebarResizeObserver?.disconnect();
+  documentSidebarResizeObserver = undefined;
   cancelOperatorPointerMoveFrame();
   setOperatorDragTarget(undefined);
   setOperatorDragHoveredSlot(undefined);
@@ -6268,6 +6342,10 @@ onBeforeUnmount(() => {
     clearTimeout(operatorPasteHighlightTimer);
   }
   closeOperatorPicker();
+});
+
+watch(showScheduleSidebar, () => {
+  void nextTick(observeDocumentSidebar);
 });
 </script>
 
@@ -6467,7 +6545,11 @@ onBeforeUnmount(() => {
         { 'simulator-layout--sidebar-hidden': !showScheduleSidebar },
       ]"
     >
-      <aside v-if="showScheduleSidebar" class="simulator-document-sidebar">
+      <aside
+        v-if="showScheduleSidebar"
+        ref="documentSidebar"
+        class="simulator-document-sidebar"
+      >
         <div class="simulator-sidebar-head">
           <div>
             <span class="simulator-eyebrow">SCHEDULES</span>
