@@ -1094,6 +1094,17 @@ function runTests(runtime) {
   );
   assert.equal(facilityResult(percentagePower, "power").skillEfficiency, 20);
 
+  const percentagePowerMultiple = calculateEfficiency(
+    percentageFacilityDocument("power", ["20%", "20%", "20%"]),
+    catalog,
+  );
+  const percentagePowerMultipleResult = facilityResult(
+    percentagePowerMultiple,
+    "power",
+  );
+  assert.equal(percentagePowerMultipleResult.skillEfficiency, 60);
+  assert.equal(percentagePowerMultipleResult.efficiency, 175);
+
   const percentageMeeting = calculateEfficiency(
     percentageFacilityDocument("meeting", ["35%"]),
     catalog,

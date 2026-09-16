@@ -3635,6 +3635,17 @@ function decorateProduction(
   };
 }
 
+function powerEffectKey(item: ActiveEffect): string {
+  return [
+    item.owner.facility.id,
+    item.owner.index,
+    item.owner.name,
+    item.skill,
+    item.effect.stat,
+    JSON.stringify(item.effect.per ?? item.effect.value ?? null),
+  ].join("|");
+}
+
 function calculatePowerGroup(
   context: PlanContext,
   catalog: EfficiencyCatalog,
@@ -3684,7 +3695,7 @@ function calculatePowerGroup(
       "base",
     );
     combination.details.forEach(({ item, value }) => {
-      const key = `${item.owner.name}|${item.skill}|${item.effect.stat}|${JSON.stringify(item.effect.per ?? item.effect.value ?? null)}`;
+      const key = powerEffectKey(item);
       if (!seen.has(key)) {
         seen.add(key);
         skillEfficiency += value;
@@ -3699,7 +3710,7 @@ function calculatePowerGroup(
       }
     });
     base.details.forEach(({ item, value }) => {
-      const key = `${item.owner.name}|${item.skill}|${item.effect.stat}|${JSON.stringify(item.effect.per ?? item.effect.value ?? null)}`;
+      const key = powerEffectKey(item);
       if (!seenBase.has(key)) {
         seenBase.add(key);
         facBase += value;
