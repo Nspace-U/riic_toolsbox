@@ -42,7 +42,6 @@
               "target": "hire",
               "stat": "hireSpd",
               "value": 20,
-              "stack": "max",
               "condition": {
                 "type": "statCmp",
                 "stat": "hireSpd",

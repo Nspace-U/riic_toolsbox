@@ -1122,6 +1122,83 @@ function runTests(runtime) {
   );
   assert.equal(facilityResult(percentageHire, "hire").skillEfficiency, 35);
 
+  const sleachZeroMood = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "hire", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment(["八幡海铃", "琴柳"], {})],
+            hire: [assignment(["絮雨"], {}, { 絮雨: 0 })],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const sleachZeroMoodHire = facilityResult(sleachZeroMood, "hire");
+  assert.equal(sleachZeroMoodHire.efficiency, 130);
+  assert.equal(sleachZeroMoodHire.baseEfficiency, 110);
+  assert.equal(sleachZeroMoodHire.moodEfficiency, 0);
+  assert.equal(
+    sleachZeroMoodHire.combinationDetails.find(
+      ({ operator, skill }) => operator === "琴柳" && skill === "感染力",
+    )?.value,
+    20,
+  );
+
+  const sleachAboveThreshold = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "hire", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment(["八幡海铃", "琴柳"], {})],
+            hire: [assignment(["絮雨"], {}, { 絮雨: 24 })],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const sleachAboveThresholdHire = facilityResult(sleachAboveThreshold, "hire");
+  assert.equal(sleachAboveThresholdHire.efficiency, 135);
+  assert.equal(
+    sleachAboveThresholdHire.combinationDetails.some(
+      ({ operator, skill }) => operator === "琴柳" && skill === "感染力",
+    ),
+    false,
+  );
+
+  const sleachAtThreshold = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "hire", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment(["灰烬", "琴柳"], {})],
+            hire: [assignment(["闪击"], {})],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const sleachAtThresholdHire = facilityResult(sleachAtThreshold, "hire");
+  assert.equal(sleachAtThresholdHire.efficiency, 130);
+
   const totterStageOne = calculateEfficiency(
     documentFor({
       manufacture: ["铅踝"],

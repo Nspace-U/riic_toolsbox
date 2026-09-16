@@ -176,7 +176,6 @@ export const OPERATOR_SKILL_OVERRIDES = {
       target: "hire",
       stat: "hireSpd",
       value: 20,
-      stack: "max",
       condition: { type: "statCmp", stat: "hireSpd", value: 30, op: "lt" },
     },
   ],

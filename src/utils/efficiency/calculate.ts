@@ -525,9 +525,13 @@ function conditionSatisfied(
       break;
     case "statCmp": {
       const key = `${target?.id ?? owner.facility.id}:${condition.stat ?? ""}`;
+      const baseEfficiency =
+        target?.type === "hire"
+          ? facilityBaseEfficiency(target.type, target.level)
+          : 0;
       result = compare(
         context.statValues.get(key) ?? 0,
-        Number(condition.value ?? 0),
+        Number(condition.value ?? 0) + baseEfficiency,
         condition.op,
       );
       break;
@@ -1510,22 +1514,61 @@ function preliminaryStatValues(
   catalog: EfficiencyCatalog,
 ): Map<string, number> {
   const values = new Map<string, number>();
-  const data: EvaluationData = { capBoosts: {}, bonusByFacility: {} };
   context.facilities.forEach((facility) => {
-    let total = 0;
-    active
-      .filter(
-        (item) =>
-          item.target?.id === facility.id &&
-          EFFICIENCY_STATS.has(item.effect.stat),
-      )
-      .filter((item) => item.effect.per?.source !== "stat")
-      .forEach((item) => {
-        total += effectValue(item, facility, context, catalog, data);
-      });
+    const data: EvaluationData = { capBoosts: {}, bonusByFacility: {} };
+    const zeroed = zeroedSkillOperators(context, facility);
+    const base = aggregateEffectValues(
+      context,
+      facility,
+      catalog,
+      active,
+      data,
+      EMPTY_ZEROED_SKILL_STATE,
+      new Set([...EFFICIENCY_STATS, "facBase"]),
+      "base",
+    );
+    const combination = aggregateEffectValues(
+      context,
+      facility,
+      catalog,
+      active,
+      data,
+      zeroed,
+      EFFICIENCY_STATS,
+      "combination",
+    );
+    const stat = aggregateEffectValues(
+      context,
+      facility,
+      catalog,
+      active,
+      data,
+      zeroed,
+      EFFICIENCY_STATS,
+      "combination",
+      "stat",
+    );
+    const operatorEfficiency = placementsInFacility(context, facility).reduce(
+      (total, placement) => total + operatorBaseEfficiency(facility, placement),
+      0,
+    );
+    let facilityEfficiency = facilityBaseEfficiency(
+      facility.type,
+      facility.level,
+    );
+    if (facility.type === "meeting") {
+      const atmosphere = context.facilities
+        .filter((candidate) => candidate.type === "dormitory")
+        .reduce((total, candidate) => total + candidate.level * 1000, 0);
+      facilityEfficiency += meetingAtmosphereBonus(atmosphere);
+    }
     values.set(
       `${facility.id}:${facility.type === "hire" ? "hireSpd" : facility.type === "trading" ? "tradeSpd" : facility.type === "manufacture" ? "manuProd" : "clueSpeed"}`,
-      total,
+      facilityEfficiency +
+        base.total +
+        operatorEfficiency +
+        combination.total +
+        stat.total,
     );
   });
   return values;
@@ -2040,6 +2083,11 @@ function resolveMoods(
       );
       context.basePoints = preliminaryPointState.points;
       context.basePointDetails = preliminaryPointState.details;
+      context.statValues = preliminaryStatValues(
+        context,
+        context.active,
+        catalog,
+      );
       context.active = collectActive(context, catalog, false);
       const pointState = computeBasePointState(
         context,
@@ -2049,12 +2097,6 @@ function resolveMoods(
       );
       context.basePoints = pointState.points;
       context.basePointDetails = pointState.details;
-      context.statValues = preliminaryStatValues(
-        context,
-        context.active,
-        catalog,
-      );
-      context.active = collectActive(context, catalog, false);
       context.placements.forEach((placement) => {
         const moodRate = resolveMoodRate(
           context,
