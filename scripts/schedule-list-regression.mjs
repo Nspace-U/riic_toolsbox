@@ -51,6 +51,13 @@ try {
     "3队列",
   ]);
   assert.deepEqual(
+    scheduleModule.automaticScheduleTags({
+      ...fullDocument,
+      layout: fullDocument.layout.filter((entry) => entry.type !== "training"),
+    }),
+    ["242", "右不满", "3队列"],
+  );
+  assert.deepEqual(
     scheduleModule.scheduleTags(fullDocument, ["自定义", "右满"], ["右满"]),
     [
       { label: "242", automatic: true },

@@ -256,7 +256,7 @@ export function automaticScheduleTags(document: ScheduleDocument): string[] {
   );
   return [
     layoutTag,
-    ...(isRightFull ? ["右满"] : ["左满", "右不满"]),
+    ...(isRightFull ? ["右满"] : ["右不满"]),
     `${document.plans.length}队列`,
   ];
 }
