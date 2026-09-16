@@ -563,11 +563,10 @@ function runTests(runtime) {
     catalog,
     { 无人机: 240 },
   ).scenarios.filter((scenario) => scenario.product === "赤金");
-  assert.equal(duplicateProductScenarios.length, 2);
-  duplicateProductScenarios.forEach((scenario) => {
-    assert.equal(scenario.baseAmountPerHour, 1 / 1.2);
-    assert.equal(scenario.extraFlow.赤金, 10);
-  });
+  assert.equal(duplicateProductScenarios.length, 1);
+  assert.equal(duplicateProductScenarios[0].sourceLabel, "队列1 · 制造站1");
+  assert.equal(duplicateProductScenarios[0].baseAmountPerHour, 1 / 1.2);
+  assert.equal(duplicateProductScenarios[0].extraFlow.赤金, 10);
 
   const crossQueueDocument = droneDocument("1");
   crossQueueDocument.plans.push({
@@ -586,12 +585,10 @@ function runTests(runtime) {
     catalog,
     { 无人机: 240 },
   ).scenarios.filter((scenario) => scenario.product === "赤金");
-  assert.equal(crossQueueScenarios.length, 2);
-  assert.notEqual(crossQueueScenarios[0].key, crossQueueScenarios[1].key);
-  crossQueueScenarios.forEach((scenario) => {
-    assert.equal(scenario.baseAmountPerHour, 1 / 1.2);
-    assert.equal(scenario.extraFlow.赤金, 10);
-  });
+  assert.equal(crossQueueScenarios.length, 1);
+  assert.equal(crossQueueScenarios[0].sourceLabel, "队列1 · 制造站1");
+  assert.equal(crossQueueScenarios[0].baseAmountPerHour, 1 / 1.2);
+  assert.equal(crossQueueScenarios[0].extraFlow.赤金, 10);
 
   const legacyProductDocument = droneDocument("1");
   legacyProductDocument.plans[0].rooms.trading[0].product = "LMD";

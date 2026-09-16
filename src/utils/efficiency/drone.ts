@@ -443,18 +443,21 @@ export function calculateDroneAcceleration(
         ),
       ];
     }
-    return facilityFlows
-      .filter((flow) => flow.product === product)
-      .map((flow) =>
-        createScenario(
-          flow.key,
-          flow.product,
-          flow,
-          dailyDrones,
-          acceleratedHours,
-          flow.sourceLabel,
-        ),
-      );
+    const flow = facilityFlows.find(
+      (candidate) => candidate.product === product,
+    );
+    return flow
+      ? [
+          createScenario(
+            flow.key,
+            flow.product,
+            flow,
+            dailyDrones,
+            acceleratedHours,
+            flow.sourceLabel,
+          ),
+        ]
+      : [];
   });
   return {
     dailyDrones,
