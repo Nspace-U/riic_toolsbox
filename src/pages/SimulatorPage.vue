@@ -225,16 +225,16 @@ interface DailyOutputCard {
   grossPoints?: number;
   grossPointsLabel?: string;
   netAmount: number;
+  netResourceAmount: number;
   netUnit: string;
   netContribution?: number;
   showNet: boolean;
 }
 
 interface DroneScenarioView {
-  key: "base" | "extra" | "accelerated";
+  key: "extra" | "accelerated";
   label: string;
   cards: DailyOutputCard[];
-  sanity: SanityResult;
 }
 
 interface DroneScenarioDisplay {
@@ -257,11 +257,11 @@ function dailyOutputPointInfo(
 function createDailyOutputCard(
   product: string,
   amounts: SanityResourceAmounts,
-  sanity: SanityResult,
+  sanity: SanityResult | undefined,
   grossAmount?: number,
 ): DailyOutputCard {
   const pointInfo = dailyOutputPointInfo(product);
-  const sanityItem = sanity.items.find((item) => item.resource === product);
+  const sanityItem = sanity?.items.find((item) => item.resource === product);
   const rawNetAmount =
     (amounts as Record<string, number | undefined>)[product] ??
     grossAmount ??
@@ -270,7 +270,7 @@ function createDailyOutputCard(
     pointInfo?.label ?? sanityItem?.amountUnit ?? resourceLabel(product);
   const netAmount = rawNetAmount * (pointInfo?.factor ?? 1);
   const netContribution =
-    sanityItem?.contribution ?? (sanity.complete ? 0 : undefined);
+    sanityItem?.contribution ?? (sanity?.complete ? 0 : undefined);
   const grossPoints =
     grossAmount === undefined || !pointInfo
       ? undefined
@@ -281,6 +281,7 @@ function createDailyOutputCard(
     ...(grossPoints === undefined ? {} : { grossPoints }),
     ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
     netAmount,
+    netResourceAmount: rawNetAmount,
     netUnit,
     ...(netContribution === undefined ? {} : { netContribution }),
     showNet:
@@ -1300,21 +1301,21 @@ function scenarioResources(
 function scenarioCards(
   product: string,
   amounts: SanityResourceAmounts,
-  sanity: SanityResult,
   grossAmount: number,
   resources: string[],
 ): DailyOutputCard[] {
   return resources
     .filter(
       (resource) =>
-        resource === product ||
-        Math.abs(amountFromFlow(amounts, resource)) > 0.000001,
+        resource !== "Drone" &&
+        (resource === product ||
+          Math.abs(amountFromFlow(amounts, resource)) > 0.000001),
     )
     .map((resource) =>
       createDailyOutputCard(
         resource,
         amounts,
-        sanity,
+        undefined,
         resource === product ? grossAmount : undefined,
       ),
     );
@@ -1338,7 +1339,6 @@ const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
 const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
   const result = efficiencyResult.value;
   const acceleration = droneAcceleration.value;
-  const values = sanityValues.value;
   if (!result || !acceleration || result.dailyHours <= 0) {
     return [];
   }
@@ -1358,10 +1358,6 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
       : 0;
     const acceleratedAmounts: SanityResourceAmounts = { ...baseAmounts };
     addResourceFlow(acceleratedAmounts, scenario.extraFlow);
-    const baseSanity = calculateSanityResult(baseAmounts, values);
-    const extraSanity = calculateSanityResult(scenario.extraFlow, values);
-    const acceleratedSanity = calculateSanityResult(acceleratedAmounts, values);
-    const baseResources = scenarioResources(scenario.product, baseAmounts);
     const extraResources = scenarioResources(
       scenario.product,
       scenario.extraFlow,
@@ -1379,28 +1375,14 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
       scenario,
       views: [
         {
-          key: "base",
-          label: "无无人机加速",
-          cards: scenarioCards(
-            scenario.product,
-            baseAmounts,
-            baseSanity,
-            baseGrossAmount,
-            baseResources,
-          ),
-          sanity: baseSanity,
-        },
-        {
           key: "extra",
           label: "无人机额外产出与消耗",
           cards: scenarioCards(
             scenario.product,
             scenario.extraFlow,
-            extraSanity,
             extraGrossAmount,
             extraResources,
           ),
-          sanity: extraSanity,
         },
         {
           key: "accelerated",
@@ -1408,11 +1390,9 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
           cards: scenarioCards(
             scenario.product,
             acceleratedAmounts,
-            acceleratedSanity,
             baseGrossAmount + extraGrossAmount,
             acceleratedResources,
           ),
-          sanity: acceleratedSanity,
         },
       ],
     };
@@ -7874,10 +7854,6 @@ onBeforeUnmount(() => {
                   <span class="simulator-eyebrow">DRONE ACCELERATION</span>
                   <h3>无人机使用策略</h3>
                 </div>
-                <span v-if="droneAcceleration" class="simulator-result-hint">
-                  {{ formatNumber(droneAcceleration.dailyDrones) }} 架 ·
-                  {{ formatNumber(droneAcceleration.acceleratedHours) }} 小时
-                </span>
               </div>
               <div
                 v-if="lmdDroneFacilityExists"
@@ -7915,11 +7891,8 @@ onBeforeUnmount(() => {
                   <div class="simulator-drone-scenario-heading">
                     <strong>{{ resourceLabel(entry.scenario.product) }}</strong>
                     <span>
-                      基础
-                      {{
-                        formatProduction(entry.scenario.baseAmountPerHour)
-                      }}/小时 ·
-                      {{ formatNumber(entry.scenario.droneAmount) }} 架无人机
+                      {{ formatNumber(entry.scenario.droneAmount) }} 架 ·
+                      {{ formatNumber(entry.scenario.acceleratedHours) }} 小时
                     </span>
                   </div>
                   <div
@@ -7930,7 +7903,10 @@ onBeforeUnmount(() => {
                     <div class="simulator-drone-view-heading">
                       <strong>{{ view.label }}</strong>
                       <span v-if="view.key === 'extra'"
-                        >固定按基础 100% 效率计算</span
+                        >固定按基础 100% 效率计算 · 基础
+                        {{
+                          formatProduction(entry.scenario.baseAmountPerHour)
+                        }}/小时</span
                       >
                     </div>
                     <div
@@ -7975,42 +7951,21 @@ onBeforeUnmount(() => {
                               净收入 {{ signedNumber(card.netAmount) }}
                               {{ card.netUnit }}
                             </span>
-                            <strong
-                              v-if="card.netContribution !== undefined"
-                              class="simulator-daily-output-sanity"
-                            >
-                              {{ signedNumber(card.netContribution) }} 理智
-                            </strong>
                             <span
-                              v-else
-                              class="simulator-daily-output-sanity-missing"
+                              v-if="
+                                view.key === 'accelerated' &&
+                                card.product === entry.scenario.product &&
+                                card.showNet
+                              "
+                              class="simulator-drone-output-net-resource"
                             >
-                              未计入
+                              净{{ resourceLabel(card.product) }}
+                              {{ signedNumber(card.netResourceAmount) }}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div class="simulator-daily-output-item">
-                        <img
-                          :alt="'理智'"
-                          :src="sanityIconUrl()"
-                          class="simulator-daily-output-icon"
-                        />
-                        <strong class="simulator-daily-output-main-value">
-                          {{ signedNumber(view.sanity.total) }}
-                        </strong>
-                      </div>
                     </div>
-                    <a-alert
-                      v-if="!view.sanity.complete"
-                      :message="
-                        '等效理智不完整：未设置' +
-                        view.sanity.missing.join('、') +
-                        '价值'
-                      "
-                      show-icon
-                      type="warning"
-                    />
                   </div>
                 </div>
               </div>
