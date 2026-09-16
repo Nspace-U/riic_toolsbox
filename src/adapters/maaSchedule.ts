@@ -173,16 +173,25 @@ function mapSpecialOperators(
           if (mapping) {
             const key = `${roomType}|${mapping.product ?? "*"}|${mapping.percentage}`;
             const position = percentagePositions.get(key) ?? 0;
-            const next = mapping.operators.findIndex(
-              (candidate, index) => index >= position && !used.has(candidate),
-            );
+            let next = -1;
+            for (
+              let offset = 0;
+              offset < mapping.operators.length;
+              offset += 1
+            ) {
+              const index = (position + offset) % mapping.operators.length;
+              if (!used.has(mapping.operators[index]!)) {
+                next = index;
+                break;
+              }
+            }
             if (next < 0) {
               throw new ScheduleError(
                 `${ROOM_LABELS[roomType]} 中的 ${name} 没有可用的百分比映射干员`,
               );
             }
             const mapped = mapping.operators[next]!;
-            percentagePositions.set(key, next + 1);
+            percentagePositions.set(key, (next + 1) % mapping.operators.length);
             used.add(mapped);
             if (states?.[name]) {
               mappedStates[mapped] = states[name];

@@ -254,6 +254,87 @@ EXP 52.2k | 贵金属 46.6k
   assert.equal(powerResult?.operatorSkillEfficiency, 20);
   assert.equal(powerResult?.efficiency, 125);
 
+  const rollingPercentageDocument = {
+    layout: [
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+    ],
+    plans: [
+      {
+        name: "队列1",
+        duration: 720,
+        rooms: {
+          manufacture: [
+            { product: "Battle Record", operators: ["35%", "35%", "35%"] },
+            { product: "Battle Record" },
+          ],
+        },
+      },
+      {
+        name: "队列2",
+        duration: 720,
+        rooms: {
+          manufacture: [
+            {
+              product: "Battle Record",
+              operators: ["35%", "35%"],
+            },
+            { product: "Battle Record", operators: ["35%", "35%"] },
+          ],
+        },
+      },
+      {
+        name: "队列3",
+        duration: 720,
+        rooms: {
+          manufacture: [
+            { product: "Battle Record", operators: ["35%", "35%", "35%"] },
+            { product: "Battle Record" },
+          ],
+        },
+      },
+    ],
+  };
+  const rollingPercentageSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(rollingPercentageDocument),
+  );
+  assert.deepEqual(
+    rollingPercentageSerialized.plans.map((plan) =>
+      plan.rooms.manufacture.flatMap((room) => room.operators ?? []),
+    ),
+    [
+      ["断罪者", "食铁兽", "酒神"],
+      ["弑君者", "裂响", "断罪者", "食铁兽"],
+      ["酒神", "弑君者", "裂响"],
+    ],
+  );
+  assert.throws(
+    () =>
+      maaModule.serializeMaaSchedule({
+        layout: [
+          { type: "manufacture", level: 3 },
+          { type: "manufacture", level: 3 },
+        ],
+        plans: [
+          {
+            rooms: {
+              manufacture: [
+                {
+                  product: "Battle Record",
+                  operators: ["35%", "35%", "35%"],
+                },
+                {
+                  product: "Battle Record",
+                  operators: ["35%", "35%", "35%"],
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    /制造站 中的 35% 没有可用的百分比映射干员/,
+  );
+
   const termFallbackCatalog = {
     operators: {
       甲: { name: "甲", termKeys: ["term"] },
@@ -346,6 +427,22 @@ EXP 52.2k | 贵金属 46.6k
     ),
   );
   assert.deepEqual(termSerialized.plans[0].rooms.control[0].operators, ["甲"]);
+  const termPerPlanSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(
+      {
+        layout: [{ type: "control", level: 5 }],
+        plans: [
+          { rooms: { control: [{ operators: ["术语"] }] } },
+          { rooms: { control: [{ operators: ["术语"] }] } },
+        ],
+      },
+      { catalog: termFallbackCatalog },
+    ),
+  );
+  assert.deepEqual(
+    termPerPlanSerialized.plans.map((plan) => plan.rooms.control[0].operators),
+    [["甲"], ["甲"]],
+  );
 
   const crossRoomMapping = {
     layout: [
