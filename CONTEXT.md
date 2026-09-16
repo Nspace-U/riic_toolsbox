@@ -64,6 +64,7 @@
 - 已实现菲亚梅塔假设施：任一队列宿舍出现菲亚梅塔后为全排班表生成；按队列模式每队列一槽，直接模式使用可配置容量并保留两种模式的干员配置，假设施不写入真实设施布局。
 - Maa 导入默认使用按队列互换并读取每个队列的 `Fiammetta`；导出按当前模式写入 `enable`、`target` 和 `order: "pre"`，不保留旧 `featherFixedOps`、`featherTargets` 字段。
 - `ScheduleDocument.settings` 已加入计算设置；`OperatorState.level` 已加入供等级解锁和未来训练室扩展使用。
+- Maa JSON 导出采用深拷贝后局部清理，不是协议白名单；有 `operators` 数组的房间会删除 `description` 并压缩空槽位，根级 `layout`、计算用 `settings`、`operatorStates`、`sourceMaterial` 和 `training` 会随文档导出但不属于 Maa 原生排班协议，菲亚梅塔内部配置只转换为每计划一个 `pre` 目标。
 - 已接入 ESLint 与 Prettier：使用 Vue 3、TypeScript 和 JavaScript 的标准推荐配置，构建产物与生成数据目录已排除。
 - 已修复基建技能一览中折叠隐藏技能时最后一条可见技能仍显示分割线的问题：技能卡片只渲染当前可见技能，并按最后一个技能元素移除边框。
 - 头像生成器已增加页面级“干员已拥有”选项；关闭时仅将头像主体叠加半透明灰色遮罩，分层预览和整合生成保持与心情涣散相同的选项联动，切换干员不自动重置。
