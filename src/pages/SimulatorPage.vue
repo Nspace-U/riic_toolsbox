@@ -7811,9 +7811,7 @@ onBeforeUnmount(() => {
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span class="simulator-step-subheading"
-                        >队列计算明细</span
-                      >
+                      <span>队列计算明细</span>
                       <span class="simulator-result-hint"
                         >按队列时长折算到每日产出</span
                       >
@@ -7994,7 +7992,7 @@ onBeforeUnmount(() => {
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span class="simulator-step-subheading">基地点数</span>
+                      <span>基地点数</span>
                     </div>
                   </template>
                   <div class="simulator-calculation-step-columns">

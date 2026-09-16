@@ -34,10 +34,20 @@ assert.match(calculationBlock, /<a-collapse ghost>/);
 assert.match(queueBlock, /v-for="queue in dailyOutputQueueDetails"/);
 assert.match(queueBlock, /class="simulator-calculation-step-columns"/);
 assert.match(queueBlock, /class="simulator-calculation-step-column"/);
+assert.match(queueBlock, /<span>队列计算明细<\/span>/);
+assert.doesNotMatch(
+  queueBlock,
+  /<span class="simulator-step-subheading">队列计算明细<\/span>/,
+);
 assert.doesNotMatch(queueBlock, /<a-alert[\s\S]*?queue\.sanity\.complete/);
 assert.match(basePointBlock, /v-for="entry in basePointQueueDetails"/);
 assert.match(basePointBlock, /v-for="point in entry\.points"/);
 assert.match(basePointBlock, /class="simulator-base-point-value"/);
+assert.match(basePointBlock, /<span>基地点数<\/span>/);
+assert.doesNotMatch(
+  basePointBlock,
+  /<span class="simulator-step-subheading">基地点数<\/span>/,
+);
 assert.doesNotMatch(basePointBlock, /<a-collapse-panel[\s\S]*?v-for=/);
 assert.doesNotMatch(basePointBlock, /simulator-base-point-source-title/);
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
