@@ -6603,62 +6603,12 @@ onBeforeUnmount(() => {
       </aside>
 
       <main v-if="currentDocument" class="simulator-editor">
-        <div
-          class="simulator-editor-toolbar simulator-editor-toolbar--settings-only"
-        >
-          <div aria-label="编辑选项" class="simulator-edit-settings">
-            <span class="simulator-summary-label">编辑</span>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.layout"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting('layout', event.target.checked)
-              "
-            >
-              编辑布局
-            </a-checkbox>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.queue"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting('queue', event.target.checked)
-              "
-            >
-              编辑队列
-            </a-checkbox>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.product"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting('product', event.target.checked)
-              "
-            >
-              编辑产物
-            </a-checkbox>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.showFacilityDescriptions"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting(
-                    'showFacilityDescriptions',
-                    event.target.checked,
-                  )
-              "
-            >
-              显示组合描述
-            </a-checkbox>
-          </div>
-        </div>
-
         <a-card :bordered="false" class="simulator-meta-panel">
           <div class="simulator-panel-heading">
             <div>
               <span class="simulator-eyebrow">SIMULATOR</span>
               <h3>排班表信息</h3>
             </div>
-            <a-tag color="cyan"
-              >{{ currentDocument.plans.length }} 个队列</a-tag
-            >
           </div>
           <div class="simulator-meta-grid">
             <div class="simulator-meta-field">
@@ -6715,6 +6665,47 @@ onBeforeUnmount(() => {
                 />
               </div>
             </div>
+          </div>
+          <div aria-label="编辑选项" class="simulator-edit-settings">
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.layout"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('layout', event.target.checked)
+              "
+            >
+              编辑布局
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.queue"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('queue', event.target.checked)
+              "
+            >
+              编辑队列
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.product"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting('product', event.target.checked)
+              "
+            >
+              编辑产物
+            </a-checkbox>
+            <a-checkbox
+              :checked="currentSimulatorEditSettings.showFacilityDescriptions"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSimulatorEditSetting(
+                    'showFacilityDescriptions',
+                    event.target.checked,
+                  )
+              "
+            >
+              显示组合描述
+            </a-checkbox>
           </div>
         </a-card>
 
