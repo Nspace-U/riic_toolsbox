@@ -30,6 +30,29 @@ export const DRONE_ACCELERATABLE_PRODUCTS = [
 export type DroneAcceleratableProduct =
   (typeof DRONE_ACCELERATABLE_PRODUCTS)[number];
 
+export type LmdDroneStrategyLevel = 1 | 2 | 3;
+
+export type LmdDroneStrategies = Record<LmdDroneStrategyLevel, string>;
+
+export const DEFAULT_LMD_DRONE_STRATEGIES: LmdDroneStrategies = {
+  1: "1 但书",
+  2: "2 但书",
+  3: "3 但书 龙舌兰",
+};
+
+function lowestTradingLevel(
+  document: ScheduleDocument,
+): LmdDroneStrategyLevel | undefined {
+  const level = Math.min(
+    ...document.layout
+      .filter((entry) => entry.type === "trading")
+      .map((entry) => entry.level),
+  );
+  return Number.isInteger(level) && level >= 1 && level <= 3
+    ? (level as LmdDroneStrategyLevel)
+    : undefined;
+}
+
 export interface LmdDroneStrategy {
   level: number;
   operators: string[];
@@ -55,6 +78,10 @@ export interface DroneAccelerationResult {
   acceleratedHours: number;
   strategyError?: string;
   scenarios: DroneAccelerationScenario[];
+}
+
+export interface DroneAccelerationOptions extends EfficiencyCalculationOptions {
+  lmdDroneStrategies?: LmdDroneStrategies;
 }
 
 interface BaseProductFlow {
@@ -351,14 +378,27 @@ export function calculateDroneAcceleration(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
   dailyAmounts: SanityResourceAmounts,
-  options: EfficiencyCalculationOptions = {},
+  options: DroneAccelerationOptions = {},
 ): DroneAccelerationResult {
   const dailyDrones = Math.max(0, dailyAmounts.无人机 ?? 0);
   const acceleratedHours = (dailyDrones * DRONE_ACCELERATION_MINUTES) / 60;
-  const parseResult = parseLmdDroneStrategy(
-    document.settings?.lmdDroneStrategy ?? "",
-    catalog,
-  );
+  const override = document.settings?.lmdDroneStrategy?.trim();
+  const defaultLevel = lowestTradingLevel(document);
+  const defaultStrategies =
+    options.lmdDroneStrategies ?? DEFAULT_LMD_DRONE_STRATEGIES;
+  const strategyText =
+    override || (defaultLevel ? (defaultStrategies[defaultLevel] ?? "") : "");
+  let parseResult = parseLmdDroneStrategy(strategyText, catalog);
+  if (
+    !override &&
+    defaultLevel !== undefined &&
+    parseResult.strategy &&
+    parseResult.strategy.level !== defaultLevel
+  ) {
+    parseResult = {
+      error: `${defaultLevel}级贸易站策略必须以“${defaultLevel}”开头`,
+    };
+  }
   const baseFlows = scheduleBaseFlows(document);
   const lmdExists = baseFlows.has("龙门币");
   if (lmdExists && parseResult.strategy) {

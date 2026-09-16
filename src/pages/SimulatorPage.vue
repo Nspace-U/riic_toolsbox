@@ -26,6 +26,7 @@ import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySe
 import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDataSource } from "@/composables/useDataSource";
+import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import {
   isProductColorKey,
@@ -495,6 +496,7 @@ const {
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
 const { sanityValues } = useSanitySettings();
+const { lmdDroneStrategies } = useDroneStrategySettings();
 
 const simulatorSlotSize = computed(
   () => avatarDisplaySizes.value.simulatorSlot,
@@ -1338,6 +1340,7 @@ const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
     treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
+    lmdDroneStrategies: lmdDroneStrategies.value,
   });
 });
 
@@ -7675,10 +7678,10 @@ onBeforeUnmount(() => {
                 v-if="lmdDroneFacilityExists"
                 class="simulator-drone-strategy"
               >
-                <a-form-item label="龙门币贸易站策略">
+                <a-form-item label="本排班表专用策略（可选）">
                   <a-input
                     :value="lmdDroneStrategyDraft"
-                    placeholder="3 巫恋 龙舌兰2 但书0"
+                    placeholder="留空时按通用设置自动选择"
                     @blur="commitLmdDroneStrategy"
                     @press-enter="commitLmdDroneStrategy"
                     @update:value="updateLmdDroneStrategyDraft"
@@ -7686,7 +7689,8 @@ onBeforeUnmount(() => {
                 </a-form-item>
                 <span class="simulator-result-hint"
                   >输入一行：贸易站等级，后接干员；干员名末尾的 0、1、2 表示精
-                  0、精 1、精 2。</span
+                  0、精 1、精
+                  2。留空时按通用设置中的最低贸易站等级自动选择。</span
                 >
               </div>
               <a-alert
@@ -7790,7 +7794,7 @@ onBeforeUnmount(() => {
                   lmdDroneFacilityExists && !droneAcceleration?.strategyError
                 "
                 :image="undefined"
-                description="请输入龙门币贸易站策略"
+                description="未设置有效的龙门币贸易站策略"
               />
             </div>
 

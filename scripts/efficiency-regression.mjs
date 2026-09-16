@@ -568,6 +568,85 @@ function runTests(runtime) {
   assert.equal(danshuDroneScenario.extraFlow.龙门币, 7500);
   assert.equal(danshuDroneScenario.extraFlow.赤金, -15);
 
+  const defaultDroneStrategies = {
+    1: "1 但书0",
+    2: "2",
+    3: "3",
+  };
+  const automaticDroneAcceleration = calculateDroneAcceleration(
+    droneDocument(""),
+    catalog,
+    { 无人机: 240 },
+    { lmdDroneStrategies: defaultDroneStrategies },
+  );
+  const automaticLmdScenario = automaticDroneAcceleration.scenarios.find(
+    (scenario) => scenario.product === "龙门币",
+  );
+  assert.ok(automaticLmdScenario);
+  assert.equal(automaticLmdScenario.extraFlow.龙门币, 7500);
+
+  const levelTwoDocument = droneDocument("");
+  levelTwoDocument.layout = levelTwoDocument.layout.filter(
+    (entry) => entry.type !== "trading" || entry.level !== 1,
+  );
+  const levelTwoAutomatic = calculateDroneAcceleration(
+    levelTwoDocument,
+    catalog,
+    { 无人机: 240 },
+    { lmdDroneStrategies: defaultDroneStrategies },
+  );
+  const levelTwoScenario = levelTwoAutomatic.scenarios.find(
+    (scenario) => scenario.product === "龙门币",
+  );
+  const levelTwoExplicit = calculateDroneAcceleration(
+    droneDocument("2"),
+    catalog,
+    { 无人机: 240 },
+  ).scenarios.find((scenario) => scenario.product === "龙门币");
+  assert.ok(levelTwoScenario);
+  assert.ok(levelTwoExplicit);
+  assert.equal(
+    levelTwoScenario.extraFlow.龙门币,
+    levelTwoExplicit.extraFlow.龙门币,
+  );
+
+  const invalidDefault = calculateDroneAcceleration(
+    droneDocument(""),
+    catalog,
+    { 无人机: 240 },
+    { lmdDroneStrategies: { 1: "2", 2: "2", 3: "3" } },
+  );
+  assert.equal(invalidDefault.strategyError, "1级贸易站策略必须以“1”开头");
+
+  const noTradingDocument = droneDocument("");
+  noTradingDocument.layout = noTradingDocument.layout.filter(
+    (entry) => entry.type !== "trading",
+  );
+  const noTradingAcceleration = calculateDroneAcceleration(
+    noTradingDocument,
+    catalog,
+    { 无人机: 240 },
+    { lmdDroneStrategies: defaultDroneStrategies },
+  );
+  assert.equal(
+    noTradingAcceleration.scenarios.find(
+      (scenario) => scenario.product === "龙门币",
+    ),
+    undefined,
+  );
+
+  const overriddenDroneAcceleration = calculateDroneAcceleration(
+    droneDocument("1 但书0"),
+    catalog,
+    { 无人机: 240 },
+    { lmdDroneStrategies: { 1: "1", 2: "2", 3: "3" } },
+  );
+  const overriddenLmdScenario = overriddenDroneAcceleration.scenarios.find(
+    (scenario) => scenario.product === "龙门币",
+  );
+  assert.ok(overriddenLmdScenario);
+  assert.equal(overriddenLmdScenario.extraFlow.龙门币, 7500);
+
   const partial = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "未知干员"],

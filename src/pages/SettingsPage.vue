@@ -17,6 +17,7 @@ import {
 } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
+import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import {
@@ -34,6 +35,7 @@ import type {
 } from "@/types/operatorProgression";
 import type { RoomKey } from "@/types/schedule";
 import type { SanitySettings } from "@/utils/sanity";
+import type { LmdDroneStrategyLevel } from "@/utils/efficiency/drone";
 import {
   sortBranchValues,
   sortProfessionValues,
@@ -114,6 +116,8 @@ const {
 } = useOperatorProgression();
 const { sanitySettings, sanityValues, setSanitySetting, resetSanitySettings } =
   useSanitySettings();
+const { lmdDroneStrategies, setLmdDroneStrategy, resetLmdDroneStrategies } =
+  useDroneStrategySettings();
 
 const facilityColorEntries = ROOM_ORDER.map(
   (type) => [type, facilityLabels[type]] as [RoomKey, string],
@@ -504,6 +508,13 @@ function updateDevice(value: number | null): void {
   handleSanitySettingChange("device", value);
 }
 
+function updateLmdDroneStrategy(
+  level: LmdDroneStrategyLevel,
+  value: string,
+): void {
+  setLmdDroneStrategy(level, value);
+}
+
 function formatSanityValue(value: number | null): string {
   return value === null
     ? "未设置"
@@ -612,6 +623,37 @@ watch(
         <span>当前数据源</span>
         <strong>{{ selectedDataSourceLabel }}</strong>
       </div>
+    </a-card>
+
+    <a-card
+      :bordered="false"
+      class="settings-panel settings-drone-strategy-panel"
+      title="无人机加速贸易站策略"
+    >
+      <p class="settings-panel-description">
+        排班表未设置专用策略时，按布局中最低贸易站等级自动选择。
+      </p>
+      <a-form layout="vertical" class="settings-sanity-form">
+        <a-form-item label="1级贸易站策略">
+          <a-input
+            :value="lmdDroneStrategies[1]"
+            @update:value="(value: string) => updateLmdDroneStrategy(1, value)"
+          />
+        </a-form-item>
+        <a-form-item label="2级贸易站策略">
+          <a-input
+            :value="lmdDroneStrategies[2]"
+            @update:value="(value: string) => updateLmdDroneStrategy(2, value)"
+          />
+        </a-form-item>
+        <a-form-item label="3级贸易站策略">
+          <a-input
+            :value="lmdDroneStrategies[3]"
+            @update:value="(value: string) => updateLmdDroneStrategy(3, value)"
+          />
+        </a-form-item>
+      </a-form>
+      <a-button @click="resetLmdDroneStrategies">恢复默认策略</a-button>
     </a-card>
 
     <a-card
