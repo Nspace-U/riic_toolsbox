@@ -7536,7 +7536,7 @@ watch(showScheduleSidebar, () => {
                                 ?.operatorSkillEfficiency ?? 0
                             "
                             unit="%"
-                          />
+                          />%
                           <span aria-hidden="true"> / </span>
                           <SimulatorNumericValue
                             mode="efficiency"
@@ -7545,7 +7545,7 @@ watch(showScheduleSidebar, () => {
                               0
                             "
                             unit="%"
-                          />
+                          />%
                         </strong>
                       </div>
                     </div>
@@ -8325,14 +8325,16 @@ watch(showScheduleSidebar, () => {
                                 mode="efficiency"
                                 :value="product.baseEfficiency"
                                 unit="%"
-                            /></strong>
+                              />%</strong
+                            >
                             <span>总效率</span>
                             <strong
                               ><SimulatorNumericValue
                                 mode="efficiency"
                                 :value="product.totalEfficiency"
                                 unit="%"
-                            /></strong>
+                              />%</strong
+                            >
                             <span>基础效率产出</span>
                             <strong
                               ><SimulatorNumericValue
@@ -8375,14 +8377,16 @@ watch(showScheduleSidebar, () => {
                                     mode="efficiency"
                                     :value="facility.baseEfficiency"
                                     unit="%"
-                                /></strong>
+                                  />%</strong
+                                >
                                 <span>{{ facility.label }} · 总效率</span>
                                 <strong
                                   ><SimulatorNumericValue
                                     mode="efficiency"
                                     :value="facility.totalEfficiency"
                                     unit="%"
-                                /></strong>
+                                  />%</strong
+                                >
                                 <span>{{ facility.label }} · 基础产出</span>
                                 <strong
                                   ><SimulatorNumericValue
@@ -8599,7 +8603,8 @@ watch(showScheduleSidebar, () => {
                             ><SimulatorNumericValue
                               :value="column.step.facility.efficiency"
                               unit="%"
-                          /></strong>
+                            />%</strong
+                          >
                         </div>
                         <SimulatorCalculationStepContent
                           v-if="column.step"
@@ -8647,7 +8652,8 @@ watch(showScheduleSidebar, () => {
                           ><SimulatorNumericValue
                             :value="result.facility.efficiency"
                             unit="%"
-                        /></strong>
+                          />%</strong
+                        >
                       </div>
                     </template>
                     <SimulatorCalculationStepContent

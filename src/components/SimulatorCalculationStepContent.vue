@@ -49,32 +49,39 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             ><SimulatorNumericValue
               :value="step.facility.baseEfficiency"
               unit="%"
-          /></strong>
+            />%</strong
+          >
           <span>干员效率</span>
           <strong
             ><SimulatorNumericValue
               mode="signed"
               :value="step.facility.moodEfficiency"
               unit="%"
-          /></strong>
+            />%</strong
+          >
           <span>干员技能效率</span>
           <strong
             ><SimulatorNumericValue
               mode="signed"
               :value="step.facility.operatorSkillEfficiency"
               unit="%"
-          /></strong>
+            />%</strong
+          >
           <span>组合效率</span>
           <strong
             ><SimulatorNumericValue
               mode="efficiency"
               :value="step.facility.combinationEfficiency"
               unit="%"
-          /></strong>
+            />%</strong
+          >
           <span>整体效率</span>
           <strong
-            ><SimulatorNumericValue :value="step.facility.efficiency" unit="%"
-          /></strong>
+            ><SimulatorNumericValue
+              :value="step.facility.efficiency"
+              unit="%"
+            />%</strong
+          >
           <span>计算公式</span>
           <span>
             基础 {{ formatNumber(step.facility.baseEfficiency) }}% + 心情
