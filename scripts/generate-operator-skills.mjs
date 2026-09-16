@@ -1612,7 +1612,7 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
         type: "fixed",
         orderName: "可露希尔特别订单",
         qty: 1200,
-        material: "赤金",
+        material: "Pure Gold",
         amount: 2,
         time: 2.4,
         priority: 2,

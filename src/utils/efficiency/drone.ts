@@ -17,7 +17,7 @@ import {
 import { calculateEfficiency } from "@/utils/efficiency/calculate";
 import { DRONE_ACCELERATION_MINUTES } from "@/utils/sanity";
 import type { SanityResourceAmounts } from "@/utils/sanity";
-import { resolveRoomAssignment } from "@/utils/schedule";
+import { canonicalResourceKey, resolveRoomAssignment } from "@/utils/schedule";
 
 export const DRONE_ACCELERATABLE_PRODUCTS = [
   "LMD",
@@ -72,7 +72,8 @@ function addAmount(
   key: string,
   amount: number,
 ): void {
-  values[key] = (values[key] ?? 0) + amount;
+  const resource = canonicalResourceKey(key);
+  values[resource] = (values[resource] ?? 0) + amount;
 }
 
 function parseOperatorToken(
@@ -135,9 +136,11 @@ function productForAssignment(
   assignment: RoomAssignment,
 ): string | undefined {
   if (type === "trading") {
-    return assignment.product ?? "LMD";
+    return canonicalResourceKey(assignment.product ?? "LMD");
   }
-  return assignment.product;
+  return assignment.product
+    ? canonicalResourceKey(assignment.product)
+    : undefined;
 }
 
 function productionFlowForAssignment(
@@ -171,7 +174,7 @@ function productionFlowForAssignment(
   if (type !== "manufacture") {
     return undefined;
   }
-  const rule = manufactureRule(assignment.product, assignment.sourceMaterial);
+  const rule = manufactureRule(product, assignment.sourceMaterial);
   if (!rule) {
     return undefined;
   }
@@ -179,7 +182,7 @@ function productionFlowForAssignment(
     amountPerHour: rule.amount / rule.hours,
     materialPerHour: Object.fromEntries(
       Object.entries(rule.materials ?? {}).map(([material, amount]) => [
-        material,
+        canonicalResourceKey(material),
         -amount / rule.hours,
       ]),
     ),
@@ -269,7 +272,7 @@ function baseTradeFlowFromOrders(
   const expectedMaterial = orders.reduce(
     (total, order) =>
       total +
-      (order.material === "Pure Gold"
+      (canonicalResourceKey(order.material ?? "") === "Pure Gold"
         ? order.probability * (order.amount ?? 0)
         : 0),
     0,

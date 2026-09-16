@@ -35,6 +35,19 @@ try {
   assert.equal(netAmounts.LMD, 2400);
   assert.equal(netAmounts["Pure Gold"], -24);
 
+  const aliasAmounts = {};
+  addProductionFlow(
+    aliasAmounts,
+    {
+      product: "LMD",
+      amountPerHour: 100,
+      materialPerHour: { 赤金: -1 },
+    },
+    24,
+  );
+  assert.equal(aliasAmounts["Pure Gold"], -24);
+  assert.equal(aliasAmounts["赤金"], undefined);
+
   const result = calculateSanityResult(
     {
       LMD: 1000,

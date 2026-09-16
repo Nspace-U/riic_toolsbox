@@ -1,5 +1,6 @@
 import type { LayoutEntry, RoomKey } from "@/types/schedule";
 import type { EfficiencyFacility } from "@/types/efficiency";
+import { canonicalResourceKey } from "@/utils/schedule";
 
 export const WORK_ROOM_KEYS: RoomKey[] = [
   "control",
@@ -196,10 +197,11 @@ export function manufactureRule(
   if (!product) {
     return undefined;
   }
-  if (product === "Originium Shard") {
+  const canonicalProduct = canonicalResourceKey(product);
+  if (canonicalProduct === "Originium Shard") {
     return MANUFACTURE_RULES[`Originium Shard:${sourceMaterial || "固源岩"}`];
   }
-  return MANUFACTURE_RULES[product];
+  return MANUFACTURE_RULES[canonicalProduct];
 }
 
 export function dormitoryAtmosphere(layout: LayoutEntry[]): number {

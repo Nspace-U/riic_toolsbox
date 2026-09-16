@@ -124,6 +124,24 @@ export const PRODUCT_LABELS: Record<string, string> = {
   "Originium Shard": "源石碎片",
 };
 
+export const RESOURCE_KEY_ALIASES: Readonly<Record<string, string>> = {
+  龙门币: "LMD",
+  合成玉: "Orundum",
+  赤金: "Pure Gold",
+  作战记录: "Battle Record",
+  中级作战记录: "Battle Record",
+  源石碎片: "Originium Shard",
+  无人机: "Drone",
+  线索: "Clue",
+  信用点: "Credit",
+  公开招募标签刷新次数: "Recruit Refresh",
+};
+
+export function canonicalResourceKey(resource: string): string {
+  const normalized = resource.trim();
+  return RESOURCE_KEY_ALIASES[normalized] ?? normalized;
+}
+
 export const UNSUPPORTED_PRODUCT_LABELS: Record<string, string> = {
   Dualchip: "双芯片（仅保留，不参与本工具制造计算）",
 };
@@ -838,7 +856,17 @@ function roomAssignmentAt(
     return {};
   }
   const room = rooms[position];
-  return isRecord(room) ? (room as RoomAssignment) : {};
+  if (!isRecord(room)) {
+    return {};
+  }
+  const assignment = room as RoomAssignment;
+  if (typeof assignment.product !== "string") {
+    return assignment;
+  }
+  const product = canonicalResourceKey(assignment.product);
+  return product === assignment.product
+    ? assignment
+    : { ...assignment, product };
 }
 
 function inheritedOperatorStates(

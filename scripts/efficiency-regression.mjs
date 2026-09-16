@@ -24,12 +24,14 @@ async function loadRuntime() {
       catalogModule,
       calculateModule,
       droneModule,
+      aggregateModule,
       maaModule,
     ] = await Promise.all([
       vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
       vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
       vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
       vite.ssrLoadModule("/src/utils/efficiency/drone.ts"),
+      vite.ssrLoadModule("/src/utils/efficiency/aggregate.ts"),
       vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
     ]);
     const [characterTable, buildingData, gamedataConst, metadata] =
@@ -99,6 +101,7 @@ async function loadRuntime() {
     return {
       calculateEfficiency: calculateModule.calculateEfficiency,
       calculateDroneAcceleration: droneModule.calculateDroneAcceleration,
+      aggregateDailyOutputs: aggregateModule.aggregateDailyOutputs,
       parseLmdDroneStrategy: droneModule.parseLmdDroneStrategy,
       parseMaaScheduleText: maaModule.parseMaaScheduleText,
       serializeMaaSchedule: maaModule.serializeMaaSchedule,
@@ -477,6 +480,7 @@ function assertSkillDetails(result, operators) {
 
 function runTests(runtime) {
   const {
+    aggregateDailyOutputs,
     calculateDroneAcceleration,
     calculateEfficiency,
     catalog,
@@ -641,6 +645,58 @@ function runTests(runtime) {
   assert.ok((signedManufacture.production?.amountPerHour ?? 0) > 0);
   assert.ok(
     (signedTrading?.production?.materialPerHour?.["Pure Gold"] ?? 0) < 0,
+  );
+
+  const canonicalMaterial = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "trading", level: 3 },
+        { type: "manufacture", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 1440,
+          rooms: {
+            trading: [assignment(["可露希尔"], { 可露希尔: 2 })],
+            manufacture: [
+              { ...assignment(["砾"], { 砾: 2 }), product: "Pure Gold" },
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const canonicalTrading = canonicalMaterial.plans[0].facilities.find(
+    ({ facility }) => facility.type === "trading",
+  );
+  assert.equal(
+    canonicalTrading?.production?.orders?.[0]?.material,
+    "Pure Gold",
+  );
+  assert.ok(
+    !canonicalMaterial.dailyOutputs.some(({ product }) => product === "赤金"),
+  );
+  const providedFlowOutputs = aggregateDailyOutputs({ layout: [], plans: [] }, [
+    {
+      product: "Pure Gold",
+      amountPerHour: 23200 / 24,
+      amountPerDay: 23200,
+    },
+    {
+      product: "LMD",
+      amountPerHour: 0,
+      amountPerDay: 0,
+      materialPerHour: { 赤金: -24128.5956007 / 24 },
+    },
+  ]);
+  assert.ok(
+    Math.abs(
+      (providedFlowOutputs.find(
+        ({ kind, product }) => kind === "net" && product === "Pure Gold",
+      )?.amountPerDay ?? 0) + 928.5956007,
+    ) < 1e-9,
   );
 
   const gladyBetaSplit = calculateEfficiency(

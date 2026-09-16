@@ -6,7 +6,11 @@ import type {
   ScheduleDocument,
 } from "@/types/schedule";
 import { ROOM_KEYS } from "@/types/schedule";
-import { ScheduleError } from "@/utils/schedule";
+import {
+  canonicalResourceKey,
+  PRODUCT_LABELS,
+  ScheduleError,
+} from "@/utils/schedule";
 import {
   completeInferredRooms,
   inferScheduleLayout,
@@ -28,14 +32,6 @@ interface ParsedStation {
   product?: string;
   queues: ParsedQueue[];
 }
-
-const PRODUCT_BY_LABEL: Record<string, string> = {
-  中级作战记录: "Battle Record",
-  作战记录: "Battle Record",
-  赤金: "Pure Gold",
-  源石碎片: "Originium Shard",
-  合成玉: "Orundum",
-};
 
 function nonEmptyLines(text: string): string[] {
   return text
@@ -132,10 +128,11 @@ function stationInfo(title: string): {
     throw new ScheduleError(`无法识别设施“${title}”`);
   }
   const productLabel = title.match(/（([^）]+)）/)?.[1];
+  const product = productLabel ? canonicalResourceKey(productLabel) : undefined;
   return {
     type,
-    ...(productLabel && PRODUCT_BY_LABEL[productLabel]
-      ? { product: PRODUCT_BY_LABEL[productLabel] }
+    ...(product && PRODUCT_LABELS[product]
+      ? { product }
       : type === "trading"
         ? { product: "LMD" }
         : type === "manufacture"

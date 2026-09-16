@@ -12,6 +12,7 @@ import {
   EPSILON,
 } from "@/utils/efficiency/model";
 import { CREDIT_PER_CLUE } from "@/utils/efficiency/baseRules";
+import { canonicalResourceKey } from "@/utils/schedule";
 
 function cluePreferenceRank(preference: CluePreference): number {
   if (typeof preference === "number") return preference;
@@ -71,7 +72,9 @@ export function aggregateDaily(
       ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
       production: {
         ...result.production,
-        product: amounts[0]?.product ?? result.production?.product ?? "",
+        product: canonicalResourceKey(
+          amounts[0]?.product ?? result.production?.product ?? "",
+        ),
         ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
         baseAmountPerHour: totals.base / totalHours,
         baseAmountPerDay: (totals.base / totalHours) * 24,
@@ -114,9 +117,10 @@ export function aggregateDailyProductions(
       if (!production) {
         return;
       }
+      const product = canonicalResourceKey(production.product);
       const rate =
         production.effectiveAmountPerHour ?? production.amountPerHour;
-      const current = grouped.get(production.product) ?? {
+      const current = grouped.get(product) ?? {
         basePerCycle: 0,
         actualPerCycle: 0,
         effectivePerCycle: 0,
@@ -139,19 +143,21 @@ export function aggregateDailyProductions(
       current.effectivePerCycle += rate * plan.durationHours;
       Object.entries(production.materialPerHour ?? {}).forEach(
         ([material, amount]) => {
-          current.materialsPerCycle[material] =
-            (current.materialsPerCycle[material] ?? 0) +
+          const resource = canonicalResourceKey(material);
+          current.materialsPerCycle[resource] =
+            (current.materialsPerCycle[resource] ?? 0) +
             amount * plan.durationHours;
         },
       );
       Object.entries(
         production.effectiveMaterialPerHour ?? production.materialPerHour ?? {},
       ).forEach(([material, amount]) => {
-        current.effectiveMaterialsPerCycle[material] =
-          (current.effectiveMaterialsPerCycle[material] ?? 0) +
+        const resource = canonicalResourceKey(material);
+        current.effectiveMaterialsPerCycle[resource] =
+          (current.effectiveMaterialsPerCycle[resource] ?? 0) +
           amount * plan.durationHours;
       });
-      grouped.set(production.product, current);
+      grouped.set(product, current);
     });
   });
 
@@ -206,13 +212,15 @@ export function aggregateDailyOutputs(
   const gross = new Map<string, number>();
   const materials = new Map<string, number>();
   productions.forEach((production) => {
-    if (production.product !== "Clue") {
-      gross.set(production.product, selectedDailyAmount(production));
+    const product = canonicalResourceKey(production.product);
+    if (product !== "Clue") {
+      gross.set(product, selectedDailyAmount(production));
     }
     const rates =
       production.effectiveMaterialPerHour ?? production.materialPerHour ?? {};
     Object.entries(rates).forEach(([material, rate]) => {
-      materials.set(material, (materials.get(material) ?? 0) + rate * 24);
+      const resource = canonicalResourceKey(material);
+      materials.set(resource, (materials.get(resource) ?? 0) + rate * 24);
     });
   });
   const dormitoryCredit = document.layout
@@ -221,7 +229,9 @@ export function aggregateDailyOutputs(
       (total, entry) => total + Math.floor(10 + (entry.level * 1000) / 125),
       0,
     );
-  const clue = productions.find((production) => production.product === "Clue");
+  const clue = productions.find(
+    (production) => canonicalResourceKey(production.product) === "Clue",
+  );
   gross.set(
     "Credit",
     CREDIT_BASE_DAILY +

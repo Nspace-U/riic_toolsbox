@@ -3,6 +3,7 @@ import {
   manufactureRule,
   ORUNDUM_TRADE_ORDER,
 } from "@/utils/efficiency/baseRules";
+import { canonicalResourceKey } from "@/utils/schedule";
 
 export const DRONE_ACCELERATION_MINUTES = 3;
 export const BATTLE_RECORD_EXPERIENCE = 1000;
@@ -197,7 +198,7 @@ function addFlow(
   if (amount === 0) {
     return;
   }
-  const knownResource = resource as SanityFlowResource;
+  const knownResource = canonicalResourceKey(resource) as SanityFlowResource;
   if (
     !SANITY_ITEM_DEFINITIONS.some((item) => item.resource === knownResource)
   ) {

@@ -5,7 +5,7 @@ import type {
   OperatorEfficiencyDetail,
   ProductionValue,
 } from "@/types/efficiency";
-import { PRODUCT_LABELS } from "@/utils/schedule";
+import { canonicalResourceKey, PRODUCT_LABELS } from "@/utils/schedule";
 
 export function planDurationHoursValue(plan: { duration?: number }): number {
   const minutes = Number(plan.duration ?? 720);
@@ -189,7 +189,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 };
 
 export function resourceLabel(resource: string): string {
-  return RESOURCE_LABELS[resource] ?? resource;
+  const canonicalResource = canonicalResourceKey(resource);
+  return RESOURCE_LABELS[canonicalResource] ?? canonicalResource;
 }
 
 export function productionLabel(product: string): string {

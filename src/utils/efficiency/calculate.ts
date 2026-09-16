@@ -51,7 +51,11 @@ import {
   WORK_ROOM_KEYS,
 } from "@/utils/efficiency/baseRules";
 import { catalogOperator } from "@/utils/efficiency/catalog";
-import { resolveRoomAssignment, roomSlotCount } from "@/utils/schedule";
+import {
+  canonicalResourceKey,
+  resolveRoomAssignment,
+  roomSlotCount,
+} from "@/utils/schedule";
 import {
   compareBasePointDetails,
   compareBasePointSources,
@@ -2985,7 +2989,7 @@ function tradeProduction(
   active: ActiveEffect[],
 ): ProductionValue | undefined {
   const assignment = roomAssignments(context.document, context.index, facility);
-  const product = assignment.product ?? "LMD";
+  const product = canonicalResourceKey(assignment.product ?? "LMD");
   if (product === "Orundum") {
     const multiplier = efficiency / 100;
     const baseAmountPerHour =
@@ -3029,9 +3033,12 @@ function tradeProduction(
       Number(fixed.order.qty ?? 0) / Number(fixed.order.time ?? 1);
     const amountPerHour =
       baseAmountPerHour * (fixed.order.ignoreEff ? 1 : multiplier);
+    const fixedMaterial = fixed.order.material
+      ? canonicalResourceKey(fixed.order.material)
+      : null;
     const material: Record<string, number> = {};
-    if (fixed.order.material && fixed.order.amount) {
-      material[fixed.order.material] = -(
+    if (fixedMaterial && fixed.order.amount) {
+      material[fixedMaterial] = -(
         (Number(fixed.order.amount) / Number(fixed.order.time ?? 1)) *
         (fixed.order.ignoreEff ? 1 : multiplier)
       );
@@ -3052,7 +3059,7 @@ function tradeProduction(
           probability: 1,
           quantity: Number(fixed.order.qty ?? 0),
           time: Number(fixed.order.time ?? 0),
-          material: fixed.order.material,
+          material: fixedMaterial,
           amount: Number(fixed.order.amount ?? 0),
           ignoreEfficiency: fixed.order.ignoreEff,
         },
