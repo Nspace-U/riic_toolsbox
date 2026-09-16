@@ -2498,14 +2498,7 @@ a {
   font-size: 11px;
 }
 
-.simulator-base-point-results {
-  overflow-x: hidden;
-  padding-block: 18px;
-  border-block-end: 1px solid #edf1f0;
-}
-
-.simulator-base-point-value,
-.simulator-base-point-source {
+.simulator-base-point-value {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   justify-content: start;
@@ -2515,22 +2508,24 @@ a {
 
 .simulator-base-point-source {
   color: #72807f;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .simulator-base-point-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, max-content);
-  gap: 10px;
+  gap: 12px;
 }
 
 .simulator-base-point-item {
   min-inline-size: 0;
   max-inline-size: 100%;
-  padding: 12px;
-  background: #f8fbfa;
-  border: 1px solid #e0e8e5;
-  border-radius: 5px;
+  padding-block: 8px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-base-point-item:first-child {
+  padding-block-start: 0;
+  border-block-start: 0;
 }
 
 .simulator-base-point-value {
@@ -2553,40 +2548,21 @@ a {
   border-block-start: 1px solid #e4ece9;
 }
 
-.simulator-base-point-source-title {
-  display: block;
-  margin-block-end: 4px;
-  color: #879294;
-  font-size: 11px;
-}
-
 .simulator-base-point-source {
   padding-block: 2px;
   overflow-wrap: anywhere;
 }
 
 .simulator-base-point-source strong {
-  color: #176b68;
-  font-size: 11px;
+  color: #344447;
+  font-size: inherit;
+  font-weight: 600;
 }
 
 .simulator-daily-output-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
-}
-
-.simulator-daily-output-breakdown {
-  padding-block: 18px;
-  border-block-end: 1px solid #edf1f0;
-}
-
-.simulator-daily-output-breakdown .ant-collapse {
-  background: transparent;
-}
-
-.simulator-daily-output-breakdown .simulator-step-content {
-  padding-block-start: 4px;
 }
 
 .settings-base-point-options {
@@ -2839,17 +2815,6 @@ a {
   padding: 4px 12px 12px 36px;
 }
 
-.simulator-step-formula {
-  color: #425457;
-  font-family: "Cascadia Code", Consolas, monospace;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.simulator-step-formula strong {
-  color: #344447;
-}
-
 .simulator-step-section,
 .simulator-step-subsection {
   display: grid;
@@ -2891,6 +2856,12 @@ a {
 .simulator-step-detail-grid > span:nth-child(even) {
   color: #344447;
   font-weight: 600;
+}
+
+.simulator-step-detail-grid strong small {
+  color: #72807f;
+  font-size: inherit;
+  font-weight: 400;
 }
 
 .simulator-step-detail-row {
@@ -3035,6 +3006,7 @@ a {
   grid-template-columns: subgrid;
   gap: 2px 12px;
   color: #344447;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -3044,6 +3016,12 @@ a {
 
 .simulator-skill-detail-calculation-label {
   padding-inline-start: 1em;
+  color: #72807f;
+}
+
+.simulator-skill-detail-calculation-row > span:last-child {
+  color: #344447;
+  font-weight: 600;
 }
 
 .simulator-mood-detail-row {
@@ -3176,10 +3154,6 @@ a {
   column-gap: 12px;
 }
 
-.simulator-mood-calculation > .simulator-step-formula {
-  grid-column: 1 / -1;
-}
-
 .simulator-mood-rate-step > * {
   padding-block: 2px;
 }
@@ -3189,10 +3163,6 @@ a {
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   justify-content: start;
   column-gap: 12px;
-}
-
-.simulator-base-point-sources .simulator-base-point-source-title {
-  grid-column: 1 / -1;
 }
 
 .simulator-base-point-source {
@@ -3757,9 +3727,5 @@ a {
 
   .simulator-step-content {
     padding-inline-start: 12px;
-  }
-
-  .simulator-base-point-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

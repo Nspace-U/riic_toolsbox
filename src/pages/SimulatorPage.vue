@@ -218,6 +218,12 @@ interface DailyOutputQueueDetail {
   sanity: SanityResult;
 }
 
+interface BasePointQueueDetail {
+  plan: EfficiencyPlanResult;
+  planIndex: number;
+  points: BasePointDetail[];
+}
+
 interface DailyOutputCard {
   product: string;
   grossAmount?: number;
@@ -1402,14 +1408,6 @@ const droneAccelerationVisible = computed(
   () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
 );
 
-const plansWithBasePoints = computed(() =>
-  (efficiencyResult.value?.plans ?? []).flatMap((plan, planIndex) =>
-    plan.basePointDetails.some((point) => isBasePointVisible(point.term))
-      ? [{ plan, planIndex }]
-      : [],
-  ),
-);
-
 function displayedBasePointDetails(
   plan: EfficiencyPlanResult,
 ): BasePointDetail[] {
@@ -1417,6 +1415,18 @@ function displayedBasePointDetails(
     isBasePointVisible(point.term),
   );
 }
+
+const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
+  const plans = efficiencyResult.value?.plans ?? [];
+  if (!plans.some((plan) => displayedBasePointDetails(plan).length > 0)) {
+    return [];
+  }
+  return plans.map((plan, planIndex) => ({
+    plan,
+    planIndex,
+    points: displayedBasePointDetails(plan),
+  }));
+});
 
 const efficiencySupported = computed(
   () => selectedDataSource.value === "torappu",
@@ -4720,9 +4730,6 @@ function operatorMoodRemaining(
 
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
   const { facility } = result;
-  if (facility.type === "power") {
-    return `${ROOM_LABELS[facility.type]}（合并）`;
-  }
   const count =
     currentDocument.value?.layout.filter(
       (entry) => entry.type === facility.type,
@@ -7787,12 +7794,21 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div
-              v-if="dailyOutputQueueDetails.length"
-              class="simulator-daily-output-breakdown"
-            >
+            <div class="simulator-calculation-steps">
+              <div class="simulator-result-section-heading">
+                <div>
+                  <span class="simulator-eyebrow">CALCULATION STEPS</span>
+                  <h3>计算步骤</h3>
+                </div>
+                <span class="simulator-result-hint"
+                  >展开分区查看详细计算过程</span
+                >
+              </div>
               <a-collapse ghost>
-                <a-collapse-panel key="daily-output-breakdown">
+                <a-collapse-panel
+                  v-if="dailyOutputQueueDetails.length"
+                  key="daily-output-breakdown"
+                >
                   <template #header>
                     <div class="simulator-step-header">
                       <span class="simulator-step-subheading"
@@ -7803,13 +7819,13 @@ onBeforeUnmount(() => {
                       >
                     </div>
                   </template>
-                  <div class="simulator-step-content">
-                    <section
+                  <div class="simulator-calculation-step-columns">
+                    <div
                       v-for="queue in dailyOutputQueueDetails"
                       :key="`daily-output-${queue.planIndex}`"
-                      class="simulator-step-section"
+                      class="simulator-calculation-step-column"
                     >
-                      <div class="simulator-step-header">
+                      <div class="simulator-calculation-step-column-header">
                         <span>
                           {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
                           <small
@@ -7820,238 +7836,218 @@ onBeforeUnmount(() => {
                         </span>
                         <strong>{{ queue.products.length }} 种产物</strong>
                       </div>
-                      <section
-                        v-for="product in queue.products"
-                        :key="product.product"
-                        class="simulator-step-subsection"
-                      >
-                        <span class="simulator-step-subheading">{{
-                          resourceLabel(product.product)
-                        }}</span>
-                        <div class="simulator-step-detail-grid">
-                          <span>基础效率</span>
-                          <strong
-                            >{{
-                              formatEfficiencyNumber(product.baseEfficiency)
-                            }}%</strong
+                      <div class="simulator-step-content">
+                        <section
+                          v-for="product in queue.products"
+                          :key="product.product"
+                          class="simulator-step-section"
+                        >
+                          <span class="simulator-step-subheading">{{
+                            resourceLabel(product.product)
+                          }}</span>
+                          <div class="simulator-step-detail-grid">
+                            <span>基础效率</span>
+                            <strong
+                              >{{
+                                formatEfficiencyNumber(product.baseEfficiency)
+                              }}%</strong
+                            >
+                            <span>总效率</span>
+                            <strong
+                              >{{
+                                formatEfficiencyNumber(product.totalEfficiency)
+                              }}%</strong
+                            >
+                            <span>基础效率产出</span>
+                            <strong
+                              >{{
+                                formatProduction(product.baseOutputPerHour)
+                              }}/小时</strong
+                            >
+                            <span>总效率产出</span>
+                            <strong
+                              >{{
+                                formatProduction(product.totalOutputPerHour)
+                              }}/小时</strong
+                            >
+                            <span>队列折算每日</span>
+                            <strong>{{
+                              formatProduction(product.dailyContribution)
+                            }}</strong>
+                          </div>
+                          <div
+                            v-if="product.facilities.length"
+                            class="simulator-step-subsection"
                           >
-                          <span>总效率</span>
-                          <strong
-                            >{{
-                              formatEfficiencyNumber(product.totalEfficiency)
-                            }}%</strong
-                          >
-                          <span>基础效率产出</span>
-                          <strong
-                            >{{
-                              formatProduction(product.baseOutputPerHour)
-                            }}/小时</strong
-                          >
-                          <span>总效率产出</span>
-                          <strong
-                            >{{
-                              formatProduction(product.totalOutputPerHour)
-                            }}/小时</strong
-                          >
-                          <span>队列折算每日</span>
-                          <strong>{{
-                            formatProduction(product.dailyContribution)
-                          }}</strong>
-                        </div>
-                        <div
-                          v-if="product.facilities.length"
-                          class="simulator-step-subsection"
+                            <span class="simulator-step-subheading"
+                              >设施明细</span
+                            >
+                            <div class="simulator-step-detail-grid">
+                              <template
+                                v-for="facility in product.facilities"
+                                :key="facility.label"
+                              >
+                                <span>{{ facility.label }} · 基础效率</span>
+                                <strong
+                                  >{{
+                                    formatEfficiencyNumber(
+                                      facility.baseEfficiency,
+                                    )
+                                  }}%</strong
+                                >
+                                <span>{{ facility.label }} · 总效率</span>
+                                <strong
+                                  >{{
+                                    formatEfficiencyNumber(
+                                      facility.totalEfficiency,
+                                    )
+                                  }}%</strong
+                                >
+                                <span>{{ facility.label }} · 基础产出</span>
+                                <strong
+                                  >{{
+                                    formatProduction(
+                                      facility.baseOutputPerHour,
+                                    )
+                                  }}/小时</strong
+                                >
+                                <span>{{ facility.label }} · 总产出</span>
+                                <strong
+                                  >{{
+                                    formatProduction(
+                                      facility.totalOutputPerHour,
+                                    )
+                                  }}/小时</strong
+                                >
+                                <template
+                                  v-for="order in facility.orders"
+                                  :key="`${facility.label}-${order.name}`"
+                                >
+                                  <span>
+                                    {{ facility.label }} · 订单产出 ·
+                                    {{ order.name }} ·
+                                    {{ formatNumber(order.probability * 100) }}%
+                                  </span>
+                                  <span>
+                                    基础
+                                    {{ formatProduction(order.baseRate) }}/小时
+                                    · 总
+                                    {{ formatProduction(order.totalRate) }}/小时
+                                    <template v-if="order.ignoreEfficiency">
+                                      · 固定订单
+                                    </template>
+                                  </span>
+                                </template>
+                              </template>
+                            </div>
+                          </div>
+                        </section>
+                        <section
+                          class="simulator-step-section simulator-daily-output-queue-sanity"
                         >
                           <span class="simulator-step-subheading"
-                            >设施明细</span
+                            >队列等效理智</span
                           >
                           <div class="simulator-step-detail-grid">
                             <template
-                              v-for="facility in product.facilities"
-                              :key="facility.label"
+                              v-for="item in queue.sanity.items"
+                              :key="item.resource"
                             >
-                              <span>{{ facility.label }} · 基础效率</span>
-                              <strong
-                                >{{
-                                  formatEfficiencyNumber(
-                                    facility.baseEfficiency,
-                                  )
-                                }}%</strong
+                              <span class="simulator-sanity-detail-label">
+                                <img
+                                  v-if="dailyOutputIconUrl(item.resource)"
+                                  :alt="item.label"
+                                  :src="dailyOutputIconUrl(item.resource)"
+                                  class="simulator-daily-output-icon"
+                                />
+                                {{ item.label }} ·
+                                {{ signedNumber(item.amount) }}
+                                {{ item.amountUnit }}
+                              </span>
+                              <strong v-if="item.contribution !== undefined">
+                                {{ signedNumber(item.contribution) }} 理智
+                              </strong>
+                              <span v-else class="simulator-sanity-missing"
+                                >未计入</span
                               >
-                              <span>{{ facility.label }} · 总效率</span>
-                              <strong
-                                >{{
-                                  formatEfficiencyNumber(
-                                    facility.totalEfficiency,
-                                  )
-                                }}%</strong
-                              >
-                              <span>{{ facility.label }} · 基础产出</span>
-                              <strong
-                                >{{
-                                  formatProduction(facility.baseOutputPerHour)
-                                }}/小时</strong
-                              >
-                              <span>{{ facility.label }} · 总产出</span>
-                              <strong
-                                >{{
-                                  formatProduction(facility.totalOutputPerHour)
-                                }}/小时</strong
-                              >
-                              <template
-                                v-for="order in facility.orders"
-                                :key="`${facility.label}-${order.name}`"
-                              >
-                                <span>
-                                  {{ facility.label }} · 订单产出 ·
-                                  {{ order.name }} ·
-                                  {{ formatNumber(order.probability * 100) }}%
-                                </span>
-                                <span>
-                                  基础
-                                  {{ formatProduction(order.baseRate) }}/小时 ·
-                                  总
-                                  {{ formatProduction(order.totalRate) }}/小时
-                                  <template v-if="order.ignoreEfficiency">
-                                    · 固定订单
-                                  </template>
-                                </span>
-                              </template>
                             </template>
-                          </div>
-                        </div>
-                      </section>
-                      <section
-                        class="simulator-step-subsection simulator-daily-output-queue-sanity"
-                      >
-                        <span class="simulator-step-subheading"
-                          >队列等效理智</span
-                        >
-                        <a-alert
-                          v-if="!queue.sanity.complete"
-                          :message="
-                            '总理智不完整：未设置' +
-                            queue.sanity.missing.join('、') +
-                            '价值'
-                          "
-                          show-icon
-                          type="warning"
-                        />
-                        <div class="simulator-step-detail-grid">
-                          <template
-                            v-for="item in queue.sanity.items"
-                            :key="item.resource"
-                          >
-                            <span class="simulator-sanity-detail-label">
-                              <img
-                                v-if="dailyOutputIconUrl(item.resource)"
-                                :alt="item.label"
-                                :src="dailyOutputIconUrl(item.resource)"
-                                class="simulator-daily-output-icon"
-                              />
-                              {{ item.label }} ·
-                              {{ signedNumber(item.amount) }}
-                              {{ item.amountUnit }}
-                            </span>
-                            <strong v-if="item.contribution !== undefined">
-                              {{ signedNumber(item.contribution) }} 理智
-                            </strong>
-                            <span v-else class="simulator-sanity-missing"
-                              >未计入</span
+                            <span>{{
+                              queue.sanity.complete
+                                ? "队列等效理智合计"
+                                : "队列等效理智合计（部分）"
+                            }}</span>
+                            <strong
+                              >{{
+                                signedNumber(queue.sanity.total)
+                              }}
+                              理智</strong
                             >
-                          </template>
-                          <span>{{
-                            queue.sanity.complete
-                              ? "队列等效理智合计"
-                              : "队列等效理智合计（部分）"
-                          }}</span>
-                          <strong
-                            >{{ signedNumber(queue.sanity.total) }} 理智</strong
-                          >
-                        </div>
-                      </section>
-                    </section>
+                          </div>
+                        </section>
+                      </div>
+                    </div>
                   </div>
                 </a-collapse-panel>
-              </a-collapse>
-            </div>
-
-            <div
-              v-if="plansWithBasePoints.length"
-              class="simulator-base-point-results"
-            >
-              <div class="simulator-result-section-heading">
-                <div>
-                  <span class="simulator-eyebrow">BASE POINTS</span>
-                  <h3>基地点数</h3>
-                </div>
-                <span class="simulator-result-hint"
-                  >来源点数保留，派生点数按比例追加</span
-                >
-              </div>
-              <a-collapse ghost>
                 <a-collapse-panel
-                  v-for="entry in plansWithBasePoints"
-                  :key="`base-points-${entry.planIndex}`"
+                  v-if="basePointQueueDetails.length"
+                  key="base-points"
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span>
-                        {{ entry.plan.name }}
-                        <small
-                          >·
-                          {{ formatNumber(entry.plan.durationHours) }}
-                          小时</small
-                        >
-                      </span>
+                      <span class="simulator-step-subheading">基地点数</span>
                     </div>
                   </template>
-                  <div class="simulator-step-content">
-                    <div class="simulator-base-point-grid">
-                      <div
-                        v-for="point in displayedBasePointDetails(entry.plan)"
-                        :key="point.term"
-                        class="simulator-base-point-item"
-                      >
-                        <div class="simulator-base-point-value">
-                          <span>{{ basePointLabel(point.term) }}</span>
-                          <strong>{{ formatNumber(point.value) }}</strong>
-                        </div>
-                        <div class="simulator-base-point-sources">
-                          <span class="simulator-base-point-source-title"
-                            >来源</span
+                  <div class="simulator-calculation-step-columns">
+                    <div
+                      v-for="entry in basePointQueueDetails"
+                      :key="`base-points-${entry.planIndex}`"
+                      class="simulator-calculation-step-column"
+                    >
+                      <div class="simulator-calculation-step-column-header">
+                        <span>
+                          {{ entry.plan.name || `队列${entry.planIndex + 1}` }}
+                          <small
+                            >·
+                            {{ formatNumber(entry.plan.durationHours) }}
+                            小时</small
                           >
+                        </span>
+                      </div>
+                      <div class="simulator-step-content">
+                        <div class="simulator-base-point-grid">
                           <div
-                            v-for="(source, sourceIndex) in point.sources"
-                            :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
-                            class="simulator-base-point-source"
+                            v-for="point in entry.points"
+                            :key="point.term"
+                            class="simulator-base-point-item"
                           >
-                            <span>{{ basePointSourceText(source) }}</span>
-                            <strong>+{{ formatNumber(source.value) }}</strong>
+                            <div class="simulator-base-point-value">
+                              <span>{{ basePointLabel(point.term) }}</span>
+                              <strong>{{ formatNumber(point.value) }}</strong>
+                            </div>
+                            <div class="simulator-base-point-sources">
+                              <div
+                                v-for="(source, sourceIndex) in point.sources"
+                                :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
+                                class="simulator-base-point-source"
+                              >
+                                <span>{{ basePointSourceText(source) }}</span>
+                                <strong
+                                  >+{{ formatNumber(source.value) }}</strong
+                                >
+                              </div>
+                            </div>
                           </div>
+                          <span
+                            v-if="!entry.points.length"
+                            class="simulator-step-column-empty"
+                            >当前队列无基地点数</span
+                          >
                         </div>
                       </div>
                     </div>
                   </div>
                 </a-collapse-panel>
-              </a-collapse>
-            </div>
-
-            <div class="simulator-calculation-steps">
-              <div class="simulator-result-section-heading">
-                <div>
-                  <span class="simulator-eyebrow">CALCULATION STEPS</span>
-                  <h3>计算步骤</h3>
-                </div>
-                <span class="simulator-result-hint"
-                  >展开设施查看生效技能明细</span
-                >
-              </div>
-              <div
-                v-if="calculationStepDisplayMode === 'facility'"
-                class="simulator-calculation-step-facility-view"
-              >
-                <a-collapse ghost>
+                <template v-if="calculationStepDisplayMode === 'facility'">
                   <a-collapse-panel
                     v-for="group in calculationStepGroups"
                     :key="`facility-${group.key}`"
@@ -8112,48 +8108,50 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
                   </a-collapse-panel>
-                </a-collapse>
-              </div>
-              <a-collapse v-else ghost>
-                <a-collapse-panel
-                  v-for="(result, resultIndex) in calculationSteps"
-                  :key="`${result.planIndex}-${result.facility?.facility.id ?? 'control-mood'}-${resultIndex}`"
-                >
-                  <template #header>
-                    <div class="simulator-step-header">
-                      <span>
-                        {{ result.plan.name }} ·
-                        {{
-                          result.facility
-                            ? facilityResultLabel(result.facility)
-                            : ROOM_LABELS.control
-                        }}
-                        <small
-                          v-if="
-                            result.facility &&
-                            inheritedSourceLabel(result.facility)
-                          "
+                </template>
+                <template v-else>
+                  <a-collapse-panel
+                    v-for="(result, resultIndex) in calculationSteps"
+                    :key="`${result.planIndex}-${result.facility?.facility.id ?? 'control-mood'}-${resultIndex}`"
+                  >
+                    <template #header>
+                      <div class="simulator-step-header">
+                        <span>
+                          {{ result.plan.name }} ·
+                          {{
+                            result.facility
+                              ? facilityResultLabel(result.facility)
+                              : ROOM_LABELS.control
+                          }}
+                          <small
+                            v-if="
+                              result.facility &&
+                              inheritedSourceLabel(result.facility)
+                            "
+                          >
+                            · {{ inheritedSourceLabel(result.facility) }}
+                          </small>
+                        </span>
+                        <strong v-if="result.facility"
+                          >{{
+                            formatNumber(result.facility.efficiency)
+                          }}%</strong
                         >
-                          · {{ inheritedSourceLabel(result.facility) }}
-                        </small>
-                      </span>
-                      <strong v-if="result.facility"
-                        >{{ formatNumber(result.facility.efficiency) }}%</strong
-                      >
-                    </div>
-                  </template>
-                  <SimulatorCalculationStepContent
-                    :inherited-source-label="
-                      result.facility
-                        ? inheritedSourceLabel(result.facility)
-                        : undefined
-                    "
-                    :simulate-overflow="
-                      currentEfficiencySettings.simulateOverflow
-                    "
-                    :step="result"
-                  />
-                </a-collapse-panel>
+                      </div>
+                    </template>
+                    <SimulatorCalculationStepContent
+                      :inherited-source-label="
+                        result.facility
+                          ? inheritedSourceLabel(result.facility)
+                          : undefined
+                      "
+                      :simulate-overflow="
+                        currentEfficiencySettings.simulateOverflow
+                      "
+                      :step="result"
+                    />
+                  </a-collapse-panel>
+                </template>
               </a-collapse>
             </div>
           </template>
