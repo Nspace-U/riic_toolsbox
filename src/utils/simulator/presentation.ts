@@ -175,7 +175,7 @@ export function operatorCalculationRows(
 }
 
 export function formatProduction(value: number): string {
-  return formatNumber(value, 3);
+  return formatNumber(value);
 }
 
 const RESOURCE_LABELS: Record<string, string> = {
