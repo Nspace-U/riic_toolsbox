@@ -7888,6 +7888,12 @@ onBeforeUnmount(() => {
                       {{ formatNumber(entry.scenario.droneAmount) }} 架 ·
                       {{ formatNumber(entry.scenario.acceleratedHours) }} 小时
                     </span>
+                    <span
+                      >固定按基础 100% 效率计算 · 基础
+                      {{
+                        formatProduction(entry.scenario.baseAmountPerHour)
+                      }}/小时</span
+                    >
                   </div>
                   <div
                     v-for="view in entry.views"
@@ -7896,12 +7902,6 @@ onBeforeUnmount(() => {
                   >
                     <div class="simulator-drone-view-heading">
                       <strong>{{ view.label }}</strong>
-                      <span v-if="view.key === 'extra'"
-                        >固定按基础 100% 效率计算 · 基础
-                        {{
-                          formatProduction(entry.scenario.baseAmountPerHour)
-                        }}/小时</span
-                      >
                     </div>
                     <div
                       v-if="view.cards.length"
