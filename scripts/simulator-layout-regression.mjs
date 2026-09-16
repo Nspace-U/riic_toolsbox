@@ -49,6 +49,17 @@ const stored = [
     createdAt: "2026-09-14T00:00:00.000Z",
     updatedAt: "2026-09-14T00:00:00.000Z",
   },
+  {
+    id: "description-layout-off",
+    document: {
+      ...document,
+      title: "描述布局回归（关闭）",
+    },
+    inferredLayout: true,
+    sourceFileName: "description-layout.txt",
+    createdAt: "2026-09-14T00:00:00.000Z",
+    updatedAt: "2026-09-14T00:00:00.000Z",
+  },
 ];
 
 globalThis.window = {
@@ -63,6 +74,7 @@ globalThis.window = {
       if (key === "riic-tools:simulator-edit-settings:v1") {
         return JSON.stringify({
           "description-layout-on": { showFacilityDescriptions: true },
+          "description-layout-off": { layout: false },
         });
       }
       return null;
@@ -100,6 +112,8 @@ try {
 
   assert.equal(defaultDescriptions.length, 0);
   assert.match(defaultHtml, /simulator-queue-description-height[^>]*0px/);
+  assert.match(defaultHtml, /class="simulator-layout-summary"/);
+  assert.match(defaultHtml, /class="simulator-power-summary"/);
 
   useScheduleDocuments().setActiveDocument("description-layout-on");
   const enabledHtml = await renderSimulatorPage();
@@ -116,6 +130,12 @@ try {
   );
   assert.equal(enabledDescriptions.filter((value) => value === "").length, 3);
   assert.match(enabledHtml, /simulator-queue-description-height[^>]*21px/);
+
+  useScheduleDocuments().setActiveDocument("description-layout-off");
+  const disabledHtml = await renderSimulatorPage();
+  assert.doesNotMatch(disabledHtml, /class="simulator-layout-panel"/);
+  assert.doesNotMatch(disabledHtml, /class="simulator-layout-summary"/);
+  assert.doesNotMatch(disabledHtml, /class="simulator-power-summary"/);
   console.log("simulator layout regression: passed");
 } finally {
   await vite.close();
