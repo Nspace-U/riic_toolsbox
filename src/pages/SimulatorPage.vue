@@ -1447,26 +1447,18 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
     const production = result.dailyProductions.find(
       (candidate) => candidate.product === scenario.product,
     );
-    const baseAmounts: SanityResourceAmounts = {};
-    if (production) {
-      addProductionFlow(baseAmounts, production, 24);
-    } else {
-      addResourceFlow(baseAmounts, { [scenario.product]: 0 });
-    }
     const baseGrossAmount = production
       ? (production.effectiveAmountPerDay ?? production.amountPerDay)
       : 0;
-    const acceleratedAmounts: SanityResourceAmounts = { ...baseAmounts };
+    const acceleratedAmounts: SanityResourceAmounts = {
+      ...(dailySanityAmounts.value ?? {}),
+    };
     addResourceFlow(acceleratedAmounts, scenario.extraFlow);
     const extraResources = scenarioResources(
       scenario.product,
       scenario.extraFlow,
     );
-    const acceleratedResources = scenarioResources(
-      scenario.product,
-      baseAmounts,
-      scenario.extraFlow,
-    );
+    const acceleratedResources = extraResources;
     const extraGrossAmount = amountFromFlow(
       scenario.extraFlow,
       scenario.product,
