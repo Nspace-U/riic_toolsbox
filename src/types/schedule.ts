@@ -94,6 +94,8 @@ export interface StoredDocument {
   sourceFileName: string;
   createdAt: string;
   updatedAt: string;
+  tags?: string[];
+  hiddenAutoTags?: string[];
 }
 
 export interface ResolvedRoomAssignment {

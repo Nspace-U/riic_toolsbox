@@ -1309,6 +1309,8 @@ a {
 }
 
 .simulator-sidebar-actions {
+  display: grid;
+  gap: 8px;
   padding: 14px 16px;
   border-block-end: 1px solid #edf1f0;
 }
@@ -1322,7 +1324,10 @@ a {
 }
 
 .simulator-document-item {
+  position: relative;
   display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
   width: 100%;
   padding: 11px 10px;
   gap: 4px;
@@ -1336,6 +1341,36 @@ a {
 
 .simulator-document-item:hover {
   background: #f2f7f6;
+}
+
+.simulator-document-item--drag-over-before {
+  box-shadow: inset 0 2px #2c8c7d;
+}
+
+.simulator-document-item--drag-over-after {
+  box-shadow: inset 0 -2px #2c8c7d;
+}
+
+.simulator-document-drag-handle {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  color: #9aa6a4;
+  background: transparent;
+  border: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.simulator-document-drag-handle:active {
+  cursor: grabbing;
+}
+
+.simulator-document-item-main {
+  min-width: 0;
 }
 
 .simulator-document-item--active {
@@ -1356,6 +1391,47 @@ a {
   font-size: 11px;
 }
 
+.simulator-document-item-tags,
+.simulator-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.simulator-document-item-tags {
+  margin-block-start: 4px;
+}
+
+.simulator-document-item-tags .ant-tag,
+.simulator-tag-list .ant-tag {
+  margin-inline-end: 0;
+}
+
+.simulator-document-item-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+}
+
+.simulator-document-item:hover .simulator-document-item-actions,
+.simulator-document-item:focus-within .simulator-document-item-actions {
+  opacity: 1;
+  visibility: visible;
+}
+
+.simulator-document-search {
+  min-width: 0;
+}
+
+.simulator-document-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+}
+
 .simulator-editor {
   min-width: 0;
 }
@@ -1366,9 +1442,8 @@ a {
   background: #ffffff;
 }
 
-.simulator-toolbar-group {
-  display: flex;
-  gap: 8px;
+.simulator-editor-toolbar--settings-only {
+  justify-content: flex-end;
 }
 
 .simulator-edit-settings {
@@ -1393,6 +1468,26 @@ a {
   display: grid;
   grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr);
   gap: 16px;
+}
+
+.simulator-tag-editor {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin-block-start: 16px;
+  padding-block-start: 14px;
+  border-block-start: 1px solid #edf1f0;
+}
+
+.simulator-tag-editor-content {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+
+.simulator-tag-input {
+  max-width: 320px;
 }
 
 .simulator-layout-summary {
@@ -3695,17 +3790,13 @@ a {
     flex-direction: column;
   }
 
-  .simulator-toolbar-group,
-  .simulator-editor-toolbar > .ant-btn {
-    width: 100%;
-  }
-
-  .simulator-toolbar-group .ant-btn {
-    flex: 1;
-  }
-
   .simulator-meta-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .simulator-tag-editor {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 
   .simulator-meta-panel .ant-card-body {

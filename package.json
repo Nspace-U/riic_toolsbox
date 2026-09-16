@@ -14,6 +14,7 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "test:schedule-import": "node scripts/schedule-import-regression.mjs",
+    "test:schedule-list": "node scripts/schedule-list-regression.mjs",
     "test:simulator-layout": "node scripts/simulator-layout-regression.mjs",
     "test:simulator-result": "node scripts/simulator-result-regression.mjs",
     "test:operator-avatar": "node scripts/operator-avatar-regression.mjs",

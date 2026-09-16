@@ -278,10 +278,50 @@ function duplicateDocument(id: string): StoredDocument | undefined {
     source.inferredLayout,
     source.sourceFileName,
   );
+  if (source.tags) {
+    copy.tags = [...source.tags];
+  }
+  if (source.hiddenAutoTags) {
+    copy.hiddenAutoTags = [...source.hiddenAutoTags];
+  }
   documents.value.push(copy);
   activeDocumentId.value = copy.id;
   persist();
   return copy;
+}
+
+function reorderDocuments(
+  sourceId: string,
+  targetId: string,
+  position: "before" | "after",
+): void {
+  const sourceIndex = documents.value.findIndex(
+    (document) => document.id === sourceId,
+  );
+  const targetIndex = documents.value.findIndex(
+    (document) => document.id === targetId,
+  );
+  if (sourceIndex < 0 || targetIndex < 0 || sourceId === targetId) {
+    return;
+  }
+  const [source] = documents.value.splice(sourceIndex, 1);
+  if (!source) {
+    return;
+  }
+  const nextTargetIndex = documents.value.findIndex(
+    (document) => document.id === targetId,
+  );
+  if (nextTargetIndex < 0) {
+    documents.value.push(source);
+    persist();
+    return;
+  }
+  documents.value.splice(
+    nextTargetIndex + (position === "after" ? 1 : 0),
+    0,
+    source,
+  );
+  persist();
 }
 
 normalizeActiveDocument();
@@ -306,6 +346,7 @@ export function useScheduleDocuments() {
     updateDocument,
     removeDocument,
     duplicateDocument,
+    reorderDocuments,
     persist,
   };
 }

@@ -224,6 +224,63 @@ export function roomLevelRange(type: RoomKey): { min: number; max: number } {
   return ROOM_LEVEL_LIMITS[type];
 }
 
+export interface ScheduleTag {
+  label: string;
+  automatic: boolean;
+}
+
+const FULL_RIGHT_ROOM_KEYS: RoomKey[] = [
+  "meeting",
+  "processing",
+  "hire",
+  "training",
+];
+
+function uniqueScheduleTags(tags: readonly string[]): string[] {
+  return Array.from(
+    new Set(tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0)),
+  );
+}
+
+export function automaticScheduleTags(document: ScheduleDocument): string[] {
+  const layoutTag = ["trading", "manufacture", "power"]
+    .map(
+      (type) => document.layout.filter((entry) => entry.type === type).length,
+    )
+    .join("");
+  const isRightFull = FULL_RIGHT_ROOM_KEYS.every((type) =>
+    document.layout.some(
+      (entry) =>
+        entry.type === type && entry.level === ROOM_LEVEL_LIMITS[type].max,
+    ),
+  );
+  return [
+    layoutTag,
+    ...(isRightFull ? ["右满"] : ["左满", "右不满"]),
+    `${document.plans.length}队列`,
+  ];
+}
+
+export function scheduleTags(
+  document: ScheduleDocument,
+  customTags: readonly string[] = [],
+  hiddenAutoTags: readonly string[] = [],
+): ScheduleTag[] {
+  const automaticTags = uniqueScheduleTags(automaticScheduleTags(document));
+  const hiddenTags = new Set(uniqueScheduleTags(hiddenAutoTags));
+  const visibleAutomaticTags = automaticTags.filter(
+    (tag) => !hiddenTags.has(tag),
+  );
+  const automaticTagSet = new Set(automaticTags);
+  const visibleCustomTags = uniqueScheduleTags(customTags).filter(
+    (tag) => !automaticTagSet.has(tag),
+  );
+  return [
+    ...visibleAutomaticTags.map((label) => ({ label, automatic: true })),
+    ...visibleCustomTags.map((label) => ({ label, automatic: false })),
+  ];
+}
+
 export function isFixedLevelRoom(type: RoomKey): boolean {
   const range: { min: number; max: number } | undefined =
     ROOM_LEVEL_LIMITS[type];

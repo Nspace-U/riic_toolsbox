@@ -5,9 +5,11 @@ import {
   CopyOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  HolderOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlusOutlined,
+  SearchOutlined,
   SettingOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
@@ -84,6 +86,7 @@ import {
   facilityPower,
   facilityProductIconFile,
   formatDuplicateOperatorWarnings,
+  automaticScheduleTags,
   isFixedLevelRoom,
   orderedLayoutEntries,
   parseLayoutText,
@@ -91,6 +94,7 @@ import {
   roomLevelRange,
   resourceItemIconFile,
   resolveRoomAssignment,
+  scheduleTags,
   validateSchedule,
 } from "@/utils/schedule";
 import { importPowerSummary, resizeImportedRooms } from "@/utils/importLayout";
@@ -471,6 +475,7 @@ const {
   updateDocument,
   removeDocument,
   duplicateDocument,
+  reorderDocuments,
 } = useScheduleDocuments();
 const { operators, terms, itemTable, ready: baseDataReady } = useBaseData();
 const operatorByNameMap = computed(() => {
@@ -637,6 +642,12 @@ const warnedFacilityOperatorOverrideIds = new Set<string>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
 const showScheduleSidebar = ref(true);
+const scheduleSearchQuery = ref("");
+const scheduleTagInput = ref("");
+const draggedDocumentId = ref<string>();
+const documentDragPointerId = ref<number>();
+const dragOverDocumentId = ref<string>();
+const dragOverDocumentPosition = ref<"before" | "after">();
 const selectedOperatorSlots = ref<Set<string>>(new Set());
 const operatorSelectionAnchor = ref<OperatorSlotAddress>();
 const hoveredOperatorSlot = ref<OperatorSlotAddress>();
@@ -725,6 +736,30 @@ const operatorDragPreview = computed(operatorDragPreviewData);
 
 const activeDocument = computed(() => getActiveDocument());
 const currentDocument = computed(() => activeDocument.value?.document);
+const currentScheduleTags = computed(() => {
+  const stored = activeDocument.value;
+  return stored
+    ? scheduleTags(stored.document, stored.tags, stored.hiddenAutoTags)
+    : [];
+});
+const filteredDocuments = computed(() => {
+  const query = scheduleSearchQuery.value.trim().toLowerCase();
+  if (!query) {
+    return documents.value;
+  }
+  return documents.value.filter((stored) => {
+    const title = stored.document.title?.trim().toLowerCase() ?? "";
+    const tags = scheduleTags(
+      stored.document,
+      stored.tags,
+      stored.hiddenAutoTags,
+    );
+    return (
+      title.includes(query) ||
+      tags.some((tag) => tag.label.toLowerCase().includes(query))
+    );
+  });
+});
 const operatorAddressMap = computed(
   () =>
     new Map(
@@ -1776,6 +1811,120 @@ function selectDocument(documentId: string): void {
     clearImportedScheduleNotice();
   }
   setActiveDocument(documentId);
+}
+
+function uniqueScheduleTagValues(tags: readonly string[]): string[] {
+  return Array.from(
+    new Set(tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0)),
+  );
+}
+
+function addScheduleTag(): void {
+  const stored = activeDocument.value;
+  const label = scheduleTagInput.value.trim();
+  if (!stored || !label) {
+    return;
+  }
+  updateDocument(stored.id, (target) => {
+    const hiddenAutoTags = uniqueScheduleTagValues(
+      target.hiddenAutoTags ?? [],
+    ).filter((tag) => tag !== label);
+    target.hiddenAutoTags = hiddenAutoTags.length ? hiddenAutoTags : undefined;
+    if (automaticScheduleTags(target.document).includes(label)) {
+      return;
+    }
+    target.tags = uniqueScheduleTagValues([...(target.tags ?? []), label]);
+  });
+  scheduleTagInput.value = "";
+}
+
+function removeScheduleTag(label: string, automatic: boolean): void {
+  const stored = activeDocument.value;
+  if (!stored) {
+    return;
+  }
+  updateDocument(stored.id, (target) => {
+    const currentAutomaticTags = automaticScheduleTags(target.document);
+    if (automatic || currentAutomaticTags.includes(label)) {
+      const hiddenAutoTags = uniqueScheduleTagValues([
+        ...(target.hiddenAutoTags ?? []),
+        label,
+      ]);
+      target.hiddenAutoTags = hiddenAutoTags;
+    }
+    const tags = (target.tags ?? []).filter((tag) => tag !== label);
+    target.tags = tags.length ? tags : undefined;
+  });
+}
+
+function beginDocumentDrag(event: PointerEvent, documentId: string): void {
+  event.preventDefault();
+  event.stopPropagation();
+  draggedDocumentId.value = documentId;
+  documentDragPointerId.value = event.pointerId;
+  dragOverDocumentId.value = undefined;
+  dragOverDocumentPosition.value = undefined;
+  if (event.currentTarget instanceof HTMLElement) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+}
+
+function updateDocumentDragTarget(
+  event: PointerEvent,
+  documentId: string,
+  target: HTMLElement,
+): void {
+  const sourceId = draggedDocumentId.value;
+  if (!sourceId || sourceId === documentId) {
+    return;
+  }
+  const position =
+    event.clientY < target.getBoundingClientRect().top + target.offsetHeight / 2
+      ? "before"
+      : "after";
+  dragOverDocumentId.value = documentId;
+  dragOverDocumentPosition.value = position;
+}
+
+function documentItemAtPoint(event: PointerEvent): HTMLElement | undefined {
+  return window.document
+    .elementFromPoint(event.clientX, event.clientY)
+    ?.closest<HTMLElement>("[data-schedule-document-id]") ?? undefined;
+}
+
+function handleDocumentPointerMove(event: PointerEvent): void {
+  if (event.pointerId !== documentDragPointerId.value) {
+    return;
+  }
+  const target = documentItemAtPoint(event);
+  const documentId = target?.dataset.scheduleDocumentId;
+  if (target && documentId) {
+    updateDocumentDragTarget(event, documentId, target);
+  }
+}
+
+function handleDocumentPointerUp(event: PointerEvent): void {
+  if (event.pointerId !== documentDragPointerId.value) {
+    return;
+  }
+  const sourceId = draggedDocumentId.value;
+  const target = documentItemAtPoint(event);
+  const documentId = target?.dataset.scheduleDocumentId;
+  if (sourceId && documentId && sourceId !== documentId) {
+    reorderDocuments(
+      sourceId,
+      documentId,
+      dragOverDocumentPosition.value ?? "before",
+    );
+  }
+  clearDocumentDrag();
+}
+
+function clearDocumentDrag(): void {
+  draggedDocumentId.value = undefined;
+  documentDragPointerId.value = undefined;
+  dragOverDocumentId.value = undefined;
+  dragOverDocumentPosition.value = undefined;
 }
 
 function clearMessages(): void {
@@ -5915,40 +6064,42 @@ async function handleFileChange(event: Event): Promise<void> {
   }
 }
 
-function handleDuplicate(): void {
+function handleDuplicate(documentId?: string): void {
   clearMessages();
   clearImportedScheduleNotice();
-  const document = activeDocument.value;
-  if (!document) {
+  const id = documentId ?? activeDocumentId.value;
+  const stored = documents.value.find((document) => document.id === id);
+  if (!stored) {
     return;
   }
-  duplicateDocument(document.id);
+  duplicateDocument(stored.id);
   successMessage.value = "已复制排班表。";
 }
 
-function handleDelete(): void {
-  const document = activeDocument.value;
-  if (!document) {
+function handleDelete(documentId?: string): void {
+  const id = documentId ?? activeDocumentId.value;
+  const stored = documents.value.find((document) => document.id === id);
+  if (!stored) {
     return;
   }
   if (
-    !window.confirm(
-      `确定删除“${document.document.title || "未命名排班表"}”吗？`,
-    )
+    !window.confirm(`确定删除“${stored.document.title || "未命名排班表"}”吗？`)
   ) {
     return;
   }
   clearImportedScheduleNotice();
-  removeDocument(document.id);
+  removeDocument(stored.id);
   const nextSettings = { ...simulatorEditSettings.value };
-  delete nextSettings[document.id];
+  delete nextSettings[stored.id];
   simulatorEditSettings.value = nextSettings;
   persistSimulatorEditSettings(nextSettings);
   successMessage.value = "已删除排班表。";
 }
 
-function handleExport(): void {
-  const document = currentDocument.value;
+function handleExport(documentId?: string): void {
+  const id = documentId ?? activeDocumentId.value;
+  const stored = documents.value.find((document) => document.id === id);
+  const document = stored?.document;
   if (!document) {
     return;
   }
@@ -6046,6 +6197,9 @@ onMounted(() => {
   window.addEventListener("keydown", handleWindowKeydown, true);
   window.addEventListener("pointermove", handleOperatorGridPointerMove, true);
   window.addEventListener("pointerup", handleOperatorGridPointerUp, true);
+  window.addEventListener("pointermove", handleDocumentPointerMove, true);
+  window.addEventListener("pointerup", handleDocumentPointerUp, true);
+  window.addEventListener("pointercancel", clearDocumentDrag, true);
   window.addEventListener(
     "pointercancel",
     handleOperatorGridPointerCancel,
@@ -6073,6 +6227,9 @@ onBeforeUnmount(() => {
     true,
   );
   window.removeEventListener("pointerup", handleOperatorGridPointerUp, true);
+  window.removeEventListener("pointermove", handleDocumentPointerMove, true);
+  window.removeEventListener("pointerup", handleDocumentPointerUp, true);
+  window.removeEventListener("pointercancel", clearDocumentDrag, true);
   window.removeEventListener(
     "pointercancel",
     handleOperatorGridPointerCancel,
@@ -6328,46 +6485,125 @@ onBeforeUnmount(() => {
             type="file"
             @change="handleFileChange"
           />
+          <a-input
+            v-model:value="scheduleSearchQuery"
+            allow-clear
+            class="simulator-document-search"
+            placeholder="搜索排班表名称或标签"
+          >
+            <template #prefix><SearchOutlined /></template>
+          </a-input>
         </div>
         <div class="simulator-document-list">
-          <button
-            v-for="document in documents"
+          <div
+            v-for="document in filteredDocuments"
             :key="document.id"
             :class="[
               'simulator-document-item',
-              { 'simulator-document-item--active': isStoredDocument(document) },
+              {
+                'simulator-document-item--active': isStoredDocument(document),
+                'simulator-document-item--drag-over-before':
+                  dragOverDocumentId === document.id &&
+                  dragOverDocumentPosition === 'before',
+                'simulator-document-item--drag-over-after':
+                  dragOverDocumentId === document.id &&
+                  dragOverDocumentPosition === 'after',
+              },
             ]"
-            type="button"
+            :data-schedule-document-id="document.id"
+            role="button"
+            tabindex="0"
             @click="selectDocument(document.id)"
+            @keydown.enter="selectDocument(document.id)"
+            @keydown.space.prevent="selectDocument(document.id)"
           >
-            <span class="simulator-document-item-title">{{
-              document.document.title || "未命名排班表"
-            }}</span>
-            <span class="simulator-document-item-meta">
-              {{ document.document.plans.length }} 个队列
-              <span v-if="document.inferredLayout"> · 推断布局</span>
-            </span>
-          </button>
+            <button
+              aria-label="拖拽排序"
+              class="simulator-document-drag-handle"
+              title="拖拽排序"
+              type="button"
+              @click.stop
+              @pointerdown="beginDocumentDrag($event, document.id)"
+            >
+              <HolderOutlined />
+            </button>
+            <div class="simulator-document-item-main">
+              <span class="simulator-document-item-title">{{
+                document.document.title || "未命名排班表"
+              }}</span>
+              <span class="simulator-document-item-meta">
+                {{ document.document.plans.length }} 个队列
+                <span v-if="document.inferredLayout"> · 推断布局</span>
+              </span>
+              <div class="simulator-document-item-tags">
+                <a-tag
+                  v-for="tag in scheduleTags(
+                    document.document,
+                    document.tags,
+                    document.hiddenAutoTags,
+                  )"
+                  :key="`${document.id}-${tag.label}`"
+                  :color="tag.automatic ? 'blue' : undefined"
+                >
+                  {{ tag.label }}
+                </a-tag>
+              </div>
+            </div>
+            <div class="simulator-document-item-actions">
+              <a-button
+                aria-label="复制排班表"
+                size="small"
+                title="复制排班表"
+                type="text"
+                @click.stop="handleDuplicate(document.id)"
+              >
+                <template #icon><CopyOutlined /></template>
+              </a-button>
+              <a-button
+                aria-label="删除排班表"
+                danger
+                size="small"
+                title="删除排班表"
+                type="text"
+                @click.stop="handleDelete(document.id)"
+              >
+                <template #icon><DeleteOutlined /></template>
+              </a-button>
+              <a-button
+                aria-label="导出排班表 JSON"
+                size="small"
+                title="导出排班表 JSON"
+                type="text"
+                @click.stop="handleExport(document.id)"
+              >
+                <template #icon><DownloadOutlined /></template>
+              </a-button>
+            </div>
+          </div>
           <a-empty
             v-if="!documents.length"
             :image="undefined"
             description="暂无排班表"
           />
+          <div
+            v-else-if="!filteredDocuments.length"
+            class="simulator-document-empty"
+          >
+            <a-empty :image="undefined" description="没有匹配的排班表" />
+            <a-space>
+              <a-button @click="scheduleSearchQuery = ''">清空搜索</a-button>
+              <a-button type="primary" @click="openFilePicker">
+                导入排班表
+              </a-button>
+            </a-space>
+          </div>
         </div>
       </aside>
 
       <main v-if="currentDocument" class="simulator-editor">
-        <div class="simulator-editor-toolbar">
-          <div class="simulator-toolbar-group">
-            <a-button title="复制当前排班表" @click="handleDuplicate">
-              <template #icon><CopyOutlined /></template>
-              复制
-            </a-button>
-            <a-button danger title="删除当前排班表" @click="handleDelete">
-              <template #icon><DeleteOutlined /></template>
-              删除
-            </a-button>
-          </div>
+        <div
+          class="simulator-editor-toolbar simulator-editor-toolbar--settings-only"
+        >
           <div aria-label="编辑选项" class="simulator-edit-settings">
             <span class="simulator-summary-label">编辑</span>
             <a-checkbox
@@ -6410,10 +6646,6 @@ onBeforeUnmount(() => {
               显示组合描述
             </a-checkbox>
           </div>
-          <a-button type="primary" @click="handleExport">
-            <template #icon><DownloadOutlined /></template>
-            导出 JSON
-          </a-button>
         </div>
 
         <a-card :bordered="false" class="simulator-meta-panel">
@@ -6462,6 +6694,29 @@ onBeforeUnmount(() => {
             <a-tag :color="powerSummary.net < 0 ? 'red' : 'cyan'">
               净 {{ powerSummary.net >= 0 ? "+" : "" }}{{ powerSummary.net }}
             </a-tag>
+          </div>
+          <div class="simulator-tag-editor">
+            <span class="simulator-summary-label">标签</span>
+            <div class="simulator-tag-editor-content">
+              <div class="simulator-tag-list">
+                <a-tag
+                  v-for="tag in currentScheduleTags"
+                  :key="tag.label"
+                  :color="tag.automatic ? 'blue' : undefined"
+                  closable
+                  @close="removeScheduleTag(tag.label, tag.automatic)"
+                >
+                  {{ tag.label }}
+                </a-tag>
+              </div>
+              <a-input
+                v-model:value="scheduleTagInput"
+                aria-label="添加标签"
+                class="simulator-tag-input"
+                placeholder="输入标签后按 Enter 添加"
+                @keydown.enter.prevent="addScheduleTag"
+              />
+            </div>
           </div>
         </a-card>
 
