@@ -1455,18 +1455,21 @@ a {
 
 .simulator-meta-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.2fr);
-  gap: 16px;
+  gap: 12px;
 }
 
-.simulator-tag-editor {
+.simulator-meta-field {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  align-items: start;
+  align-items: center;
   gap: 12px;
-  margin-block-start: 16px;
-  padding-block-start: 14px;
-  border-block-start: 1px solid #edf1f0;
+  min-width: 0;
+}
+
+.simulator-meta-label {
+  color: #36484b;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 .simulator-tag-editor-content {
@@ -1476,7 +1479,12 @@ a {
 }
 
 .simulator-tag-input {
-  max-width: 320px;
+  width: 100%;
+}
+
+.simulator-meta-single-line-input {
+  width: 100%;
+  block-size: 32px;
 }
 
 .simulator-layout-summary {
@@ -3777,15 +3785,6 @@ a {
   .simulator-editor-toolbar {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .simulator-meta-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .simulator-tag-editor {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
   }
 
   .simulator-meta-panel .ant-card-body {

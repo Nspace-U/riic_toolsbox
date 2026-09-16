@@ -6654,52 +6654,66 @@ onBeforeUnmount(() => {
           <div class="simulator-panel-heading">
             <div>
               <span class="simulator-eyebrow">SIMULATOR</span>
-              <h3>排班信息</h3>
+              <h3>排班表信息</h3>
             </div>
             <a-tag color="cyan"
               >{{ currentDocument.plans.length }} 个队列</a-tag
             >
           </div>
-          <a-form layout="vertical">
-            <div class="simulator-meta-grid">
-              <a-form-item label="名称">
-                <a-input
-                  :value="currentDocument.title ?? ''"
-                  @update:value="(value: string) => updateMeta('title', value)"
-                />
-              </a-form-item>
-              <a-form-item label="描述">
-                <a-textarea
-                  :auto-size="{ minRows: 1, maxRows: 4 }"
-                  :value="currentDocument.description ?? ''"
-                  @update:value="
-                    (value: string) => updateMeta('description', value)
-                  "
-                />
-              </a-form-item>
-            </div>
-          </a-form>
-          <div class="simulator-tag-editor">
-            <span class="simulator-summary-label">标签</span>
-            <div class="simulator-tag-editor-content">
-              <div class="simulator-tag-list">
-                <a-tag
-                  v-for="tag in currentScheduleTags"
-                  :key="tag.label"
-                  :color="tag.automatic ? 'blue' : undefined"
-                  closable
-                  @close="removeScheduleTag(tag.label, tag.automatic)"
-                >
-                  {{ tag.label }}
-                </a-tag>
-              </div>
+          <div class="simulator-meta-grid">
+            <div class="simulator-meta-field">
+              <label class="simulator-meta-label" for="simulator-meta-title"
+                >名称</label
+              >
               <a-input
-                v-model:value="scheduleTagInput"
-                aria-label="添加标签"
-                class="simulator-tag-input"
-                placeholder="输入标签后按 Enter 添加"
-                @keydown.enter.prevent="addScheduleTag"
+                id="simulator-meta-title"
+                class="simulator-meta-single-line-input"
+                :value="currentDocument.title ?? ''"
+                @update:value="(value: string) => updateMeta('title', value)"
               />
+            </div>
+            <div class="simulator-meta-field">
+              <label
+                class="simulator-meta-label"
+                for="simulator-meta-description"
+                >描述</label
+              >
+              <a-textarea
+                id="simulator-meta-description"
+                :auto-size="{ minRows: 1 }"
+                :value="currentDocument.description ?? ''"
+                @update:value="
+                  (value: string) => updateMeta('description', value)
+                "
+              />
+            </div>
+            <div class="simulator-meta-field">
+              <span class="simulator-meta-label" id="simulator-meta-tags"
+                >标签</span
+              >
+              <div
+                aria-labelledby="simulator-meta-tags"
+                class="simulator-tag-editor-content"
+              >
+                <div class="simulator-tag-list">
+                  <a-tag
+                    v-for="tag in currentScheduleTags"
+                    :key="tag.label"
+                    :color="tag.automatic ? 'blue' : undefined"
+                    closable
+                    @close="removeScheduleTag(tag.label, tag.automatic)"
+                  >
+                    {{ tag.label }}
+                  </a-tag>
+                </div>
+                <a-input
+                  v-model:value="scheduleTagInput"
+                  aria-label="添加标签"
+                  class="simulator-meta-single-line-input simulator-tag-input"
+                  placeholder="输入标签后按 Enter 添加"
+                  @keydown.enter.prevent="addScheduleTag"
+                />
+              </div>
             </div>
           </div>
         </a-card>
