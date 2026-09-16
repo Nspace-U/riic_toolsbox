@@ -83,6 +83,7 @@ import {
   SOURCE_MATERIAL_OPTIONS,
   ScheduleError,
   canAddLayoutEntry,
+  canonicalResourceKey,
   cloneSchedule,
   facilityPower,
   facilityProductIconFile,
@@ -1356,8 +1357,10 @@ const lmdDroneFacilityExists = computed(() => {
         .filter((entry) => entry.type === "trading").length - 1;
     return document.plans.some(
       (_plan, planIndex) =>
-        (resolveRoomAssignment(document, planIndex, "trading", position)
-          .assignment.product ?? "龙门币") === "龙门币",
+        canonicalResourceKey(
+          resolveRoomAssignment(document, planIndex, "trading", position)
+            .assignment.product ?? "龙门币",
+        ) === "龙门币",
     );
   });
 });
@@ -1423,11 +1426,13 @@ function scenarioCards(
 const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
   const document = currentDocument.value;
   const catalog = efficiencyCatalog.value;
+  const result = efficiencyResult.value;
   const amounts = dailySanityAmounts.value;
-  if (!document || !catalog || !amounts) {
+  if (!document || !catalog || !result || !amounts) {
     return undefined;
   }
   return calculateDroneAcceleration(document, catalog, amounts, {
+    efficiencyResult: result,
     progressionProfile: activeProfile.value,
     treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
     dormitoryDefaultIncludesMoodRecovery:
@@ -6713,7 +6718,7 @@ watch(showScheduleSidebar, () => {
               />
             </div>
             <div class="simulator-meta-field">
-              <span class="simulator-meta-label" id="simulator-meta-tags"
+              <span id="simulator-meta-tags" class="simulator-meta-label"
                 >标签</span
               >
               <div
@@ -8140,11 +8145,16 @@ watch(showScheduleSidebar, () => {
               >
                 <div
                   v-for="entry in droneScenarioDisplays"
-                  :key="entry.scenario.product"
+                  :key="entry.scenario.key"
                   class="simulator-drone-scenario"
                 >
                   <div class="simulator-drone-scenario-heading">
-                    <strong>{{ resourceLabel(entry.scenario.product) }}</strong>
+                    <strong>
+                      {{ resourceLabel(entry.scenario.product) }}
+                      <span v-if="entry.scenario.sourceLabel">
+                        · {{ entry.scenario.sourceLabel }}
+                      </span>
+                    </strong>
                     <span>
                       <SimulatorNumericValue
                         :value="entry.scenario.droneAmount"
@@ -8158,7 +8168,7 @@ watch(showScheduleSidebar, () => {
                       小时
                     </span>
                     <span
-                      >固定按基础 100% 效率计算 · 基础
+                      >基础
                       <SimulatorNumericValue
                         mode="production"
                         :value="entry.scenario.baseAmountPerHour"
@@ -8180,7 +8190,7 @@ watch(showScheduleSidebar, () => {
                     >
                       <div
                         v-for="card in view.cards"
-                        :key="`${entry.scenario.product}-${view.key}-${card.product}`"
+                        :key="`${entry.scenario.key}-${view.key}-${card.product}`"
                         class="simulator-daily-output-item"
                         :class="{
                           'simulator-daily-output-item--net':

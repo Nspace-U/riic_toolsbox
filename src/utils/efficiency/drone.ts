@@ -1,6 +1,7 @@
 import type {
   EfficiencyCalculationOptions,
   EfficiencyCatalog,
+  EfficiencyResult,
   ProductionValue,
 } from "@/types/efficiency";
 import type {
@@ -17,7 +18,11 @@ import {
 import { calculateEfficiency } from "@/utils/efficiency/calculate";
 import { DRONE_ACCELERATION_MINUTES } from "@/utils/sanity";
 import type { SanityResourceAmounts } from "@/utils/sanity";
-import { canonicalResourceKey, resolveRoomAssignment } from "@/utils/schedule";
+import {
+  canonicalResourceKey,
+  ROOM_LABELS,
+  resolveRoomAssignment,
+} from "@/utils/schedule";
 
 export const DRONE_ACCELERATABLE_PRODUCTS = [
   "龙门币",
@@ -65,7 +70,9 @@ export interface LmdDroneStrategyParseResult {
 }
 
 export interface DroneAccelerationScenario {
+  key: string;
   product: DroneAcceleratableProduct;
+  sourceLabel?: string;
   baseAmountPerHour: number;
   baseMaterialPerHour: Record<string, number>;
   droneAmount: number;
@@ -81,6 +88,7 @@ export interface DroneAccelerationResult {
 }
 
 export interface DroneAccelerationOptions extends EfficiencyCalculationOptions {
+  efficiencyResult?: EfficiencyResult;
   lmdDroneStrategies?: LmdDroneStrategies;
 }
 
@@ -89,9 +97,10 @@ interface BaseProductFlow {
   materialPerHour: Record<string, number>;
 }
 
-interface CycleProductFlow {
-  amount: number;
-  materials: Record<string, number>;
+interface FacilityProductFlow extends BaseProductFlow {
+  key: string;
+  product: DroneAcceleratableProduct;
+  sourceLabel: string;
 }
 
 function addAmount(
@@ -154,8 +163,33 @@ export function parseLmdDroneStrategy(
   return { strategy: { level, operators, operatorStates } };
 }
 
-function planDurationHours(document: ScheduleDocument, index: number): number {
-  return Math.max(0, Number(document.plans[index]?.duration ?? 720) / 60);
+function isDroneAcceleratableProduct(
+  product: string,
+): product is DroneAcceleratableProduct {
+  return (DRONE_ACCELERATABLE_PRODUCTS as readonly string[]).includes(product);
+}
+
+function baseFlowFromProduction(
+  production: ProductionValue,
+): BaseProductFlow | undefined {
+  const amountPerHour =
+    production.baseAmountPerHour ?? production.amountPerHour;
+  if (amountPerHour <= 0) {
+    return undefined;
+  }
+  const materialScale =
+    production.amountPerHour > 0 ? amountPerHour / production.amountPerHour : 1;
+  return {
+    amountPerHour,
+    materialPerHour: Object.fromEntries(
+      Object.entries(production.materialPerHour ?? {}).map(
+        ([material, amount]) => [
+          canonicalResourceKey(material),
+          amount * materialScale,
+        ],
+      ),
+    ),
+  };
 }
 
 function productForAssignment(
@@ -173,7 +207,7 @@ function productForAssignment(
 function productionFlowForAssignment(
   type: string,
   assignment: RoomAssignment,
-  level = 1,
+  level: number,
 ): BaseProductFlow | undefined {
   const product = productForAssignment(type, assignment);
   if (type === "trading" && product === "龙门币") {
@@ -216,20 +250,16 @@ function productionFlowForAssignment(
   };
 }
 
-function scheduleBaseFlows(
+function facilityProductFlows(
   document: ScheduleDocument,
-): Map<string, BaseProductFlow> {
+  result: EfficiencyResult,
+): FacilityProductFlow[] {
   const facilities = buildFacilities(document.layout).filter(
     (facility) =>
       facility.type === "trading" || facility.type === "manufacture",
   );
-  const totalHours = document.plans.reduce(
-    (total, _plan, index) => total + planDurationHours(document, index),
-    0,
-  );
-  const cycleFlows = new Map<string, CycleProductFlow>();
-  facilities.forEach((facility) => {
-    document.plans.forEach((_plan, planIndex) => {
+  return facilities.flatMap((facility) =>
+    document.plans.flatMap((plan, planIndex) => {
       const assignment = resolveRoomAssignment(
         document,
         planIndex,
@@ -237,42 +267,32 @@ function scheduleBaseFlows(
         facility.index,
       ).assignment;
       const product = productForAssignment(facility.type, assignment);
-      const flow = productionFlowForAssignment(
-        facility.type,
-        assignment,
-        facility.level,
-      );
-      if (!product || !flow) {
-        return;
+      if (!product || !isDroneAcceleratableProduct(product)) {
+        return [];
       }
-      const hours = planDurationHours(document, planIndex);
-      const current = cycleFlows.get(product) ?? {
-        amount: 0,
-        materials: {},
-      };
-      current.amount += flow.amountPerHour * hours;
-      Object.entries(flow.materialPerHour).forEach(([material, amount]) => {
-        addAmount(current.materials, material, amount * hours);
-      });
-      cycleFlows.set(product, current);
-    });
-  });
-  if (totalHours <= 0) {
-    return new Map();
-  }
-  return new Map(
-    [...cycleFlows].map(([product, flow]) => [
-      product,
-      {
-        amountPerHour: flow.amount / totalHours,
-        materialPerHour: Object.fromEntries(
-          Object.entries(flow.materials).map(([material, amount]) => [
-            material,
-            amount / totalHours,
-          ]),
-        ),
-      },
-    ]),
+      const calculatedFacility = result.plans[planIndex]?.facilities.find(
+        (candidate) => candidate.facility.id === facility.id,
+      );
+      const flow = calculatedFacility?.production
+        ? baseFlowFromProduction(calculatedFacility.production)
+        : productionFlowForAssignment(
+            facility.type,
+            assignment,
+            facility.level,
+          );
+      if (!flow) {
+        return [];
+      }
+      const planName = result.plans[planIndex]?.name ?? plan.name;
+      return [
+        {
+          ...flow,
+          key: `${planIndex}-${facility.id}`,
+          product,
+          sourceLabel: `${planName || `队列${planIndex + 1}`} · ${ROOM_LABELS[facility.type]}${facility.index + 1}`,
+        },
+      ];
+    }),
   );
 }
 
@@ -399,43 +419,70 @@ export function calculateDroneAcceleration(
       error: `${defaultLevel}级贸易站策略必须以“${defaultLevel}”开头`,
     };
   }
-  const baseFlows = scheduleBaseFlows(document);
-  const lmdExists = baseFlows.has("龙门币");
-  if (lmdExists && parseResult.strategy) {
-    const flow = lmdBaseFlow(parseResult.strategy, catalog, options);
-    if (flow) {
-      baseFlows.set("龙门币", flow);
-    }
-  }
+  const efficiencyResult =
+    options.efficiencyResult ?? calculateEfficiency(document, catalog, options);
+  const facilityFlows = facilityProductFlows(document, efficiencyResult);
+  const lmdExists = facilityFlows.some((flow) => flow.product === "龙门币");
+  const lmdFlow =
+    lmdExists && parseResult.strategy
+      ? lmdBaseFlow(parseResult.strategy, catalog, options)
+      : undefined;
   const scenarios = DRONE_ACCELERATABLE_PRODUCTS.flatMap((product) => {
-    if (!baseFlows.has(product)) {
-      return [];
+    if (product === "龙门币") {
+      const strategy = parseResult.strategy;
+      if (!lmdFlow || !strategy) {
+        return [];
+      }
+      return [
+        createScenario(
+          "龙门币策略",
+          product,
+          lmdFlow,
+          dailyDrones,
+          acceleratedHours,
+        ),
+      ];
     }
-    if (product === "龙门币" && !parseResult.strategy) {
-      return [];
-    }
-    const flow = baseFlows.get(product);
-    if (!flow) {
-      return [];
-    }
-    const extraFlow: SanityResourceAmounts = { 无人机: -dailyDrones };
-    addAmount(extraFlow, product, flow.amountPerHour * acceleratedHours);
-    addFlow(extraFlow, flow.materialPerHour, acceleratedHours);
-    return [
-      {
-        product,
-        baseAmountPerHour: flow.amountPerHour,
-        baseMaterialPerHour: flow.materialPerHour,
-        droneAmount: dailyDrones,
-        acceleratedHours,
-        extraFlow,
-      },
-    ];
+    return facilityFlows
+      .filter((flow) => flow.product === product)
+      .map((flow) =>
+        createScenario(
+          flow.key,
+          flow.product,
+          flow,
+          dailyDrones,
+          acceleratedHours,
+          flow.sourceLabel,
+        ),
+      );
   });
   return {
     dailyDrones,
     acceleratedHours,
     ...(parseResult.error ? { strategyError: parseResult.error } : {}),
     scenarios,
+  };
+}
+
+function createScenario(
+  key: string,
+  product: DroneAcceleratableProduct,
+  flow: BaseProductFlow,
+  dailyDrones: number,
+  acceleratedHours: number,
+  sourceLabel?: string,
+): DroneAccelerationScenario {
+  const extraFlow: SanityResourceAmounts = { 无人机: -dailyDrones };
+  addAmount(extraFlow, product, flow.amountPerHour * acceleratedHours);
+  addFlow(extraFlow, flow.materialPerHour, acceleratedHours);
+  return {
+    key,
+    product,
+    ...(sourceLabel ? { sourceLabel } : {}),
+    baseAmountPerHour: flow.amountPerHour,
+    baseMaterialPerHour: flow.materialPerHour,
+    droneAmount: dailyDrones,
+    acceleratedHours,
+    extraFlow,
   };
 }

@@ -125,6 +125,11 @@ export const PRODUCT_LABELS: Record<string, string> = {
 };
 
 export const RESOURCE_KEY_ALIASES: Readonly<Record<string, string>> = {
+  LMD: "龙门币",
+  Orundum: "合成玉",
+  "Pure Gold": "赤金",
+  "Battle Record": "中级作战记录",
+  "Originium Shard": "源石碎片",
   作战记录: "中级作战记录",
   贵金属: "赤金",
 };

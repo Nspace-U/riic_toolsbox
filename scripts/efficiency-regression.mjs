@@ -556,6 +556,73 @@ function runTests(runtime) {
   assert.equal(efficientDroneScenario.baseAmountPerHour, 1 / 1.2);
   assert.equal(efficientDroneScenario.extraFlow.赤金, 10);
 
+  const duplicateProductDocument = droneDocument("1");
+  duplicateProductDocument.plans[0].rooms.manufacture[1].product = "赤金";
+  const duplicateProductScenarios = calculateDroneAcceleration(
+    duplicateProductDocument,
+    catalog,
+    { 无人机: 240 },
+  ).scenarios.filter((scenario) => scenario.product === "赤金");
+  assert.equal(duplicateProductScenarios.length, 2);
+  duplicateProductScenarios.forEach((scenario) => {
+    assert.equal(scenario.baseAmountPerHour, 1 / 1.2);
+    assert.equal(scenario.extraFlow.赤金, 10);
+  });
+
+  const crossQueueDocument = droneDocument("1");
+  crossQueueDocument.plans.push({
+    duration: 720,
+    rooms: {
+      trading: [{ product: "龙门币" }, { product: "合成玉" }],
+      manufacture: [
+        { product: "赤金" },
+        { product: "中级作战记录" },
+        { product: "源石碎片", sourceMaterial: "固源岩" },
+      ],
+    },
+  });
+  const crossQueueScenarios = calculateDroneAcceleration(
+    crossQueueDocument,
+    catalog,
+    { 无人机: 240 },
+  ).scenarios.filter((scenario) => scenario.product === "赤金");
+  assert.equal(crossQueueScenarios.length, 2);
+  assert.notEqual(crossQueueScenarios[0].key, crossQueueScenarios[1].key);
+  crossQueueScenarios.forEach((scenario) => {
+    assert.equal(scenario.baseAmountPerHour, 1 / 1.2);
+    assert.equal(scenario.extraFlow.赤金, 10);
+  });
+
+  const legacyProductDocument = droneDocument("1");
+  legacyProductDocument.plans[0].rooms.trading[0].product = "LMD";
+  legacyProductDocument.plans[0].rooms.trading[1].product = "Orundum";
+  legacyProductDocument.plans[0].rooms.manufacture[0].product = "Pure Gold";
+  legacyProductDocument.plans[0].rooms.manufacture[1].product = "Battle Record";
+  legacyProductDocument.plans[0].rooms.manufacture[2].product =
+    "Originium Shard";
+  const legacyProductScenarios = calculateDroneAcceleration(
+    legacyProductDocument,
+    catalog,
+    { 无人机: 240 },
+  ).scenarios;
+  assert.ok(
+    legacyProductScenarios.some((scenario) => scenario.product === "龙门币"),
+  );
+  assert.ok(
+    legacyProductScenarios.some((scenario) => scenario.product === "合成玉"),
+  );
+  assert.ok(
+    legacyProductScenarios.some((scenario) => scenario.product === "赤金"),
+  );
+  assert.ok(
+    legacyProductScenarios.some(
+      (scenario) => scenario.product === "中级作战记录",
+    ),
+  );
+  assert.ok(
+    legacyProductScenarios.some((scenario) => scenario.product === "源石碎片"),
+  );
+
   const danshuDroneAcceleration = calculateDroneAcceleration(
     droneDocument("1 但书0"),
     catalog,
