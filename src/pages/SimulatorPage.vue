@@ -227,6 +227,7 @@ interface BasePointQueueDetail {
 
 interface DailyOutputCard {
   product: string;
+  sourceFacility?: RoomKey;
   grossAmount?: number;
   grossPoints?: number;
   grossPointsLabel?: string;
@@ -265,6 +266,7 @@ function createDailyOutputCard(
   amounts: SanityResourceAmounts,
   sanity: SanityResult | undefined,
   grossAmount?: number,
+  sourceFacility?: RoomKey,
 ): DailyOutputCard {
   const pointInfo = dailyOutputPointInfo(product);
   const sanityItem = sanity?.items.find((item) => item.resource === product);
@@ -283,6 +285,7 @@ function createDailyOutputCard(
       : grossAmount * pointInfo.factor;
   return {
     product,
+    ...(sourceFacility === undefined ? {} : { sourceFacility }),
     ...(grossAmount === undefined ? {} : { grossAmount }),
     ...(grossPoints === undefined ? {} : { grossPoints }),
     ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
@@ -1217,6 +1220,41 @@ const dailySanityResult = computed<SanityResult | undefined>(() => {
     : undefined;
 });
 
+function dailyOutputSourceFacility(product: string): RoomKey | undefined {
+  if (product === "信用") {
+    return "meeting";
+  }
+  return efficiencyResult.value?.dailyFacilities.find(
+    (facility) => facility.production?.product === product,
+  )?.facility.type;
+}
+
+function dailyOutputCardAccent(card: DailyOutputCard): string | undefined {
+  const productColor = productAccent(card.product);
+  if (productColor) {
+    return productColor;
+  }
+  const sourceFacility = card.sourceFacility;
+  return sourceFacility
+    ? facilityColors.value[sourceFacility] ??
+        ROOM_REPRESENTATIVE_COLORS[sourceFacility]
+    : undefined;
+}
+
+function dailyOutputCardHasAccent(card: DailyOutputCard): boolean {
+  return dailyOutputCardAccent(card) !== undefined;
+}
+
+function dailyOutputCardStyle(card: DailyOutputCard): Record<string, string> {
+  const accent = dailyOutputCardAccent(card);
+  if (!accent) {
+    return {};
+  }
+  return {
+    "--simulator-daily-output-accent": accent,
+  };
+}
+
 const dailyOutputCards = computed<DailyOutputCard[]>(() => {
   const result = efficiencyResult.value;
   const amounts = dailySanityAmounts.value;
@@ -1239,6 +1277,7 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
         amounts,
         sanity,
         output.amountPerDay,
+        dailyOutputSourceFacility(output.product),
       ),
     ),
     ...result.dailyOutputs
@@ -1246,7 +1285,15 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
         (output) =>
           output.kind === "net" && !productionProducts.has(output.product),
       )
-      .map((output) => createDailyOutputCard(output.product, amounts, sanity)),
+      .map((output) =>
+        createDailyOutputCard(
+          output.product,
+          amounts,
+          sanity,
+          undefined,
+          dailyOutputSourceFacility(output.product),
+        ),
+      ),
   ];
 });
 
@@ -1324,6 +1371,7 @@ function scenarioCards(
         amounts,
         undefined,
         resource === product ? grossAmount : undefined,
+        dailyOutputSourceFacility(resource),
       ),
     );
 }
@@ -7587,7 +7635,10 @@ onBeforeUnmount(() => {
                   :class="{
                     'simulator-daily-output-item--net':
                       card.grossAmount === undefined,
+                    'simulator-daily-output-item--accent':
+                      dailyOutputCardHasAccent(card),
                   }"
+                  :style="dailyOutputCardStyle(card)"
                 >
                   <img
                     v-if="dailyOutputIconUrl(card.product)"
@@ -7740,7 +7791,10 @@ onBeforeUnmount(() => {
                         :class="{
                           'simulator-daily-output-item--net':
                             card.grossAmount === undefined,
+                          'simulator-daily-output-item--accent':
+                            dailyOutputCardHasAccent(card),
                         }"
+                        :style="dailyOutputCardStyle(card)"
                       >
                         <img
                           v-if="dailyOutputIconUrl(card.product)"

@@ -2635,6 +2635,14 @@ a {
   border-style: dashed;
 }
 
+.simulator-daily-output-item--accent {
+  background: color-mix(
+    in srgb,
+    var(--simulator-daily-output-accent) 10%,
+    #ffffff
+  );
+}
+
 .simulator-daily-output-content {
   display: grid;
   min-width: 0;

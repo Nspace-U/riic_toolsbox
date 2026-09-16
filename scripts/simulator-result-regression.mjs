@@ -54,12 +54,15 @@ assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
 assert.doesNotMatch(template, /class="simulator-base-point-results"/);
 assert.match(template, /function dailyOutputSourceFacility\(product: string\)/);
 assert.match(template, /if \(product === "信用"\) \{\s+return "meeting";/);
+assert.match(template, /function dailyOutputCardAccent\(/);
+assert.match(template, /const productColor = productAccent\(card\.product\);/);
+assert.match(template, /function dailyOutputCardHasAccent\(/);
 assert.match(template, /function dailyOutputCardStyle\(/);
 assert.equal(
   (template.match(/:style="dailyOutputCardStyle\(card\)"/g) ?? []).length,
   2,
 );
-assert.match(template, /simulator-daily-output-item--source/);
+assert.match(template, /simulator-daily-output-item--accent/);
 assert.match(template, /dailySanityResult\.missing\.join/);
 assert.doesNotMatch(template, /ROOM_LABELS\[facility\.type\]\}（合并）/);
 assert.doesNotMatch(stylesheet, /simulator-step-formula/);
@@ -70,7 +73,7 @@ assert.match(
 );
 assert.match(
   stylesheet,
-  /\.simulator-daily-output-item--source\s*\{[\s\S]*?color-mix\(/,
+  /\.simulator-daily-output-item--accent\s*\{[\s\S]*?color-mix\(/,
 );
 
 console.log("simulator result regression: passed");
