@@ -1386,11 +1386,6 @@ a {
   white-space: nowrap;
 }
 
-.simulator-document-item-meta {
-  color: #8a9698;
-  font-size: 11px;
-}
-
 .simulator-document-item-tags,
 .simulator-tag-list {
   display: flex;

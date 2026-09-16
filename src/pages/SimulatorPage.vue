@@ -6550,10 +6550,6 @@ onBeforeUnmount(() => {
               <span class="simulator-document-item-title">{{
                 document.document.title || "未命名排班表"
               }}</span>
-              <span class="simulator-document-item-meta">
-                {{ document.document.plans.length }} 个队列
-                <span v-if="document.inferredLayout"> · 推断布局</span>
-              </span>
               <div class="simulator-document-item-tags">
                 <a-tag
                   v-for="tag in scheduleTags(
