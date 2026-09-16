@@ -1894,6 +1894,25 @@ function runTests(runtime) {
   assert.equal(jieManualEliteCountDetail?.value, 40);
   assert.equal(jieManualEliteGapDetail?.value, 0);
 
+  const jieOrderLimitCases = [
+    { elite: 0, expectedSkill: -2, expectedTotal: 8 },
+    { elite: 1, expectedSkill: -6, expectedTotal: 4 },
+  ];
+  jieOrderLimitCases.forEach(({ elite, expectedSkill, expectedTotal }) => {
+    const result = calculateEfficiency(
+      documentFor({
+        trading: ["孑", "银灰", "锏"],
+        eliteLevels: { 孑: elite, 银灰: 2, 锏: 2 },
+        settings: { preferMaxJieEfficiency: true },
+      }),
+      catalog,
+      { treatSkillsAsUnlocked: true },
+    );
+    const facility = tradingResult(result);
+    assert.equal(facility.attributes.orderLimit?.skill, expectedSkill);
+    assert.equal(facility.attributes.orderLimit?.total, expectedTotal);
+  });
+
   const jieMaxWorkbookCases = [
     {
       name: "银灰Ⅱ+琳琅诗怀雅Ⅱ+灵知Ⅱ（中枢）",
