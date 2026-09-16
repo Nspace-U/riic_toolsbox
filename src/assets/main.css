@@ -1386,18 +1386,12 @@ a {
   white-space: nowrap;
 }
 
-.simulator-document-item-tags,
 .simulator-tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.simulator-document-item-tags {
-  margin-block-start: 4px;
-}
-
-.simulator-document-item-tags .ant-tag,
 .simulator-tag-list .ant-tag {
   margin-inline-end: 0;
 }

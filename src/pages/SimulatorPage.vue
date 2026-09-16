@@ -6550,19 +6550,6 @@ onBeforeUnmount(() => {
               <span class="simulator-document-item-title">{{
                 document.document.title || "未命名排班表"
               }}</span>
-              <div class="simulator-document-item-tags">
-                <a-tag
-                  v-for="tag in scheduleTags(
-                    document.document,
-                    document.tags,
-                    document.hiddenAutoTags,
-                  )"
-                  :key="`${document.id}-${tag.label}`"
-                  :color="tag.automatic ? 'blue' : undefined"
-                >
-                  {{ tag.label }}
-                </a-tag>
-              </div>
             </div>
             <div class="simulator-document-item-actions">
               <a-button
