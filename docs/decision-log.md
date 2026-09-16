@@ -985,3 +985,10 @@
 - **兼容性**：不修改排班 JSON、Maa JSON、技能 JSON 或 `MoodSnapshot` 字段；头像继续读取队列结束心情。完整循环中每个队列都有该干员且没有显式心情时，保留既有有符号净变化稳定起点规则。
 - **验证**：`npm run test:efficiency`、`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 已通过；新增场景确认第 1 队列心情为 `12 -> 0`，第 3 队列从默认 `24` 开始并结束为 `12`。
 - **未完成与风险**：当前仓库仍没有独立的模拟器组件测试；本次只验证纯计算入口，页面头像消费 `MoodSnapshot.end` 的现有契约未新增浏览器回放。
+
+## 2026-09-16：支持排班表之间的干员剪贴板
+
+- **决定**：模拟器内部复制/剪切剪贴板在同一页面内跨排班表保留；剪贴板快照记录来源排班表、干员状态和来源设施内相对位置，切换排班表只清理界面高亮。来源排班表修改或删除不会使快照失效，剪贴板不跨刷新或浏览器标签页共享。
+- **映射**：跨表粘贴沿用现有目标规则；同一逻辑设施保留队列和槽位相对位置，跨设施或无法匹配时按目标队列顺序线性写入，目标空间不足时截断，空槽位和干员状态照常覆盖。
+- **历史与兼容性**：跨表剪切仍在剪切时清空源表，源表清空和目标表粘贴分别记录到各自历史，不修改 `RoomAssignment`、`OperatorState`、排班 JSON 或 Maa JSON 契约。
+- **验证**：`npm run lint`、`npm run type-check`、`npm run build`、`npm run test:schedule-list`、`npm run test:simulator-layout`、`npm run test:simulator-result` 和 `git diff --check` 通过；本地页面无控制台错误。浏览器自动化的系统级 `Ctrl/Cmd+C/V` 仍受剪贴板通道接管，未据此宣称快捷键分支已自动化验证。

@@ -413,10 +413,16 @@ interface OperatorClipboardEntry {
   state?: OperatorState;
 }
 
+interface OperatorClipboardAddress extends OperatorSlotAddress {
+  facilityKey: string;
+  facilitySlotIndex?: number;
+}
+
 interface OperatorClipboard {
   mode: "copy" | "cut";
   entries: OperatorClipboardEntry[];
-  sourceAddresses: OperatorSlotAddress[];
+  sourceDocumentId: string;
+  sourceAddresses: OperatorClipboardAddress[];
 }
 
 interface OperatorSlotSnapshot {
@@ -768,17 +774,18 @@ const operatorAddressMap = computed(
 );
 const operatorClipboardSourceKeys = computed(() => {
   const clipboard = operatorClipboard.value;
-  if (!clipboard || clipboard.sourceAddresses.length === 0) {
-    return new Set<string>();
-  }
   if (
-    clipboard.sourceAddresses.some(
-      (address) => !operatorAddressMap.value.has(address.key),
-    )
+    !clipboard ||
+    clipboard.sourceDocumentId !== activeDocumentId.value ||
+    clipboard.sourceAddresses.length === 0
   ) {
     return new Set<string>();
   }
-  return new Set(clipboard.sourceAddresses.map((address) => address.key));
+  return new Set(
+    clipboard.sourceAddresses
+      .filter((address) => operatorAddressMap.value.has(address.key))
+      .map((address) => address.key),
+  );
 });
 const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
   const documentId = activeDocumentId.value;
@@ -3894,30 +3901,36 @@ function operatorRoomAddressKey(address: OperatorSlotAddress): string {
 function operatorTransferPairs(
   sourceAddresses: OperatorSlotAddress[],
   target: OperatorSlotAddress,
+  sourceMetadata?: Map<string, OperatorClipboardAddress>,
 ): Array<[OperatorSlotAddress, OperatorSlotAddress]> {
-  const sources = sourceAddresses.filter((address) =>
-    operatorAddressByKey(address.key),
-  );
+  const sources = sourceAddresses
+    .filter((address) => sourceMetadata || operatorAddressByKey(address.key))
+    .map((source) => {
+      const metadata = sourceMetadata?.get(source.key);
+      return {
+        source,
+        facilityKey:
+          metadata?.facilityKey ?? operatorFacilityKeyForAddress(source),
+        slotIndex:
+          metadata?.facilitySlotIndex ?? operatorFacilitySlotIndex(source),
+      };
+    });
   if (sources.length === 0) {
     return [];
   }
-  const sourceFacilityKey = operatorFacilityKeyForAddress(sources[0]!);
+  const sourceFacilityKey = sources[0]!.facilityKey;
   const sourceCoordinates: Array<{
     source: OperatorSlotAddress;
     slotIndex: number;
   }> = [];
-  if (
-    sources.every(
-      (source) => operatorFacilityKeyForAddress(source) === sourceFacilityKey,
-    )
-  ) {
+  if (sources.every((source) => source.facilityKey === sourceFacilityKey)) {
     for (const source of sources) {
-      const slotIndex = operatorFacilitySlotIndex(source);
+      const slotIndex = source.slotIndex;
       if (slotIndex === undefined) {
         sourceCoordinates.length = 0;
         break;
       }
-      sourceCoordinates.push({ source, slotIndex });
+      sourceCoordinates.push({ source: source.source, slotIndex });
     }
   }
   const targetSlotIndex = operatorFacilitySlotIndex(target);
@@ -3950,7 +3963,7 @@ function operatorTransferPairs(
   if (startIndex < 0) {
     return [];
   }
-  return sources.flatMap((source, index) => {
+  return sources.flatMap(({ source }, index) => {
     const destination = addresses[startIndex + index];
     return destination ? [[source, destination] as const] : [];
   });
@@ -4351,8 +4364,7 @@ function handleWindowSelectStart(event: Event): void {
   }
 }
 
-function clearOperatorClipboard(): void {
-  operatorClipboard.value = undefined;
+function clearOperatorPasteHighlight(): void {
   operatorPasteHighlightKeys.value = new Set();
   if (operatorPasteHighlightTimer !== undefined) {
     clearTimeout(operatorPasteHighlightTimer);
@@ -4360,20 +4372,26 @@ function clearOperatorClipboard(): void {
   }
 }
 
+function clearOperatorClipboard(): void {
+  operatorClipboard.value = undefined;
+  clearOperatorPasteHighlight();
+}
+
 function setOperatorClipboard(
   mode: "copy" | "cut",
   entries: OperatorClipboardEntry[],
   addresses: OperatorSlotAddress[],
 ): void {
-  operatorPasteHighlightKeys.value = new Set();
-  if (operatorPasteHighlightTimer !== undefined) {
-    clearTimeout(operatorPasteHighlightTimer);
-    operatorPasteHighlightTimer = undefined;
-  }
+  clearOperatorPasteHighlight();
   operatorClipboard.value = {
     mode,
     entries,
-    sourceAddresses: addresses.map((address) => ({ ...address })),
+    sourceDocumentId: activeDocumentId.value,
+    sourceAddresses: addresses.map((address) => ({
+      ...address,
+      facilityKey: operatorFacilityKeyForAddress(address),
+      facilitySlotIndex: operatorFacilitySlotIndex(address),
+    })),
   };
 }
 
@@ -4395,12 +4413,9 @@ function operatorClipboardIsUsable(): boolean {
   if (!clipboard || clipboard.entries.length === 0) {
     return false;
   }
-  const validKeys = new Set(
-    orderedOperatorSlotAddresses().map((address) => address.key),
-  );
   if (
     clipboard.sourceAddresses.length !== clipboard.entries.length ||
-    clipboard.sourceAddresses.some((address) => !validKeys.has(address.key))
+    clipboard.sourceDocumentId.length === 0
   ) {
     clearOperatorClipboard();
     return false;
@@ -4577,9 +4592,13 @@ function pasteOperators(): boolean {
       sourceEntries.set(address.key, entry);
     }
   });
+  const sourceMetadata = new Map(
+    clipboard.sourceAddresses.map((source) => [source.key, source]),
+  );
   const transferEntries = operatorTransferPairs(
     clipboard.sourceAddresses,
     target,
+    sourceMetadata,
   ).flatMap(([source, address]) => {
     const entry = sourceEntries.get(source.key);
     return entry ? [{ address, entry }] : [];
@@ -6141,7 +6160,7 @@ watch(activeDocumentId, () => {
   setOperatorDragTarget(undefined);
   setOperatorDragHoveredSlot(undefined);
   hoveredOperatorSlot.value = undefined;
-  clearOperatorClipboard();
+  clearOperatorPasteHighlight();
   contextMenu.value = undefined;
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
