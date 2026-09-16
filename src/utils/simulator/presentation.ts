@@ -297,27 +297,25 @@ export function efficiencyStatValue(stat: string, value: number): string {
   }`;
 }
 
+export function efficiencyStatUnit(stat: string): string {
+  return PERCENTAGE_EFFICIENCY_STATS.has(stat) ? "%" : "";
+}
+
 export function productionMaterialsForDisplay(
   value: ProductionValue,
   effective = false,
-): string[] {
+): Array<{ material: string; amount: number }> {
   const materials = effective
     ? (value.effectiveMaterialPerHour ?? value.materialPerHour)
     : value.materialPerHour;
-  return Object.entries(materials ?? {}).map(
-    ([material, amount]) =>
-      `${resourceLabel(material)} ${signedNumber(amount)}/小时`,
-  );
+  return Object.entries(materials ?? {}).map(([material, amount]) => ({
+    material,
+    amount,
+  }));
 }
 
 export function formatDurationHours(value: number): string {
   return `${formatNumber(value)} 小时`;
-}
-
-export function productionRateLabel(value: ProductionValue): string {
-  return value.itemRate === undefined
-    ? ""
-    : `${formatProduction(value.itemRate)} / 小时`;
 }
 
 export function facilityOverflowLabel(value: ProductionValue): string {

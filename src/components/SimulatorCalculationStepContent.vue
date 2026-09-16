@@ -6,24 +6,20 @@ import type {
   FacilityEfficiencyResult,
   MoodSnapshot,
 } from "@/types/efficiency";
+import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import {
   cluePreferenceText,
   convertedProductionAmount,
   efficiencyStatLabel,
-  efficiencyStatValue,
+  efficiencyStatUnit,
   facilityOverflowLabel,
-  formatDurationHours,
-  formatEfficiencyNumber,
   formatNumber,
-  formatProduction,
   moodRateDetailLabel,
   moodRateFormula,
   operatorCalculationRows,
   productionLabel,
   productionMaterialsForDisplay,
-  productionRateLabel,
   resourceLabel,
-  signedNumber,
 } from "@/utils/simulator/presentation";
 
 export interface SimulatorCalculationStepView {
@@ -49,19 +45,36 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
         <span class="simulator-step-subheading">效率汇总</span>
         <div class="simulator-step-detail-grid">
           <span>基础效率</span>
-          <strong>{{ formatNumber(step.facility.baseEfficiency) }}%</strong>
+          <strong
+            ><SimulatorNumericValue
+              :value="step.facility.baseEfficiency"
+              unit="%"
+          /></strong>
           <span>干员效率</span>
-          <strong>{{ signedNumber(step.facility.moodEfficiency) }}%</strong>
+          <strong
+            ><SimulatorNumericValue
+              mode="signed"
+              :value="step.facility.moodEfficiency"
+              unit="%"
+          /></strong>
           <span>干员技能效率</span>
           <strong
-            >{{ signedNumber(step.facility.operatorSkillEfficiency) }}%</strong
-          >
+            ><SimulatorNumericValue
+              mode="signed"
+              :value="step.facility.operatorSkillEfficiency"
+              unit="%"
+          /></strong>
           <span>组合效率</span>
           <strong
-            >{{ formatEfficiencyNumber(step.facility.combinationEfficiency) }}%
-          </strong>
+            ><SimulatorNumericValue
+              mode="efficiency"
+              :value="step.facility.combinationEfficiency"
+              unit="%"
+          /></strong>
           <span>整体效率</span>
-          <strong>{{ formatNumber(step.facility.efficiency) }}%</strong>
+          <strong
+            ><SimulatorNumericValue :value="step.facility.efficiency" unit="%"
+          /></strong>
           <span>计算公式</span>
           <span>
             基础 {{ formatNumber(step.facility.baseEfficiency) }}% + 心情
@@ -101,21 +114,34 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             </template>
             <span>基础速率</span>
             <strong>
-              {{
-                formatProduction(
+              <SimulatorNumericValue
+                mode="production"
+                :value="
                   step.facility.production.baseAmountPerHour ??
-                    step.facility.production.amountPerHour,
-                )
-              }}/小时
+                  step.facility.production.amountPerHour
+                "
+                unit="/小时"
+              />/小时
             </strong>
             <span>实际速率</span>
             <strong
-              >{{
-                formatProduction(step.facility.production.amountPerHour)
-              }}/小时</strong
+              ><SimulatorNumericValue
+                mode="production"
+                :value="step.facility.production.amountPerHour"
+                unit="/小时"
+              />/小时</strong
             >
             <span>容量单位速率</span>
-            <strong>{{ productionRateLabel(step.facility.production) }}</strong>
+            <strong>
+              <template v-if="step.facility.production.itemRate !== undefined">
+                <SimulatorNumericValue
+                  mode="production"
+                  :value="step.facility.production.itemRate"
+                  unit=" / 小时"
+                />
+                / 小时
+              </template>
+            </strong>
             <template
               v-if="
                 (step.facility.facility.type === 'trading' ||
@@ -131,10 +157,17 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
                   step.facility.production,
                   props.simulateOverflow,
                 )"
-                :key="`facility-material-${material}`"
+                :key="`facility-material-${material.material}`"
               >
                 <span>材料消耗速率</span>
-                <strong>{{ material }}</strong>
+                <strong>
+                  {{ resourceLabel(material.material) }}
+                  <SimulatorNumericValue
+                    mode="signed"
+                    :value="material.amount"
+                    unit="/小时"
+                  />/小时
+                </strong>
               </template>
             </template>
             <template v-if="step.facility.production.conversion">
@@ -153,14 +186,16 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               </strong>
               <span>折算实际速率</span>
               <strong>
-                {{
-                  formatProduction(
+                <SimulatorNumericValue
+                  mode="production"
+                  :value="
                     convertedProductionAmount(
                       step.facility.production,
                       step.facility.production.amountPerHour,
-                    ),
-                  )
-                }}/小时
+                    )
+                  "
+                  unit="/小时"
+                />/小时
               </strong>
             </template>
             <template v-if="step.facility.production.orderRule">
@@ -171,11 +206,22 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           <template v-if="step.facility.capacity">
             <span>{{ step.facility.capacity.label }}</span>
             <strong>
-              {{ formatNumber(step.facility.capacity.total) }}
+              <SimulatorNumericValue
+                :value="step.facility.capacity.total"
+                :unit="step.facility.capacity.unit"
+              />
               {{ step.facility.capacity.unit }}
               <small>
-                （基础 {{ formatNumber(step.facility.capacity.base) }}，技能
-                {{ signedNumber(step.facility.capacity.skill) }}）
+                （基础
+                <SimulatorNumericValue
+                  :value="step.facility.capacity.base"
+                  :unit="step.facility.capacity.unit"
+                />，技能
+                <SimulatorNumericValue
+                  mode="signed"
+                  :value="step.facility.capacity.skill"
+                  :unit="step.facility.capacity.unit"
+                />）
               </small>
             </strong>
           </template>
@@ -183,7 +229,11 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             <span>爆仓</span>
             <strong>
               {{ facilityOverflowLabel(step.facility.production) }} ·
-              {{ formatDurationHours(step.facility.production.breachTime) }}
+              <SimulatorNumericValue
+                :value="step.facility.production.breachTime"
+                unit="小时"
+              />
+              小时
             </strong>
           </template>
         </div>
@@ -201,15 +251,31 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               class="simulator-step-detail-row"
             >
               <span>
-                {{ formatDurationHours(segment.startHours) }} -
-                {{ formatDurationHours(segment.endHours) }}
+                <SimulatorNumericValue
+                  :value="segment.startHours"
+                  unit="小时"
+                />
+                小时 -
+                <SimulatorNumericValue :value="segment.endHours" unit="小时" />
+                小时
               </span>
               <strong>
-                {{ formatNumber(segment.total) }}
+                <SimulatorNumericValue
+                  :value="segment.total"
+                  :unit="step.facility.capacity.unit"
+                />
                 {{ step.facility.capacity.unit }}
                 <small>
-                  （基础 {{ formatNumber(segment.base) }}，技能
-                  {{ signedNumber(segment.skill) }}）
+                  （基础
+                  <SimulatorNumericValue
+                    :value="segment.base"
+                    :unit="step.facility.capacity.unit"
+                  />，技能
+                  <SimulatorNumericValue
+                    mode="signed"
+                    :value="segment.skill"
+                    :unit="step.facility.capacity.unit"
+                  />）
                 </small>
               </strong>
             </div>
@@ -227,14 +293,18 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               class="simulator-step-detail-row"
             >
               <span>
-                {{ order.name }} · {{ formatNumber(order.probability * 100) }}%
+                {{ order.name }} ·
+                <SimulatorNumericValue
+                  :value="order.probability * 100"
+                  unit="%"
+                />%
               </span>
               <span>
-                {{ formatNumber(order.quantity) }} /
-                {{ formatNumber(order.time) }} 小时
+                <SimulatorNumericValue :value="order.quantity" /> /
+                <SimulatorNumericValue :value="order.time" unit="小时" /> 小时
                 <template v-if="order.material">
                   · {{ resourceLabel(order.material) }} ×
-                  {{ formatNumber(order.amount ?? 0) }}
+                  <SimulatorNumericValue :value="order.amount ?? 0" />
                 </template>
               </span>
             </div>
@@ -254,9 +324,18 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           >
             <span>{{ contribution.operator }}</span>
             <span>
-              {{ signedNumber(contribution.efficiency) }}（基础
-              {{ signedNumber(contribution.baseEfficiency) }}，技能
-              {{ signedNumber(contribution.skillEfficiency) }}）
+              <SimulatorNumericValue
+                mode="signed"
+                :value="contribution.efficiency"
+              />（基础
+              <SimulatorNumericValue
+                mode="signed"
+                :value="contribution.baseEfficiency"
+              />，技能
+              <SimulatorNumericValue
+                mode="signed"
+                :value="contribution.skillEfficiency"
+              />）
             </span>
           </div>
         </div>
@@ -275,7 +354,11 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             </span>
             <span>
               {{ efficiencyStatLabel(detail.stat) }}
-              {{ efficiencyStatValue(detail.stat, detail.value) }}
+              <SimulatorNumericValue
+                mode="signed"
+                :value="detail.value"
+                :unit="efficiencyStatUnit(detail.stat)"
+              />{{ efficiencyStatUnit(detail.stat) }}
             </span>
             <div
               v-if="operatorCalculationRows(detail).length"
@@ -320,7 +403,13 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             :key="`${mood.operator}-${detail.kind}-${detailIndex}`"
           >
             <span>{{ moodRateDetailLabel(detail) }}</span>
-            <strong>{{ signedNumber(detail.value) }}/小时</strong>
+            <strong
+              ><SimulatorNumericValue
+                mode="signed"
+                :value="detail.value"
+                unit="/小时"
+              />/小时</strong
+            >
           </template>
           <span>消耗速度</span>
           <strong>{{ moodRateFormula(mood) }}</strong>
@@ -331,7 +420,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             {{ formatNumber(mood.end) }}
           </span>
           <span>剩余心情</span>
-          <strong>{{ formatNumber(mood.end) }}</strong>
+          <strong><SimulatorNumericValue :value="mood.end" /></strong>
         </div>
       </div>
     </div>

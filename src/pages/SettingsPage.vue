@@ -20,6 +20,7 @@ import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
+import { useNumericTooltipSettings } from "@/composables/useNumericTooltipSettings";
 import {
   DEFAULT_OPERATOR_PICKER_COLUMNS,
   useOperatorPickerSettings,
@@ -73,6 +74,11 @@ const {
   setCalculationStepDisplayMode,
   resetCalculationStepDisplayMode,
 } = useCalculationStepDisplaySettings();
+const {
+  numericTooltipEnabled,
+  setNumericTooltipEnabled,
+  resetNumericTooltipSettings,
+} = useNumericTooltipSettings();
 const {
   avatarDisplaySizes,
   avatarDisplaySizeOptions,
@@ -729,10 +735,29 @@ watch(
             }}
           </p>
         </a-form-item>
+        <a-form-item label="数值原始精度">
+          <a-checkbox
+            :checked="numericTooltipEnabled"
+            @change="
+              (event: { target: { checked: boolean } }) =>
+                setNumericTooltipEnabled(event.target.checked)
+            "
+          >
+            鼠标悬停显示被舍入前的数值
+          </a-checkbox>
+          <p class="settings-panel-hint">
+            仅在页面数值因显示精度限制发生变化时显示，使用默认悬停延迟。
+          </p>
+        </a-form-item>
       </a-form>
-      <a-button @click="resetCalculationStepDisplayMode"
-        >恢复默认展开方式</a-button
-      >
+      <a-space>
+        <a-button @click="resetCalculationStepDisplayMode"
+          >恢复默认展开方式</a-button
+        >
+        <a-button @click="resetNumericTooltipSettings"
+          >恢复默认数值显示</a-button
+        >
+      </a-space>
     </a-card>
 
     <a-card

@@ -42,6 +42,7 @@ import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import SimulatorCalculationStepContent, {
   type SimulatorCalculationStepView,
 } from "@/components/SimulatorCalculationStepContent.vue";
+import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
 import type { EliteLevel, Operator } from "@/types/baseData";
@@ -147,10 +148,8 @@ import {
   formatDurationHours,
   formatEfficiencyNumber,
   formatNumber,
-  formatProduction,
   planDurationHoursValue,
   resourceLabel,
-  signedNumber,
 } from "@/utils/simulator/presentation";
 
 interface FacilityEntry {
@@ -1281,8 +1280,8 @@ function dailyOutputCardAccent(card: DailyOutputCard): string | undefined {
   }
   const sourceFacility = card.sourceFacility;
   return sourceFacility
-    ? facilityColors.value[sourceFacility] ??
-        ROOM_REPRESENTATIVE_COLORS[sourceFacility]
+    ? (facilityColors.value[sourceFacility] ??
+        ROOM_REPRESENTATIVE_COLORS[sourceFacility])
     : undefined;
 }
 
@@ -1897,9 +1896,11 @@ function updateDocumentDragTarget(
 }
 
 function documentItemAtPoint(event: PointerEvent): HTMLElement | undefined {
-  return window.document
-    .elementFromPoint(event.clientX, event.clientY)
-    ?.closest<HTMLElement>("[data-schedule-document-id]") ?? undefined;
+  return (
+    window.document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-schedule-document-id]") ?? undefined
+  );
 }
 
 function handleDocumentPointerMove(event: PointerEvent): void {
@@ -7535,8 +7536,25 @@ watch(showScheduleSidebar, () => {
                         <strong
                           v-if="planFacilityResult(row, planIndex)"
                           :style="efficiencySummaryStyle(row, planIndex)"
-                          >{{ efficiencySummaryText(row, planIndex) }}</strong
                         >
+                          <SimulatorNumericValue
+                            mode="efficiency"
+                            :value="
+                              planFacilityResult(row, planIndex)
+                                ?.operatorSkillEfficiency ?? 0
+                            "
+                            unit="%"
+                          />
+                          <span aria-hidden="true"> / </span>
+                          <SimulatorNumericValue
+                            mode="efficiency"
+                            :value="
+                              planFacilityResult(row, planIndex)?.efficiency ??
+                              0
+                            "
+                            unit="%"
+                          />
+                        </strong>
                       </div>
                     </div>
                   </div>
@@ -7965,7 +7983,12 @@ watch(showScheduleSidebar, () => {
                   <h3>每日产出</h3>
                 </div>
                 <a-tag color="blue">
-                  循环 {{ formatNumber(efficiencyResult.dailyHours) }} 小时
+                  循环
+                  <SimulatorNumericValue
+                    :value="efficiencyResult.dailyHours"
+                    unit="小时"
+                  />
+                  小时
                 </a-tag>
               </div>
               <div
@@ -7992,32 +8015,53 @@ watch(showScheduleSidebar, () => {
                   />
                   <div class="simulator-daily-output-content">
                     <strong class="simulator-daily-output-main-value">
-                      {{
-                        card.grossAmount === undefined
-                          ? signedNumber(card.netAmount)
-                          : formatProduction(card.grossAmount)
-                      }}
+                      <SimulatorNumericValue
+                        v-if="card.grossAmount === undefined"
+                        mode="signed"
+                        :value="card.netAmount"
+                        :unit="card.netUnit"
+                      />
+                      <SimulatorNumericValue
+                        v-else
+                        mode="production"
+                        :value="card.grossAmount"
+                        :unit="card.netUnit"
+                      />
                     </strong>
                     <div class="simulator-daily-output-card-copy">
                       <span
                         v-if="card.grossPoints !== undefined"
                         class="simulator-daily-output-gross-points"
                       >
-                        {{ formatProduction(card.grossPoints) }}
+                        <SimulatorNumericValue
+                          mode="production"
+                          :value="card.grossPoints"
+                          :unit="card.grossPointsLabel"
+                        />
                         {{ card.grossPointsLabel }}
                       </span>
                       <span
                         v-if="card.showNet"
                         class="simulator-daily-output-net"
                       >
-                        净收入 {{ signedNumber(card.netAmount) }}
+                        净收入
+                        <SimulatorNumericValue
+                          mode="signed"
+                          :value="card.netAmount"
+                          :unit="card.netUnit"
+                        />
                         {{ card.netUnit }}
                       </span>
                       <strong
                         v-if="card.netContribution !== undefined"
                         class="simulator-daily-output-sanity"
                       >
-                        {{ signedNumber(card.netContribution) }} 理智
+                        <SimulatorNumericValue
+                          mode="signed"
+                          :value="card.netContribution"
+                          unit="理智"
+                        />
+                        理智
                       </strong>
                       <span
                         v-else
@@ -8038,7 +8082,11 @@ watch(showScheduleSidebar, () => {
                     class="simulator-daily-output-icon"
                   />
                   <strong class="simulator-daily-output-main-value">
-                    {{ signedNumber(dailySanityResult.total) }}
+                    <SimulatorNumericValue
+                      mode="signed"
+                      :value="dailySanityResult.total"
+                      unit="理智"
+                    />
                   </strong>
                 </div>
               </div>
@@ -8106,14 +8154,24 @@ watch(showScheduleSidebar, () => {
                   <div class="simulator-drone-scenario-heading">
                     <strong>{{ resourceLabel(entry.scenario.product) }}</strong>
                     <span>
-                      {{ formatNumber(entry.scenario.droneAmount) }} 架 ·
-                      {{ formatNumber(entry.scenario.acceleratedHours) }} 小时
+                      <SimulatorNumericValue
+                        :value="entry.scenario.droneAmount"
+                        unit="架"
+                      />
+                      架 ·
+                      <SimulatorNumericValue
+                        :value="entry.scenario.acceleratedHours"
+                        unit="小时"
+                      />
+                      小时
                     </span>
                     <span
                       >固定按基础 100% 效率计算 · 基础
-                      {{
-                        formatProduction(entry.scenario.baseAmountPerHour)
-                      }}/小时</span
+                      <SimulatorNumericValue
+                        mode="production"
+                        :value="entry.scenario.baseAmountPerHour"
+                        unit="/小时"
+                      />/小时</span
                     >
                   </div>
                   <div
@@ -8148,25 +8206,41 @@ watch(showScheduleSidebar, () => {
                         />
                         <div class="simulator-daily-output-content">
                           <strong class="simulator-daily-output-main-value">
-                            {{
-                              card.grossAmount === undefined
-                                ? signedNumber(card.netAmount)
-                                : formatProduction(card.grossAmount)
-                            }}
+                            <SimulatorNumericValue
+                              v-if="card.grossAmount === undefined"
+                              mode="signed"
+                              :value="card.netAmount"
+                              :unit="card.netUnit"
+                            />
+                            <SimulatorNumericValue
+                              v-else
+                              mode="production"
+                              :value="card.grossAmount"
+                              :unit="card.netUnit"
+                            />
                           </strong>
                           <div class="simulator-daily-output-card-copy">
                             <span
                               v-if="card.grossPoints !== undefined"
                               class="simulator-daily-output-gross-points"
                             >
-                              {{ formatProduction(card.grossPoints) }}
+                              <SimulatorNumericValue
+                                mode="production"
+                                :value="card.grossPoints"
+                                :unit="card.grossPointsLabel"
+                              />
                               {{ card.grossPointsLabel }}
                             </span>
                             <span
                               v-if="card.showNet"
                               class="simulator-daily-output-net"
                             >
-                              净收入 {{ signedNumber(card.netAmount) }}
+                              净收入
+                              <SimulatorNumericValue
+                                mode="signed"
+                                :value="card.netAmount"
+                                :unit="card.netUnit"
+                              />
                               {{ card.netUnit }}
                             </span>
                             <span
@@ -8178,7 +8252,11 @@ watch(showScheduleSidebar, () => {
                               class="simulator-drone-output-net-resource"
                             >
                               净{{ resourceLabel(card.product) }}
-                              {{ signedNumber(card.netResourceAmount) }}
+                              <SimulatorNumericValue
+                                mode="signed"
+                                :value="card.netResourceAmount"
+                                :unit="resourceLabel(card.product)"
+                              />
                             </span>
                           </div>
                         </div>
@@ -8230,7 +8308,10 @@ watch(showScheduleSidebar, () => {
                           {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
                           <small
                             >·
-                            {{ formatNumber(queue.plan.durationHours) }}
+                            <SimulatorNumericValue
+                              :value="queue.plan.durationHours"
+                              unit="小时"
+                            />
                             小时</small
                           >
                         </span>
@@ -8248,32 +8329,41 @@ watch(showScheduleSidebar, () => {
                           <div class="simulator-step-detail-grid">
                             <span>基础效率</span>
                             <strong
-                              >{{
-                                formatEfficiencyNumber(product.baseEfficiency)
-                              }}%</strong
-                            >
+                              ><SimulatorNumericValue
+                                mode="efficiency"
+                                :value="product.baseEfficiency"
+                                unit="%"
+                            /></strong>
                             <span>总效率</span>
                             <strong
-                              >{{
-                                formatEfficiencyNumber(product.totalEfficiency)
-                              }}%</strong
-                            >
+                              ><SimulatorNumericValue
+                                mode="efficiency"
+                                :value="product.totalEfficiency"
+                                unit="%"
+                            /></strong>
                             <span>基础效率产出</span>
                             <strong
-                              >{{
-                                formatProduction(product.baseOutputPerHour)
-                              }}/小时</strong
+                              ><SimulatorNumericValue
+                                mode="production"
+                                :value="product.baseOutputPerHour"
+                                unit="/小时"
+                              />/小时</strong
                             >
                             <span>总效率产出</span>
                             <strong
-                              >{{
-                                formatProduction(product.totalOutputPerHour)
-                              }}/小时</strong
+                              ><SimulatorNumericValue
+                                mode="production"
+                                :value="product.totalOutputPerHour"
+                                unit="/小时"
+                              />/小时</strong
                             >
                             <span>队列折算每日</span>
-                            <strong>{{
-                              formatProduction(product.dailyContribution)
-                            }}</strong>
+                            <strong
+                              ><SimulatorNumericValue
+                                mode="production"
+                                :value="product.dailyContribution"
+                                :unit="resourceLabel(product.product)"
+                            /></strong>
                           </div>
                           <div
                             v-if="product.facilities.length"
@@ -8289,35 +8379,33 @@ watch(showScheduleSidebar, () => {
                               >
                                 <span>{{ facility.label }} · 基础效率</span>
                                 <strong
-                                  >{{
-                                    formatEfficiencyNumber(
-                                      facility.baseEfficiency,
-                                    )
-                                  }}%</strong
-                                >
+                                  ><SimulatorNumericValue
+                                    mode="efficiency"
+                                    :value="facility.baseEfficiency"
+                                    unit="%"
+                                /></strong>
                                 <span>{{ facility.label }} · 总效率</span>
                                 <strong
-                                  >{{
-                                    formatEfficiencyNumber(
-                                      facility.totalEfficiency,
-                                    )
-                                  }}%</strong
-                                >
+                                  ><SimulatorNumericValue
+                                    mode="efficiency"
+                                    :value="facility.totalEfficiency"
+                                    unit="%"
+                                /></strong>
                                 <span>{{ facility.label }} · 基础产出</span>
                                 <strong
-                                  >{{
-                                    formatProduction(
-                                      facility.baseOutputPerHour,
-                                    )
-                                  }}/小时</strong
+                                  ><SimulatorNumericValue
+                                    mode="production"
+                                    :value="facility.baseOutputPerHour"
+                                    unit="/小时"
+                                  />/小时</strong
                                 >
                                 <span>{{ facility.label }} · 总产出</span>
                                 <strong
-                                  >{{
-                                    formatProduction(
-                                      facility.totalOutputPerHour,
-                                    )
-                                  }}/小时</strong
+                                  ><SimulatorNumericValue
+                                    mode="production"
+                                    :value="facility.totalOutputPerHour"
+                                    unit="/小时"
+                                  />/小时</strong
                                 >
                                 <template
                                   v-for="order in facility.orders"
@@ -8326,13 +8414,23 @@ watch(showScheduleSidebar, () => {
                                   <span>
                                     {{ facility.label }} · 订单产出 ·
                                     {{ order.name }} ·
-                                    {{ formatNumber(order.probability * 100) }}%
+                                    <SimulatorNumericValue
+                                      :value="order.probability * 100"
+                                      unit="%"
+                                    />%
                                   </span>
                                   <span>
                                     基础
-                                    {{ formatProduction(order.baseRate) }}/小时
-                                    · 总
-                                    {{ formatProduction(order.totalRate) }}/小时
+                                    <SimulatorNumericValue
+                                      mode="production"
+                                      :value="order.baseRate"
+                                      unit="/小时"
+                                    />/小时 · 总
+                                    <SimulatorNumericValue
+                                      mode="production"
+                                      :value="order.totalRate"
+                                      unit="/小时"
+                                    />/小时
                                     <template v-if="order.ignoreEfficiency">
                                       · 固定订单
                                     </template>
@@ -8361,11 +8459,20 @@ watch(showScheduleSidebar, () => {
                                   class="simulator-daily-output-icon"
                                 />
                                 {{ item.label }} ·
-                                {{ signedNumber(item.amount) }}
+                                <SimulatorNumericValue
+                                  mode="signed"
+                                  :value="item.amount"
+                                  :unit="item.amountUnit"
+                                />
                                 {{ item.amountUnit }}
                               </span>
                               <strong v-if="item.contribution !== undefined">
-                                {{ signedNumber(item.contribution) }} 理智
+                                <SimulatorNumericValue
+                                  mode="signed"
+                                  :value="item.contribution"
+                                  unit="理智"
+                                />
+                                理智
                               </strong>
                               <span v-else class="simulator-sanity-missing"
                                 >未计入</span
@@ -8377,9 +8484,11 @@ watch(showScheduleSidebar, () => {
                                 : "队列等效理智合计（部分）"
                             }}</span>
                             <strong
-                              >{{
-                                signedNumber(queue.sanity.total)
-                              }}
+                              ><SimulatorNumericValue
+                                mode="signed"
+                                :value="queue.sanity.total"
+                                unit="理智"
+                              />
                               理智</strong
                             >
                           </div>
@@ -8408,7 +8517,10 @@ watch(showScheduleSidebar, () => {
                           {{ entry.plan.name || `队列${entry.planIndex + 1}` }}
                           <small
                             >·
-                            {{ formatNumber(entry.plan.durationHours) }}
+                            <SimulatorNumericValue
+                              :value="entry.plan.durationHours"
+                              unit="小时"
+                            />
                             小时</small
                           >
                         </span>
@@ -8422,7 +8534,9 @@ watch(showScheduleSidebar, () => {
                           >
                             <div class="simulator-base-point-value">
                               <span>{{ basePointLabel(point.term) }}</span>
-                              <strong>{{ formatNumber(point.value) }}</strong>
+                              <strong
+                                ><SimulatorNumericValue :value="point.value"
+                              /></strong>
                             </div>
                             <div class="simulator-base-point-sources">
                               <div
@@ -8432,8 +8546,10 @@ watch(showScheduleSidebar, () => {
                               >
                                 <span>{{ basePointSourceText(source) }}</span>
                                 <strong
-                                  >+{{ formatNumber(source.value) }}</strong
-                                >
+                                  ><SimulatorNumericValue
+                                    mode="signed"
+                                    :value="source.value"
+                                /></strong>
                               </div>
                             </div>
                           </div>
@@ -8472,7 +8588,10 @@ watch(showScheduleSidebar, () => {
                             {{ column.plan.name }}
                             <small
                               >·
-                              {{ formatNumber(column.plan.durationHours) }}
+                              <SimulatorNumericValue
+                                :value="column.plan.durationHours"
+                                unit="小时"
+                              />
                               小时</small
                             >
                             <small
@@ -8485,10 +8604,10 @@ watch(showScheduleSidebar, () => {
                             </small>
                           </span>
                           <strong v-if="column.step?.facility"
-                            >{{
-                              formatNumber(column.step.facility.efficiency)
-                            }}%</strong
-                          >
+                            ><SimulatorNumericValue
+                              :value="column.step.facility.efficiency"
+                              unit="%"
+                          /></strong>
                         </div>
                         <SimulatorCalculationStepContent
                           v-if="column.step"
@@ -8533,10 +8652,10 @@ watch(showScheduleSidebar, () => {
                           </small>
                         </span>
                         <strong v-if="result.facility"
-                          >{{
-                            formatNumber(result.facility.efficiency)
-                          }}%</strong
-                        >
+                          ><SimulatorNumericValue
+                            :value="result.facility.efficiency"
+                            unit="%"
+                        /></strong>
                       </div>
                     </template>
                     <SimulatorCalculationStepContent
