@@ -551,7 +551,7 @@ a {
   padding: 24px;
 }
 
-.settings-data-panel {
+.settings-panel + .settings-panel {
   margin-block-start: 16px;
 }
 
