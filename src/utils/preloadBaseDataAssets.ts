@@ -1,4 +1,3 @@
-import type { DataSourceId } from "@/composables/useDataSource";
 import type { BaseData } from "@/types/baseData";
 import { getOperatorAvatarSourceUrl } from "@/utils/operatorAvatar";
 
@@ -15,7 +14,7 @@ interface AssetPreloadEntry {
   promise: Promise<AssetPreloadResult>;
 }
 
-const assetPreloadCache = new Map<DataSourceId, AssetPreloadEntry>();
+let assetPreloadEntry: AssetPreloadEntry | undefined;
 
 function assetUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`;
@@ -28,13 +27,13 @@ function skillIconUrl(fileName: string): string {
   return assetUrl(`assets/raw/build_skill_icon/${encodedFileName}`);
 }
 
-function collectAssetUrls(dataSource: DataSourceId, data: BaseData): string[] {
+function collectAssetUrls(data: BaseData): string[] {
   const urls = new Set<string>();
 
   data.operators.forEach((operator) => {
     Object.values(operator.avatars).forEach((fileName) => {
       if (fileName) {
-        urls.add(getOperatorAvatarSourceUrl(dataSource, fileName));
+        urls.add(getOperatorAvatarSourceUrl(fileName));
       }
     });
 
@@ -138,30 +137,27 @@ async function runPreload(
 }
 
 export function preloadBaseDataAssets(
-  dataSource: DataSourceId,
   data: BaseData,
 ): Promise<AssetPreloadResult> {
-  const cached = assetPreloadCache.get(dataSource);
-  if (cached) {
-    return cached.promise;
+  if (assetPreloadEntry) {
+    return assetPreloadEntry.promise;
   }
 
-  const urls = collectAssetUrls(dataSource, data);
+  const urls = collectAssetUrls(data);
   const entry: AssetPreloadEntry = {
     cancelled: false,
     images: new Map(),
     promise: Promise.resolve({ total: urls.length, failed: 0 }),
   };
   entry.promise = runPreload(urls, entry);
-  assetPreloadCache.set(dataSource, entry);
+  assetPreloadEntry = entry;
   return entry.promise;
 }
 
-export function clearBaseDataAssetCache(dataSource: DataSourceId): void {
-  const cached = assetPreloadCache.get(dataSource);
-  if (cached) {
-    cached.cancelled = true;
-    cached.images.clear();
-    assetPreloadCache.delete(dataSource);
+export function clearBaseDataAssetCache(): void {
+  if (assetPreloadEntry) {
+    assetPreloadEntry.cancelled = true;
+    assetPreloadEntry.images.clear();
+    assetPreloadEntry = undefined;
   }
 }

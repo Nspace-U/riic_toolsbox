@@ -10,7 +10,6 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import OperatorSkillCard from "@/components/OperatorSkillCard.vue";
 import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
-import { useDataSource } from "@/composables/useDataSource";
 import type {
   Operator,
   OperatorSkill,
@@ -57,7 +56,6 @@ const {
   ready,
   reload,
 } = useBaseData();
-const { selectedDataSource } = useDataSource();
 const { facilityColors } = useFacilityColors();
 
 const searchText = ref("");
@@ -324,9 +322,6 @@ onBeforeUnmount(() => {
         <a-typography-title :level="2" class="page-title"
           >基建技能一览</a-typography-title
         >
-        <span class="page-heading-description"
-          >按数据源读取干员资料、基建技能与术语</span
-        >
       </div>
     </div>
 
@@ -339,7 +334,7 @@ onBeforeUnmount(() => {
           已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 ·
           {{ totalTermCount }} 条术语
           <span v-if="metadata" class="operator-data-version"
-            >Torappu {{ metadata.clientVersion }} ·
+            >数据版本 {{ metadata.clientVersion }} ·
             {{ metadata.resVersion }}</span
           >
           <span v-if="assetPreloadResult?.failed" class="operator-data-version">
@@ -448,7 +443,6 @@ onBeforeUnmount(() => {
             showTermDefinitions,
             searchText,
           ]"
-          :data-source="selectedDataSource"
           :operator="row.operator"
           :operator-terms="row.terms"
           :show-operator-id="showOperatorId"

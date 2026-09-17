@@ -16,12 +16,10 @@ import {
   OPERATOR_AVATAR_LAYOUT,
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
-import type { DataSourceId } from "@/composables/useDataSource";
 
 const props = withDefaults(
   defineProps<{
     operator?: Operator;
-    dataSource: DataSourceId;
     eliteLevel: EliteLevel;
     specialLabel?: string;
     showRarity?: boolean;
@@ -70,11 +68,7 @@ interface NaturalImageSize {
 
 const sources = computed(() =>
   props.operator
-    ? getOperatorAvatarLayerSources(
-        props.operator,
-        props.dataSource,
-        props.eliteLevel,
-      )
+    ? getOperatorAvatarLayerSources(props.operator, props.eliteLevel)
     : { eliteIconUrl: "" },
 );
 

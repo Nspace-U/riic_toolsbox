@@ -1,7 +1,6 @@
 import { ref } from "vue";
 
-export type AvatarDisplaySizeTarget =
-  "progressionCard" | "simulatorSlot" | "skillCard";
+export type AvatarDisplaySizeTarget = "simulatorSlot";
 
 export interface AvatarDisplaySizeOption {
   label: string;
@@ -13,32 +12,18 @@ export interface AvatarDisplaySizeOption {
 export type AvatarDisplaySizes = Record<AvatarDisplaySizeTarget, number>;
 
 export const AVATAR_DISPLAY_SIZE_TARGETS: AvatarDisplaySizeTarget[] = [
-  "progressionCard",
   "simulatorSlot",
-  "skillCard",
 ];
 
 export const AVATAR_DISPLAY_SIZE_OPTIONS: Record<
   AvatarDisplaySizeTarget,
   AvatarDisplaySizeOption
 > = {
-  progressionCard: {
-    label: "设置页练度卡片",
-    defaultSize: 56,
-    minSize: 40,
-    maxSize: 96,
-  },
   simulatorSlot: {
     label: "排班模拟器设施槽位",
     defaultSize: 90,
     minSize: 48,
     maxSize: 120,
-  },
-  skillCard: {
-    label: "基建技能一览与技能生成器卡片",
-    defaultSize: 112,
-    minSize: 72,
-    maxSize: 144,
   },
 };
 
@@ -46,9 +31,7 @@ const AVATAR_DISPLAY_SIZES_STORAGE_KEY = "riic-tools:avatar-display-sizes:v1";
 
 function createDefaultAvatarDisplaySizes(): AvatarDisplaySizes {
   return {
-    progressionCard: AVATAR_DISPLAY_SIZE_OPTIONS.progressionCard.defaultSize,
     simulatorSlot: AVATAR_DISPLAY_SIZE_OPTIONS.simulatorSlot.defaultSize,
-    skillCard: AVATAR_DISPLAY_SIZE_OPTIONS.skillCard.defaultSize,
   };
 }
 
@@ -82,15 +65,10 @@ function readStoredAvatarDisplaySizes(): AvatarDisplaySizes {
     }
     const storedSizes = parsedValue as Record<string, unknown>;
     return {
-      progressionCard: normalizeAvatarDisplaySize(
-        "progressionCard",
-        storedSizes.progressionCard,
-      ),
       simulatorSlot: normalizeAvatarDisplaySize(
         "simulatorSlot",
         storedSizes.simulatorSlot,
       ),
-      skillCard: normalizeAvatarDisplaySize("skillCard", storedSizes.skillCard),
     };
   } catch {
     return defaults;
@@ -114,19 +92,19 @@ function persistAvatarDisplaySizes(): void {
   } catch {}
 }
 
-function setAvatarDisplaySize(
-  target: AvatarDisplaySizeTarget,
-  value: number,
-): void {
+function setAvatarDisplaySize(value: number): void {
   avatarDisplaySizes.value = {
     ...avatarDisplaySizes.value,
-    [target]: normalizeAvatarDisplaySize(target, value),
+    simulatorSlot: normalizeAvatarDisplaySize("simulatorSlot", value),
   };
   persistAvatarDisplaySizes();
 }
 
-function resetAvatarDisplaySizes(): void {
-  avatarDisplaySizes.value = createDefaultAvatarDisplaySizes();
+function resetAvatarDisplaySize(): void {
+  avatarDisplaySizes.value = {
+    ...avatarDisplaySizes.value,
+    simulatorSlot: AVATAR_DISPLAY_SIZE_OPTIONS.simulatorSlot.defaultSize,
+  };
   persistAvatarDisplaySizes();
 }
 
@@ -136,6 +114,6 @@ export function useAvatarDisplaySizes() {
     avatarDisplaySizeOptions: AVATAR_DISPLAY_SIZE_OPTIONS,
     avatarDisplaySizeTargets: AVATAR_DISPLAY_SIZE_TARGETS,
     setAvatarDisplaySize,
-    resetAvatarDisplaySizes,
+    resetAvatarDisplaySize,
   };
 }

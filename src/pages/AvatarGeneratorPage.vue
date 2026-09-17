@@ -9,7 +9,6 @@ import {
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
-import { useDataSource } from "@/composables/useDataSource";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import {
@@ -37,7 +36,6 @@ const AVATAR_STAGES: EliteOption[] = [
 ];
 
 const { operators, loading, errorMessage, ready, reload } = useBaseData();
-const { selectedDataSource } = useDataSource();
 
 const selectedOperatorId = ref("");
 const selectedEliteLevel = ref<EliteLevel>(0);
@@ -170,7 +168,7 @@ function rarityLabel(operator: Operator): string {
 
 function avatarGenerationOptions(): Parameters<
   typeof generateOperatorAvatarBlob
->[2] {
+>[1] {
   return {
     eliteLevel: selectedEliteLevel.value,
     showRarity: showRarity.value,
@@ -217,7 +215,6 @@ async function handleGenerate(): Promise<void> {
     }
     const generatedUrl = await generateOperatorAvatarUrl(
       operator,
-      selectedDataSource.value,
       avatarGenerationOptions(),
     );
     if (requestId === generationRequestId) {
@@ -253,7 +250,6 @@ async function createDownloadImageUrl(): Promise<
   }
   const blob = await generateOperatorAvatarBlob(
     operator,
-    selectedDataSource.value,
     avatarGenerationOptions(),
   );
   return blob ? { url: URL.createObjectURL(blob), temporary: true } : undefined;
@@ -330,7 +326,6 @@ watch(
     operatorOwned,
     operatorTrainingUpgraded,
     outputWidth,
-    selectedDataSource,
   ],
   () => {
     generationError.value = "";
@@ -505,7 +500,6 @@ onBeforeUnmount(() => {
               v-else-if="
                 selectedOperator && selectedAvatarFile && showLayeredPreview
               "
-              :data-source="selectedDataSource"
               :elite-level="selectedEliteLevel"
               :mood-scattered="moodScattered"
               :operator-owned="operatorOwned"

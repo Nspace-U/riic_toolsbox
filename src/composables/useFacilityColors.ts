@@ -151,6 +151,14 @@ function setFacilityColor(type: RoomKey, color: string): void {
   persistFacilityColors();
 }
 
+function resetFacilityColor(type: RoomKey): void {
+  facilityColors.value = {
+    ...facilityColors.value,
+    [type]: ROOM_REPRESENTATIVE_COLORS[type],
+  };
+  persistFacilityColors();
+}
+
 function persistProductColors(): void {
   try {
     window.localStorage.setItem(
@@ -165,6 +173,14 @@ function setProductColor(product: ProductColorKey, color: string): void {
     return;
   }
   productColors.value[product] = color.toUpperCase();
+  persistProductColors();
+}
+
+function resetProductColor(product: ProductColorKey): void {
+  productColors.value = {
+    ...productColors.value,
+    [product]: cloneDefaultProductColors()[product],
+  };
   persistProductColors();
 }
 
@@ -185,12 +201,8 @@ function setFiammettaColor(color: string): void {
   persistFiammettaColor();
 }
 
-function resetFacilityColors(): void {
-  facilityColors.value = cloneDefaultColors();
-  productColors.value = cloneDefaultProductColors();
+function resetFiammettaColor(): void {
   fiammettaColor.value = DEFAULT_FIAMMETTA_COLOR;
-  persistFacilityColors();
-  persistProductColors();
   persistFiammettaColor();
 }
 
@@ -206,8 +218,10 @@ export function useFacilityColors() {
       源石碎片: PRODUCT_LABELS.源石碎片 ?? "源石碎片",
     } satisfies Record<ProductColorKey, string>,
     setFacilityColor,
+    resetFacilityColor,
     setProductColor,
+    resetProductColor,
     setFiammettaColor,
-    resetFacilityColors,
+    resetFiammettaColor,
   };
 }

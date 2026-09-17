@@ -28,7 +28,6 @@ import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
-import { useDataSource } from "@/composables/useDataSource";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import {
@@ -503,7 +502,6 @@ const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
 const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
-const { selectedDataSource } = useDataSource();
 const { facilityColors, productColors, fiammettaColor } = useFacilityColors();
 const {
   activeProfile,
@@ -970,15 +968,6 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
         `当前布局提供 ${powerSummary.value.provided} 点电力，消耗 ${powerSummary.value.used} 点电力，净电力 ${powerSummary.value.net} 点`,
       ],
     });
-  }
-  if (!efficiencySupported.value) {
-    notices.push({
-      code: "unsupported-data-source",
-      level: "info",
-      message: "效率计算暂只支持 Torappu 数据源",
-      details: [],
-    });
-    return notices;
   }
   if (efficiencyError.value) {
     notices.push({
@@ -1525,10 +1514,6 @@ const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
     points: displayedBasePointDetails(plan),
   }));
 });
-
-const efficiencySupported = computed(
-  () => selectedDataSource.value === "torappu",
-);
 
 const operatorPickerRoom = computed(() => {
   const picker = operatorPicker.value;
@@ -5003,11 +4988,7 @@ async function refreshEfficiencyCatalog(): Promise<void> {
   const requestVersion = ++catalogRequestVersion;
   efficiencyCatalog.value = undefined;
   efficiencyError.value = "";
-  if (
-    !efficiencySupported.value ||
-    !baseDataReady.value ||
-    operators.value.length === 0
-  ) {
+  if (!baseDataReady.value || operators.value.length === 0) {
     efficiencyLoading.value = false;
     return;
   }
@@ -5015,10 +4996,7 @@ async function refreshEfficiencyCatalog(): Promise<void> {
   efficiencyLoading.value = true;
   try {
     const catalog = await loadEfficiencyCatalog(operators.value, terms.value);
-    if (
-      requestVersion !== catalogRequestVersion ||
-      selectedDataSource.value !== "torappu"
-    ) {
+    if (requestVersion !== catalogRequestVersion) {
       return;
     }
     efficiencyCatalog.value = catalog;
@@ -6363,7 +6341,7 @@ watch(
 );
 
 watch(
-  [baseDataReady, selectedDataSource],
+  baseDataReady,
   () => {
     void refreshEfficiencyCatalog();
   },
@@ -7294,7 +7272,6 @@ watch(showScheduleSidebar, () => {
                             slotOperator(row, plan, planIndex, slot) ||
                             slotSpecialAvatarLabel(row, plan, planIndex, slot)
                           "
-                          :data-source="selectedDataSource"
                           :display-name="slotName(row, plan, planIndex, slot)"
                           :elite-level="
                             operatorElite(
@@ -7640,10 +7617,7 @@ watch(showScheduleSidebar, () => {
                         />
                       </div>
                     </div>
-                    <div
-                      v-if="efficiencySupported"
-                      class="simulator-efficiency-summary"
-                    >
+                    <div class="simulator-efficiency-summary">
                       <div
                         class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
                       >
@@ -7689,7 +7663,6 @@ watch(showScheduleSidebar, () => {
           class="simulator-operator-drag-preview"
         >
           <OperatorAvatarDisplay
-            :data-source="selectedDataSource"
             :display-name="operatorDragPreview.name"
             :elite-level="
               operatorDragPreview.operator
@@ -7807,7 +7780,6 @@ watch(showScheduleSidebar, () => {
                 @mousedown.prevent
               >
                 <OperatorAvatarDisplay
-                  :data-source="selectedDataSource"
                   :display-name="candidate.operator.name"
                   :elite-level="
                     operatorElite(
@@ -7951,10 +7923,7 @@ watch(showScheduleSidebar, () => {
           </a-menu>
         </div>
 
-        <div
-          v-if="efficiencySupported"
-          class="simulator-efficiency-settings-entry"
-        >
+        <div class="simulator-efficiency-settings-entry">
           <a-button @click="efficiencySettingsModalOpen = true">
             <template #icon><SettingOutlined /></template>
             计算设置
@@ -8078,7 +8047,7 @@ watch(showScheduleSidebar, () => {
         </div>
 
         <a-card
-          v-if="efficiencySupported && !efficiencyError"
+          v-if="!efficiencyError"
           :bordered="false"
           class="simulator-efficiency-panel"
           title="计算结果"

@@ -203,23 +203,6 @@ a {
   white-space: nowrap;
 }
 
-.header-source {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  color: #879294;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.header-source strong {
-  max-width: 280px;
-  overflow: hidden;
-  color: #38504e;
-  font-weight: 600;
-  text-overflow: ellipsis;
-}
-
 .app-content {
   min-height: 100vh;
   padding: 32px;
@@ -568,28 +551,89 @@ a {
   padding: 24px;
 }
 
-.settings-facility-colors-panel {
-  margin-block-start: 16px;
-}
-
 .settings-data-panel {
-  margin-block-start: 16px;
-}
-
-.settings-avatar-sizes-panel {
-  margin-block-start: 16px;
-}
-
-.settings-facility-card-panel {
-  margin-block-start: 16px;
-}
-
-.settings-progression-panel {
   margin-block-start: 16px;
 }
 
 .settings-progression-alert {
   margin-block-start: 12px;
+}
+
+.settings-simulator-panel .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-simulator-section {
+  order: 8;
+  padding-block-start: 24px;
+  border-block-start: 1px solid #e8edec;
+}
+
+.settings-simulator-section .settings-panel-description {
+  max-width: 640px;
+}
+
+.settings-section-title {
+  margin: 0 0 16px;
+  color: #344447;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.settings-control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settings-control-row--start {
+  align-items: flex-start;
+}
+
+.settings-control-row > :first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.settings-control-row > .ant-btn {
+  flex: 0 0 auto;
+}
+
+.settings-drone-strategy-section {
+  order: 1;
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+.settings-sanity-section {
+  order: 2;
+}
+
+.settings-avatar-sizes-section {
+  order: 3;
+}
+
+.settings-facility-card-section {
+  order: 4;
+}
+
+.settings-operator-picker-section {
+  order: 5;
+}
+
+.settings-base-point-section {
+  order: 6;
+}
+
+.settings-calculation-step-section {
+  order: 7;
+}
+
+.settings-colors-section {
+  order: 8;
 }
 
 .settings-progression-toolbar {
@@ -826,10 +870,6 @@ a {
   width: 88px;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   text-transform: uppercase;
-}
-
-.facility-color-reset {
-  margin-block-start: 18px;
 }
 
 .operator-data-summary {
@@ -1207,26 +1247,6 @@ a {
   padding-block: 72px;
 }
 
-.data-source-select {
-  width: min(100%, 480px);
-}
-
-.setting-current {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding-block-start: 20px;
-  border-block-start: 1px solid #edf0ef;
-  color: #879294;
-  font-size: 13px;
-}
-
-.setting-current strong {
-  color: #38504e;
-  font-weight: 600;
-  text-align: end;
-}
-
 .simulator-page {
   width: 100%;
   max-width: none;
@@ -1335,9 +1355,7 @@ a {
   align-items: center;
   width: 100%;
   padding: 11px 10px;
-  padding-inline-end: calc(
-    10px + var(--simulator-document-actions-width)
-  );
+  padding-inline-end: calc(10px + var(--simulator-document-actions-width));
   gap: 4px;
   color: #526164;
   text-align: start;
@@ -2663,17 +2681,6 @@ a {
   gap: 8px;
 }
 
-.settings-base-point-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px 16px;
-  margin-block-start: 16px;
-}
-
-.settings-sanity-panel {
-  margin-block-start: 16px;
-}
-
 .settings-sanity-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3631,10 +3638,6 @@ a {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .header-source {
-    display: none;
-  }
-
   .page-heading {
     margin-block-end: 18px;
   }
@@ -3702,12 +3705,6 @@ a {
 
   .skill-preview-actions .ant-btn {
     width: 100%;
-  }
-
-  .setting-current {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
   }
 
   .settings-progression-toolbar {

@@ -11,12 +11,8 @@ import { computed, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
-import {
-  useAvatarDisplaySizes,
-  type AvatarDisplaySizeTarget,
-} from "@/composables/useAvatarDisplaySizes";
+import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
-import { isDataSourceId, useDataSource } from "@/composables/useDataSource";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
@@ -37,23 +33,17 @@ import type {
 import type { RoomKey } from "@/types/schedule";
 import type { SanitySettings } from "@/utils/sanity";
 import type { LmdDroneStrategyLevel } from "@/utils/efficiency/drone";
+import { basePointTermOptions } from "@/utils/efficiency/basePoints";
 import {
   sortBranchValues,
   sortProfessionValues,
 } from "@/utils/operatorOrdering";
-import { basePointTermOptions } from "@/utils/efficiency/basePoints";
 import { ROOM_ORDER } from "@/utils/schedule";
 import {
   fixedProgressionNodes,
   nodesForOperator,
 } from "@/utils/operatorProgression";
 
-const {
-  dataSourceOptions,
-  selectedDataSource,
-  selectedDataSourceLabel,
-  setDataSource,
-} = useDataSource();
 const {
   facilityColors,
   facilityLabels,
@@ -63,11 +53,12 @@ const {
   setFacilityColor,
   setProductColor,
   setFiammettaColor,
-  resetFacilityColors,
+  resetFacilityColor,
+  resetProductColor,
+  resetFiammettaColor,
 } = useFacilityColors();
 const { operators, terms, ready: baseDataReady } = useBaseData();
-const { isBasePointVisible, setAllBasePointsVisible, setBasePointVisible } =
-  useBasePointDisplaySettings();
+const { setAllBasePointsVisible } = useBasePointDisplaySettings();
 const {
   calculationStepDisplayMode,
   calculationStepDisplayModeOptions,
@@ -82,9 +73,8 @@ const {
 const {
   avatarDisplaySizes,
   avatarDisplaySizeOptions,
-  avatarDisplaySizeTargets,
   setAvatarDisplaySize,
-  resetAvatarDisplaySizes,
+  resetAvatarDisplaySize,
 } = useAvatarDisplaySizes();
 const {
   operatorPickerColumns,
@@ -120,9 +110,9 @@ const {
   setTreatSkillsAsUnlocked,
   setDormitoryDefaultIncludesMoodRecovery,
 } = useOperatorProgression();
-const { sanitySettings, sanityValues, setSanitySetting, resetSanitySettings } =
+const { sanitySettings, sanityValues, setSanitySetting, resetSanitySetting } =
   useSanitySettings();
-const { lmdDroneStrategies, setLmdDroneStrategy, resetLmdDroneStrategies } =
+const { lmdDroneStrategies, setLmdDroneStrategy, resetLmdDroneStrategy } =
   useDroneStrategySettings();
 
 const facilityColorEntries = ROOM_ORDER.map(
@@ -147,10 +137,6 @@ const clearLocalDataModalOpen = ref(false);
 const clearLocalDataError = ref("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
 let skillFileRequestVersion = 0;
-
-const basePointDisplayOptions = computed(() =>
-  basePointTermOptions(terms.value),
-);
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
   value,
@@ -387,7 +373,7 @@ function handleRemoveProfile(): void {
 
 async function refreshProgressionSkillFiles(): Promise<void> {
   const requestVersion = ++skillFileRequestVersion;
-  if (!baseDataReady.value || selectedDataSource.value !== "torappu") {
+  if (!baseDataReady.value) {
     skillFiles.value = {};
     progressionLoading.value = false;
     return;
@@ -436,12 +422,6 @@ async function refreshProgressionSkillFiles(): Promise<void> {
   }
 }
 
-function handleDataSourceChange(value: string): void {
-  if (isDataSourceId(value)) {
-    setDataSource(value);
-  }
-}
-
 function openClearLocalDataModal(): void {
   clearLocalDataError.value = "";
   clearLocalDataModalOpen.value = true;
@@ -458,13 +438,9 @@ function handleClearLocalData(): void {
   }
 }
 
-function handleAvatarDisplaySizeChange(
-  target: AvatarDisplaySizeTarget,
-  value: number | null,
-): void {
+function handleAvatarDisplaySizeChange(value: number | null): void {
   setAvatarDisplaySize(
-    target,
-    value ?? avatarDisplaySizeOptions[target].defaultSize,
+    value ?? avatarDisplaySizeOptions.simulatorSlot.defaultSize,
   );
 }
 
@@ -474,7 +450,7 @@ function handleOperatorPickerColumnsChange(value: number | null): void {
 
 function setAllBasePointTermsVisible(visible: boolean): void {
   setAllBasePointsVisible(
-    basePointDisplayOptions.value.map((option) => option.key),
+    basePointTermOptions(terms.value).map((option) => option.key),
     visible,
   );
 }
@@ -594,7 +570,7 @@ watch(selectedProgressionProfession, () => {
   selectedProgressionBranch.value = "";
 });
 watch(
-  [baseDataReady, selectedDataSource],
+  baseDataReady,
   () => {
     void refreshProgressionSkillFiles();
   },
@@ -612,239 +588,6 @@ watch(
         >通用设置</a-typography-title
       >
     </div>
-
-    <a-card :bordered="false" class="settings-panel" title="数据源设置">
-      <a-form layout="vertical">
-        <a-form-item label="数据源">
-          <a-select
-            :value="selectedDataSource"
-            :options="dataSourceOptions"
-            class="data-source-select"
-            @change="handleDataSourceChange"
-          />
-        </a-form-item>
-      </a-form>
-
-      <div class="setting-current">
-        <span>当前数据源</span>
-        <strong>{{ selectedDataSourceLabel }}</strong>
-      </div>
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-drone-strategy-panel"
-      title="无人机加速贸易站策略"
-    >
-      <p class="settings-panel-description">
-        排班表未设置专用策略时，按布局中最低贸易站等级自动选择。
-      </p>
-      <a-form layout="vertical" class="settings-sanity-form">
-        <a-form-item label="1级贸易站策略">
-          <a-input
-            :value="lmdDroneStrategies[1]"
-            @update:value="(value: string) => updateLmdDroneStrategy(1, value)"
-          />
-        </a-form-item>
-        <a-form-item label="2级贸易站策略">
-          <a-input
-            :value="lmdDroneStrategies[2]"
-            @update:value="(value: string) => updateLmdDroneStrategy(2, value)"
-          />
-        </a-form-item>
-        <a-form-item label="3级贸易站策略">
-          <a-input
-            :value="lmdDroneStrategies[3]"
-            @update:value="(value: string) => updateLmdDroneStrategy(3, value)"
-          />
-        </a-form-item>
-      </a-form>
-      <a-button @click="resetLmdDroneStrategies">恢复默认策略</a-button>
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-base-point-panel"
-      title="基地点数显示"
-    >
-      <p class="settings-panel-description">
-        选择排班模拟器计算结果中需要显示的基地点数，设置仅影响显示，不改变计算结果。
-      </p>
-      <a-space :size="6" wrap>
-        <a-button size="small" @click="setAllBasePointTermsVisible(true)">
-          全选显示
-        </a-button>
-        <a-button size="small" @click="setAllBasePointTermsVisible(false)">
-          全部隐藏
-        </a-button>
-      </a-space>
-      <div
-        v-if="basePointDisplayOptions.length"
-        class="settings-base-point-options"
-      >
-        <a-checkbox
-          v-for="option in basePointDisplayOptions"
-          :key="option.key"
-          :checked="isBasePointVisible(option.key)"
-          @change="
-            (event: { target: { checked: boolean } }) =>
-              setBasePointVisible(option.key, event.target.checked)
-          "
-        >
-          {{ option.name }}
-        </a-checkbox>
-      </div>
-      <a-empty
-        v-else
-        :image="undefined"
-        description="当前数据源没有可用的基地点数"
-      />
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-calculation-step-panel"
-      title="计算步骤"
-    >
-      <p class="settings-panel-description">
-        设置排班模拟器计算步骤的展开方式，修改后立即作用于所有排班表并保存在当前浏览器。
-      </p>
-      <a-form layout="vertical">
-        <a-form-item label="展开方式">
-          <a-radio-group
-            :value="calculationStepDisplayMode"
-            button-style="solid"
-            option-type="button"
-            @change="
-              (event: { target: { value: unknown } }) =>
-                setCalculationStepDisplayMode(event.target.value)
-            "
-          >
-            <a-radio-button
-              v-for="(option, key) in calculationStepDisplayModeOptions"
-              :key="key"
-              :value="key"
-            >
-              {{ option.label }}
-            </a-radio-button>
-          </a-radio-group>
-          <p class="settings-panel-hint">
-            {{
-              calculationStepDisplayModeOptions[calculationStepDisplayMode]
-                .description
-            }}
-          </p>
-        </a-form-item>
-        <a-form-item label="数值原始精度">
-          <a-checkbox
-            :checked="numericTooltipEnabled"
-            @change="
-              (event: { target: { checked: boolean } }) =>
-                setNumericTooltipEnabled(event.target.checked)
-            "
-          >
-            鼠标悬停显示被舍入前的数值
-          </a-checkbox>
-          <p class="settings-panel-hint">
-            仅在页面数值因显示精度限制发生变化时显示，使用默认悬停延迟。
-          </p>
-        </a-form-item>
-      </a-form>
-      <a-space>
-        <a-button @click="resetCalculationStepDisplayMode"
-          >恢复默认展开方式</a-button
-        >
-        <a-button @click="resetNumericTooltipSettings"
-          >恢复默认数值显示</a-button
-        >
-      </a-space>
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-sanity-panel"
-      title="理智计算"
-    >
-      <p class="settings-panel-description">
-        设置资源的理智价值。赤金和作战记录按当前效率计算中的基础时间推导，无人机固定按每个加速
-        3 分钟基础时间计算。
-      </p>
-      <a-form layout="vertical" class="settings-sanity-form">
-        <a-form-item extra="每 1 龙门币" label="龙门币理智">
-          <a-input-number
-            :min="0"
-            :step="0.0001"
-            :value="sanitySettings.lmd"
-            @update:value="updateLmd"
-          />
-        </a-form-item>
-        <a-form-item extra="龙门币价值 ÷ 经验价值" label="钱书价值比">
-          <a-input-number
-            :min="0"
-            :step="0.01"
-            :value="sanitySettings.goldExperienceRatio"
-            @update:value="updateGoldExperienceRatio"
-          />
-        </a-form-item>
-        <a-form-item extra="用于反推源石碎片价值" label="合成玉理智">
-          <a-input-number
-            :min="0"
-            :step="0.01"
-            :value="sanitySettings.orundum"
-            @update:value="updateOrundum"
-          />
-        </a-form-item>
-        <a-form-item extra="每 1 信用，线索产出已并入信用" label="信用理智">
-          <a-input-number
-            :min="0"
-            :step="0.0001"
-            :value="sanitySettings.credit"
-            @update:value="updateCredit"
-          />
-        </a-form-item>
-        <a-form-item extra="每 1 次刷新" label="公开招募标签刷新次数理智">
-          <a-input-number
-            :min="0"
-            :step="0.01"
-            :value="sanitySettings.recruitRefresh"
-            @update:value="updateRecruitRefresh"
-          />
-        </a-form-item>
-        <a-form-item
-          extra="不填写时，相关总理智显示为不完整"
-          label="固源岩理智"
-        >
-          <a-input-number
-            :min="0"
-            placeholder="未设置"
-            :step="0.01"
-            :value="sanitySettings.solidRock"
-            @update:value="updateSolidRock"
-          />
-        </a-form-item>
-        <a-form-item extra="不填写时，相关总理智显示为不完整" label="装置理智">
-          <a-input-number
-            :min="0"
-            placeholder="未设置"
-            :step="0.01"
-            :value="sanitySettings.device"
-            @update:value="updateDevice"
-          />
-        </a-form-item>
-      </a-form>
-      <div class="settings-sanity-values">
-        <div
-          v-for="row in sanityDisplayRows"
-          :key="row.label"
-          class="settings-sanity-value"
-        >
-          <span>{{ row.label }}</span>
-          <strong>{{ formatSanityValue(row.value) }}</strong>
-          <small>{{ row.unit }} · {{ row.source }}</small>
-        </div>
-      </div>
-      <a-button @click="resetSanitySettings">恢复默认理智设置</a-button>
-    </a-card>
 
     <a-card
       :bordered="false"
@@ -1078,7 +821,6 @@ watch(
             >
               <div class="settings-progression-item-heading">
                 <OperatorAvatarDisplay
-                  :data-source="selectedDataSource"
                   :elite-level="progressionAvatarElite(operator)"
                   :operator-owned="progressionEntry(operator)?.owned === true"
                   :operator="operator"
@@ -1088,7 +830,7 @@ watch(
                   :show-rarity="true"
                   :plain="true"
                   :proportional-layout="true"
-                  :size="avatarDisplaySizes.progressionCard"
+                  :size="56"
                 />
                 <div class="settings-progression-item-copy">
                   <strong>{{ operator.name }}</strong>
@@ -1163,221 +905,570 @@ watch(
 
     <a-card
       :bordered="false"
-      class="settings-panel settings-facility-colors-panel"
-      title="设施背景颜色"
+      class="settings-panel settings-simulator-panel"
+      title="排班模拟器"
     >
-      <p class="settings-panel-description">
-        调整排班模拟器中各设施的默认背景颜色。产品专属颜色仍会优先显示。
-      </p>
-      <div class="facility-color-list">
-        <div
-          v-for="[type, label] in facilityColorEntries"
-          :key="type"
-          class="facility-color-item"
-        >
-          <div class="facility-color-name">
-            <span
-              :style="{ backgroundColor: facilityColors[type] }"
-              class="facility-color-swatch"
-            />
-            <span>{{ label }}</span>
-          </div>
-          <div class="facility-color-controls">
-            <input
-              :aria-label="`${label}背景颜色`"
-              :value="facilityColors[type]"
-              class="facility-color-picker"
-              type="color"
-              @input="
-                setFacilityColor(
-                  type,
-                  ($event.target as HTMLInputElement).value,
-                )
-              "
-            />
-            <a-input
-              :aria-label="`${label}颜色值`"
-              :value="facilityColors[type]"
-              class="facility-color-value"
-              :maxlength="7"
-              size="small"
-              @change="
-                setFacilityColor(
-                  type,
-                  ($event.target as HTMLInputElement).value,
-                )
-              "
-            />
-          </div>
-        </div>
-        <div class="facility-color-item">
-          <div class="facility-color-name">
-            <span
-              :style="{ backgroundColor: fiammettaColor }"
-              class="facility-color-swatch"
-            />
-            <span>菲亚梅塔假设施</span>
-          </div>
-          <div class="facility-color-controls">
-            <input
-              aria-label="菲亚梅塔假设施背景颜色"
-              :value="fiammettaColor"
-              class="facility-color-picker"
-              type="color"
-              @input="
-                setFiammettaColor(($event.target as HTMLInputElement).value)
-              "
-            />
-            <a-input
-              aria-label="菲亚梅塔假设施颜色值"
-              :value="fiammettaColor"
-              class="facility-color-value"
-              :maxlength="7"
-              size="small"
-              @change="
-                setFiammettaColor(($event.target as HTMLInputElement).value)
-              "
-            />
-          </div>
-        </div>
-        <div
-          v-for="[product, label] in productColorEntries"
-          :key="product"
-          class="facility-color-item"
-        >
-          <div class="facility-color-name">
-            <span
-              :style="{ backgroundColor: productColors[product] }"
-              class="facility-color-swatch"
-            />
-            <span>{{ label }}</span>
-          </div>
-          <div class="facility-color-controls">
-            <input
-              :aria-label="`${label}背景颜色`"
-              :value="productColors[product]"
-              class="facility-color-picker"
-              type="color"
-              @input="
-                setProductColor(
-                  product,
-                  ($event.target as HTMLInputElement).value,
-                )
-              "
-            />
-            <a-input
-              :aria-label="`${label}颜色值`"
-              :value="productColors[product]"
-              class="facility-color-value"
-              :maxlength="7"
-              size="small"
-              @change="
-                setProductColor(
-                  product,
-                  ($event.target as HTMLInputElement).value,
-                )
-              "
-            />
-          </div>
-        </div>
-      </div>
-      <a-button class="facility-color-reset" @click="resetFacilityColors"
-        >恢复默认颜色</a-button
+      <section
+        class="settings-simulator-section settings-drone-strategy-section"
       >
-    </a-card>
+        <h3 class="settings-section-title">无人机加速贸易站策略</h3>
+        <p class="settings-panel-description">
+          排班表未设置专用策略时，按布局中最低贸易站等级自动选择。
+        </p>
+        <a-form layout="vertical" class="settings-sanity-form">
+          <a-form-item label="1级贸易站策略">
+            <div class="settings-control-row">
+              <a-input
+                :value="lmdDroneStrategies[1]"
+                @update:value="
+                  (value: string) => updateLmdDroneStrategy(1, value)
+                "
+              />
+              <a-button
+                aria-label="恢复1级贸易站策略默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetLmdDroneStrategy(1)"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item label="2级贸易站策略">
+            <div class="settings-control-row">
+              <a-input
+                :value="lmdDroneStrategies[2]"
+                @update:value="
+                  (value: string) => updateLmdDroneStrategy(2, value)
+                "
+              />
+              <a-button
+                aria-label="恢复2级贸易站策略默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetLmdDroneStrategy(2)"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item label="3级贸易站策略">
+            <div class="settings-control-row">
+              <a-input
+                :value="lmdDroneStrategies[3]"
+                @update:value="
+                  (value: string) => updateLmdDroneStrategy(3, value)
+                "
+              />
+              <a-button
+                aria-label="恢复3级贸易站策略默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetLmdDroneStrategy(3)"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+        </a-form>
+      </section>
 
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-avatar-sizes-panel"
-      title="头像显示尺寸"
-    >
-      <p class="settings-panel-description">
-        调整各页面头像的显示宽度，头像与徽标按等比缩放，修改后立即生效并保存在当前浏览器。
-      </p>
-      <a-form layout="vertical">
-        <a-form-item
-          v-for="target in avatarDisplaySizeTargets"
-          :key="target"
-          :extra="`默认 ${avatarDisplaySizeOptions[target].defaultSize}px，可设置 ${avatarDisplaySizeOptions[target].minSize}–${avatarDisplaySizeOptions[target].maxSize}px`"
-          :label="avatarDisplaySizeOptions[target].label"
-        >
-          <a-input-number
-            :max="avatarDisplaySizeOptions[target].maxSize"
-            :min="avatarDisplaySizeOptions[target].minSize"
-            :value="avatarDisplaySizes[target]"
-            addon-after="px"
-            @update:value="
-              (value: number | null) =>
-                handleAvatarDisplaySizeChange(target, value)
-            "
-          />
-        </a-form-item>
-      </a-form>
-      <a-button @click="resetAvatarDisplaySizes">恢复默认尺寸</a-button>
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-operator-picker-panel"
-      title="干员候选框"
-    >
-      <p class="settings-panel-description">
-        调整排班模拟器干员候选框中每行显示的干员数量，修改后立即生效并保存在当前浏览器。
-      </p>
-      <a-form layout="vertical">
-        <a-form-item
-          extra="默认 4，仅支持正整数，不设上限"
-          label="每行显示干员数"
-        >
-          <a-input-number
-            :min="1"
-            :precision="0"
-            :step="1"
-            :value="operatorPickerColumns"
-            addon-after="人"
-            @update:value="
-              (value: number | null) => handleOperatorPickerColumnsChange(value)
-            "
-          />
-        </a-form-item>
-      </a-form>
-      <a-button @click="resetOperatorPickerColumns">恢复默认人数</a-button>
-    </a-card>
-
-    <a-card
-      :bordered="false"
-      class="settings-panel settings-facility-card-panel"
-      title="设施卡片"
-    >
-      <p class="settings-panel-description">
-        调整排班模拟器中队列卡片背景的产物图标样式，修改后立即生效并保存在当前浏览器。
-      </p>
-      <a-form layout="vertical">
-        <a-form-item label="卡片背景产物图标">
-          <a-radio-group
-            :value="facilityCardSettings.iconStyle"
-            @change="
-              (event: { target: { value: unknown } }) =>
-                setFacilityCardIconStyle(event.target.value)
-            "
+      <section class="settings-simulator-section settings-sanity-section">
+        <h3 class="settings-section-title">理智计算</h3>
+        <p class="settings-panel-description">
+          设置资源的理智价值。赤金和作战记录按当前效率计算中的基础时间推导，无人机固定按每个加速
+          3 分钟基础时间计算。
+        </p>
+        <a-form layout="vertical" class="settings-sanity-form">
+          <a-form-item extra="每 1 龙门币" label="龙门币理智">
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.0001"
+                :value="sanitySettings.lmd"
+                @update:value="updateLmd"
+              />
+              <a-button
+                aria-label="恢复龙门币理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('lmd')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item extra="龙门币价值 ÷ 经验价值" label="钱书价值比">
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.01"
+                :value="sanitySettings.goldExperienceRatio"
+                @update:value="updateGoldExperienceRatio"
+              />
+              <a-button
+                aria-label="恢复钱书价值比默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('goldExperienceRatio')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item extra="用于反推源石碎片价值" label="合成玉理智">
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.01"
+                :value="sanitySettings.orundum"
+                @update:value="updateOrundum"
+              />
+              <a-button
+                aria-label="恢复合成玉理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('orundum')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item extra="每 1 信用，线索产出已并入信用" label="信用理智">
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.0001"
+                :value="sanitySettings.credit"
+                @update:value="updateCredit"
+              />
+              <a-button
+                aria-label="恢复信用理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('credit')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item extra="每 1 次刷新" label="公开招募标签刷新次数理智">
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.01"
+                :value="sanitySettings.recruitRefresh"
+                @update:value="updateRecruitRefresh"
+              />
+              <a-button
+                aria-label="恢复公开招募标签刷新次数理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('recruitRefresh')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item
+            extra="不填写时，相关总理智显示为不完整"
+            label="固源岩理智"
           >
-            <a-radio
-              v-for="key in facilityCardIconStyleKeys"
-              :key="key"
-              :value="key"
-            >
-              {{ facilityCardIconStyleOptions[key].label }}
-            </a-radio>
-          </a-radio-group>
-          <p class="settings-panel-hint">
-            {{
-              facilityCardIconStyleOptions[facilityCardSettings.iconStyle]
-                .description
-            }}
-          </p>
-        </a-form-item>
-      </a-form>
-      <a-button @click="resetFacilityCardSettings">恢复默认设置</a-button>
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                placeholder="未设置"
+                :step="0.01"
+                :value="sanitySettings.solidRock"
+                @update:value="updateSolidRock"
+              />
+              <a-button
+                aria-label="恢复固源岩理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('solidRock')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item
+            extra="不填写时，相关总理智显示为不完整"
+            label="装置理智"
+          >
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                placeholder="未设置"
+                :step="0.01"
+                :value="sanitySettings.device"
+                @update:value="updateDevice"
+              />
+              <a-button
+                aria-label="恢复装置理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('device')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+        </a-form>
+        <div class="settings-sanity-values">
+          <div
+            v-for="row in sanityDisplayRows"
+            :key="row.label"
+            class="settings-sanity-value"
+          >
+            <span>{{ row.label }}</span>
+            <strong>{{ formatSanityValue(row.value) }}</strong>
+            <small>{{ row.unit }} · {{ row.source }}</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-simulator-section settings-base-point-section">
+        <h3 class="settings-section-title">基地点数显示</h3>
+        <p class="settings-panel-description">
+          选择排班模拟器计算结果中需要显示的基地点数，设置仅影响显示，不改变计算结果。
+        </p>
+        <a-space :size="6" wrap>
+          <a-button size="small" @click="setAllBasePointTermsVisible(true)">
+            全选显示
+          </a-button>
+          <a-button size="small" @click="setAllBasePointTermsVisible(false)">
+            全部隐藏
+          </a-button>
+        </a-space>
+      </section>
+
+      <section
+        class="settings-simulator-section settings-calculation-step-section"
+      >
+        <h3 class="settings-section-title">计算步骤</h3>
+        <p class="settings-panel-description">
+          设置排班模拟器计算步骤的展开方式，修改后立即作用于所有排班表并保存在当前浏览器。
+        </p>
+        <a-form layout="vertical">
+          <a-form-item label="展开方式">
+            <div class="settings-control-row settings-control-row--start">
+              <a-radio-group
+                :value="calculationStepDisplayMode"
+                button-style="solid"
+                option-type="button"
+                @change="
+                  (event: { target: { value: unknown } }) =>
+                    setCalculationStepDisplayMode(event.target.value)
+                "
+              >
+                <a-radio-button
+                  v-for="(option, key) in calculationStepDisplayModeOptions"
+                  :key="key"
+                  :value="key"
+                >
+                  {{ option.label }}
+                </a-radio-button>
+              </a-radio-group>
+              <a-button
+                aria-label="恢复计算步骤展开方式默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetCalculationStepDisplayMode"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+            <p class="settings-panel-hint">
+              {{
+                calculationStepDisplayModeOptions[calculationStepDisplayMode]
+                  .description
+              }}
+            </p>
+          </a-form-item>
+          <a-form-item label="数值原始精度">
+            <div class="settings-control-row settings-control-row--start">
+              <a-checkbox
+                :checked="numericTooltipEnabled"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    setNumericTooltipEnabled(event.target.checked)
+                "
+              >
+                鼠标悬停显示被舍入前的数值
+              </a-checkbox>
+              <a-button
+                aria-label="恢复数值原始精度默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetNumericTooltipSettings"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+            <p class="settings-panel-hint">
+              仅在页面数值因显示精度限制发生变化时显示，使用默认悬停延迟。
+            </p>
+          </a-form-item>
+        </a-form>
+      </section>
+
+      <section class="settings-simulator-section settings-colors-section">
+        <h3 class="settings-section-title">框体背景颜色</h3>
+        <p class="settings-panel-description">
+          调整排班表框体的设施背景色、产物颜色和菲亚梅塔假设施颜色。
+        </p>
+        <div class="facility-color-list">
+          <div
+            v-for="[type, label] in facilityColorEntries"
+            :key="type"
+            class="facility-color-item"
+          >
+            <div class="facility-color-name">
+              <span
+                :style="{ backgroundColor: facilityColors[type] }"
+                class="facility-color-swatch"
+              />
+              <span>{{ label }}</span>
+            </div>
+            <div class="facility-color-controls">
+              <input
+                :aria-label="`${label}背景颜色`"
+                :value="facilityColors[type]"
+                class="facility-color-picker"
+                type="color"
+                @input="
+                  setFacilityColor(
+                    type,
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+              <a-input
+                :aria-label="`${label}颜色值`"
+                :value="facilityColors[type]"
+                class="facility-color-value"
+                :maxlength="7"
+                size="small"
+                @change="
+                  setFacilityColor(
+                    type,
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+              <a-button
+                :aria-label="`恢复${label}背景颜色默认值`"
+                size="small"
+                title="恢复默认"
+                @click="resetFacilityColor(type)"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </div>
+          <div class="facility-color-item">
+            <div class="facility-color-name">
+              <span
+                :style="{ backgroundColor: fiammettaColor }"
+                class="facility-color-swatch"
+              />
+              <span>菲亚梅塔假设施</span>
+            </div>
+            <div class="facility-color-controls">
+              <input
+                aria-label="菲亚梅塔假设施背景颜色"
+                :value="fiammettaColor"
+                class="facility-color-picker"
+                type="color"
+                @input="
+                  setFiammettaColor(($event.target as HTMLInputElement).value)
+                "
+              />
+              <a-input
+                aria-label="菲亚梅塔假设施颜色值"
+                :value="fiammettaColor"
+                class="facility-color-value"
+                :maxlength="7"
+                size="small"
+                @change="
+                  setFiammettaColor(($event.target as HTMLInputElement).value)
+                "
+              />
+              <a-button
+                aria-label="恢复菲亚梅塔假设施颜色默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetFiammettaColor"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </div>
+          <div
+            v-for="[product, label] in productColorEntries"
+            :key="product"
+            class="facility-color-item"
+          >
+            <div class="facility-color-name">
+              <span
+                :style="{ backgroundColor: productColors[product] }"
+                class="facility-color-swatch"
+              />
+              <span>{{ label }}</span>
+            </div>
+            <div class="facility-color-controls">
+              <input
+                :aria-label="`${label}背景颜色`"
+                :value="productColors[product]"
+                class="facility-color-picker"
+                type="color"
+                @input="
+                  setProductColor(
+                    product,
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+              <a-input
+                :aria-label="`${label}颜色值`"
+                :value="productColors[product]"
+                class="facility-color-value"
+                :maxlength="7"
+                size="small"
+                @change="
+                  setProductColor(
+                    product,
+                    ($event.target as HTMLInputElement).value,
+                  )
+                "
+              />
+              <a-button
+                :aria-label="`恢复${label}颜色默认值`"
+                size="small"
+                title="恢复默认"
+                @click="resetProductColor(product)"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-simulator-section settings-avatar-sizes-section">
+        <h3 class="settings-section-title">头像显示尺寸</h3>
+        <p class="settings-panel-description">
+          调整排班模拟器设施槽位头像的显示宽度，头像与徽标按等比缩放，修改后立即生效并保存在当前浏览器。
+        </p>
+        <a-form layout="vertical">
+          <a-form-item
+            :extra="`默认 ${avatarDisplaySizeOptions.simulatorSlot.defaultSize}px，可设置 ${avatarDisplaySizeOptions.simulatorSlot.minSize}–${avatarDisplaySizeOptions.simulatorSlot.maxSize}px`"
+            label="排班模拟器设施槽位"
+          >
+            <div class="settings-control-row">
+              <a-input-number
+                :max="avatarDisplaySizeOptions.simulatorSlot.maxSize"
+                :min="avatarDisplaySizeOptions.simulatorSlot.minSize"
+                :value="avatarDisplaySizes.simulatorSlot"
+                addon-after="px"
+                @update:value="handleAvatarDisplaySizeChange"
+              />
+              <a-button
+                aria-label="恢复排班模拟器头像尺寸默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetAvatarDisplaySize"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+        </a-form>
+      </section>
+
+      <section
+        class="settings-simulator-section settings-operator-picker-section"
+      >
+        <h3 class="settings-section-title">干员候选框</h3>
+        <p class="settings-panel-description">
+          调整排班模拟器干员候选框中每行显示的干员数量，修改后立即生效并保存在当前浏览器。
+        </p>
+        <a-form layout="vertical">
+          <a-form-item
+            extra="默认 4，仅支持正整数，不设上限"
+            label="每行显示干员数"
+          >
+            <div class="settings-control-row">
+              <a-input-number
+                :min="1"
+                :precision="0"
+                :step="1"
+                :value="operatorPickerColumns"
+                addon-after="人"
+                @update:value="
+                  (value: number | null) =>
+                    handleOperatorPickerColumnsChange(value)
+                "
+              />
+              <a-button
+                aria-label="恢复干员候选框人数默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetOperatorPickerColumns"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+        </a-form>
+      </section>
+
+      <section
+        class="settings-simulator-section settings-facility-card-section"
+      >
+        <h3 class="settings-section-title">设施卡片</h3>
+        <p class="settings-panel-description">
+          调整排班模拟器设施卡片背景的产物图标样式，修改后立即生效并保存在当前浏览器。
+        </p>
+        <a-form layout="vertical">
+          <a-form-item label="设施卡片背景产物图标">
+            <div class="settings-control-row settings-control-row--start">
+              <div>
+                <a-radio-group
+                  :value="facilityCardSettings.iconStyle"
+                  @change="
+                    (event: { target: { value: unknown } }) =>
+                      setFacilityCardIconStyle(event.target.value)
+                  "
+                >
+                  <a-radio
+                    v-for="key in facilityCardIconStyleKeys"
+                    :key="key"
+                    :value="key"
+                  >
+                    {{ facilityCardIconStyleOptions[key].label }}
+                  </a-radio>
+                </a-radio-group>
+                <p class="settings-panel-hint">
+                  {{
+                    facilityCardIconStyleOptions[facilityCardSettings.iconStyle]
+                      .description
+                  }}
+                </p>
+              </div>
+              <a-button
+                aria-label="恢复设施卡片背景产物图标默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetFacilityCardSettings"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+        </a-form>
+      </section>
     </a-card>
 
     <a-card

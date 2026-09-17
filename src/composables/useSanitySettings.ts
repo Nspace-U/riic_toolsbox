@@ -86,8 +86,11 @@ function setSanitySetting(
   persistSanitySettings();
 }
 
-function resetSanitySettings(): void {
-  sanitySettings.value = { ...DEFAULT_SANITY_SETTINGS };
+function resetSanitySetting(key: keyof SanitySettings): void {
+  sanitySettings.value = {
+    ...sanitySettings.value,
+    [key]: DEFAULT_SANITY_SETTINGS[key],
+  };
   persistSanitySettings();
 }
 
@@ -100,6 +103,6 @@ export function useSanitySettings() {
     sanitySettings,
     sanityValues,
     setSanitySetting,
-    resetSanitySettings,
+    resetSanitySetting,
   };
 }

@@ -5,8 +5,6 @@ import { computed } from "vue";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import RichTextDescription from "@/components/RichTextDescription.vue";
 import SearchHighlight from "@/components/SearchHighlight.vue";
-import type { DataSourceId } from "@/composables/useDataSource";
-import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import type {
   Operator,
   OperatorSkill,
@@ -22,7 +20,6 @@ import {
 
 const props = withDefaults(
   defineProps<{
-    dataSource: DataSourceId;
     operator: Operator;
     terms: Record<string, SkillTerm>;
     skills?: OperatorSkill[];
@@ -53,10 +50,10 @@ const emit = defineEmits<{
   "toggle-expanded": [];
 }>();
 
-const { avatarDisplaySizes } = useAvatarDisplaySizes();
+const OPERATOR_SKILL_CARD_AVATAR_SIZE = 112;
 
 const avatarColumnStyle = computed(() => ({
-  "--operator-card-avatar-size": `${avatarDisplaySizes.value.skillCard}px`,
+  "--operator-card-avatar-size": `${OPERATOR_SKILL_CARD_AVATAR_SIZE}px`,
 }));
 
 function assetUrl(path: string): string {
@@ -72,9 +69,7 @@ function imageUrl(directory: string, fileName: string): string {
 
 function operatorAvatarUrl(operator: Operator): string | undefined {
   const avatarFile = getOperatorAvatarFile(operator, 0);
-  return avatarFile
-    ? getOperatorAvatarSourceUrl(props.dataSource, avatarFile)
-    : undefined;
+  return avatarFile ? getOperatorAvatarSourceUrl(avatarFile) : undefined;
 }
 
 function isReplaced(skill: OperatorSkill): boolean {
@@ -117,7 +112,6 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
     <div class="operator-avatar-column">
       <OperatorAvatarDisplay
         v-if="operatorAvatarUrl(operator)"
-        :data-source="dataSource"
         :elite-level="0"
         :mood-scattered="false"
         :operator="operator"
@@ -127,7 +121,7 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
         :show-name="false"
         :show-profession="false"
         :show-rarity="false"
-        :size="avatarDisplaySizes.skillCard"
+        :size="OPERATOR_SKILL_CARD_AVATAR_SIZE"
       />
       <div v-else class="operator-avatar-placeholder">暂无</div>
     </div>

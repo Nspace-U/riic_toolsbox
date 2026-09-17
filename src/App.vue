@@ -18,7 +18,6 @@ import type { Component } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 
 import { useBaseData } from "./composables/useBaseData";
-import { useDataSource } from "./composables/useDataSource";
 
 interface NavigationItem {
   key: string;
@@ -58,7 +57,6 @@ const navigationItems: NavigationItem[] = [
 
 const route = useRoute();
 const router = useRouter();
-const { selectedDataSourceLabel } = useDataSource();
 useBaseData();
 
 const siderCollapsed = ref(false);
@@ -225,11 +223,6 @@ watch(currentPath, handleRouteChange, { immediate: true });
             <span class="header-kicker">当前模块</span>
             <span class="header-title">{{ currentPageTitle }}</span>
           </div>
-        </div>
-
-        <div class="header-source">
-          <span>数据源</span>
-          <strong>{{ selectedDataSourceLabel }}</strong>
         </div>
       </a-layout-header>
 

@@ -1,4 +1,3 @@
-import type { DataSourceId } from "@/composables/useDataSource";
 import type { EliteLevel, Operator, OperatorAvatars } from "@/types/baseData";
 import { generateOperatorAvatar } from "@/utils/generateOperatorAvatar";
 import {
@@ -49,30 +48,20 @@ export function getOperatorAvatarFile(
   return "";
 }
 
-export function getOperatorAvatarSourceUrl(
-  dataSource: DataSourceId,
-  fileName: string,
-): string {
-  const directory =
-    dataSource === "torappu"
-      ? "assets/raw/char_avatar"
-      : "assets/operator-avatars";
+export function getOperatorAvatarSourceUrl(fileName: string): string {
   const encodedFileName = encodeURIComponent(fileName)
     .replace(/%2B/g, "+")
     .replace(/%26/g, "&");
-  return assetUrl(`${directory}/${encodedFileName}`);
+  return assetUrl(`assets/raw/char_avatar/${encodedFileName}`);
 }
 
 export function getOperatorAvatarLayerSources(
   operator: Operator,
-  dataSource: DataSourceId,
   eliteLevel: EliteLevel,
 ): OperatorAvatarLayerSources {
   const avatarFile = getOperatorAvatarFile(operator, eliteLevel);
   return {
-    avatarUrl: avatarFile
-      ? getOperatorAvatarSourceUrl(dataSource, avatarFile)
-      : undefined,
+    avatarUrl: avatarFile ? getOperatorAvatarSourceUrl(avatarFile) : undefined,
     professionIconUrl: getProfessionIconUrl(operator.profession),
     eliteIconUrl: getEliteIconUrl(eliteLevel),
     rarityIconUrl:
@@ -82,14 +71,9 @@ export function getOperatorAvatarLayerSources(
 
 export async function generateOperatorAvatarBlob(
   operator: Operator,
-  dataSource: DataSourceId,
   options: OperatorAvatarRenderOptions,
 ): Promise<Blob | undefined> {
-  const sources = getOperatorAvatarLayerSources(
-    operator,
-    dataSource,
-    options.eliteLevel,
-  );
+  const sources = getOperatorAvatarLayerSources(operator, options.eliteLevel);
   if (!sources.avatarUrl) {
     return undefined;
   }
@@ -113,14 +97,9 @@ export async function generateOperatorAvatarBlob(
 
 export async function generateOperatorAvatarUrl(
   operator: Operator,
-  dataSource: DataSourceId,
   options: OperatorAvatarRenderOptions,
 ): Promise<string | undefined> {
-  const imageBlob = await generateOperatorAvatarBlob(
-    operator,
-    dataSource,
-    options,
-  );
+  const imageBlob = await generateOperatorAvatarBlob(operator, options);
   if (!imageBlob) {
     return undefined;
   }

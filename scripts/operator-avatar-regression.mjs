@@ -25,7 +25,6 @@ try {
   const operatorAvatar = createSSRApp({
     render: () =>
       h(OperatorAvatarDisplay, {
-        dataSource: "torappu",
         eliteLevel: 0,
         operator,
         specialLabel: "能天",
@@ -39,7 +38,6 @@ try {
   const specialAvatar = createSSRApp({
     render: () =>
       h(OperatorAvatarDisplay, {
-        dataSource: "torappu",
         eliteLevel: 0,
         specialLabel: "能天",
       }),

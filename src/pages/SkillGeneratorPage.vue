@@ -10,13 +10,10 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 
 import OperatorSkillCard from "@/components/OperatorSkillCard.vue";
 import { useBaseData } from "@/composables/useBaseData";
-import { useDataSource } from "@/composables/useDataSource";
 import type { Operator, OperatorSkill } from "@/types/baseData";
 
 const { operators, richTextStyles, terms, loading, ready, reload } =
   useBaseData();
-const { selectedDataSource } = useDataSource();
-
 const selectedOperatorId = ref("");
 const showOperatorId = ref(true);
 const showTerms = ref(true);
@@ -216,7 +213,6 @@ watch(
     showTerms,
     showTermDefinitions,
     showReplaced,
-    selectedDataSource,
   ],
   () => {
     generationError.value = "";
@@ -358,7 +354,6 @@ onBeforeUnmount(() => {
       class="skill-generator-render-source"
     >
       <OperatorSkillCard
-        :data-source="selectedDataSource"
         :operator="selectedOperator"
         :show-operator-id="showOperatorId"
         :show-term-definitions="showTermDefinitions"

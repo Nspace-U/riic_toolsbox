@@ -72,8 +72,11 @@ function setLmdDroneStrategy(
   persistLmdDroneStrategies();
 }
 
-function resetLmdDroneStrategies(): void {
-  lmdDroneStrategies.value = { ...DEFAULT_LMD_DRONE_STRATEGIES };
+function resetLmdDroneStrategy(level: LmdDroneStrategyLevel): void {
+  lmdDroneStrategies.value = {
+    ...lmdDroneStrategies.value,
+    [level]: DEFAULT_LMD_DRONE_STRATEGIES[level],
+  };
   persistLmdDroneStrategies();
 }
 
@@ -81,6 +84,6 @@ export function useDroneStrategySettings() {
   return {
     lmdDroneStrategies,
     setLmdDroneStrategy,
-    resetLmdDroneStrategies,
+    resetLmdDroneStrategy,
   };
 }
