@@ -17,6 +17,7 @@
     "test:schedule-list": "node scripts/schedule-list-regression.mjs",
     "test:simulator-layout": "node scripts/simulator-layout-regression.mjs",
     "test:simulator-result": "node scripts/simulator-result-regression.mjs",
+    "test:simulator-clipboard": "node scripts/simulator-clipboard-regression.mjs",
     "test:operator-avatar": "node scripts/operator-avatar-regression.mjs",
     "test:efficiency": "node scripts/efficiency-regression.mjs",
     "test:sanity": "node scripts/sanity-regression.mjs",

@@ -152,6 +152,7 @@ import {
   planDurationHoursValue,
   resourceLabel,
 } from "@/utils/simulator/presentation";
+import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -4596,7 +4597,8 @@ function pasteOperators(): boolean {
   const sourceMetadata = new Map(
     clipboard.sourceAddresses.map((source) => [source.key, source]),
   );
-  const transferEntries = operatorTransferPairs(
+  const selectedTargets = selectedOperatorSlotAddresses();
+  const fallbackTransferEntries = operatorTransferPairs(
     clipboard.sourceAddresses,
     target,
     sourceMetadata,
@@ -4604,6 +4606,11 @@ function pasteOperators(): boolean {
     const entry = sourceEntries.get(source.key);
     return entry ? [{ address, entry }] : [];
   });
+  const transferEntries = operatorPasteAssignments(
+    clipboard.entries,
+    selectedTargets,
+    fallbackTransferEntries,
+  );
   const pastedAddresses = transferEntries.map(({ address }) => address);
   if (transferEntries.length === 0) {
     return false;
@@ -4669,15 +4676,21 @@ function pasteOperators(): boolean {
   const operatorCount = transferEntries.filter(
     ({ entry }) => entry.name,
   ).length;
+  const isBroadcastPaste =
+    clipboard.entries.length === 1 && selectedTargets.length > 1;
   const truncated = transferEntries.length < clipboard.entries.length;
   if (clipboard.mode === "cut") {
     clearOperatorClipboard();
   }
   showOperatorPasteHighlight(pastedAddresses);
   showOperatorMessage(
-    truncated
-      ? `已粘贴 ${operatorCount} 名干员，超出目标槽位的内容已截断`
-      : `已粘贴 ${operatorCount} 名干员`,
+    isBroadcastPaste && clipboard.entries[0]?.name
+      ? `已粘贴 1 名干员到 ${pastedAddresses.length} 个槽位`
+      : isBroadcastPaste
+        ? `已清空 ${pastedAddresses.length} 个槽位`
+        : truncated
+          ? `已粘贴 ${operatorCount} 名干员，超出目标槽位的内容已截断`
+          : `已粘贴 ${operatorCount} 名干员`,
   );
   return true;
 }
