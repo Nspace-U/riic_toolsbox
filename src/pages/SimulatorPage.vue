@@ -625,6 +625,7 @@ const warningMessage = ref("");
 const importDraft = ref<ImportDraftState>();
 const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
+const restoreOperatorProgressionModalOpen = ref(false);
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
@@ -796,10 +797,6 @@ const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
     ? (simulatorEditSettings.value[documentId] ??
         DEFAULT_SIMULATOR_EDIT_SETTINGS)
     : DEFAULT_SIMULATOR_EDIT_SETTINGS;
-});
-const hasManualOperatorProgression = computed(() => {
-  const document = currentDocument.value;
-  return document ? documentHasManualOperatorProgression(document) : false;
 });
 
 const powerSummary = computed<PowerSummary>(() => {
@@ -5590,40 +5587,6 @@ function resetOperatorProgression(): void {
   closeContextMenu();
 }
 
-function roomHasManualOperatorProgression(
-  room: RoomAssignment | undefined,
-): boolean {
-  if (!room) {
-    return false;
-  }
-  return (room.operators ?? []).some((name) => {
-    const state = name ? room.operatorStates?.[name] : undefined;
-    return state?.elite !== undefined || state?.level !== undefined;
-  });
-}
-
-function documentHasManualOperatorProgression(
-  document: ScheduleDocument,
-): boolean {
-  return document.plans.some((plan, planIndex) => {
-    const hasRoomProgression = ROOM_ORDER.some((type) => {
-      const rooms = plan.rooms[type];
-      return (
-        Array.isArray(rooms) &&
-        rooms.some((room) =>
-          roomHasManualOperatorProgression(room as RoomAssignment),
-        )
-      );
-    });
-    return (
-      hasRoomProgression ||
-      roomHasManualOperatorProgression(
-        fiammettaRoomAtDocument(document, planIndex, false),
-      )
-    );
-  });
-}
-
 function resetRoomOperatorProgression(room: RoomAssignment | undefined): void {
   if (!room?.operatorStates) {
     return;
@@ -5667,8 +5630,17 @@ function resetAllOperatorProgression(): void {
     { recordHistory: true },
   );
   if (updated) {
+    restoreOperatorProgressionModalOpen.value = false;
     showOperatorMessage("已恢复该排班表中所有干员的默认练度");
   }
+}
+
+function openRestoreOperatorProgressionModal(): void {
+  restoreOperatorProgressionModalOpen.value = true;
+}
+
+function closeRestoreOperatorProgressionModal(): void {
+  restoreOperatorProgressionModalOpen.value = false;
 }
 
 function handleWindowPointerDown(event: PointerEvent): void {
@@ -6617,6 +6589,17 @@ watch(showScheduleSidebar, () => {
       </template>
     </a-modal>
 
+    <a-modal
+      v-model:open="restoreOperatorProgressionModalOpen"
+      cancel-text="取消"
+      ok-text="确认恢复"
+      title="确认恢复默认练度"
+      @cancel="closeRestoreOperatorProgressionModal"
+      @ok="resetAllOperatorProgression"
+    >
+      <p>确认将该排班表中所有干员恢复到默认练度？</p>
+    </a-modal>
+
     <div
       :class="[
         'simulator-layout',
@@ -6866,21 +6849,14 @@ watch(showScheduleSidebar, () => {
             >
               显示组合描述
             </a-checkbox>
-            <a-popconfirm
-              cancel-text="取消"
-              ok-text="确认恢复"
-              title="确认将该排班表中所有干员恢复到默认练度？"
-              @confirm="resetAllOperatorProgression"
+            <a-button
+              size="small"
+              title="恢复该排班表中所有干员的默认练度"
+              @click="openRestoreOperatorProgressionModal"
             >
-              <a-button
-                :disabled="!hasManualOperatorProgression"
-                size="small"
-                title="恢复该排班表中所有干员的默认练度"
-              >
-                <template #icon><ReloadOutlined /></template>
-                恢复默认练度
-              </a-button>
-            </a-popconfirm>
+              <template #icon><ReloadOutlined /></template>
+              恢复默认练度
+            </a-button>
           </div>
         </a-card>
 
