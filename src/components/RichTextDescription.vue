@@ -12,8 +12,6 @@ interface RichTextPart {
 
 const props = defineProps<{
   highlightQuery?: string;
-  showTermDefinitions?: boolean;
-  showTerms?: boolean;
   richTextStyles: RichTextStyles;
   termDefinitionDepth?: number;
   text: string;
@@ -22,7 +20,7 @@ const props = defineProps<{
 
 const termDefinitionDepth = computed(() => props.termDefinitionDepth ?? 0);
 const canShowTermDefinitions = computed(() => {
-  return props.showTermDefinitions !== false && termDefinitionDepth.value < 2;
+  return termDefinitionDepth.value < 2;
 });
 
 const MARKUP_TOKEN = /<\$[^>]+>|<@[^>]+>|<\/>/g;
@@ -97,12 +95,6 @@ function parseParts(
 
 const parts = computed(() => {
   const normalizedText = props.text.replace(/<<(?=[$@])/g, "<");
-  if (props.showTerms === false) {
-    return parseParts(normalizedText).parts.map((part) => ({
-      ...part,
-      term: undefined,
-    }));
-  }
   return parseParts(normalizedText).parts;
 });
 </script>
@@ -119,12 +111,10 @@ const parts = computed(() => {
         <template #title>
           <div class="term-tooltip-title">术语：{{ part.term.name }}</div>
           <div
-            v-if="showTermDefinitions !== false && part.term.definition"
+            v-if="canShowTermDefinitions && part.term.definition"
             class="term-tooltip-definition"
           >
             <RichTextDescription
-              :show-term-definitions="canShowTermDefinitions"
-              :show-terms="showTerms"
               :rich-text-styles="richTextStyles"
               :term-definition-depth="termDefinitionDepth + 1"
               :terms="terms"

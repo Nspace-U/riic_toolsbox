@@ -156,13 +156,8 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
           >
             <template #title>
               <div class="term-tooltip-title">术语：{{ term.name }}</div>
-              <div
-                v-if="showTermDefinitions && termDefinition(term)"
-                class="term-tooltip-definition"
-              >
+              <div v-if="termDefinition(term)" class="term-tooltip-definition">
                 <RichTextDescription
-                  :show-term-definitions="showTermDefinitions"
-                  :show-terms="showTerms"
                   :rich-text-styles="richTextStyles"
                   :term-definition-depth="1"
                   :terms="terms"
@@ -215,8 +210,6 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
           <RichTextDescription
             v-if="skill.description"
             :highlight-query="searchText"
-            :show-term-definitions="showTermDefinitions"
-            :show-terms="showTerms"
             :rich-text-styles="richTextStyles"
             :terms="terms"
             :text="skill.description"
@@ -243,7 +236,6 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
 
     <div
       v-if="
-        showTerms &&
         showTermDefinitions &&
         termsForOperator.some((term) => termDefinition(term))
       "
@@ -257,8 +249,6 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
       >
         <span class="operator-term-definition-name">{{ term.name }}：</span>
         <RichTextDescription
-          :show-term-definitions="showTermDefinitions"
-          :show-terms="showTerms"
           :rich-text-styles="richTextStyles"
           :term-definition-depth="1"
           :terms="terms"

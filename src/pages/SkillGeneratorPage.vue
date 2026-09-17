@@ -283,9 +283,7 @@ onBeforeUnmount(() => {
                 >显示干员 ID</a-checkbox
               >
               <a-checkbox v-model:checked="showTerms">显示所属术语</a-checkbox>
-              <a-checkbox
-                v-model:checked="showTermDefinitions"
-                :disabled="!showTerms"
+              <a-checkbox v-model:checked="showTermDefinitions"
                 >显示术语描述</a-checkbox
               >
               <a-checkbox v-model:checked="showReplaced"
