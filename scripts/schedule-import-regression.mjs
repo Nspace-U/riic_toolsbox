@@ -63,7 +63,13 @@ EXP 52.2k | 贵金属 46.6k
 宿舍
 迷迭香0 |
 迷迭香0 |`;
-  const parsed = textModule.parseTextSchedule(rawText);
+  const textTerms = {
+    "cc.g.elite": {
+      name: "精英干员",
+      definition: "包含以下干员\n迷迭香、煌、逻各斯、烛煌、电弧、真言、机械师",
+    },
+  };
+  const parsed = textModule.parseTextSchedule(rawText, textTerms);
   assert.equal(parsed.inferredLayout, true);
   assert.equal(parsed.document.plans.length, 2);
   assert.equal(
@@ -84,6 +90,100 @@ EXP 52.2k | 贵金属 46.6k
   assert.equal(
     parsed.document.plans[0].rooms.manufacture[0].description,
     "105%",
+  );
+
+  const textProducts = textModule.parseTextSchedule(
+    `产品映射
+一天一换
+-=-
+-=-
+EXP 0
+12 小时
+制造站（贵金属）
+制造站
+|
+---
+制造站（作战记录）
+制造站
+|
+---
+贸易站（龙门商法）
+贸易站
+|
+---
+贸易站（开采协力）
+贸易站
+|`,
+    textTerms,
+  ).document;
+  assert.deepEqual(
+    textProducts.plans[0].rooms.manufacture.map(({ product }) => product),
+    ["赤金", "中级作战记录"],
+  );
+  assert.deepEqual(
+    textProducts.plans[0].rooms.trading.map(({ product }) => product),
+    ["龙门币", "合成玉"],
+  );
+  assert.throws(
+    () =>
+      textModule.parseTextSchedule(
+        `未知产品
+一天一换
+-=-
+-=-
+EXP 0
+12 小时
+贸易站（未知订单）
+贸易站
+|`,
+        textTerms,
+      ),
+    /无法识别贸易站产物“未知订单”/,
+  );
+
+  function parseDormitoryExample(operators, terms = textTerms) {
+    return textModule.parseTextSchedule(
+      `宿舍分配
+一天一换
+-=-
+-=-
+EXP 0
+12 小时
+发电站
+发电站
+甲0 乙0 丙0
+---
+宿舍
+宿舍
+    ${operators} |`,
+      terms,
+    ).document;
+  }
+
+  const dormitoryExampleOne = parseDormitoryExample("烛煌0 迷迭香2 森西2");
+  assert.deepEqual(
+    dormitoryExampleOne.plans[0].rooms.dormitory
+      .slice(0, 2)
+      .map(({ operators }) => operators ?? []),
+    [["烛煌", "森西"], ["迷迭香"]],
+  );
+  const dormitoryExampleTwo = parseDormitoryExample(
+    "杜林0 褐果0 森西2 桃金娘0 至简0 迷迭香0 电弧0 烛煌0",
+  );
+  assert.deepEqual(
+    dormitoryExampleTwo.plans[0].rooms.dormitory
+      .slice(0, 3)
+      .map(({ operators }) => operators ?? []),
+    [["迷迭香", "杜林", "褐果", "森西", "桃金娘"], ["电弧", "至简"], ["烛煌"]],
+  );
+  const runtimeTermOnlyOne = parseDormitoryExample("烛煌0 迷迭香2 森西2", {
+    "custom.elite": { name: "精英干员", members: ["烛煌"] },
+  });
+  assert.deepEqual(
+    runtimeTermOnlyOne.plans[0].rooms.dormitory
+      .slice(0, 2)
+      .map(({ operators }) => operators ?? []),
+    [["烛煌", "迷迭香", "森西"], []],
   );
 
   const maaParsed = maaModule.parseMaaScheduleText(

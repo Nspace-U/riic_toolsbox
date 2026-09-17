@@ -1,5 +1,6 @@
 import { maaScheduleAdapter } from "@/adapters/maaSchedule";
 import { isTextSchedule, parseTextSchedule } from "@/adapters/textSchedule";
+import type { BaseSkillTerms } from "@/types/baseData";
 import type { ParsedSchedule, ScheduleDocument } from "@/types/schedule";
 
 export interface ScheduleAdapter {
@@ -15,8 +16,11 @@ export const DEFAULT_SCHEDULE_ADAPTER: ScheduleAdapter = maaScheduleAdapter;
 
 export { isTextSchedule };
 
-export function parseScheduleImport(text: string): ParsedSchedule {
+export function parseScheduleImport(
+  text: string,
+  terms: BaseSkillTerms = {},
+): ParsedSchedule {
   return text.trimStart().startsWith("{")
     ? maaScheduleAdapter.parse(text)
-    : parseTextSchedule(text);
+    : parseTextSchedule(text, terms);
 }

@@ -1,4 +1,7 @@
+import type { BaseSkillTerms } from "@/types/baseData";
 import type {
+  LayoutEntry,
+  OperatorState,
   ParsedSchedule,
   Plan,
   RoomAssignment,
@@ -9,6 +12,7 @@ import { ROOM_KEYS } from "@/types/schedule";
 import {
   canonicalResourceKey,
   PRODUCT_LABELS,
+  roomSlotCount,
   ScheduleError,
 } from "@/utils/schedule";
 import {
@@ -18,7 +22,7 @@ import {
 
 interface ParsedOperator {
   name: string;
-  state?: { elite?: number; mood?: number };
+  state?: OperatorState;
 }
 
 interface ParsedQueue {
@@ -31,6 +35,30 @@ interface ParsedStation {
   type: RoomKey | "processing-training";
   product?: string;
   queues: ParsedQueue[];
+}
+
+const DORMITORY_SPREAD_TERM_NAME = "精英干员";
+
+function termMembers(
+  terms: BaseSkillTerms,
+  termName: string,
+): ReadonlySet<string> {
+  const term = Object.entries(terms).find(
+    ([key, value]) => key === termName || value.name === termName,
+  )?.[1];
+  if (!term) {
+    return new Set();
+  }
+  if (term.members && term.members.length > 0) {
+    return new Set(term.members);
+  }
+  const definition = term.definition?.split(/\r?\n/).slice(1).join("");
+  return new Set(
+    (definition ?? "")
+      .split(/[、,，]/)
+      .map((member) => member.trim())
+      .filter(Boolean),
+  );
 }
 
 function nonEmptyLines(text: string): string[] {
@@ -128,10 +156,25 @@ function stationInfo(title: string): {
     throw new ScheduleError(`无法识别设施“${title}”`);
   }
   const productLabel = title.match(/（([^）]+)）/)?.[1];
-  const product = productLabel ? canonicalResourceKey(productLabel) : undefined;
+  const normalizedProductLabel =
+    type === "trading"
+      ? ({ 龙门商法: "龙门币", 开采协力: "合成玉" }[productLabel ?? ""] ??
+        productLabel)
+      : productLabel;
+  const product = normalizedProductLabel
+    ? canonicalResourceKey(normalizedProductLabel)
+    : undefined;
+  if (productLabel && !productLabel.trim()) {
+    throw new ScheduleError(`无法识别设施“${title}”的产物`);
+  }
+  if (productLabel && (!product || !PRODUCT_LABELS[product])) {
+    throw new ScheduleError(
+      `无法识别${type === "trading" ? "贸易站" : "制造站"}产物“${productLabel}”`,
+    );
+  }
   return {
     type,
-    ...(product && PRODUCT_LABELS[product]
+    ...(product
       ? { product }
       : type === "trading"
         ? { product: "龙门币" }
@@ -256,7 +299,107 @@ function buildPlans(
   });
 }
 
-export function parseTextSchedule(text: string): ParsedSchedule {
+function packedDormitoryRoom(
+  base: RoomAssignment | undefined,
+  operators: ParsedOperator[],
+): RoomAssignment {
+  const room = { ...(base ?? {}) };
+  delete room.operators;
+  delete room.operatorStates;
+  if (operators.length === 0) {
+    return room;
+  }
+  room.operators = operators.map(({ name }) => name);
+  const operatorStates = Object.fromEntries(
+    operators.flatMap(({ name, state }) =>
+      state ? [[name, state] as const] : [],
+    ),
+  );
+  if (Object.keys(operatorStates).length > 0) {
+    room.operatorStates = operatorStates;
+  }
+  return room;
+}
+
+function distributeDormitoryOperators(
+  plans: Plan[],
+  layout: LayoutEntry[],
+  spreadOperatorNames: ReadonlySet<string>,
+): Plan[] {
+  const dormitoryEntries = layout.filter((entry) => entry.type === "dormitory");
+  if (dormitoryEntries.length === 0) {
+    return plans;
+  }
+  return plans.map((plan) => {
+    const sourceRooms = Array.isArray(plan.rooms.dormitory)
+      ? (plan.rooms.dormitory as RoomAssignment[])
+      : [];
+    const operators = sourceRooms.flatMap((room) =>
+      (room.operators ?? []).map((name) => ({
+        name,
+        state: room.operatorStates?.[name],
+      })),
+    );
+    if (operators.length === 0) {
+      return plan;
+    }
+    const roomOperators: ParsedOperator[][] = Array.from(
+      { length: dormitoryEntries.length },
+      () => [],
+    );
+    const overflow: ParsedOperator[] = [];
+    const placeInFirstAvailableRoom = (operator: ParsedOperator): boolean => {
+      const index = roomOperators.findIndex(
+        (room, roomIndex) =>
+          room.length <
+          roomSlotCount("dormitory", dormitoryEntries[roomIndex]!.level),
+      );
+      if (index < 0) {
+        return false;
+      }
+      roomOperators[index]!.push(operator);
+      return true;
+    };
+    let spreadIndex = 0;
+    operators
+      .filter(({ name }) => spreadOperatorNames.has(name))
+      .forEach((operator) => {
+        const target = spreadIndex;
+        spreadIndex += 1;
+        if (
+          target < roomOperators.length &&
+          roomOperators[target]!.length <
+            roomSlotCount("dormitory", dormitoryEntries[target]!.level)
+        ) {
+          roomOperators[target]!.push(operator);
+        } else if (!placeInFirstAvailableRoom(operator)) {
+          overflow.push(operator);
+        }
+      });
+    operators
+      .filter(({ name }) => !spreadOperatorNames.has(name))
+      .forEach((operator) => {
+        if (!placeInFirstAvailableRoom(operator)) {
+          overflow.push(operator);
+        }
+      });
+    const rooms = roomOperators.map((room, index) =>
+      packedDormitoryRoom(sourceRooms[index], room),
+    );
+    if (overflow.length > 0) {
+      rooms.push(packedDormitoryRoom(undefined, overflow));
+    }
+    return {
+      ...plan,
+      rooms: { ...plan.rooms, dormitory: rooms },
+    };
+  });
+}
+
+export function parseTextSchedule(
+  text: string,
+  terms: BaseSkillTerms = {},
+): ParsedSchedule {
   const sections = text
     .replace(/\r\n?/g, "\n")
     .trim()
@@ -302,7 +445,11 @@ export function parseTextSchedule(text: string): ParsedSchedule {
     title: titleLines.join(" · ") || "导入排班表",
     description,
     layout,
-    plans: completeInferredRooms(plans, layout),
+    plans: distributeDormitoryOperators(
+      completeInferredRooms(plans, layout),
+      layout,
+      termMembers(terms, DORMITORY_SPREAD_TERM_NAME),
+    ),
     settings: {
       fiammettaMode: "direct",
       fiammettaDirectCount: Math.max(3, fiammettaTargets.length),

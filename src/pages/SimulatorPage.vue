@@ -6152,7 +6152,7 @@ async function handleFileChange(event: Event): Promise<void> {
   clearImportedScheduleNotice();
   try {
     const text = await file.text();
-    const parsed = parseScheduleImport(text);
+    const parsed = parseScheduleImport(text, terms.value);
     importDraft.value = {
       parsed,
       fileName: file.name,
