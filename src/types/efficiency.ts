@@ -315,6 +315,7 @@ export type OperatorEfficiencyCalculation =
       firstItemProgress: number;
       completedOrders: number;
       decrement: number;
+      orderIncrement: number;
       fallbackReason?: "fixedOrder" | "missingOrders";
     }
   | {

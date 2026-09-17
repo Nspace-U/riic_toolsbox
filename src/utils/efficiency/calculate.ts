@@ -2612,9 +2612,7 @@ function tradeSpecialEfficiency(
     return total + Math.floor(Math.max(0, ordinarySkill) / perUnit) * amount;
   }, 0);
   const orderLimitNet =
-    jieEffects.length > 0
-      ? state.rawOrderLimit - cut
-      : state.rawOrderLimit;
+    jieEffects.length > 0 ? state.rawOrderLimit - cut : state.rawOrderLimit;
   const details: EffectDetail[] = [];
   let value = 0;
   netEffects.forEach((item) => {
@@ -2669,10 +2667,16 @@ function tradeSpecialEfficiency(
     let averageEfficiency = initialEfficiency;
     let completedOrders = 0;
     const progress = firstItemProgress(context.settings, facility.id);
-    const decrement = gapEffects.reduce(
+    const gapDecrement = gapEffects.reduce(
       (total, item) => total + Number(item.effect.value ?? 0),
       0,
     );
+    const orderIncrement = orderEffects.reduce(
+      (total, item) =>
+        total + Number(item.effect.per?.value ?? item.effect.value ?? 0),
+      0,
+    );
+    const decrement = gapDecrement - orderIncrement;
     if (shouldIntegrate) {
       let elapsed = 0;
       let currentEfficiency = initialEfficiency;
@@ -2720,6 +2724,7 @@ function tradeSpecialEfficiency(
       firstItemProgress: progress,
       completedOrders,
       decrement,
+      orderIncrement,
       ...(fallbackReason ? { fallbackReason } : {}),
     };
     gapEffects.forEach((item, index) => {

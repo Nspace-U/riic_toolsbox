@@ -49,9 +49,13 @@ export function operatorCalculationLines(
         )} 小时，首件进度：${formatNumber(
           calculation.firstItemProgress * 100,
         )}%`,
-        `完成订单：${formatNumber(calculation.completedOrders)}，每单衰减：-${formatNumber(
-          calculation.decrement,
-        )}%`,
+        `完成订单：${formatNumber(
+          calculation.completedOrders,
+        )}，每单净变化：${signedNumber(-calculation.decrement)}%${
+          calculation.orderIncrement > 0
+            ? `（订单效率补偿 ${signedNumber(calculation.orderIncrement)}%）`
+            : ""
+        }`,
         `整站效率平均：${formatNumber(
           calculation.averageEfficiency,
         )}%（初始 ${formatNumber(calculation.initialEfficiency)}%）`,

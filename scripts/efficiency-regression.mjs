@@ -1894,6 +1894,25 @@ function runTests(runtime) {
   assert.equal(jieManualEliteCountDetail?.value, 40);
   assert.equal(jieManualEliteGapDetail?.value, 0);
 
+  const jieEliteIntegral = calculateEfficiency(
+    documentFor({
+      trading: ["孑"],
+      eliteLevels: { 孑: 1 },
+      settings: { preferMaxJieEfficiency: false },
+    }),
+    catalog,
+    { treatSkillsAsUnlocked: true },
+  );
+  const jieEliteIntegralFacility = tradingResult(jieEliteIntegral);
+  const jieEliteIntegralGapDetail =
+    jieEliteIntegralFacility.combinationDetails.find(
+      ({ operator, stat }) => operator === "孑" && stat === "tradeGapEff",
+    );
+  assert.equal(jieEliteIntegralFacility.efficiency, 141);
+  assert.equal(jieEliteIntegralGapDetail?.value, 0);
+  assert.equal(jieEliteIntegralGapDetail?.calculation?.mode, "integral");
+  assert.equal(jieEliteIntegralGapDetail?.calculation?.decrement, 0);
+
   const jieOrderLimitCases = [
     { elite: 0, expectedSkill: -2, expectedTotal: 8 },
     { elite: 1, expectedSkill: -6, expectedTotal: 4 },
