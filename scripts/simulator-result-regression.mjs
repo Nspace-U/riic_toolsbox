@@ -65,6 +65,21 @@ assert.equal(
 assert.match(template, /simulator-daily-output-item--accent/);
 assert.match(template, /dailySanityResult\.missing\.join/);
 assert.doesNotMatch(template, /ROOM_LABELS\[facility\.type\]\}（合并）/);
+const facilityResultLabelStart = template.indexOf(
+  "function facilityResultLabel(result: FacilityEfficiencyResult): string {",
+);
+const facilityResultLabelEnd = template.indexOf(
+  "\nfunction basePointLabel(",
+  facilityResultLabelStart,
+);
+const facilityResultLabelBlock = template.slice(
+  facilityResultLabelStart,
+  facilityResultLabelEnd,
+);
+assert.match(
+  facilityResultLabelBlock,
+  /if \(facility\.type === "power"\) \{\s*return ROOM_LABELS\[facility\.type\];\s*\}/,
+);
 assert.doesNotMatch(stylesheet, /simulator-step-formula/);
 assert.match(stylesheet, /\.simulator-step-detail-grid strong small/);
 assert.match(

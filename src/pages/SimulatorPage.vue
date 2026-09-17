@@ -4968,6 +4968,9 @@ function operatorMoodRemaining(
 
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
   const { facility } = result;
+  if (facility.type === "power") {
+    return ROOM_LABELS[facility.type];
+  }
   const count =
     currentDocument.value?.layout.filter(
       (entry) => entry.type === facility.type,
