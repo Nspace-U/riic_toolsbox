@@ -2,12 +2,10 @@ import { createRouter, createWebHistory } from "vue-router";
 
 import BasicCalculatorPage from "@/pages/BasicCalculatorPage.vue";
 import OperatorSkillsPage from "@/pages/OperatorSkillsPage.vue";
-import ScheduleCalculatorPage from "@/pages/ScheduleCalculatorPage.vue";
 import ScheduleReferencePage from "@/pages/ScheduleReferencePage.vue";
 import SettingsPage from "@/pages/SettingsPage.vue";
 import SimulatorPage from "@/pages/SimulatorPage.vue";
 import AvatarGeneratorPage from "@/pages/AvatarGeneratorPage.vue";
-import MaaSchedulePage from "@/pages/MaaSchedulePage.vue";
 import SkillGeneratorPage from "@/pages/SkillGeneratorPage.vue";
 import ToolboxPage from "@/pages/ToolboxPage.vue";
 
@@ -23,12 +21,6 @@ const router = createRouter({
       name: "simulator",
       component: SimulatorPage,
       meta: { title: "排班模拟器" },
-    },
-    {
-      path: "/schedule-calculator",
-      name: "schedule-calculator",
-      component: ScheduleCalculatorPage,
-      meta: { title: "排班表计算器" },
     },
     {
       path: "/schedule-reference",
@@ -65,12 +57,6 @@ const router = createRouter({
       name: "toolbox-skill",
       component: SkillGeneratorPage,
       meta: { title: "技能生成器" },
-    },
-    {
-      path: "/toolbox/maa-schedule",
-      name: "toolbox-maa-schedule",
-      component: MaaSchedulePage,
-      meta: { title: "Maa 排班表接口" },
     },
     {
       path: "/settings",

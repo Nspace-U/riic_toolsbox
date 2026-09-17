@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   BookOutlined,
-  FileTextOutlined,
   PictureOutlined,
   ToolOutlined,
 } from "@ant-design/icons-vue";
@@ -15,10 +14,6 @@ function openAvatarGenerator(): void {
 
 function openSkillGenerator(): void {
   void router.push("/toolbox/skill");
-}
-
-function openMaaSchedule(): void {
-  void router.push("/toolbox/maa-schedule");
 }
 </script>
 
@@ -42,7 +37,7 @@ function openMaaSchedule(): void {
           <span class="section-kicker">AVAILABLE TOOLS</span>
           <h3 id="available-tools-title">可用工具</h3>
         </div>
-        <span class="section-count">03 项</span>
+        <span class="section-count">02 项</span>
       </div>
 
       <div class="toolbox-grid">
@@ -84,26 +79,6 @@ function openMaaSchedule(): void {
             </a-button>
           </div>
           <div class="tool-card-index" aria-hidden="true">02</div>
-        </a-card>
-
-        <a-card :bordered="false" class="tool-card" @click="openMaaSchedule">
-          <div class="tool-card-icon tool-card-icon--maa" aria-hidden="true">
-            <FileTextOutlined />
-          </div>
-          <div class="tool-card-content">
-            <div class="tool-card-meta">PROTOCOL · 03</div>
-            <h4>Maa 排班表接口</h4>
-            <p>
-              查看、编辑和导入导出 Maa 排班表 JSON，保留布局与干员状态信息。
-            </p>
-            <a-button type="primary" @click.stop="openMaaSchedule">
-              <template #icon>
-                <FileTextOutlined />
-              </template>
-              打开接口
-            </a-button>
-          </div>
-          <div class="tool-card-index" aria-hidden="true">03</div>
         </a-card>
       </div>
     </section>
@@ -199,11 +174,6 @@ function openMaaSchedule(): void {
   background: #dcebe8;
   border-radius: 6px;
   font-size: 22px;
-}
-
-.tool-card-icon--maa {
-  color: #7a5a2d;
-  background: #f1e4cf;
 }
 
 .tool-card-content {

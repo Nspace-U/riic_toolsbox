@@ -3,7 +3,6 @@ import {
   BookOutlined,
   CalculatorOutlined,
   ClusterOutlined,
-  FileTextOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
@@ -11,7 +10,6 @@ import {
   ReadOutlined,
   ToolOutlined,
   SettingOutlined,
-  TableOutlined,
 } from "@ant-design/icons-vue";
 import { computed, ref, watch } from "vue";
 import type { Component } from "vue";
@@ -34,7 +32,6 @@ interface NavigationChildItem {
 
 const navigationItems: NavigationItem[] = [
   { key: "/simulator", label: "排班模拟器", icon: ClusterOutlined },
-  { key: "/schedule-calculator", label: "排班表计算器", icon: TableOutlined },
   { key: "/schedule-reference", label: "排班表参考", icon: BookOutlined },
   { key: "/basic-calculator", label: "基础计算器", icon: CalculatorOutlined },
   { key: "/operator-skills", label: "基建技能一览", icon: BookOutlined },
@@ -45,11 +42,6 @@ const navigationItems: NavigationItem[] = [
     children: [
       { key: "/toolbox/avatar", label: "头像生成器", icon: PictureOutlined },
       { key: "/toolbox/skill", label: "技能生成器", icon: ReadOutlined },
-      {
-        key: "/toolbox/maa-schedule",
-        label: "Maa 排班表接口",
-        icon: FileTextOutlined,
-      },
     ],
   },
   { key: "/settings", label: "通用设置", icon: SettingOutlined },
