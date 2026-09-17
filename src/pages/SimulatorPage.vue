@@ -9,6 +9,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlusOutlined,
+  ReloadOutlined,
   SearchOutlined,
   SettingOutlined,
   UploadOutlined,
@@ -797,6 +798,10 @@ const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
     ? (simulatorEditSettings.value[documentId] ??
         DEFAULT_SIMULATOR_EDIT_SETTINGS)
     : DEFAULT_SIMULATOR_EDIT_SETTINGS;
+});
+const hasManualOperatorProgression = computed(() => {
+  const document = currentDocument.value;
+  return document ? documentHasManualOperatorProgression(document) : false;
 });
 
 const powerSummary = computed<PowerSummary>(() => {
@@ -5604,6 +5609,87 @@ function resetOperatorProgression(): void {
   closeContextMenu();
 }
 
+function roomHasManualOperatorProgression(
+  room: RoomAssignment | undefined,
+): boolean {
+  if (!room) {
+    return false;
+  }
+  return (room.operators ?? []).some((name) => {
+    const state = name ? room.operatorStates?.[name] : undefined;
+    return state?.elite !== undefined || state?.level !== undefined;
+  });
+}
+
+function documentHasManualOperatorProgression(
+  document: ScheduleDocument,
+): boolean {
+  return document.plans.some((plan, planIndex) => {
+    const hasRoomProgression = ROOM_ORDER.some((type) => {
+      const rooms = plan.rooms[type];
+      return (
+        Array.isArray(rooms) &&
+        rooms.some((room) =>
+          roomHasManualOperatorProgression(room as RoomAssignment),
+        )
+      );
+    });
+    return (
+      hasRoomProgression ||
+      roomHasManualOperatorProgression(
+        fiammettaRoomAtDocument(document, planIndex, false),
+      )
+    );
+  });
+}
+
+function resetRoomOperatorProgression(room: RoomAssignment | undefined): void {
+  if (!room?.operatorStates) {
+    return;
+  }
+  (room.operators ?? []).forEach((name) => {
+    if (!name) {
+      return;
+    }
+    const state = room.operatorStates?.[name];
+    if (!state) {
+      return;
+    }
+    delete state.elite;
+    delete state.level;
+    if (Object.keys(state).length === 0) {
+      delete room.operatorStates?.[name];
+    }
+  });
+  if (Object.keys(room.operatorStates).length === 0) {
+    delete room.operatorStates;
+  }
+}
+
+function resetAllOperatorProgression(): void {
+  const updated = updateCurrent(
+    (document) => {
+      document.plans.forEach((plan, planIndex) => {
+        ROOM_ORDER.forEach((type) => {
+          const rooms = plan.rooms[type];
+          if (Array.isArray(rooms)) {
+            rooms.forEach((room) =>
+              resetRoomOperatorProgression(room as RoomAssignment),
+            );
+          }
+        });
+        resetRoomOperatorProgression(
+          fiammettaRoomAtDocument(document, planIndex, false),
+        );
+      });
+    },
+    { recordHistory: true },
+  );
+  if (updated) {
+    showOperatorMessage("已恢复该排班表中所有干员的默认练度");
+  }
+}
+
 function handleWindowPointerDown(event: PointerEvent): void {
   const target = event.target;
   if (target instanceof Element && target.closest(".simulator-context-menu")) {
@@ -6799,6 +6885,21 @@ watch(showScheduleSidebar, () => {
             >
               显示组合描述
             </a-checkbox>
+            <a-popconfirm
+              cancel-text="取消"
+              ok-text="确认恢复"
+              title="确认将该排班表中所有干员恢复到默认练度？"
+              @confirm="resetAllOperatorProgression"
+            >
+              <a-button
+                :disabled="!hasManualOperatorProgression"
+                size="small"
+                title="恢复该排班表中所有干员的默认练度"
+              >
+                <template #icon><ReloadOutlined /></template>
+                恢复默认练度
+              </a-button>
+            </a-popconfirm>
           </div>
         </a-card>
 
