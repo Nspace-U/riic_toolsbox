@@ -53,6 +53,17 @@ function isBasePointVisible(term: string): boolean {
   return !hiddenBasePointTerms.value.includes(term);
 }
 
+function setBasePointVisible(term: string, visible: boolean): void {
+  const hiddenTerms = new Set(hiddenBasePointTerms.value);
+  if (visible) {
+    hiddenTerms.delete(term);
+  } else {
+    hiddenTerms.add(term);
+  }
+  hiddenBasePointTerms.value = [...hiddenTerms];
+  persistBasePointDisplaySettings();
+}
+
 function setAllBasePointsVisible(terms: string[], visible: boolean): void {
   const hiddenTerms = new Set(hiddenBasePointTerms.value);
   terms.forEach((term) => {
@@ -70,6 +81,7 @@ export function useBasePointDisplaySettings() {
   return {
     hiddenBasePointTerms,
     isBasePointVisible,
+    setBasePointVisible,
     setAllBasePointsVisible,
   };
 }

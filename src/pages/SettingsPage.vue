@@ -58,7 +58,8 @@ const {
   resetFiammettaColor,
 } = useFacilityColors();
 const { operators, terms, ready: baseDataReady } = useBaseData();
-const { setAllBasePointsVisible } = useBasePointDisplaySettings();
+const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
+  useBasePointDisplaySettings();
 const {
   calculationStepDisplayMode,
   calculationStepDisplayModeOptions,
@@ -137,6 +138,10 @@ const clearLocalDataModalOpen = ref(false);
 const clearLocalDataError = ref("");
 const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
 let skillFileRequestVersion = 0;
+
+const basePointDisplayOptions = computed(() =>
+  basePointTermOptions(terms.value),
+);
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
   value,
@@ -678,7 +683,7 @@ watch(
               setDormitoryDefaultIncludesMoodRecovery(event.target.checked)
           "
         >
-          宿舍默认练度包含心情回复技能
+          宿管启用默认练度
         </a-checkbox>
         <a-checkbox
           :checked="showNoEditableOperators"
@@ -1141,6 +1146,27 @@ watch(
             全部隐藏
           </a-button>
         </a-space>
+        <div
+          v-if="basePointDisplayOptions.length"
+          class="settings-base-point-options"
+        >
+          <a-checkbox
+            v-for="option in basePointDisplayOptions"
+            :key="option.key"
+            :checked="isBasePointVisible(option.key)"
+            @change="
+              (event: { target: { checked: boolean } }) =>
+                setBasePointVisible(option.key, event.target.checked)
+            "
+          >
+            {{ option.name }}
+          </a-checkbox>
+        </div>
+        <a-empty
+          v-else
+          :image="undefined"
+          description="当前没有可用的基地点数"
+        />
       </section>
 
       <section
