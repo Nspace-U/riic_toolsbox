@@ -5,7 +5,6 @@ export const OPERATOR_AVATAR_LAYOUT = {
   nameHeightRatio: 0.14,
   nameMinHeight: 36,
   nameFitCharacterCount: 6,
-  nameOutputMinHeight: 24,
 } as const;
 
 export const OPERATOR_AVATAR_SOURCE_WIDTH = 180;
@@ -99,10 +98,7 @@ export function getOperatorAvatarNameMinBandMetrics(
   const scale = getOperatorAvatarScale(sourceWidth, outputWidth);
   const sourceNameHeight = getOperatorAvatarNameHeight(sourceWidth);
   return {
-    height: Math.max(
-      getScaledOperatorAvatarLength(sourceNameHeight, scale),
-      OPERATOR_AVATAR_LAYOUT.nameOutputMinHeight,
-    ),
+    height: getScaledOperatorAvatarLength(sourceNameHeight, scale),
     fontSize: getOperatorAvatarNameFontSize(outputWidth),
   };
 }
