@@ -156,6 +156,11 @@ import {
   resourceLabel,
 } from "@/utils/simulator/presentation";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
+import {
+  renderScheduleImage,
+  SCHEDULE_IMAGE_RESOLUTIONS,
+  type ScheduleImageResolutionKey,
+} from "@/utils/simulator/exportImage";
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -623,6 +628,12 @@ const importDraft = ref<ImportDraftState>();
 const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
 const restoreOperatorProgressionModalOpen = ref(false);
+const imageExportModalOpen = ref(false);
+const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
+const imageExportDataUrl = ref("");
+const imageExportError = ref("");
+const imageExportLoading = ref(false);
+const imageExportDocumentId = ref("");
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
@@ -672,6 +683,7 @@ let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let documentSidebarMeasureFrame: number | undefined;
 let documentSidebarResizeObserver: ResizeObserver | undefined;
 let catalogRequestVersion = 0;
+let imageExportRequestVersion = 0;
 
 const MAX_SCHEDULE_HISTORY = 100;
 
@@ -6280,11 +6292,145 @@ function handleExport(documentId?: string): void {
   }
 }
 
+function closeImageExport(): void {
+  imageExportRequestVersion += 1;
+  imageExportModalOpen.value = false;
+  imageExportLoading.value = false;
+  imageExportDataUrl.value = "";
+  imageExportError.value = "";
+}
+
+function imageExportResolutionValue(): (typeof SCHEDULE_IMAGE_RESOLUTIONS)[number] {
+  return (
+    SCHEDULE_IMAGE_RESOLUTIONS.find(
+      (resolution) => resolution.key === imageExportResolution.value,
+    ) ?? SCHEDULE_IMAGE_RESOLUTIONS[0]
+  );
+}
+
+async function renderImageExport(): Promise<void> {
+  const documentId = imageExportDocumentId.value;
+  const stored = documents.value.find((item) => item.id === documentId);
+  const schedule = stored?.document;
+  const source = window.document.querySelector<HTMLElement>(
+    ".simulator-editor .simulator-facility-grid",
+  );
+  if (!schedule || !source) {
+    imageExportError.value = "当前没有可导出的排班内容";
+    imageExportDataUrl.value = "";
+    return;
+  }
+
+  const requestId = ++imageExportRequestVersion;
+  imageExportLoading.value = true;
+  imageExportError.value = "";
+  imageExportDataUrl.value = "";
+  try {
+    const normalizedSchedule = JSON.parse(
+      serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
+    ) as ScheduleDocument;
+    const dataUrl = await renderScheduleImage({
+      normalizedSchedule,
+      resolution: imageExportResolutionValue(),
+      resolveEliteLevel: (name, context) => {
+        const plan = schedule.plans[context.planIndex];
+        const room =
+          context.position === FIAMMETTA_POSITION
+            ? fiammettaRoomAtDocument(schedule, context.planIndex, false)
+            : plan
+              ? roomAt(plan, context.type, context.position)
+              : undefined;
+        return operatorElite(room, name, context.type);
+      },
+      resolveOperator: operatorByName,
+      schedule,
+      source,
+    });
+    if (requestId !== imageExportRequestVersion) {
+      return;
+    }
+    imageExportDataUrl.value = dataUrl;
+  } catch (error: unknown) {
+    if (requestId === imageExportRequestVersion) {
+      imageExportError.value =
+        error instanceof Error ? error.message : "排班表图片导出失败";
+    }
+  } finally {
+    if (requestId === imageExportRequestVersion) {
+      imageExportLoading.value = false;
+    }
+  }
+}
+
+async function handleExportImage(documentId?: string): Promise<void> {
+  const id = documentId ?? activeDocumentId.value;
+  if (!documents.value.some((document) => document.id === id)) {
+    return;
+  }
+  clearMessages();
+  if (id !== activeDocumentId.value) {
+    selectDocument(id);
+    await nextTick();
+  }
+  imageExportDocumentId.value = id;
+  imageExportModalOpen.value = true;
+  await renderImageExport();
+}
+
+function handleExportMenuClick(
+  documentId: string,
+  event: { key: string | number },
+): void {
+  if (String(event.key) === "image") {
+    void handleExportImage(documentId);
+    return;
+  }
+  handleExport(documentId);
+}
+
+function updateImageExportResolution(event: {
+  target: { value: string | number };
+}): void {
+  const key = String(event.target.value) as ScheduleImageResolutionKey;
+  if (
+    !SCHEDULE_IMAGE_RESOLUTIONS.some((resolution) => resolution.key === key)
+  ) {
+    return;
+  }
+  imageExportResolution.value = key;
+  if (imageExportModalOpen.value) {
+    void renderImageExport();
+  }
+}
+
+function downloadImageExport(): void {
+  if (!imageExportDataUrl.value) {
+    return;
+  }
+  const stored = documents.value.find(
+    (document) => document.id === imageExportDocumentId.value,
+  );
+  const title = (stored?.document.title?.trim() || "排班模拟器").replace(
+    /[\\/:*?"<>|]/g,
+    "_",
+  );
+  const link = window.document.createElement("a");
+  link.href = imageExportDataUrl.value;
+  link.download = `${title}-${imageExportResolutionValue().key}.png`;
+  link.click();
+}
+
 function isStoredDocument(document: StoredDocument): boolean {
   return document.id === activeDocumentId.value;
 }
 
 watch(activeDocumentId, () => {
+  if (
+    imageExportModalOpen.value &&
+    imageExportDocumentId.value !== activeDocumentId.value
+  ) {
+    closeImageExport();
+  }
   draftOperatorNames.value = {};
   editingOperatorSlot.value = undefined;
   closeOperatorPicker();
@@ -6612,6 +6758,58 @@ watch(showScheduleSidebar, () => {
       <p>确认将该排班表中所有干员恢复到默认练度？</p>
     </a-modal>
 
+    <a-modal
+      v-model:open="imageExportModalOpen"
+      :footer="null"
+      :title="`排班表图片预览 · ${imageExportResolutionValue().label}`"
+      :width="1180"
+      wrap-class-name="simulator-image-export-modal"
+      @cancel="closeImageExport"
+    >
+      <div class="simulator-image-export-toolbar">
+        <a-radio-group
+          :value="imageExportResolution"
+          button-style="solid"
+          @change="updateImageExportResolution"
+        >
+          <a-radio-button
+            v-for="resolution in SCHEDULE_IMAGE_RESOLUTIONS"
+            :key="resolution.key"
+            :value="resolution.key"
+          >
+            {{ resolution.label }}
+          </a-radio-button>
+        </a-radio-group>
+        <a-button
+          :disabled="!imageExportDataUrl || imageExportLoading"
+          type="primary"
+          @click="downloadImageExport"
+        >
+          <template #icon><DownloadOutlined /></template>
+          下载 PNG
+        </a-button>
+      </div>
+      <a-alert
+        v-if="imageExportError"
+        :message="imageExportError"
+        show-icon
+        type="error"
+      />
+      <div class="simulator-image-export-preview">
+        <a-spin :spinning="imageExportLoading">
+          <img
+            v-if="imageExportDataUrl"
+            :src="imageExportDataUrl"
+            alt="排班表图片预览"
+          />
+          <a-empty
+            v-else-if="!imageExportLoading && !imageExportError"
+            description="暂无图片预览"
+          />
+        </a-spin>
+      </div>
+    </a-modal>
+
     <div
       :class="[
         'simulator-layout',
@@ -6726,15 +6924,23 @@ watch(showScheduleSidebar, () => {
               >
                 <template #icon><DeleteOutlined /></template>
               </a-button>
-              <a-button
-                aria-label="导出排班表 JSON"
-                size="small"
-                title="导出排班表 JSON"
-                type="text"
-                @click.stop="handleExport(document.id)"
-              >
-                <template #icon><DownloadOutlined /></template>
-              </a-button>
+              <a-dropdown :trigger="['click']">
+                <a-button
+                  aria-label="导出排班表"
+                  size="small"
+                  title="选择导出格式"
+                  type="text"
+                  @click.stop
+                >
+                  <template #icon><DownloadOutlined /></template>
+                </a-button>
+                <template #overlay>
+                  <a-menu @click="handleExportMenuClick(document.id, $event)">
+                    <a-menu-item key="maa">导出 Maa JSON</a-menu-item>
+                    <a-menu-item key="image">图片预览</a-menu-item>
+                  </a-menu>
+                </template>
+              </a-dropdown>
             </div>
           </div>
           <a-empty
@@ -7101,6 +7307,9 @@ watch(showScheduleSidebar, () => {
           <a-col
             v-for="row in facilityRows"
             :key="row.key"
+            :data-facility-key="row.key"
+            :data-facility-type="row.type"
+            :data-fiammetta="row.isFiammetta ? 'true' : undefined"
             :style="facilityColumnStyle(row)"
             class="simulator-facility-column"
           >
@@ -7180,6 +7389,13 @@ watch(showScheduleSidebar, () => {
                             slot.slotIndex,
                           ).key
                         "
+                        :data-export-original-name="
+                          slotCommittedName(row, plan, slot)
+                        "
+                        :data-export-plan-index="planIndex"
+                        :data-export-position="slot.entry.position"
+                        :data-export-room-type="row.type"
+                        :data-export-slot-index="slot.slotIndex"
                         :class="{
                           'simulator-slot--selected': isOperatorSlotSelected(
                             operatorSlotAddress(
