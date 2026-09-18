@@ -1,0 +1,554 @@
+{
+  "version": 1,
+  "settings": {
+    "avatar": {
+      "showProfession": false,
+      "showEliteLevel": false,
+      "showRarity": false,
+      "showName": true
+    },
+    "efficiencyDisplay": "both",
+    "jieCalculation": "max",
+    "sortColumnId": "efficiency-24",
+    "sortDirection": "desc",
+    "defaultControlOperators": ["Lancet-2", "Castle-3", "12F", "杜林", "夜刀"]
+  },
+  "columns": [
+    {
+      "id": "operators",
+      "label": "干员",
+      "kind": "operators"
+    },
+    {
+      "id": "storage",
+      "label": "仓库容量",
+      "kind": "storageDelta",
+      "unit": ""
+    },
+    {
+      "id": "order",
+      "label": "订单上限",
+      "kind": "orderDelta",
+      "unit": ""
+    },
+    {
+      "id": "efficiency-12",
+      "label": "12小时效率",
+      "kind": "efficiency",
+      "hours": 12,
+      "unit": "%"
+    },
+    {
+      "id": "efficiency-24",
+      "label": "24小时效率",
+      "kind": "efficiency",
+      "hours": 24,
+      "unit": "%"
+    },
+    {
+      "id": "efficiency-36-923",
+      "label": "24/0.65小时效率",
+      "kind": "efficiency",
+      "hours": 36.92307692307692,
+      "unit": "%"
+    },
+    {
+      "id": "note",
+      "label": "备注",
+      "kind": "note"
+    }
+  ],
+  "groups": [
+    {
+      "id": "red-cloud",
+      "name": "红云组",
+      "facility": "manufacture",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "红云",
+        "elite": 2
+      },
+      "baselineEfficiency": 16,
+      "columnIds": [
+        "operators",
+        "storage",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "red-cloud-01",
+          "operators": [{ "name": "稀音", "elite": 2 }],
+          "product": "中级作战记录"
+        },
+        {
+          "id": "red-cloud-02",
+          "operators": [
+            { "name": "酒神", "elite": 2 },
+            { "name": "Miss.Christine", "elite": 2 }
+          ],
+          "product": "中级作战记录"
+        },
+        {
+          "id": "red-cloud-03",
+          "operators": [
+            { "name": "溯光星源", "elite": 2 },
+            { "name": "娜斯提", "elite": 2 }
+          ],
+          "controlOperators": [
+            { "name": "白面鸮", "room": "control", "elite": 2 },
+            { "name": "赫默", "room": "control", "elite": 2 },
+            { "name": "12F", "room": "control" },
+            { "name": "杜林", "room": "control" },
+            { "name": "多萝西", "room": "control", "elite": 2 }
+          ],
+          "product": "赤金",
+          "note": "4名莱茵生命干员"
+        },
+        {
+          "id": "red-cloud-04",
+          "operators": [{ "name": "帕拉斯", "elite": 2 }]
+        },
+        {
+          "id": "red-cloud-05",
+          "operators": [{ "name": "刻俄柏", "elite": 2 }]
+        },
+        {
+          "id": "red-cloud-06",
+          "operators": [
+            { "name": "溯光星源", "elite": 2 },
+            { "name": "多萝西", "elite": 2 }
+          ],
+          "product": "赤金"
+        },
+        {
+          "id": "red-cloud-07",
+          "operators": [{ "name": "娜仁图亚", "elite": 2 }],
+          "extraRooms": [{ "type": "dormitory", "level": 3, "count": 4 }],
+          "product": "赤金",
+          "note": "4间满级宿舍"
+        },
+        {
+          "id": "red-cloud-08",
+          "operators": [{ "name": "圣约送葬人", "elite": 2 }]
+        },
+        { "id": "red-cloud-09", "operators": [{ "name": "裁度", "elite": 2 }] },
+        { "id": "red-cloud-10", "operators": [{ "name": "铅踝", "elite": 2 }] },
+        { "id": "red-cloud-11", "operators": [{ "name": "洋灰", "elite": 2 }] },
+        { "id": "red-cloud-12", "operators": [{ "name": "火神", "elite": 2 }] },
+        { "id": "red-cloud-13", "operators": [{ "name": "石棉", "elite": 2 }] },
+        {
+          "id": "red-cloud-14",
+          "operators": [{ "name": "泰拉大陆调查团", "level": 30 }],
+          "controlOperators": [
+            { "name": "麒麟R夜刀", "room": "control", "elite": 2 },
+            { "name": "火龙S黑角", "room": "control", "elite": 2 },
+            { "name": "12F", "room": "control" },
+            { "name": "杜林", "room": "control" },
+            { "name": "夜刀", "room": "control" }
+          ],
+          "product": "中级作战记录",
+          "note": "怪物猎人干员进驻中枢"
+        },
+        { "id": "red-cloud-15", "operators": [{ "name": "豆苗", "elite": 1 }] },
+        {
+          "id": "red-cloud-16",
+          "operators": [{ "name": "黑角" }, { "name": "蛇屠箱" }]
+        },
+        { "id": "red-cloud-17", "operators": [{ "name": "卡达", "elite": 1 }] },
+        { "id": "red-cloud-18", "operators": [{ "name": "米格鲁" }] },
+        {
+          "id": "red-cloud-19",
+          "operators": [{ "name": "清道夫", "elite": 1 }]
+        },
+        { "id": "red-cloud-20", "operators": [{ "name": "贝娜" }] }
+      ]
+    },
+    {
+      "id": "bubble",
+      "name": "泡泡组",
+      "facility": "manufacture",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "泡泡",
+        "elite": 2
+      },
+      "baselineEfficiency": 16,
+      "columnIds": [
+        "operators",
+        "storage",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        { "id": "bubble-01", "operators": [{ "name": "火神", "elite": 2 }] },
+        {
+          "id": "bubble-02",
+          "operators": [
+            { "name": "溯光星源", "elite": 2 },
+            { "name": "Miss.Christine", "elite": 2 }
+          ],
+          "product": "中级作战记录"
+        },
+        {
+          "id": "bubble-03",
+          "operators": [
+            { "name": "溯光星源", "elite": 2 },
+            { "name": "娜斯提", "elite": 2 }
+          ],
+          "controlOperators": [
+            { "name": "白面鸮", "room": "control", "elite": 2 },
+            { "name": "赫默", "room": "control", "elite": 2 },
+            { "name": "12F", "room": "control" },
+            { "name": "杜林", "room": "control" },
+            { "name": "多萝西", "room": "control", "elite": 2 }
+          ],
+          "product": "赤金",
+          "note": "4名莱茵生命干员"
+        },
+        {
+          "id": "bubble-04",
+          "operators": [{ "name": "稀音", "elite": 2 }],
+          "product": "中级作战记录"
+        },
+        {
+          "id": "bubble-05",
+          "operators": [
+            { "name": "溯光星源", "elite": 2 },
+            { "name": "多萝西", "elite": 2 }
+          ],
+          "product": "赤金"
+        },
+        {
+          "id": "bubble-06",
+          "operators": [{ "name": "圣约送葬人", "elite": 2 }]
+        },
+        { "id": "bubble-07", "operators": [{ "name": "帕拉斯", "elite": 2 }] },
+        { "id": "bubble-08", "operators": [{ "name": "刻俄柏", "elite": 2 }] },
+        { "id": "bubble-09", "operators": [{ "name": "裁度", "elite": 2 }] },
+        { "id": "bubble-10", "operators": [{ "name": "贝娜" }] },
+        {
+          "id": "bubble-11",
+          "operators": [{ "name": "娜仁图亚", "elite": 2 }],
+          "extraRooms": [{ "type": "dormitory", "level": 3, "count": 4 }],
+          "product": "赤金",
+          "note": "4间满级宿舍"
+        },
+        { "id": "bubble-12", "operators": [{ "name": "石棉", "elite": 2 }] },
+        { "id": "bubble-13", "operators": [{ "name": "铅踝", "elite": 2 }] },
+        { "id": "bubble-14", "operators": [{ "name": "洋灰", "elite": 2 }] },
+        {
+          "id": "bubble-15",
+          "operators": [{ "name": "泰拉大陆调查团", "level": 30 }],
+          "product": "中级作战记录"
+        },
+        { "id": "bubble-16", "operators": [{ "name": "豆苗", "elite": 1 }] },
+        {
+          "id": "bubble-17",
+          "operators": [{ "name": "黑角" }, { "name": "蛇屠箱" }]
+        },
+        { "id": "bubble-18", "operators": [{ "name": "米格鲁" }] },
+        { "id": "bubble-19", "operators": [{ "name": "卡达", "elite": 1 }] },
+        { "id": "bubble-20", "operators": [{ "name": "清道夫", "elite": 1 }] }
+      ]
+    },
+    {
+      "id": "jie-0",
+      "name": "精0孑组（满级贸易站，40%，递减）",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "孑",
+        "elite": 0
+      },
+      "baselineEfficiency": 40,
+      "columnIds": [
+        "operators",
+        "order",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        { "id": "jie-0-01", "operators": [{ "name": "泰拉大陆调查团" }] },
+        {
+          "id": "jie-0-02",
+          "operators": [
+            { "name": "赫德雷", "elite": 2, "room": "control" },
+            { "name": "维什戴尔", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "赫德雷", "room": "control", "elite": 2 },
+            { "name": "维什戴尔", "room": "control", "elite": 2 },
+            { "name": "Lancet-2", "room": "control" },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-0-03",
+          "operators": [
+            { "name": "何夜川", "elite": 2 },
+            { "name": "贝洛内", "elite": 2 }
+          ]
+        },
+        {
+          "id": "jie-0-04",
+          "operators": [
+            { "name": "焰狐龙梓兰", "elite": 2 },
+            { "name": "雷狼龙S空爆", "elite": 2 }
+          ]
+        },
+        { "id": "jie-0-05", "operators": [{ "name": "琵盐", "elite": 2 }] },
+        {
+          "id": "jie-0-06",
+          "operators": [
+            { "name": "拉普兰德", "elite": 2 },
+            { "name": "德克萨斯", "elite": 2 }
+          ]
+        },
+        { "id": "jie-0-07", "operators": [{ "name": "齐尔查克", "elite": 2 }] },
+        {
+          "id": "jie-0-08",
+          "operators": [
+            { "name": "衡沙", "elite": 2 },
+            { "name": "拜松", "elite": 2 },
+            { "name": "可颂", "elite": 2 }
+          ]
+        },
+        {
+          "id": "jie-0-09",
+          "operators": [
+            { "name": "远山" },
+            { "name": "梓兰", "elite": 1 },
+            { "name": "玫兰莎" }
+          ]
+        },
+        {
+          "id": "jie-0-10",
+          "operators": [
+            { "name": "涤火杰西卡" },
+            { "name": "四月", "elite": 2 }
+          ]
+        },
+        {
+          "id": "jie-0-11",
+          "operators": [
+            { "name": "桃金娘" },
+            { "name": "暗索", "elite": 1 },
+            { "name": "史都华德" }
+          ]
+        },
+        {
+          "id": "jie-0-12",
+          "operators": [
+            { "name": "剑羽", "elite": 1 },
+            { "name": "黑角", "level": 30 }
+          ]
+        },
+        {
+          "id": "jie-0-13",
+          "operators": [
+            { "name": "银灰", "elite": 2 },
+            { "name": "铅踝", "elite": 2, "room": "control" },
+            { "name": "琳琅诗怀雅", "elite": 2, "room": "control" },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "银灰", "room": "control", "elite": 2 },
+            { "name": "铅踝", "room": "control", "elite": 2 },
+            { "name": "琳琅诗怀雅", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-0-14",
+          "operators": [
+            { "name": "银灰", "elite": 2 },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "银灰", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Lancet-2", "room": "control" },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-0-15",
+          "operators": [
+            { "name": "塞雷娅", "elite": 2 },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "塞雷娅", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Lancet-2", "room": "control" },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        { "id": "jie-0-16", "operators": [{ "name": "银灰", "elite": 2 }] },
+        {
+          "id": "jie-0-17",
+          "operators": [
+            { "name": "角峰" },
+            { "name": "讯使" },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "角峰", "room": "control" },
+            { "name": "讯使", "room": "control" },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        { "id": "jie-0-18", "operators": [{ "name": "塞雷娅", "elite": 2 }] },
+        {
+          "id": "jie-0-19",
+          "operators": [{ "name": "角峰" }, { "name": "讯使" }]
+        }
+      ]
+    },
+    {
+      "id": "jie-1",
+      "name": "精1孑组（满级贸易站，40%）",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "孑",
+        "elite": 1
+      },
+      "baselineEfficiency": 40,
+      "columnIds": [
+        "operators",
+        "order",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "jie-1-01",
+          "operators": [
+            { "name": "涤火杰西卡" },
+            { "name": "四月", "elite": 2 }
+          ]
+        },
+        {
+          "id": "jie-1-02",
+          "operators": [
+            { "name": "桃金娘" },
+            { "name": "暗索", "elite": 1 },
+            { "name": "史都华德" }
+          ]
+        },
+        {
+          "id": "jie-1-03",
+          "operators": [
+            { "name": "剑羽", "elite": 1 },
+            { "name": "黑角", "level": 30 }
+          ]
+        },
+        {
+          "id": "jie-1-04",
+          "operators": [
+            { "name": "银灰", "elite": 2 },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "银灰", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Lancet-2", "room": "control" },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-1-05",
+          "operators": [
+            { "name": "银灰", "elite": 2 },
+            { "name": "琳琅诗怀雅", "elite": 2, "room": "control" },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "银灰", "room": "control", "elite": 2 },
+            { "name": "琳琅诗怀雅", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-1-06",
+          "operators": [
+            { "name": "银灰", "elite": 2 },
+            { "name": "铅踝", "elite": 2, "room": "control" },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "银灰", "room": "control", "elite": 2 },
+            { "name": "铅踝", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-1-07",
+          "operators": [
+            { "name": "塞雷娅", "elite": 2 },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "塞雷娅", "room": "control", "elite": 2 },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Lancet-2", "room": "control" },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        {
+          "id": "jie-1-08",
+          "operators": [
+            { "name": "角峰" },
+            { "name": "讯使" },
+            { "name": "灵知", "elite": 2, "room": "control" }
+          ],
+          "controlOperators": [
+            { "name": "角峰", "room": "control" },
+            { "name": "讯使", "room": "control" },
+            { "name": "灵知", "room": "control", "elite": 2 },
+            { "name": "Castle-3", "room": "control" },
+            { "name": "12F", "room": "control" }
+          ],
+          "note": "中枢"
+        },
+        { "id": "jie-1-09", "operators": [{ "name": "银灰", "elite": 2 }] },
+        { "id": "jie-1-10", "operators": [{ "name": "塞雷娅", "elite": 2 }] },
+        {
+          "id": "jie-1-11",
+          "operators": [{ "name": "角峰" }, { "name": "讯使" }]
+        }
+      ]
+    }
+  ]
+}
