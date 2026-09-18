@@ -2063,16 +2063,6 @@ a {
   overflow: hidden;
 }
 
-.simulator-facility-queue-description {
-  block-size: var(--simulator-queue-description-height, 21px);
-  overflow: hidden;
-  color: #5d716f;
-  font-size: 11px;
-  line-height: 15px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .simulator-facility-queue-content {
   display: grid;
   min-width: 0;

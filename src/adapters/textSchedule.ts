@@ -27,7 +27,6 @@ interface ParsedOperator {
 
 interface ParsedQueue {
   operators: ParsedOperator[];
-  description: string;
 }
 
 interface ParsedStation {
@@ -106,7 +105,7 @@ function parseOperatorToken(token: string): ParsedOperator {
 }
 
 function parseQueue(text: string): ParsedQueue {
-  const [operatorText, ...descriptionParts] = text.split("|");
+  const operatorText = text.split("|", 1)[0] ?? "";
   const operators = (operatorText ?? "")
     .trim()
     .split(/\s+/)
@@ -114,7 +113,6 @@ function parseQueue(text: string): ParsedQueue {
     .map(parseOperatorToken);
   return {
     operators,
-    description: descriptionParts.join("|").trim(),
   };
 }
 
@@ -244,9 +242,6 @@ function appendRoom(
   if (product) {
     room.product = product;
   }
-  if (queue?.description) {
-    room.description = queue.description;
-  }
   const rooms = Array.isArray(plan.rooms[type])
     ? [...(plan.rooms[type] as RoomAssignment[])]
     : [];
@@ -278,7 +273,6 @@ function buildPlans(
           "processing",
           {
             operators: operators.slice(0, 1),
-            description: queue?.description ?? "",
           },
           undefined,
         );
@@ -287,7 +281,6 @@ function buildPlans(
           "training",
           {
             operators: operators.slice(1),
-            description: queue?.description ?? "",
           },
           undefined,
         );

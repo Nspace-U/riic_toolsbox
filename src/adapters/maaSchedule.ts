@@ -75,6 +75,22 @@ function mapMaaProducts(
   });
 }
 
+function removeRoomDescriptions(document: ScheduleDocument): void {
+  document.plans.forEach((plan) => {
+    ROOM_KEYS.forEach((type) => {
+      const rooms = plan.rooms[type];
+      if (!Array.isArray(rooms)) {
+        return;
+      }
+      rooms.forEach((room) => {
+        if (isRecord(room)) {
+          delete room.description;
+        }
+      });
+    });
+  });
+}
+
 function fiammettaTarget(value: unknown): string | undefined {
   if (
     !isRecord(value) ||
@@ -155,6 +171,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
     layout: resolvedLayout,
     plans: resolvedPlans,
   };
+  removeRoomDescriptions(document);
   mapMaaProducts(document, MAA_PRODUCT_TO_INTERNAL);
   importFiammetta(document);
   applyDocumentDefaults(document);
@@ -288,10 +305,13 @@ export function serializeMaaSchedule(
         return;
       }
       rooms.forEach((room) => {
-        if (!isRecord(room) || !Array.isArray(room.operators)) {
+        if (!isRecord(room)) {
           return;
         }
         delete room.description;
+        if (!Array.isArray(room.operators)) {
+          return;
+        }
         const operators = room.operators.filter(Boolean);
         if (operators.length > 0) {
           room.operators = operators;

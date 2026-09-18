@@ -89,7 +89,7 @@ EXP 52.2k | 贵金属 46.6k
   );
   assert.equal(
     parsed.document.plans[0].rooms.manufacture[0].description,
-    "105%",
+    undefined,
   );
 
   const textProducts = textModule.parseTextSchedule(
@@ -204,8 +204,26 @@ EXP 0
   );
   assert.equal(
     maaParsed.document.plans[0].rooms.trading[0].description,
-    "Maa 描述",
+    undefined,
   );
+  const maaDescriptionSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule({
+      layout: [
+        { type: "trading", level: 3 },
+        { type: "manufacture", level: 3 },
+      ],
+      plans: [
+        {
+          rooms: {
+            trading: [{ operators: ["阿米娅"], description: "Maa 描述" }],
+            manufacture: [{ description: "空房间描述" }],
+          },
+        },
+      ],
+    }),
+  ).plans[0].rooms;
+  assert.equal(maaDescriptionSerialized.trading[0].description, undefined);
+  assert.equal(maaDescriptionSerialized.manufacture[0].description, undefined);
 
   const maaProducts = {
     layout: [

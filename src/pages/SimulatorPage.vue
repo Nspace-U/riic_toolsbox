@@ -389,13 +389,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 type SimulatorEditSetting =
-  "layout" | "queue" | "product" | "showFacilityDescriptions";
+  "layout" | "queue" | "product";
 
 interface SimulatorEditSettings {
   layout: boolean;
   queue: boolean;
   product: boolean;
-  showFacilityDescriptions: boolean;
 }
 
 interface UpdateCurrentOptions {
@@ -467,7 +466,6 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   layout: true,
   queue: true,
   product: true,
-  showFacilityDescriptions: false,
 };
 
 const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
@@ -565,10 +563,6 @@ function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
       typeof candidate.product === "boolean"
         ? candidate.product
         : DEFAULT_SIMULATOR_EDIT_SETTINGS.product,
-    showFacilityDescriptions:
-      typeof candidate.showFacilityDescriptions === "boolean"
-        ? candidate.showFacilityDescriptions
-        : DEFAULT_SIMULATOR_EDIT_SETTINGS.showFacilityDescriptions,
   };
 }
 
@@ -3025,7 +3019,6 @@ const FACILITY_TITLE_TAG_PRESETS: [
 ];
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
-const QUEUE_DESCRIPTION_HEIGHT = 21;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
 const EFFICIENCY_SUMMARY_MAX_FONT_SIZE = 16;
 const EFFICIENCY_SUMMARY_MIN_FONT_SIZE = 8;
@@ -3054,15 +3047,7 @@ const facilityGridStyle = computed(() => ({
   "--simulator-queue-min-height": `${
     simulatorSlotSize.value +
     slotNameBandHeight.value +
-    QUEUE_MIN_HEIGHT_EXTRA +
-    (currentSimulatorEditSettings.value.showFacilityDescriptions
-      ? QUEUE_DESCRIPTION_HEIGHT
-      : 0)
-  }px`,
-  "--simulator-queue-description-height": `${
-    currentSimulatorEditSettings.value.showFacilityDescriptions
-      ? QUEUE_DESCRIPTION_HEIGHT
-      : 0
+    QUEUE_MIN_HEIGHT_EXTRA
   }px`,
 }));
 
@@ -5919,12 +5904,6 @@ function handleCreate(): void {
   successMessage.value = "已新建排班表。";
 }
 
-function roomDescriptions(row: FacilityRow, plan: Plan): string[] {
-  return roomEntries(row, plan)
-    .map(({ room }) => room?.description?.trim())
-    .filter((description): description is string => Boolean(description));
-}
-
 function updateImportedLayout(nextLayout: LayoutEntry[]): void {
   const draft = importDraft.value;
   if (!draft) {
@@ -6123,7 +6102,6 @@ function disableImportedEditSettings(documentId: string): void {
       layout: false,
       queue: false,
       product: false,
-      showFacilityDescriptions: false,
     },
   };
   simulatorEditSettings.value = nextSettings;
@@ -6837,18 +6815,6 @@ watch(showScheduleSidebar, () => {
             >
               编辑产物
             </a-checkbox>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.showFacilityDescriptions"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting(
-                    'showFacilityDescriptions',
-                    event.target.checked,
-                  )
-              "
-            >
-              显示组合描述
-            </a-checkbox>
             <a-button
               size="small"
               title="恢复该排班表中所有干员的默认练度"
@@ -7167,14 +7133,6 @@ watch(showScheduleSidebar, () => {
                       )
                     "
                   >
-                    <div
-                      v-if="
-                        currentSimulatorEditSettings.showFacilityDescriptions
-                      "
-                      class="simulator-facility-queue-description"
-                    >
-                      {{ roomDescriptions(row, plan).join(" · ") }}
-                    </div>
                     <div class="simulator-slot-grid" :style="slotGridStyle">
                       <div
                         v-for="slot in slotRefs(row)"
