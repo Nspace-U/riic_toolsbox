@@ -2314,6 +2314,14 @@ a {
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.18);
 }
 
+.operator-picker-panel--inline {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: 360px;
+  box-shadow: none;
+}
+
 .simulator-operator-picker-heading {
   display: flex;
   align-items: baseline;

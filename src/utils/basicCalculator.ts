@@ -8,6 +8,7 @@ import type {
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
+import type { OperatorProgressionProfile } from "@/types/operatorProgression";
 import { calculateEfficiency } from "@/utils/efficiency/calculate";
 
 export type BasicCalculatorColumnKind =
@@ -82,6 +83,24 @@ export interface BasicCalculatorSettings {
   defaultControlOperators: string[];
 }
 
+export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
+  avatar: {
+    showProfession: false,
+    showEliteLevel: false,
+    showRarity: false,
+    showName: true,
+  },
+  efficiencyDisplay: "both",
+  jieCalculation: "max",
+  sortColumnId: "efficiency-24",
+  sortDirection: "desc",
+  defaultControlOperators: ["Lancet-2", "Castle-3", "12F", "杜林", "夜刀"],
+};
+
+export type BasicCalculatorAsset = Omit<BasicCalculatorConfig, "settings"> & {
+  settings?: never;
+};
+
 export interface BasicCalculatorConfig {
   version: number;
   settings: BasicCalculatorSettings;
@@ -119,6 +138,34 @@ export interface BasicCalculatorEvaluation {
   visibleFacilityIndex: number;
   workOperators: BasicCalculatorOperator[];
   participants: BasicCalculatorOperator[];
+}
+
+export interface BasicCalculatorCalculationOptions {
+  progressionProfile?: OperatorProgressionProfile;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
+}
+
+export interface BasicCalculatorRowCalculation {
+  efficiency: Record<string, BasicCalculatorEfficiencyValue>;
+  storageDelta?: number;
+  orderDelta?: number;
+}
+
+export interface BasicCalculatorWorkerRequest {
+  type: "calculate";
+  requestId: number;
+  catalog: EfficiencyCatalog;
+  groups: BasicCalculatorGroup[];
+  columns: BasicCalculatorColumn[];
+  settings: BasicCalculatorSettings;
+  progressionProfile?: OperatorProgressionProfile;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
+}
+
+export interface BasicCalculatorWorkerResponse {
+  requestId: number;
+  results?: Record<string, BasicCalculatorRowCalculation>;
+  error?: string;
 }
 
 export interface BasicCalculatorEfficiencyValue {
@@ -160,6 +207,15 @@ export function cloneBasicCalculatorConfig(
   config: BasicCalculatorConfig,
 ): BasicCalculatorConfig {
   return clone(config);
+}
+
+export function createBasicCalculatorConfig(
+  asset: BasicCalculatorAsset,
+): BasicCalculatorConfig {
+  return {
+    ...clone(asset),
+    settings: clone(DEFAULT_BASIC_CALCULATOR_SETTINGS),
+  };
 }
 
 export function applyBasicCalculatorPatch(
@@ -518,6 +574,7 @@ export function evaluateBasicCalculatorRow(
   row: BasicCalculatorRow,
   durationHours: number,
   settings: BasicCalculatorSettings,
+  options: BasicCalculatorCalculationOptions = {},
 ): BasicCalculatorEvaluation {
   const document = buildBasicCalculatorSchedule(
     group,
@@ -525,7 +582,11 @@ export function evaluateBasicCalculatorRow(
     durationHours,
     settings,
   );
-  const result = calculateEfficiencyForBasicCalculator(document, catalog);
+  const result = calculateEfficiencyForBasicCalculator(
+    document,
+    catalog,
+    options,
+  );
   const core = row.coreOperator ?? group.coreOperator;
   const visibleRow: BasicCalculatorRow = {
     ...row,
@@ -541,6 +602,7 @@ export function evaluateBasicCalculatorRow(
   const visibleResult = calculateEfficiencyForBasicCalculator(
     visibleDocument,
     catalog,
+    options,
   );
   const facilityIndex =
     result.plans[0]?.facilities.findIndex(
@@ -563,11 +625,56 @@ export function evaluateBasicCalculatorRow(
   };
 }
 
+export function calculateBasicCalculatorRowValues(
+  catalog: EfficiencyCatalog,
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+  columns: BasicCalculatorColumn[],
+  settings: BasicCalculatorSettings,
+  options: BasicCalculatorCalculationOptions = {},
+): BasicCalculatorRowCalculation {
+  const hours = new Set(
+    columns
+      .filter((column) => column.kind === "efficiency")
+      .map((column) => column.hours ?? 24),
+  );
+  hours.add(24);
+  const efficiency: Record<string, BasicCalculatorEfficiencyValue> = {};
+  let evaluation24: BasicCalculatorEvaluation | undefined;
+  [...hours].forEach((duration) => {
+    const evaluation = evaluateBasicCalculatorRow(
+      catalog,
+      group,
+      row,
+      duration,
+      settings,
+      options,
+    );
+    if (duration === 24) evaluation24 = evaluation;
+    efficiency[String(duration)] = basicCalculatorEfficiencyValue(
+      evaluation,
+      group,
+    );
+  });
+  const facility = evaluation24
+    ? visibleFacilityResultOf(evaluation24)
+    : undefined;
+  return {
+    efficiency,
+    storageDelta: facility?.attributes.storageCap?.skill ?? 0,
+    orderDelta: facility?.attributes.orderLimit?.skill ?? 0,
+  };
+}
+
 function calculateEfficiencyForBasicCalculator(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
+  options: BasicCalculatorCalculationOptions,
 ): EfficiencyResult {
   return calculateEfficiency(document, catalog, {
+    dormitoryDefaultIncludesMoodRecovery:
+      options.dormitoryDefaultIncludesMoodRecovery,
+    progressionProfile: options.progressionProfile,
     treatSkillsAsUnlocked: false,
   });
 }

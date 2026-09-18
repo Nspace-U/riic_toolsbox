@@ -2,7 +2,6 @@ import type { BaseSkillTerms } from "@/types/baseData";
 import type { EfficiencyCatalog } from "@/types/efficiency";
 
 import { groupMembers } from "@/utils/efficiency/catalog";
-import { SPECIAL_OPERATOR_ALIASES } from "@/utils/specialOperatorAliases";
 
 const PERCENTAGE_OPERATOR_PATTERN = /^\d+(?:\.\d+)?%$/;
 
@@ -28,12 +27,8 @@ export function termKeysForSpecialOperator(
 
 function termKeysForTerms(name: string, terms: SpecialOperatorTerms): string[] {
   const trimmedName = name.trim();
-  const target = SPECIAL_OPERATOR_ALIASES[trimmedName] ?? trimmedName;
   return Object.entries(terms)
-    .filter(
-      ([key, term]) =>
-        key === target || term.name === target || term.name === trimmedName,
-    )
+    .filter(([key, term]) => key === trimmedName || term.name === trimmedName)
     .map(([key]) => key);
 }
 
@@ -55,11 +50,7 @@ export function isKnownSpecialOperator(
   name: string,
   terms: SpecialOperatorTerms = {},
 ): boolean {
-  return (
-    isPercentageOperator(name) ||
-    termKeysForTerms(name, terms).length > 0 ||
-    Object.prototype.hasOwnProperty.call(SPECIAL_OPERATOR_ALIASES, name)
-  );
+  return isPercentageOperator(name) || termKeysForTerms(name, terms).length > 0;
 }
 
 export function specialOperatorAvatarLabel(
