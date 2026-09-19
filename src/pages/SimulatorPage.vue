@@ -238,6 +238,7 @@ interface DailyOutputQueueDetail {
   plan: EfficiencyPlanResult;
   planIndex: number;
   products: DailyOutputProductDetail[];
+  materials: DailyOutputMaterialDetail[];
   sanity: SanityResult;
 }
 
@@ -1176,6 +1177,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
   return result.plans
     .map((plan, planIndex) => {
       const products = new Map<string, DailyOutputProductDetail>();
+      const queueMaterials = new Map<string, DailyOutputMaterialDetail>();
       const queueAmounts: SanityResourceAmounts = {};
       plan.facilities.forEach((facility) => {
         const production = facility.production;
@@ -1199,6 +1201,16 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
             dailyAmount: (amount * plan.durationHours * 24) / result.dailyHours,
             queueTotal: amount * plan.durationHours,
           }));
+        materials.forEach((material) => {
+          const total = queueMaterials.get(material.material) ?? {
+            material: material.material,
+            dailyAmount: 0,
+            queueTotal: 0,
+          };
+          total.dailyAmount += material.dailyAmount;
+          total.queueTotal += material.queueTotal;
+          queueMaterials.set(material.material, total);
+        });
         const current = products.get(production.product) ?? {
           product: production.product,
           baseEfficiency: 0,
@@ -1250,6 +1262,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
             (product.selectedOutputPerHour * plan.durationHours * 24) /
             result.dailyHours,
         })),
+        materials: Array.from(queueMaterials.values()),
         sanity: calculateSanityResult(
           Object.fromEntries(
             Object.entries(queueAmounts).map(([resource, amount]) => [
@@ -8631,10 +8644,10 @@ watch(showScheduleSidebar, () => {
                                 >
                                   <span>
                                     {{ facility.label }} · 材料消耗 ·
-                                    {{ resourceLabel(material.material) }} ·
                                     队列折算每日
                                   </span>
                                   <strong>
+                                    {{ resourceLabel(material.material) }}
                                     <SimulatorNumericValue
                                       mode="signed"
                                       :value="material.dailyAmount"
@@ -8643,10 +8656,10 @@ watch(showScheduleSidebar, () => {
                                   </strong>
                                   <span>
                                     {{ facility.label }} · 材料消耗 ·
-                                    {{ resourceLabel(material.material) }} ·
                                     队列时长总消耗
                                   </span>
                                   <strong>
+                                    {{ resourceLabel(material.material) }}
                                     <SimulatorNumericValue
                                       mode="signed"
                                       :value="material.queueTotal"
@@ -8685,6 +8698,39 @@ watch(showScheduleSidebar, () => {
                                 </template>
                               </template>
                             </div>
+                          </div>
+                        </section>
+                        <section
+                          v-if="queue.materials.length"
+                          class="simulator-step-section"
+                        >
+                          <span class="simulator-step-subheading"
+                            >队列材料消耗合计</span
+                          >
+                          <div class="simulator-step-detail-grid">
+                            <template
+                              v-for="material in queue.materials"
+                              :key="`queue-material-${material.material}`"
+                            >
+                              <span>材料消耗 · 队列折算每日</span>
+                              <strong>
+                                {{ resourceLabel(material.material) }}
+                                <SimulatorNumericValue
+                                  mode="signed"
+                                  :value="material.dailyAmount"
+                                  unit="/日"
+                                />/日
+                              </strong>
+                              <span>材料消耗 · 队列时长总消耗</span>
+                              <strong>
+                                {{ resourceLabel(material.material) }}
+                                <SimulatorNumericValue
+                                  mode="signed"
+                                  :value="material.queueTotal"
+                                  :unit="resourceLabel(material.material)"
+                                />
+                              </strong>
+                            </template>
                           </div>
                         </section>
                         <section
