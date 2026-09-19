@@ -13,6 +13,7 @@ import { calculateEfficiency } from "@/utils/efficiency/calculate";
 
 export type BasicCalculatorColumnKind =
   | "operators"
+  | "operatorNames"
   | "storageDelta"
   | "orderDelta"
   | "efficiency"
@@ -50,6 +51,7 @@ export interface BasicCalculatorExtraRoom {
 export interface BasicCalculatorRow {
   id: string;
   operators: BasicCalculatorOperator[];
+  displayOperators?: BasicCalculatorOperator[];
   coreOperator?: BasicCalculatorOperator;
   controlOperators?: BasicCalculatorOperator[];
   product?: string;
@@ -71,10 +73,10 @@ export interface BasicCalculatorGroup {
 
 export interface BasicCalculatorSettings {
   avatar: {
+    showAvatar: boolean;
     showProfession: boolean;
     showEliteLevel: boolean;
     showRarity: boolean;
-    showName: boolean;
   };
   efficiencyDisplay: "first" | "second" | "both";
   jieCalculation: "max" | "integral";
@@ -85,10 +87,10 @@ export interface BasicCalculatorSettings {
 
 export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   avatar: {
+    showAvatar: true,
     showProfession: false,
     showEliteLevel: false,
     showRarity: false,
-    showName: true,
   },
   efficiencyDisplay: "both",
   jieCalculation: "max",
@@ -269,12 +271,24 @@ export function applyBasicCalculatorPatch(
   });
 
   if (patch.settings) {
+    const avatar = patch.settings.avatar;
     config.settings = {
       ...config.settings,
       ...clone(patch.settings),
       avatar: {
         ...config.settings.avatar,
-        ...(patch.settings.avatar ?? {}),
+        ...(avatar?.showAvatar === undefined
+          ? {}
+          : { showAvatar: avatar.showAvatar }),
+        ...(avatar?.showProfession === undefined
+          ? {}
+          : { showProfession: avatar.showProfession }),
+        ...(avatar?.showEliteLevel === undefined
+          ? {}
+          : { showEliteLevel: avatar.showEliteLevel }),
+        ...(avatar?.showRarity === undefined
+          ? {}
+          : { showRarity: avatar.showRarity }),
       },
     };
   }

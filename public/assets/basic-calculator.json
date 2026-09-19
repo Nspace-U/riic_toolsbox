@@ -7,6 +7,11 @@
       "kind": "operators"
     },
     {
+      "id": "operator-names",
+      "label": "干员名称",
+      "kind": "operatorNames"
+    },
+    {
       "id": "storage",
       "label": "仓库容量",
       "kind": "storageDelta",
@@ -57,6 +62,7 @@
       "baselineEfficiency": 16,
       "columnIds": [
         "operators",
+        "operator-names",
         "storage",
         "efficiency-12",
         "efficiency-24",
@@ -310,6 +316,7 @@
       "baselineEfficiency": 16,
       "columnIds": [
         "operators",
+        "operator-names",
         "storage",
         "efficiency-12",
         "efficiency-24",
@@ -539,6 +546,7 @@
       "baselineEfficiency": 40,
       "columnIds": [
         "operators",
+        "operator-names",
         "order",
         "efficiency-12",
         "efficiency-24",
@@ -894,6 +902,7 @@
       "baselineEfficiency": 40,
       "columnIds": [
         "operators",
+        "operator-names",
         "order",
         "efficiency-12",
         "efficiency-24",

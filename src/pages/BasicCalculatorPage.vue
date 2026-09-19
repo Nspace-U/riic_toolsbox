@@ -54,6 +54,7 @@ import {
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_REPRESENTATIVE_COLORS,
+  roomLevelRange,
 } from "@/utils/schedule";
 import { resolveOperatorProgression } from "@/utils/operatorProgression";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
@@ -137,6 +138,44 @@ const draftWorkNames = computed(() =>
         ?.room === undefined,
   ),
 );
+const draftExtraRoomOptions = computed(() =>
+  extraRoomOptions.filter(
+    (option) => option.value !== rowDraftGroup.value?.facility,
+  ),
+);
+const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
+  () => {
+    const group = rowDraftGroup.value;
+    const row = rowDraft.value;
+    if (!group || !row) return [];
+    const options: BasicCalculatorOperator[] = [
+      ...(row.controlOperators ?? []).map((operator) => ({
+        ...operator,
+        room: "control" as const,
+      })),
+      ...row.operators.filter(
+        (operator) => operator.room && operator.room !== group.facility,
+      ),
+    ];
+    const seen = new Set<string>();
+    return options.flatMap((operator) => {
+      const key = `${operator.name}:${operator.room ?? ""}`;
+      if (seen.has(key)) return [];
+      seen.add(key);
+      return [{ operator, label: displayOperatorLabel(group, operator) }];
+    });
+  },
+);
+const draftDisplayOperatorNames = computed(() => {
+  const row = rowDraft.value;
+  const group = rowDraftGroup.value;
+  if (!row || !group) return new Set<string>();
+  return new Set(
+    (row.displayOperators ?? defaultDisplayOperators(group, row)).map(
+      (operator) => displayOperatorKey(operator),
+    ),
+  );
+});
 const draftPickerProfessionOptions = computed(() =>
   sortProfessionValues(operators.value.map((operator) => operator.profession)),
 );
@@ -199,6 +238,11 @@ const productOptions = computed(() => [
 const extraRoomOptions = Object.entries(ROOM_LABELS)
   .filter(([type]) => type !== "control")
   .map(([value, label]) => ({ value, label }));
+
+interface DraftDisplayOperatorOption {
+  operator: BasicCalculatorOperator;
+  label: string;
+}
 
 function readStoredPatch(): BasicCalculatorPatch | undefined {
   if (typeof window === "undefined") return undefined;
@@ -352,13 +396,86 @@ watch(calculationFingerprint, () => requestCalculations(), { immediate: true });
 
 function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   const columns = (config.value?.columns ?? []).filter(
-    (column) => group.columnIds.includes(column.id) && column.visible !== false,
+    (column) =>
+      group.columnIds.includes(column.id) &&
+      (column.kind === "operatorNames" || column.visible !== false) &&
+      (column.kind !== "operators" || config.value?.settings.avatar.showAvatar),
   );
   return sortBasicCalculatorColumns(columns);
 }
 
 function operatorNames(row: BasicCalculatorRow): string[] {
   return row.operators.map(({ name }) => name);
+}
+
+function displayOperatorKey(operator: BasicCalculatorOperator): string {
+  return `${operator.name}:${operator.room ?? ""}`;
+}
+
+function defaultDisplayOperators(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): BasicCalculatorOperator[] {
+  const operators = [
+    ...(row.controlOperators ?? []).map((operator) => ({
+      ...operator,
+      room: "control" as const,
+    })),
+    ...row.operators.filter(
+      (operator) => operator.room && operator.room !== group.facility,
+    ),
+  ];
+  const seen = new Set<string>();
+  return operators.filter((operator) => {
+    const key = displayOperatorKey(operator);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function displayOperatorLabel(
+  group: BasicCalculatorGroup,
+  operator: BasicCalculatorOperator,
+): string {
+  return operator.room && operator.room !== group.facility
+    ? `${operator.name}（${ROOM_LABELS[operator.room]}）`
+    : operator.name;
+}
+
+function rowDisplayOperators(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): BasicCalculatorOperator[] {
+  return row.displayOperators ?? defaultDisplayOperators(group, row);
+}
+
+function rowVisibleOperators(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): BasicCalculatorOperator[] {
+  const coreName = row.coreOperator?.name ?? group.coreOperator.name;
+  const workOperators = row.operators.filter(
+    (operator) =>
+      operator.name !== coreName &&
+      (!operator.room || operator.room === group.facility),
+  );
+  const workNames = new Set(workOperators.map((operator) => operator.name));
+  return [
+    ...workOperators,
+    ...rowDisplayOperators(group, row).filter(
+      (operator) => !workNames.has(operator.name),
+    ),
+  ];
+}
+
+function operatorNameText(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): string {
+  return rowVisibleOperators(group, row)
+    .map((operator) => displayOperatorLabel(group, operator))
+    .join(" + ");
 }
 
 function productAccent(
@@ -463,14 +580,10 @@ function sortValue(
   column: BasicCalculatorColumn,
 ): string | number | undefined {
   if (column.kind === "operators") {
-    return view.row.operators
-      .filter(
-        (operator) =>
-          operator.name !==
-          (view.row.coreOperator?.name ?? view.group.coreOperator.name),
-      )
-      .map(({ name }) => name)
-      .join("、");
+    return operatorNameText(view.group, view.row);
+  }
+  if (column.kind === "operatorNames") {
+    return operatorNameText(view.group, view.row);
   }
   if (column.kind === "note") return view.row.note ?? "";
   if (
@@ -493,6 +606,9 @@ function columnText(
   view: BasicCalculatorRowView,
   column: BasicCalculatorColumn,
 ): string {
+  if (column.kind === "operatorNames") {
+    return operatorNameText(view.group, view.row);
+  }
   if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
     return value === undefined ? "—" : formatNumber(value);
@@ -527,6 +643,35 @@ function updateAvatarSetting(
   updateConfig((draft) => {
     draft.settings.avatar[key] = value;
   });
+}
+
+function toggleDraftDisplayOperator(
+  operator: BasicCalculatorOperator,
+  checked: boolean,
+): void {
+  const row = rowDraft.value;
+  const group = rowDraftGroup.value;
+  if (!row || !group) return;
+  const selected = new Map(
+    (row.displayOperators ?? defaultDisplayOperators(group, row)).map(
+      (item) => [displayOperatorKey(item), item],
+    ),
+  );
+  const key = displayOperatorKey(operator);
+  if (checked) selected.set(key, { ...operator });
+  else selected.delete(key);
+  row.displayOperators = [...selected.values()];
+}
+
+function draftFacilityStyle(type: RoomKey): Record<string, string> {
+  return {
+    "--basic-calculator-facility-accent":
+      facilityColors.value[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
+  };
+}
+
+function draftFacilityLevelMax(type: RoomKey): number {
+  return roomLevelRange(type).max;
 }
 
 function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
@@ -812,6 +957,23 @@ function saveRow(): void {
   const draft = JSON.parse(
     JSON.stringify(rowDraft.value),
   ) as BasicCalculatorRow;
+  const group = config.value?.groups.find(
+    (item) => item.id === rowDraftGroupId.value,
+  );
+  if (group) {
+    const defaultDisplay = defaultDisplayOperators(group, draft);
+    const selectedDisplay = draft.displayOperators ?? defaultDisplay;
+    if (
+      selectedDisplay.length === defaultDisplay.length &&
+      selectedDisplay.every((operator) =>
+        defaultDisplay.some(
+          (item) => displayOperatorKey(item) === displayOperatorKey(operator),
+        ),
+      )
+    ) {
+      delete draft.displayOperators;
+    }
+  }
   draft.coreOperator = {
     ...(draft.coreOperator ?? { name: draftCoreName.value }),
     name: draftCoreName.value,
@@ -847,11 +1009,19 @@ function addRow(group: BasicCalculatorGroup): void {
   openRowEditor(group, row);
 }
 
-function addExtraRoom(): void {
+function addExtraRoom(type: string = "dormitory"): void {
   if (!rowDraft.value) return;
+  if (
+    !(type in ROOM_LABELS) ||
+    type === "control" ||
+    type === rowDraftGroup.value?.facility ||
+    rowDraft.value.extraRooms?.some((room) => room.type === type)
+  ) {
+    return;
+  }
   rowDraft.value.extraRooms = [
     ...(rowDraft.value.extraRooms ?? []),
-    { type: "dormitory", level: 3, count: 1 },
+    { type: type as RoomKey, level: 3, count: 1 },
   ];
 }
 
@@ -861,14 +1031,14 @@ function updateExtraRoomType(index: number, type: string): void {
   if (!draft || !room || !(type in ROOM_LABELS) || type === "control") return;
   const previousType = room.type;
   const nextType = type as RoomKey;
-  room.type = nextType;
   if (
     draft.extraRooms?.some(
-      (item, itemIndex) => itemIndex !== index && item.type === previousType,
+      (item, itemIndex) => itemIndex !== index && item.type === nextType,
     )
   ) {
     return;
   }
+  room.type = nextType;
   draft.operators.forEach((operator) => {
     if (operator.room === previousType) operator.room = nextType;
   });
@@ -1023,6 +1193,12 @@ function toggleGroupColumn(
         <a-form-item label="头像">
           <a-space wrap>
             <a-checkbox
+              :checked="config.settings.avatar.showAvatar"
+              @change="updateAvatarSetting('showAvatar', $event.target.checked)"
+              >显示头像</a-checkbox
+            >
+            <a-checkbox
+              :disabled="!config.settings.avatar.showAvatar"
               :checked="config.settings.avatar.showProfession"
               @change="
                 updateAvatarSetting('showProfession', $event.target.checked)
@@ -1030,6 +1206,7 @@ function toggleGroupColumn(
               >职业</a-checkbox
             >
             <a-checkbox
+              :disabled="!config.settings.avatar.showAvatar"
               :checked="config.settings.avatar.showEliteLevel"
               @change="
                 updateAvatarSetting('showEliteLevel', $event.target.checked)
@@ -1037,14 +1214,10 @@ function toggleGroupColumn(
               >精英化</a-checkbox
             >
             <a-checkbox
+              :disabled="!config.settings.avatar.showAvatar"
               :checked="config.settings.avatar.showRarity"
               @change="updateAvatarSetting('showRarity', $event.target.checked)"
               >星级</a-checkbox
-            >
-            <a-checkbox
-              :checked="config.settings.avatar.showName"
-              @change="updateAvatarSetting('showName', $event.target.checked)"
-              >名称</a-checkbox
             >
           </a-space>
         </a-form-item>
@@ -1110,6 +1283,7 @@ function toggleGroupColumn(
               <a-checkbox
                 v-for="column in config.columns"
                 :key="column.id"
+                :disabled="column.kind === 'operatorNames'"
                 :checked="isColumnSelected(group, column.id)"
                 @change="
                   toggleGroupColumn(group.id, column.id, $event.target.checked)
@@ -1128,6 +1302,10 @@ function toggleGroupColumn(
             <table class="basic-calculator-table">
               <thead>
                 <tr>
+                  <th
+                    aria-label="操作"
+                    class="basic-calculator-actions-column"
+                  />
                   <th
                     v-for="column in groupColumns(group)"
                     :key="column.id"
@@ -1156,10 +1334,6 @@ function toggleGroupColumn(
                       />
                     </button>
                   </th>
-                  <th
-                    aria-label="操作"
-                    class="basic-calculator-actions-column"
-                  />
                 </tr>
               </thead>
               <tbody>
@@ -1168,41 +1342,6 @@ function toggleGroupColumn(
                   :key="view.row.id"
                   :style="rowBackgroundStyle(view)"
                 >
-                  <td v-for="column in groupColumns(group)" :key="column.id">
-                    <div
-                      v-if="column.kind === 'operators'"
-                      class="basic-calculator-avatars"
-                    >
-                      <OperatorAvatarDisplay
-                        v-for="operator in view.row.operators.filter(
-                          (item) =>
-                            item.name !==
-                              (view.row.coreOperator?.name ??
-                                view.group.coreOperator.name) &&
-                            (!item.room || item.room === view.group.facility),
-                        )"
-                        :key="`${view.row.id}-${operator.name}`"
-                        :display-name="operator.name"
-                        :elite-level="operatorEliteLevel(view.group, operator)"
-                        :operator="operatorFor(operator.name)"
-                        :plain="true"
-                        :proportional-layout="true"
-                        :show-elite-level="
-                          config.settings.avatar.showEliteLevel
-                        "
-                        :show-name="config.settings.avatar.showName"
-                        :show-profession="config.settings.avatar.showProfession"
-                        :show-rarity="config.settings.avatar.showRarity"
-                        :size="58"
-                        :special-label="
-                          operatorFor(operator.name)
-                            ? undefined
-                            : operator.name.slice(0, 2)
-                        "
-                      />
-                    </div>
-                    <span v-else>{{ columnText(view, column) }}</span>
-                  </td>
                   <td class="basic-calculator-actions-column">
                     <div class="basic-calculator-row-actions">
                       <a-tooltip title="编辑"
@@ -1231,6 +1370,44 @@ function toggleGroupColumn(
                       </a-tooltip>
                     </div>
                   </td>
+                  <td
+                    v-for="column in groupColumns(group)"
+                    :key="column.id"
+                    :class="{
+                      'basic-calculator-name-cell':
+                        column.kind === 'operatorNames',
+                    }"
+                  >
+                    <div
+                      v-if="column.kind === 'operators'"
+                      class="basic-calculator-avatars"
+                    >
+                      <OperatorAvatarDisplay
+                        v-for="operator in rowVisibleOperators(
+                          view.group,
+                          view.row,
+                        )"
+                        :key="`${view.row.id}-${displayOperatorKey(operator)}`"
+                        :display-name="operator.name"
+                        :elite-level="operatorEliteLevel(view.group, operator)"
+                        :operator="operatorFor(operator.name)"
+                        :plain="true"
+                        :proportional-layout="true"
+                        :show-elite-level="
+                          config.settings.avatar.showEliteLevel
+                        "
+                        :show-profession="config.settings.avatar.showProfession"
+                        :show-rarity="config.settings.avatar.showRarity"
+                        :size="58"
+                        :special-label="
+                          operatorFor(operator.name)
+                            ? undefined
+                            : operator.name.slice(0, 2)
+                        "
+                      />
+                    </div>
+                    <span v-else>{{ columnText(view, column) }}</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -1255,6 +1432,7 @@ function toggleGroupColumn(
           class="basic-calculator-column-row"
         >
           <a-checkbox
+            :disabled="column.kind === 'operatorNames'"
             :checked="column.visible !== false"
             @change="toggleColumn(column.id, $event.target.checked)"
           />
@@ -1404,7 +1582,29 @@ function toggleGroupColumn(
       @ok="saveRow"
     >
       <a-form v-if="rowDraft" layout="vertical">
-        <a-form-item label="核心干员">
+        <div class="basic-calculator-facility-add">
+          <div class="basic-calculator-facility-heading">
+            <span>设施布局</span>
+            <span class="basic-calculator-facility-hint"
+              >点击设施按钮添加设施</span
+            >
+          </div>
+          <a-space wrap>
+            <a-button
+              v-for="option in draftExtraRoomOptions"
+              :key="option.value"
+              :style="draftFacilityStyle(option.value as RoomKey)"
+              size="small"
+              @click="addExtraRoom(option.value)"
+              >{{ option.label }}</a-button
+            >
+          </a-space>
+        </div>
+        <a-form-item
+          class="basic-calculator-facility-card"
+          :style="draftFacilityStyle(rowDraftGroup?.facility ?? 'manufacture')"
+          label="核心工作设施"
+        >
           <div class="basic-calculator-draft-operator-section">
             <button
               class="basic-calculator-draft-avatar"
@@ -1447,7 +1647,11 @@ function toggleGroupColumn(
             />
           </div>
         </a-form-item>
-        <a-form-item label="展示干员">
+        <a-form-item
+          class="basic-calculator-facility-card"
+          :style="draftFacilityStyle(rowDraftGroup?.facility ?? 'manufacture')"
+          label="工作干员"
+        >
           <div class="basic-calculator-draft-operator-section">
             <div class="basic-calculator-draft-avatars">
               <div
@@ -1512,7 +1716,11 @@ function toggleGroupColumn(
             />
           </div>
         </a-form-item>
-        <a-form-item label="控制中枢干员">
+        <a-form-item
+          class="basic-calculator-facility-card"
+          :style="draftFacilityStyle('control')"
+          label="控制中枢 · Lv5"
+        >
           <div class="basic-calculator-draft-operator-section">
             <div class="basic-calculator-draft-avatars">
               <div
@@ -1585,12 +1793,6 @@ function toggleGroupColumn(
         <a-form-item label="备注"
           ><a-input v-model:value="rowDraft.note"
         /></a-form-item>
-        <div class="basic-calculator-extra-rooms-heading">
-          <span>其他设施</span
-          ><a-button :icon="h(PlusOutlined)" size="small" @click="addExtraRoom"
-            >添加设施</a-button
-          >
-        </div>
         <div
           v-for="(room, index) in rowDraft.extraRooms ?? []"
           :key="`${room.type}-${index}`"
@@ -1603,7 +1805,7 @@ function toggleGroupColumn(
               @change="updateExtraRoomType(index, $event)"
             /><a-input-number
               v-model:value="room.level"
-              :max="3"
+              :max="draftFacilityLevelMax(room.type)"
               :min="1"
             /><a-input-number
               v-model:value="room.count"
@@ -1686,6 +1888,30 @@ function toggleGroupColumn(
             />
           </div>
         </div>
+        <a-form-item
+          v-if="draftSpecialOperatorOptions.length"
+          class="basic-calculator-display-operator-form-item"
+          label="额外显示的设施干员"
+        >
+          <a-space wrap>
+            <a-checkbox
+              v-for="option in draftSpecialOperatorOptions"
+              :key="displayOperatorKey(option.operator)"
+              :checked="
+                draftDisplayOperatorNames.has(
+                  displayOperatorKey(option.operator),
+                )
+              "
+              @change="
+                toggleDraftDisplayOperator(
+                  option.operator,
+                  $event.target.checked,
+                )
+              "
+              >{{ option.label }}</a-checkbox
+            >
+          </a-space>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -1780,11 +2006,15 @@ function toggleGroupColumn(
 }
 .basic-calculator-table th:first-child,
 .basic-calculator-table td:first-child {
+  min-width: 64px;
+}
+.basic-calculator-name-cell {
   min-width: 220px;
-  text-align: start;
+  text-align: start !important;
+  width: max-content;
 }
 .basic-calculator-avatars {
-  align-items: flex-end;
+  align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -1800,6 +2030,68 @@ function toggleGroupColumn(
   justify-content: center;
   opacity: 0;
   transition: opacity 120ms ease;
+}
+.basic-calculator-facility-add {
+  border-block-end: 1px solid rgba(46, 65, 61, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-end: 12px;
+  padding-block-end: 12px;
+}
+.basic-calculator-facility-heading,
+.basic-calculator-facility-card :deep(.ant-form-item-label) {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+.basic-calculator-facility-heading {
+  font-weight: 700;
+}
+.basic-calculator-facility-hint {
+  color: #768581;
+  font-size: 12px;
+  font-weight: 400;
+}
+.basic-calculator-facility-add .ant-btn {
+  border-color: var(--basic-calculator-facility-accent, #216a66);
+}
+.basic-calculator-facility-card {
+  background: color-mix(
+    in srgb,
+    var(--basic-calculator-facility-accent, #216a66) 7%,
+    white
+  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--basic-calculator-facility-accent, #216a66) 30%,
+      white
+    );
+  border-radius: 6px;
+  margin-block-end: 12px;
+  padding: 12px;
+}
+.basic-calculator-extra-room-editor {
+  background: color-mix(
+    in srgb,
+    var(--basic-calculator-facility-accent, #216a66) 7%,
+    white
+  );
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--basic-calculator-facility-accent, #216a66) 30%,
+      white
+    );
+  border-radius: 6px;
+  margin-block-start: 12px;
+  padding: 12px;
+}
+.basic-calculator-facility-card :deep(.ant-form-item-label),
+.basic-calculator-facility-card :deep(.ant-form-item-control),
+.basic-calculator-display-operator-form-item {
+  margin-block-end: 0;
 }
 .basic-calculator-table tr:hover .basic-calculator-row-actions,
 .basic-calculator-table tr:focus-within .basic-calculator-row-actions {
