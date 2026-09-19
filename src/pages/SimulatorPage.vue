@@ -408,8 +408,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-type SimulatorEditSetting =
-  "layout" | "queue" | "product";
+type SimulatorEditSetting = "layout" | "queue" | "product";
 
 interface SimulatorEditSettings {
   layout: boolean;
@@ -524,6 +523,7 @@ const { facilityColors, productColors, fiammettaColor } = useFacilityColors();
 const {
   activeProfile,
   dormitoryDefaultIncludesMoodRecovery,
+  showUnownedOperatorsInPicker,
   treatSkillsAsUnlocked,
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
@@ -1616,6 +1616,16 @@ const operatorPickerCandidates = computed<OperatorPickerCandidate[]>(() => {
   );
   const query = operatorPickerQuery.value;
   const profession = selectedOperatorPickerProfession.value;
+  const plan = currentDocument.value?.plans[picker.planIndex];
+  const currentName = plan
+    ? operatorDraftValue(
+        plan,
+        picker.planIndex,
+        picker.type,
+        picker.position,
+        picker.slotIndex,
+      ).trim()
+    : "";
   return operators.value
     .map((operator, index) => ({ operator, index }))
     .filter(
@@ -1623,6 +1633,9 @@ const operatorPickerCandidates = computed<OperatorPickerCandidate[]>(() => {
         (picker.position === FIAMMETTA_POSITION ||
           operatorHasFacilitySkill(operator, picker.type) ||
           overrideIds.has(operator.id)) &&
+        (showUnownedOperatorsInPicker.value ||
+          operatorOwned(operatorPickerRoom.value, operator.name) ||
+          operator.name === currentName) &&
         (!profession || operator.profession === profession) &&
         (!query || operator.name.toLocaleLowerCase().includes(query)),
     )
@@ -3134,9 +3147,7 @@ function facilityColumnStyle(row: FacilityRow): Record<string, string> {
 
 const facilityGridStyle = computed(() => ({
   "--simulator-queue-min-height": `${
-    simulatorSlotSize.value +
-    slotNameBandHeight.value +
-    QUEUE_MIN_HEIGHT_EXTRA
+    simulatorSlotSize.value + slotNameBandHeight.value + QUEUE_MIN_HEIGHT_EXTRA
   }px`,
 }));
 

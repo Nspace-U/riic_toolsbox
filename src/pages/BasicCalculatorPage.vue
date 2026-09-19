@@ -90,8 +90,11 @@ type DraftPickerTarget = "core" | "work" | "control" | "extra";
 const STORAGE_KEY = "riic-tools:basic-calculator:v1";
 const { operators, terms, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
-const { activeProfile, dormitoryDefaultIncludesMoodRecovery } =
-  useOperatorProgression();
+const {
+  activeProfile,
+  dormitoryDefaultIncludesMoodRecovery,
+  showUnownedOperatorsInPicker,
+} = useOperatorProgression();
 
 const defaults = ref<BasicCalculatorConfig>();
 const config = ref<BasicCalculatorConfig>();
@@ -219,6 +222,17 @@ const draftPickerCandidates = computed<OperatorPickerCandidateView[]>(() => {
             ?.type
         : group.facility;
   if (!facility) return [];
+  const selectedNames = new Set(
+    target === "core"
+      ? [draftCoreName.value]
+      : target === "work"
+        ? draftWorkNames.value
+        : target === "control"
+          ? draftControlNames.value
+          : (rowDraft.value?.operators
+              .filter((operator) => operator.room === facility)
+              .map((operator) => operator.name) ?? []),
+  );
   return operators.value
     .filter((operator) => {
       const profile = catalog.value?.operators[operator.name];
@@ -228,8 +242,11 @@ const draftPickerCandidates = computed<OperatorPickerCandidateView[]>(() => {
     })
     .filter(
       (operator) =>
-        !draftPickerProfession.value ||
-        operator.profession === draftPickerProfession.value,
+        (showUnownedOperatorsInPicker.value ||
+          isOperatorOwned(operator.name) ||
+          selectedNames.has(operator.name)) &&
+        (!draftPickerProfession.value ||
+          operator.profession === draftPickerProfession.value),
     )
     .sort((first, second) => {
       const firstOrder = first.implementationOrder ?? -1;
@@ -239,6 +256,7 @@ const draftPickerCandidates = computed<OperatorPickerCandidateView[]>(() => {
     .map((operator) => ({
       operator,
       eliteLevel: draftOperatorEliteLevel(operator.name, facility),
+      operatorOwned: isOperatorOwned(operator.name),
     }));
 });
 const fieldOptions = computed(() =>
@@ -1274,6 +1292,16 @@ function resetDefaults(): void {
 
 function operatorFor(name: string): Operator | undefined {
   return operatorByName.value.get(name);
+}
+
+function isOperatorOwned(name: string): boolean {
+  if (!activeProfile.value) {
+    return true;
+  }
+  const operator = operatorFor(name);
+  return operator
+    ? activeProfile.value.entries[operator.id]?.owned === true
+    : true;
 }
 
 function operatorEliteLevel(

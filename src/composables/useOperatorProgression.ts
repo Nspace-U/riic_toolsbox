@@ -22,6 +22,7 @@ interface StoredProgressionSettings {
   dormitoryDefaultIncludesMoodRecovery: boolean;
   showNoEditableOperators: boolean;
   showUnownedOperators: boolean;
+  showUnownedOperatorsInPicker: boolean;
 }
 
 function createId(prefix: string): string {
@@ -75,6 +76,7 @@ function readSettings(): StoredProgressionSettings {
       dormitoryDefaultIncludesMoodRecovery: false,
       showNoEditableOperators: false,
       showUnownedOperators: true,
+      showUnownedOperatorsInPicker: true,
     };
   }
   try {
@@ -99,12 +101,17 @@ function readSettings(): StoredProgressionSettings {
             typeof value.showUnownedOperators === "boolean"
               ? value.showUnownedOperators
               : false,
+          showUnownedOperatorsInPicker:
+            typeof value.showUnownedOperatorsInPicker === "boolean"
+              ? value.showUnownedOperatorsInPicker
+              : true,
         }
       : {
           treatSkillsAsUnlocked: false,
           dormitoryDefaultIncludesMoodRecovery: false,
           showNoEditableOperators: false,
           showUnownedOperators: false,
+          showUnownedOperatorsInPicker: true,
         };
   } catch {
     return {
@@ -112,6 +119,7 @@ function readSettings(): StoredProgressionSettings {
       dormitoryDefaultIncludesMoodRecovery: false,
       showNoEditableOperators: false,
       showUnownedOperators: false,
+      showUnownedOperatorsInPicker: true,
     };
   }
 }
@@ -171,6 +179,9 @@ const dormitoryDefaultIncludesMoodRecovery = ref(
 );
 const showNoEditableOperators = ref(initialSettings.showNoEditableOperators);
 const showUnownedOperators = ref(initialSettings.showUnownedOperators);
+const showUnownedOperatorsInPicker = ref(
+  initialSettings.showUnownedOperatorsInPicker,
+);
 
 function persist(): void {
   profiles.value = [...profiles.value];
@@ -191,6 +202,7 @@ function persist(): void {
           dormitoryDefaultIncludesMoodRecovery.value,
         showNoEditableOperators: showNoEditableOperators.value,
         showUnownedOperators: showUnownedOperators.value,
+        showUnownedOperatorsInPicker: showUnownedOperatorsInPicker.value,
       }),
     );
   } catch {}
@@ -372,6 +384,11 @@ function setShowUnownedOperators(value: boolean): void {
   persist();
 }
 
+function setShowUnownedOperatorsInPicker(value: boolean): void {
+  showUnownedOperatorsInPicker.value = value;
+  persist();
+}
+
 normalizeActiveProfile();
 
 const activeProfile = computed(() => getProfile(activeProfileId.value));
@@ -385,6 +402,7 @@ export function useOperatorProgression() {
     dormitoryDefaultIncludesMoodRecovery,
     showNoEditableOperators,
     showUnownedOperators,
+    showUnownedOperatorsInPicker,
     importProfile,
     getProfile,
     setActiveProfile,
@@ -399,6 +417,7 @@ export function useOperatorProgression() {
     setDormitoryDefaultIncludesMoodRecovery,
     setShowNoEditableOperators,
     setShowUnownedOperators,
+    setShowUnownedOperatorsInPicker,
     persist,
   };
 }

@@ -95,6 +95,7 @@ const {
   activeProfile,
   showNoEditableOperators,
   showUnownedOperators,
+  showUnownedOperatorsInPicker,
   treatSkillsAsUnlocked,
   dormitoryDefaultIncludesMoodRecovery,
   importProfile,
@@ -108,6 +109,7 @@ const {
   renameProfile,
   setShowNoEditableOperators,
   setShowUnownedOperators,
+  setShowUnownedOperatorsInPicker,
   setTreatSkillsAsUnlocked,
   setDormitoryDefaultIncludesMoodRecovery,
 } = useOperatorProgression();
@@ -702,6 +704,15 @@ watch(
           "
         >
           显示未拥有干员
+        </a-checkbox>
+        <a-checkbox
+          :checked="showUnownedOperatorsInPicker"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setShowUnownedOperatorsInPicker(event.target.checked)
+          "
+        >
+          候选框显示未拥有干员
         </a-checkbox>
       </div>
       <template v-if="activeProfile">
