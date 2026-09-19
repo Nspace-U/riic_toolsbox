@@ -297,7 +297,13 @@ export function resolveOperatorProgression(
       level: manualLevel ?? Math.max(sourceLevel, maximum.level),
       owned: base.owned,
       upgraded: profileEntry
-        ? isProgressionHigher(base, profileEntry)
+        ? isProgressionHigher(
+            {
+              elite: manualElite ?? maximum.elite,
+              level: manualLevel ?? maximum.level,
+            },
+            profileEntry,
+          )
         : base.elite < maximum.elite || base.level < maximum.level,
     };
   }

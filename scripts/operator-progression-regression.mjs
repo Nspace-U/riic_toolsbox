@@ -67,6 +67,13 @@ try {
   );
   assert.equal(
     resolve({
+      profile: profile(2, 1),
+      manualLevel: 90,
+    }).upgraded,
+    true,
+  );
+  assert.equal(
+    resolve({
       profile: profile(1, 90),
       manualElite: 2,
       manualLevel: 1,
@@ -89,6 +96,7 @@ try {
     }).upgraded,
     true,
   );
+  assert.equal(resolve({ profile: profile(1, 80) }).upgraded, true);
   assert.equal(resolve({ manualElite: 1, manualLevel: 1 }).upgraded, true);
   console.log("operator progression regression: passed");
 } finally {
