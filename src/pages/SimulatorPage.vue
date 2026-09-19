@@ -39,9 +39,10 @@ import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import { useSanitySettings } from "@/composables/useSanitySettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
-import OperatorPickerPanel, {
-  type OperatorPickerCandidateView,
-} from "@/components/OperatorPickerPanel.vue";
+import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
+import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
+import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
+import ScheduleOperatorSlotContent from "@/components/ScheduleOperatorSlotContent.vue";
 import SimulatorCalculationStepContent, {
   type SimulatorCalculationStepView,
 } from "@/components/SimulatorCalculationStepContent.vue";
@@ -665,7 +666,6 @@ const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
 const documentSidebar = ref<HTMLElement>();
 const editingOperatorSlot = ref<OperatorSlotAddress>();
-const slotNameInput = ref<HTMLInputElement | HTMLInputElement[]>();
 const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
 const operatorPicker = ref<OperatorPickerState>();
@@ -1670,62 +1670,6 @@ const operatorPickerCandidateViews = computed<OperatorPickerCandidateView[]>(
   },
 );
 
-const layoutAddOptions = computed(() =>
-  ROOM_ORDER.map((type) => {
-    const result = currentDocument.value
-      ? canAddLayoutEntry(currentDocument.value.layout, type)
-      : { ok: false, reason: "暂无排班表" };
-    const plan = currentDocument.value
-      ? layoutAdditionPlan(currentDocument.value.layout, type)
-      : undefined;
-    const extraTypes = plan?.types.filter((entryType) => entryType !== type);
-    return {
-      type,
-      label: ROOM_LABELS[type],
-      disabled: !plan,
-      reason: !plan
-        ? result.ok
-          ? "当前设施无法添加"
-          : result.reason
-        : extraTypes?.length
-          ? `点击添加，将自动补建：${extraTypes
-              .map((entryType) => ROOM_LABELS[entryType])
-              .join("、")}`
-          : "点击添加",
-    };
-  }),
-);
-
-const layoutRows = computed<LayoutDisplayRow[]>(() => {
-  const document = currentDocument.value;
-  if (!document) {
-    return [];
-  }
-
-  const indexedEntries = orderedLayoutEntries(document.layout);
-  return LAYOUT_DISPLAY_ROWS.map((types, rowIndex) => ({
-    key: `layout-row-${rowIndex}`,
-    entries: types.flatMap((type) =>
-      indexedEntries
-        .filter((item) => item.entry.type === type)
-        .map(({ entry, index }, position) => ({ entry, index, position })),
-    ),
-  }));
-});
-
-const layoutGroups = computed(() => {
-  const document = currentDocument.value;
-  if (!document) {
-    return [];
-  }
-
-  return ROOM_ORDER.map((type) => ({
-    type,
-    label: ROOM_LABELS[type],
-    entries: document.layout.filter((entry) => entry.type === type),
-  })).filter((group) => group.entries.length > 0);
-});
-
 function fiammettaMode(document: ScheduleDocument): FiammettaMode {
   return document.settings?.fiammettaMode === "queue" ? "queue" : "direct";
 }
@@ -2254,10 +2198,10 @@ function addLayoutEntry(type: RoomKey): void {
   );
 }
 
-function applyLayoutText(): void {
+function applyLayoutText(text: string = layoutText.value): void {
   clearMessages();
   try {
-    const requestedLayout = parseLayoutText(layoutText.value);
+    const requestedLayout = parseLayoutText(text);
     const nextLayout = validateAddedLayout(
       layoutWithBuildChain(requestedLayout),
     );
@@ -2944,8 +2888,13 @@ function beginOperatorNameEdit(
 
 async function focusSlotNameInput(selectText = true): Promise<void> {
   await nextTick();
-  const target = slotNameInput.value;
-  const instance = Array.isArray(target) ? target[0] : target;
+  const key =
+    editingOperatorSlot.value?.key ?? selectedOperatorSlotAddresses()[0]?.key;
+  const instance = key
+    ? window.document.querySelector<HTMLInputElement>(
+        `.simulator-slot-name-input[data-slot-key="${key}"]`,
+      )
+    : undefined;
   if (!(instance instanceof HTMLInputElement)) {
     return;
   }
@@ -7318,112 +7267,16 @@ watch(showScheduleSidebar, () => {
           class="simulator-layout-panel"
           title="设施布局"
         >
-          <div class="simulator-layout-add">
-            <div class="simulator-layout-add-heading">
-              <span class="simulator-summary-label">添加设施</span>
-              <span class="simulator-layout-add-hint"
-                >点击设施卡片直接添加</span
-              >
-            </div>
-            <a-config-provider :auto-insert-space-in-button="false">
-              <div class="simulator-layout-add-grid">
-                <a-button
-                  v-for="option in layoutAddOptions"
-                  :key="option.type"
-                  :class="[
-                    'simulator-layout-add-card',
-                    {
-                      'simulator-layout-add-card--disabled': option.disabled,
-                    },
-                  ]"
-                  :disabled="option.disabled"
-                  :style="layoutFacilityStyle(option.type)"
-                  :title="option.reason"
-                  @click="addLayoutEntry(option.type)"
-                >
-                  {{ option.label }}
-                </a-button>
-              </div>
-            </a-config-provider>
-          </div>
-          <div class="simulator-layout-text-editor">
-            <div class="simulator-layout-add-heading">
-              <span class="simulator-summary-label">按数字批量设置</span>
-              <span class="simulator-layout-add-hint"
-                >每行按固定顺序填写设施等级</span
-              >
-            </div>
-            <a-textarea
-              v-model:value="layoutText"
-              :auto-size="{ minRows: 2, maxRows: 2 }"
-              class="simulator-layout-text-input"
-              placeholder="33 33222\n1313 2111"
-            />
-            <div class="simulator-layout-text-footer">
-              <span>{{ layoutTextHint }}</span>
-            </div>
-          </div>
-          <div class="simulator-layout-list">
-            <div
-              v-for="row in layoutRows"
-              :key="row.key"
-              class="simulator-layout-row"
-            >
-              <div
-                v-for="item in row.entries"
-                :key="item.index"
-                class="simulator-layout-card"
-                :style="layoutFacilityStyle(item.entry.type)"
-              >
-                <span class="simulator-layout-card-name">
-                  {{ ROOM_LABELS[item.entry.type] }}
-                </span>
-                <div class="simulator-layout-card-actions">
-                  <span
-                    v-if="isFixedLevelRoom(item.entry.type)"
-                    class="simulator-layout-card-level-text"
-                    >Lv{{ item.entry.level }}</span
-                  >
-                  <a-input-number
-                    v-else
-                    :max="layoutEntryLevelMax(item.entry.type)"
-                    :min="roomLevelRange(item.entry.type).min"
-                    :value="item.entry.level"
-                    addon-after="级"
-                    class="simulator-layout-card-level"
-                    @update:value="
-                      (value: number | null) =>
-                        updateLayoutLevel(item.index, value)
-                    "
-                  />
-                  <a-button
-                    :disabled="item.entry.type === 'control'"
-                    aria-label="删除设施"
-                    danger
-                    :title="
-                      item.entry.type === 'control'
-                        ? '控制中枢不可删除'
-                        : '删除设施'
-                    "
-                    type="text"
-                    @click="removeLayoutEntry(item.index)"
-                  >
-                    <template #icon><DeleteOutlined /></template>
-                  </a-button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="simulator-layout-summary">
-            <span class="simulator-summary-label">设施布局</span>
-            <a-tag
-              v-for="group in layoutGroups"
-              :key="group.type"
-              color="green"
-            >
-              {{ group.label }} × {{ group.entries.length }}
-            </a-tag>
-          </div>
+          <ScheduleLayoutEditor
+            :facility-colors="facilityColors"
+            :delete-disabled-room-types="['control']"
+            :layout="currentDocument.layout"
+            :layout-text-footer="layoutTextHint"
+            @add-layout="addLayoutEntry"
+            @apply-layout-text="applyLayoutText"
+            @remove-layout="removeLayoutEntry"
+            @update-layout-level="updateLayoutLevel"
+          />
           <div class="simulator-power-summary">
             <span class="simulator-summary-label">电力</span>
             <a-tag color="orange">消耗 {{ powerSummary.used }}</a-tag>
@@ -7697,11 +7550,7 @@ watch(showScheduleSidebar, () => {
                           )
                         "
                       >
-                        <OperatorAvatarDisplay
-                          v-if="
-                            slotOperator(row, plan, planIndex, slot) ||
-                            slotSpecialAvatarLabel(row, plan, planIndex, slot)
-                          "
+                        <ScheduleOperatorSlotContent
                           :display-name="slotName(row, plan, planIndex, slot)"
                           :elite-level="
                             operatorElite(
@@ -7710,25 +7559,16 @@ watch(showScheduleSidebar, () => {
                               row.type,
                             )
                           "
-                          :operator="slotOperator(row, plan, planIndex, slot)"
-                          :special-label="
-                            slotSpecialAvatarLabel(row, plan, planIndex, slot)
-                          "
-                          :operator-owned="
+                          :empty-slot-frame-style="emptySlotFrameStyle"
+                          :mood-remaining="
                             slotOperator(row, plan, planIndex, slot)
-                              ? operatorOwned(
-                                  slotRoom(plan, slot),
-                                  slotCommittedName(row, plan, slot),
+                              ? operatorMoodRemaining(
+                                  planIndex,
+                                  row.type,
+                                  slot.entry.position,
+                                  slot.slotIndex,
                                 )
-                              : true
-                          "
-                          :missing="
-                            slotOperator(row, plan, planIndex, slot)
-                              ? operatorMissing(
-                                  slotRoom(plan, slot),
-                                  slotCommittedName(row, plan, slot),
-                                )
-                              : false
+                              : undefined
                           "
                           :mood-scattered="
                             slotOperator(row, plan, planIndex, slot)
@@ -7742,34 +7582,37 @@ watch(showScheduleSidebar, () => {
                                 )
                               : false
                           "
-                          :mood-remaining="
+                          :missing="
                             slotOperator(row, plan, planIndex, slot)
-                              ? operatorMoodRemaining(
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                )
-                              : undefined
-                          "
-                          :operator-training-upgraded="
-                            slotOperator(row, plan, planIndex, slot)
-                              ? operatorTrainingUpgraded(
+                              ? operatorMissing(
                                   slotRoom(plan, slot),
                                   slotCommittedName(row, plan, slot),
-                                  row.type,
                                 )
                               : false
                           "
-                          :show-elite-level="
-                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          :name-band-style="slotNameBandStyle"
+                          :name-input-pending="
+                            !isEditingOperatorSlot(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            )
                           "
-                          :show-name="true"
-                          :show-profession="
-                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          :name-input-value="
+                            slotName(row, plan, planIndex, slot)
                           "
-                          :show-rarity="
-                            Boolean(slotOperator(row, plan, planIndex, slot))
+                          :name-input-visible="
+                            isOperatorNameInputVisible(
+                              operatorSlotAddress(
+                                planIndex,
+                                row.type,
+                                slot.entry.position,
+                                slot.slotIndex,
+                              ),
+                            )
                           "
                           :name-editing="
                             isOperatorNameInputVisible(
@@ -7781,8 +7624,26 @@ watch(showScheduleSidebar, () => {
                               ),
                             )
                           "
-                          :plain="true"
-                          :proportional-layout="true"
+                          :operator-owned="
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorOwned(
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                )
+                              : true
+                          "
+                          :operator-training-upgraded="
+                            slotOperator(row, plan, planIndex, slot)
+                              ? operatorTrainingUpgraded(
+                                  slotRoom(plan, slot),
+                                  slotCommittedName(row, plan, slot),
+                                  row.type,
+                                )
+                              : false
+                          "
+                          :operator="slotOperator(row, plan, planIndex, slot)"
+                          :room-label="row.label"
+                          :room-type="row.type"
                           :size="simulatorSlotSize"
                           :skipped="
                             roomSkipped(slotRoom(plan, slot)) &&
@@ -7799,7 +7660,27 @@ watch(showScheduleSidebar, () => {
                                 slotCommittedName(row, plan, slot),
                               ))
                           "
-                          @click.stop="
+                          :skipped-label-style="skippedLabelStyle"
+                          :slot-key="
+                            operatorSlotAddress(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            ).key
+                          "
+                          :special-label="
+                            slotSpecialAvatarLabel(row, plan, planIndex, slot)
+                          "
+                          @blur="
+                            commitOperatorName(
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
+                            )
+                          "
+                          @click="
                             selectOperatorSlot(
                               $event,
                               planIndex,
@@ -7808,7 +7689,7 @@ watch(showScheduleSidebar, () => {
                               slot.slotIndex,
                             )
                           "
-                          @contextmenu.stop.prevent="
+                          @contextmenu="
                             slotOperator(row, plan, planIndex, slot)
                               ? openOperatorContextMenu(
                                   $event,
@@ -7824,7 +7705,7 @@ watch(showScheduleSidebar, () => {
                                   [slot.entry.position],
                                 )
                           "
-                          @dblclick.stop="
+                          @dblclick="
                             beginOperatorNameEdit(
                               planIndex,
                               row.type,
@@ -7834,137 +7715,17 @@ watch(showScheduleSidebar, () => {
                               true,
                             )
                           "
-                        />
-                        <template v-else>
-                          <div
-                            :style="emptySlotFrameStyle"
-                            class="simulator-empty-slot-frame"
-                            @click.stop="
-                              selectOperatorSlot(
-                                $event,
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              )
-                            "
-                            @dblclick.stop="
-                              beginOperatorNameEdit(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                                undefined,
-                                true,
-                              )
-                            "
-                            @contextmenu.stop.prevent="
-                              openFacilityContextMenu(
-                                $event,
-                                planIndex,
-                                row.type,
-                                [slot.entry.position],
-                              )
-                            "
-                          >
-                            <template v-if="roomSkipped(slotRoom(plan, slot))">
-                              <span class="operator-avatar-skipped-overlay" />
-                              <span
-                                :style="skippedLabelStyle"
-                                class="operator-avatar-skipped-label"
-                                >跳过</span
-                              >
-                            </template>
-                          </div>
-                          <span
-                            :class="{
-                              'simulator-empty-slot-name--editing':
-                                isOperatorNameInputVisible(
-                                  operatorSlotAddress(
-                                    planIndex,
-                                    row.type,
-                                    slot.entry.position,
-                                    slot.slotIndex,
-                                  ),
-                                ),
-                            }"
-                            :style="slotNameBandStyle"
-                            class="simulator-empty-slot-name"
-                            @click.stop="
-                              selectOperatorSlot(
-                                $event,
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              )
-                            "
-                            @dblclick.stop="
-                              beginOperatorNameEdit(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                                undefined,
-                                true,
-                              )
-                            "
-                            @contextmenu.stop.prevent="
-                              openFacilityContextMenu(
-                                $event,
-                                planIndex,
-                                row.type,
-                                [slot.entry.position],
-                              )
-                            "
-                          >
-                            {{
-                              slotName(row, plan, planIndex, slot) || "空槽位"
-                            }}
-                          </span>
-                        </template>
-                        <input
-                          v-if="
-                            isOperatorNameInputVisible(
-                              operatorSlotAddress(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              ),
+                          @focus="handleOperatorNameSelection"
+                          @input="
+                            handleOperatorNameInput(
+                              $event,
+                              planIndex,
+                              row.type,
+                              slot.entry.position,
+                              slot.slotIndex,
                             )
                           "
-                          ref="slotNameInput"
-                          :aria-label="`${row.label}干员名称`"
-                          :class="{
-                            'simulator-slot-name-input--pending':
-                              !isEditingOperatorSlot(
-                                operatorSlotAddress(
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                ),
-                              ),
-                          }"
-                          :placeholder="
-                            !isEditingOperatorSlot(
-                              operatorSlotAddress(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              ),
-                            ) && !slotName(row, plan, planIndex, slot)
-                              ? '空槽位'
-                              : undefined
-                          "
-                          :style="slotNameBandStyle"
-                          :value="slotName(row, plan, planIndex, slot)"
-                          autocomplete="off"
-                          class="simulator-slot-name-input"
-                          type="text"
-                          @click.stop="
+                          @input-click="
                             !isEditingOperatorSlot(
                               operatorSlotAddress(
                                 planIndex,
@@ -7981,67 +7742,7 @@ watch(showScheduleSidebar, () => {
                               slot.slotIndex,
                             )
                           "
-                          @contextmenu.stop.prevent="
-                            !isEditingOperatorSlot(
-                              operatorSlotAddress(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              ),
-                            ) &&
-                            (slotOperator(row, plan, planIndex, slot)
-                              ? openOperatorContextMenu(
-                                  $event,
-                                  planIndex,
-                                  row.type,
-                                  slot.entry.position,
-                                  slot.slotIndex,
-                                )
-                              : openFacilityContextMenu(
-                                  $event,
-                                  planIndex,
-                                  row.type,
-                                  [slot.entry.position],
-                                ))
-                          "
-                          @dblclick.stop="
-                            !isEditingOperatorSlot(
-                              operatorSlotAddress(
-                                planIndex,
-                                row.type,
-                                slot.entry.position,
-                                slot.slotIndex,
-                              ),
-                            ) &&
-                            beginOperatorNameEdit(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                              undefined,
-                              true,
-                            )
-                          "
-                          @focus="handleOperatorNameSelection"
-                          @blur="
-                            commitOperatorName(
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            )
-                          "
                           @keyup="handleOperatorNameSelection"
-                          @input="
-                            handleOperatorNameInput(
-                              $event,
-                              planIndex,
-                              row.type,
-                              slot.entry.position,
-                              slot.slotIndex,
-                            )
-                          "
                           @mouseup="handleOperatorNameSelection"
                           @select="handleOperatorNameSelection"
                         />
@@ -8175,7 +7876,7 @@ watch(showScheduleSidebar, () => {
           >
         </div>
 
-        <OperatorPickerPanel
+        <ScheduleOperatorPicker
           v-if="operatorPicker"
           ref="operatorPickerElement"
           :avatar-size="simulatorSlotSize"
@@ -8189,6 +7890,7 @@ watch(showScheduleSidebar, () => {
               : ROOM_LABELS[operatorPicker.type]
           "
           class="simulator-operator-picker-positioned"
+          @outside="closeOperatorPicker"
           @select="selectOperatorPickerCandidate"
           @update:selected-profession="
             selectedOperatorPickerProfession = $event

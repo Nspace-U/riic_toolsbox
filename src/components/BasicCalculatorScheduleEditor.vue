@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { DeleteOutlined } from "@ant-design/icons-vue";
 import {
   computed,
   nextTick,
@@ -9,10 +8,10 @@ import {
   watch,
 } from "vue";
 
-import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
-import OperatorPickerPanel, {
-  type OperatorPickerCandidateView,
-} from "@/components/OperatorPickerPanel.vue";
+import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
+import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
+import ScheduleOperatorSlot from "@/components/ScheduleOperatorSlot.vue";
+import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
   LayoutEntry,
@@ -21,14 +20,11 @@ import type {
   ScheduleDocument,
 } from "@/types/schedule";
 import {
-  LAYOUT_TEXT_ROWS,
   ROOM_LABELS,
   ROOM_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
-  isFixedLevelRoom,
   orderedLayoutEntries,
   parseLayoutText,
-  roomLevelRange,
   roomSlotCount,
 } from "@/utils/schedule";
 import {
@@ -99,24 +95,15 @@ const layoutError = ref("");
 const pickerAddress = ref<SlotAddress>();
 const pickerStyle = ref<Record<string, string>>({});
 const selectedProfession = ref("");
+const selectedAddress = ref<SlotAddress>();
+const editingAddress = ref<SlotAddress>();
+const draftName = ref("");
 const pointerDrag = ref<PointerDragState>();
 const dragTargetKey = ref("");
 const suppressNextClick = ref(false);
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 
 const fixedRoomTypeSet = computed(() => new Set(props.fixedRoomTypes));
-
-const layoutRows = computed(() => {
-  const indexedEntries = orderedLayoutEntries(props.modelValue.layout);
-  return LAYOUT_TEXT_ROWS.map((types, rowIndex) => ({
-    key: `basic-calculator-layout-row-${rowIndex}`,
-    entries: types.flatMap((type) =>
-      indexedEntries
-        .filter((item) => item.entry.type === type)
-        .map(({ entry, index }, position) => ({ entry, index, position })),
-    ),
-  }));
-});
 
 const facilityRows = computed<FacilityRow[]>(() =>
   ROOM_ORDER.map((type) => ({
@@ -168,11 +155,13 @@ onBeforeUnmount(() => {
   if (layoutApplyTimer !== undefined) clearTimeout(layoutApplyTimer);
   window.removeEventListener("resize", updatePickerPosition);
   window.removeEventListener("scroll", updatePickerPosition, true);
+  window.removeEventListener("click", handleWindowClick);
 });
 
 onMounted(() => {
   window.addEventListener("resize", updatePickerPosition);
   window.addEventListener("scroll", updatePickerPosition, true);
+  window.addEventListener("click", handleWindowClick);
 });
 
 function cloneDocument(): ScheduleDocument {
@@ -209,46 +198,6 @@ function ensureFixedLayout(layout: LayoutEntry[]): LayoutEntry[] {
   return layoutWithBuildChain([...unfixed, ...fixed]);
 }
 
-function layoutAddOptions(): Array<{
-  type: RoomKey;
-  label: string;
-  disabled: boolean;
-  reason: string;
-}> {
-  return ROOM_ORDER.map((type) => {
-    if (fixedRoomTypeSet.value.has(type)) {
-      return {
-        type,
-        label: ROOM_LABELS[type],
-        disabled: true,
-        reason: "该设施由当前组合固定",
-      };
-    }
-    const plan = layoutAdditionPlan(props.modelValue.layout, type);
-    if (!plan) {
-      return {
-        type,
-        label: ROOM_LABELS[type],
-        disabled: true,
-        reason: fixedRoomTypeSet.value.has(type)
-          ? "该设施由当前组合固定"
-          : "当前设施无法添加",
-      };
-    }
-    const extraTypes = plan.types.filter((entryType) => entryType !== type);
-    return {
-      type,
-      label: ROOM_LABELS[type],
-      disabled: false,
-      reason: extraTypes.length
-        ? `点击添加，将自动补建：${extraTypes
-            .map((entryType) => ROOM_LABELS[entryType])
-            .join("、")}`
-        : "点击添加",
-    };
-  });
-}
-
 function addLayoutEntry(type: RoomKey): void {
   if (fixedRoomTypeSet.value.has(type)) return;
   const plan = layoutAdditionPlan(props.modelValue.layout, type);
@@ -271,9 +220,9 @@ function addLayoutEntry(type: RoomKey): void {
   emitDocument(document);
 }
 
-function applyLayoutText(): void {
+function applyLayoutText(text: string = layoutText.value): void {
   try {
-    const requested = parseLayoutText(layoutText.value);
+    const requested = parseLayoutText(text);
     const nextLayout = ensureFixedLayout(
       validateAddedLayout(layoutWithBuildChain(requested)),
     );
@@ -394,6 +343,27 @@ function slotName(address: SlotAddress): string {
   );
 }
 
+function sameAddress(
+  left: SlotAddress | undefined,
+  right: SlotAddress | undefined,
+): boolean {
+  return left?.key !== undefined && left.key === right?.key;
+}
+
+function slotDisplayName(address: SlotAddress): string {
+  return sameAddress(editingAddress.value, address)
+    ? draftName.value
+    : slotName(address);
+}
+
+function slotIsSelected(address: SlotAddress): boolean {
+  return sameAddress(selectedAddress.value, address);
+}
+
+function slotIsEditing(address: SlotAddress): boolean {
+  return sameAddress(editingAddress.value, address);
+}
+
 function setSlotName(address: SlotAddress, name: string): void {
   const document = cloneDocument();
   const room = roomAt(document, address.type, address.position, true);
@@ -470,17 +440,85 @@ function handleSlotClick(address: SlotAddress): void {
     suppressNextClick.value = false;
     return;
   }
+  if (editingAddress.value && !sameAddress(editingAddress.value, address)) {
+    commitSlotEdit();
+  }
+  selectedAddress.value = address;
+  if (pickerAddress.value && !sameAddress(pickerAddress.value, address)) {
+    closePicker();
+  }
+}
+
+function handleSlotDoubleClick(address: SlotAddress): void {
+  handleSlotClick(address);
+  editingAddress.value = address;
+  draftName.value = slotName(address);
+  openPicker(address);
+}
+
+function openPicker(address: SlotAddress): void {
   pickerAddress.value = address;
   selectedProfession.value = "";
   void nextTick(updatePickerPosition);
 }
 
+function commitSlotEdit(): void {
+  const address = editingAddress.value;
+  if (!address) return;
+  if (draftName.value !== slotName(address)) {
+    setSlotName(address, draftName.value.trim());
+  }
+  editingAddress.value = undefined;
+  draftName.value = "";
+}
+
+function handleSlotInput(event: Event, address: SlotAddress): void {
+  const value =
+    event.target instanceof HTMLInputElement ? event.target.value : "";
+  if (!slotIsEditing(address)) {
+    editingAddress.value = address;
+    draftName.value = slotName(address);
+  }
+  draftName.value = value;
+}
+
+function handleSlotInputClick(address: SlotAddress): void {
+  if (!slotIsEditing(address)) handleSlotClick(address);
+}
+
+function handleWindowClick(event: MouseEvent): void {
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    target.closest(".simulator-operator-picker")
+  ) {
+    return;
+  }
+  if (
+    target instanceof Element &&
+    target.closest(".simulator-slot[data-key]")
+  ) {
+    return;
+  }
+  commitSlotEdit();
+  closePicker();
+  selectedAddress.value = undefined;
+}
+
+function closePicker(): void {
+  pickerAddress.value = undefined;
+  pickerStyle.value = {};
+  selectedProfession.value = "";
+}
+
 function selectOperator(operator: Operator): void {
   const address = pickerAddress.value;
   if (!address) return;
-  setSlotName(address, operator.name);
-  pickerAddress.value = undefined;
-  pickerStyle.value = {};
+  selectedAddress.value = address;
+  editingAddress.value = address;
+  draftName.value = operator.name;
+  commitSlotEdit();
+  closePicker();
 }
 
 async function updatePickerPosition(): Promise<void> {
@@ -592,10 +630,6 @@ function slotStyle(): Record<string, string> {
 function layoutTextHint(): string {
   return "数字顺序与排班模拟器一致；当前组合的控制中枢和核心工作设施会自动保留。";
 }
-
-function fixedLevelText(entry: LayoutEntry): string {
-  return `Lv${entry.level}`;
-}
 </script>
 
 <template>
@@ -606,106 +640,19 @@ function fixedLevelText(entry: LayoutEntry): string {
     @pointermove="handlePointerMove"
     @pointerup="handlePointerUp"
   >
-    <div class="simulator-layout-add">
-      <div class="simulator-layout-add-heading">
-        <span class="simulator-summary-label">添加设施</span>
-        <span class="simulator-layout-add-hint">点击设施卡片直接添加</span>
-      </div>
-      <div class="simulator-layout-add-grid">
-        <a-button
-          v-for="option in layoutAddOptions()"
-          :key="option.type"
-          :class="[
-            'simulator-layout-add-card',
-            { 'simulator-layout-add-card--disabled': option.disabled },
-          ]"
-          :disabled="option.disabled"
-          :style="facilityStyle(option.type)"
-          :title="option.reason"
-          @click="addLayoutEntry(option.type)"
-        >
-          {{ option.label }}
-        </a-button>
-      </div>
-    </div>
-
-    <div class="simulator-layout-text-editor">
-      <div class="simulator-layout-add-heading">
-        <span class="simulator-summary-label">按数字批量设置</span>
-        <span class="simulator-layout-add-hint"
-          >每行按固定顺序填写设施等级</span
-        >
-      </div>
-      <a-textarea
-        v-model:value="layoutText"
-        :auto-size="{ minRows: 2, maxRows: 2 }"
-        class="simulator-layout-text-input"
-        placeholder="33 33222\n1313 2111"
-      />
-      <div class="simulator-layout-text-footer">
-        <span>{{ layoutTextHint() }}</span>
-      </div>
-      <a-alert
-        v-if="layoutError"
-        :message="layoutError"
-        show-icon
-        type="error"
-      />
-    </div>
-
-    <div class="simulator-layout-list">
-      <div
-        v-for="row in layoutRows"
-        :key="row.key"
-        class="simulator-layout-row"
-      >
-        <div
-          v-for="item in row.entries"
-          :key="item.index"
-          class="simulator-layout-card"
-          :style="facilityStyle(item.entry.type)"
-        >
-          <span class="simulator-layout-card-name">
-            {{ ROOM_LABELS[item.entry.type] }}
-          </span>
-          <div class="simulator-layout-card-actions">
-            <span
-              v-if="
-                isFixedLevelRoom(item.entry.type) ||
-                layoutEntryIsFixed(item.entry)
-              "
-              class="simulator-layout-card-level-text"
-              >{{ fixedLevelText(item.entry) }}</span
-            >
-            <a-input-number
-              v-else
-              :max="layoutEntryLevelMax(item.entry.type)"
-              :min="roomLevelRange(item.entry.type).min"
-              :value="item.entry.level"
-              addon-after="级"
-              class="simulator-layout-card-level"
-              @update:value="
-                (value: number | null) => updateLayoutLevel(item.index, value)
-              "
-            />
-            <a-button
-              :disabled="layoutEntryIsFixed(item.entry)"
-              aria-label="删除设施"
-              danger
-              :title="
-                layoutEntryIsFixed(item.entry)
-                  ? '当前组合设施不可删除'
-                  : '删除设施'
-              "
-              type="text"
-              @click="removeLayoutEntry(item.index)"
-            >
-              <template #icon><DeleteOutlined /></template>
-            </a-button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ScheduleLayoutEditor
+      :error="layoutError"
+      :facility-colors="facilityColors"
+      :fixed-room-levels="fixedRoomLevels"
+      :fixed-room-types="fixedRoomTypes"
+      :layout="modelValue.layout"
+      :show-summary="false"
+      :layout-text-footer="layoutTextHint()"
+      @add-layout="addLayoutEntry"
+      @apply-layout-text="applyLayoutText"
+      @remove-layout="removeLayoutEntry"
+      @update-layout-level="updateLayoutLevel"
+    />
 
     <div class="basic-calculator-schedule-facilities">
       <a-card
@@ -737,63 +684,55 @@ function fixedLevelText(entry: LayoutEntry): string {
           >
             <div class="simulator-facility-queue-content">
               <div class="simulator-slot-grid" :style="slotStyle()">
-                <div
+                <ScheduleOperatorSlot
                   v-for="slot in slotRefs(row)"
                   :key="`${row.type}-${slot.entry.position}-${slot.slotIndex}`"
-                  :class="[
-                    'simulator-slot',
-                    'basic-calculator-schedule-slot',
-                    {
-                      'simulator-slot--hovered':
-                        dragTargetKey === slotAddress(slot, row.type).key,
-                    },
-                  ]"
-                  :data-key="slotAddress(slot, row.type).key"
-                  :data-position="slot.entry.position"
-                  :data-slot-index="slot.slotIndex"
-                  :data-type="row.type"
+                  class="basic-calculator-schedule-slot"
+                  :display-name="slotDisplayName(slotAddress(slot, row.type))"
+                  :elite-level="
+                    operatorEliteLevel(
+                      slotDisplayName(slotAddress(slot, row.type)),
+                      row.type,
+                    )
+                  "
+                  :name-input-pending="
+                    slotIsSelected(slotAddress(slot, row.type)) &&
+                    !slotIsEditing(slotAddress(slot, row.type))
+                  "
+                  :name-input-value="
+                    slotDisplayName(slotAddress(slot, row.type))
+                  "
+                  :name-input-visible="
+                    slotIsSelected(slotAddress(slot, row.type))
+                  "
+                  :name-editing="slotIsEditing(slotAddress(slot, row.type))"
+                  :operator="
+                    operatorFor(slotDisplayName(slotAddress(slot, row.type)))
+                  "
+                  :selected="slotIsSelected(slotAddress(slot, row.type))"
+                  :size="76"
+                  :slot-key="slotAddress(slot, row.type).key"
+                  :special-label="
+                    specialLabel(slotDisplayName(slotAddress(slot, row.type)))
+                  "
                   :title="
-                    slotName(slotAddress(slot, row.type)) ||
-                    '点击选择干员，右键清空'
+                    slotDisplayName(slotAddress(slot, row.type)) ||
+                    '点击选择干员，双击编辑'
                   "
-                  @click.stop="handleSlotClick(slotAddress(slot, row.type))"
-                  @contextmenu.stop.prevent="
-                    clearSlot(slotAddress(slot, row.type))
+                  :hovered="dragTargetKey === slotAddress(slot, row.type).key"
+                  :room-label="row.label"
+                  :room-type="row.type"
+                  :position="slot.entry.position"
+                  :slot-index="slot.slotIndex"
+                  @blur="commitSlotEdit"
+                  @click="handleSlotClick(slotAddress(slot, row.type))"
+                  @contextmenu="clearSlot(slotAddress(slot, row.type))"
+                  @dblclick="handleSlotDoubleClick(slotAddress(slot, row.type))"
+                  @input="handleSlotInput($event, slotAddress(slot, row.type))"
+                  @input-click="
+                    handleSlotInputClick(slotAddress(slot, row.type))
                   "
-                >
-                  <OperatorAvatarDisplay
-                    v-if="slotName(slotAddress(slot, row.type))"
-                    :display-name="slotName(slotAddress(slot, row.type))"
-                    :elite-level="
-                      operatorEliteLevel(
-                        slotName(slotAddress(slot, row.type)),
-                        row.type,
-                      )
-                    "
-                    :operator="
-                      operatorFor(slotName(slotAddress(slot, row.type)))
-                    "
-                    :plain="true"
-                    :proportional-layout="true"
-                    :show-elite-level="true"
-                    :show-name="true"
-                    :show-profession="true"
-                    :show-rarity="true"
-                    :size="76"
-                    :special-label="
-                      specialLabel(slotName(slotAddress(slot, row.type)))
-                    "
-                  />
-                  <template v-else>
-                    <div class="simulator-empty-slot-frame" />
-                    <span
-                      class="simulator-empty-slot-name"
-                      :style="{ width: '76px' }"
-                    >
-                      空槽位
-                    </span>
-                  </template>
-                </div>
+                />
               </div>
             </div>
           </a-card>
@@ -801,7 +740,7 @@ function fixedLevelText(entry: LayoutEntry): string {
       </a-card>
     </div>
 
-    <OperatorPickerPanel
+    <ScheduleOperatorPicker
       v-if="pickerAddress"
       :avatar-size="64"
       :candidates="pickerCandidates"
@@ -809,6 +748,7 @@ function fixedLevelText(entry: LayoutEntry): string {
       :selected-profession="selectedProfession"
       :style="pickerStyle"
       :title="pickerTitle"
+      @outside="closePicker"
       @select="selectOperator"
       @update:selected-profession="selectedProfession = $event"
     />
