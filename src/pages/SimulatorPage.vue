@@ -109,6 +109,7 @@ import {
   loadEfficiencyCatalog,
 } from "@/utils/efficiency";
 import { facilityId } from "@/utils/efficiency/baseRules";
+import { EPSILON } from "@/utils/efficiency/model";
 import type {
   DroneAccelerationResult,
   DroneAccelerationScenario,
@@ -204,6 +205,12 @@ interface DailyOutputOrderDetail {
   ignoreEfficiency?: boolean;
 }
 
+interface DailyOutputMaterialDetail {
+  material: string;
+  dailyAmount: number;
+  queueTotal: number;
+}
+
 interface DailyOutputFacilityDetail {
   label: string;
   baseEfficiency: number;
@@ -211,6 +218,7 @@ interface DailyOutputFacilityDetail {
   baseOutputPerHour: number;
   totalOutputPerHour: number;
   selectedOutputPerHour: number;
+  materials: DailyOutputMaterialDetail[];
   orders: DailyOutputOrderDetail[];
 }
 
@@ -222,6 +230,7 @@ interface DailyOutputProductDetail {
   totalOutputPerHour: number;
   selectedOutputPerHour: number;
   dailyContribution: number;
+  queueTotal: number;
   facilities: DailyOutputFacilityDetail[];
 }
 
@@ -1179,6 +1188,17 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
         const totalOutputPerHour = production.amountPerHour;
         const selectedOutputPerHour =
           production.effectiveAmountPerHour ?? totalOutputPerHour;
+        const selectedMaterials =
+          production.effectiveMaterialPerHour ??
+          production.materialPerHour ??
+          {};
+        const materials = Object.entries(selectedMaterials)
+          .filter(([, amount]) => amount < -EPSILON)
+          .map(([material, amount]) => ({
+            material,
+            dailyAmount: (amount * plan.durationHours * 24) / result.dailyHours,
+            queueTotal: amount * plan.durationHours,
+          }));
         const current = products.get(production.product) ?? {
           product: production.product,
           baseEfficiency: 0,
@@ -1187,6 +1207,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
           totalOutputPerHour: 0,
           selectedOutputPerHour: 0,
           dailyContribution: 0,
+          queueTotal: 0,
           facilities: [],
         };
         current.baseEfficiency += facility.baseEfficiency;
@@ -1194,6 +1215,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
         current.baseOutputPerHour += (baseRate * facility.baseEfficiency) / 100;
         current.totalOutputPerHour += totalOutputPerHour;
         current.selectedOutputPerHour += selectedOutputPerHour;
+        current.queueTotal += selectedOutputPerHour * plan.durationHours;
         current.facilities.push({
           label: facilityResultLabel(facility),
           baseEfficiency: facility.baseEfficiency,
@@ -1201,6 +1223,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
           baseOutputPerHour: (baseRate * facility.baseEfficiency) / 100,
           totalOutputPerHour,
           selectedOutputPerHour,
+          materials,
           orders: (production.orders ?? []).map((order) => {
             const baseOrderRate =
               order.time > 0 ? order.quantity / order.time : 0;
@@ -8550,6 +8573,13 @@ watch(showScheduleSidebar, () => {
                                 :value="product.dailyContribution"
                                 :unit="resourceLabel(product.product)"
                             /></strong>
+                            <span>队列时长总产出</span>
+                            <strong
+                              ><SimulatorNumericValue
+                                mode="production"
+                                :value="product.queueTotal"
+                                :unit="resourceLabel(product.product)"
+                            /></strong>
                           </div>
                           <div
                             v-if="product.facilities.length"
@@ -8595,6 +8625,35 @@ watch(showScheduleSidebar, () => {
                                     unit="/小时"
                                   />/小时</strong
                                 >
+                                <template
+                                  v-for="material in facility.materials"
+                                  :key="`${facility.label}-${material.material}`"
+                                >
+                                  <span>
+                                    {{ facility.label }} · 材料消耗 ·
+                                    {{ resourceLabel(material.material) }} ·
+                                    队列折算每日
+                                  </span>
+                                  <strong>
+                                    <SimulatorNumericValue
+                                      mode="signed"
+                                      :value="material.dailyAmount"
+                                      unit="/日"
+                                    />/日
+                                  </strong>
+                                  <span>
+                                    {{ facility.label }} · 材料消耗 ·
+                                    {{ resourceLabel(material.material) }} ·
+                                    队列时长总消耗
+                                  </span>
+                                  <strong>
+                                    <SimulatorNumericValue
+                                      mode="signed"
+                                      :value="material.queueTotal"
+                                      :unit="resourceLabel(material.material)"
+                                    />
+                                  </strong>
+                                </template>
                                 <template
                                   v-for="order in facility.orders"
                                   :key="`${facility.label}-${order.name}`"
