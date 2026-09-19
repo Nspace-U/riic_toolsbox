@@ -3878,10 +3878,9 @@ a {
 }
 
 .simulator-image-export-root .simulator-export-facility-grid {
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: flex;
+  flex-wrap: nowrap;
   column-gap: 10px;
-  flex-wrap: initial;
   align-items: start;
   overflow: visible;
   max-width: none;
@@ -3940,12 +3939,15 @@ a {
 
 .simulator-export-facility-flow {
   display: grid;
+  flex: 0 0 auto;
+  min-width: max-content;
   align-items: stretch;
   gap: 10px;
 }
 
 .simulator-export-facility-row {
   display: flex;
+  flex: 0 0 auto;
   align-items: stretch;
   min-width: max-content;
 }

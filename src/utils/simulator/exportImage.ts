@@ -20,6 +20,8 @@ export type ScheduleImageResolutionKey =
 export type ScheduleImageResolution =
   (typeof SCHEDULE_IMAGE_RESOLUTIONS)[number];
 
+const EXPORT_FACILITY_MAX_WIDTH = 1440;
+
 interface ExportOperatorContext {
   planIndex: number;
   type: RoomKey;
@@ -500,6 +502,10 @@ function pruneSlotGroup(group: HTMLElement): number {
   const grids = queues
     .map((queue) => queue.querySelector<HTMLElement>(".simulator-slot-grid"))
     .filter((candidate): candidate is HTMLElement => Boolean(candidate));
+  const originalSlotCount = Math.max(
+    0,
+    ...grids.map((slotGrid) => slotGrid.children.length),
+  );
   grids.forEach((slotGrid) => {
     Array.from(slotGrid.children).forEach((slot) => {
       if (!(slot instanceof HTMLElement) || !occupiedSlot(slot)) {
@@ -517,14 +523,7 @@ function pruneSlotGroup(group: HTMLElement): number {
 
   const overhead = Math.max(
     0,
-    measurement.width -
-      Math.max(
-        1,
-        ...grids.map(
-          (slotGrid) =>
-            Math.max(0, slotGrid.children.length) * measurement.slotWidth,
-        ),
-      ),
+    measurement.width - originalSlotCount * measurement.slotWidth,
   );
   const width = overhead + visibleCount * measurement.slotWidth;
   if (group.classList.contains("simulator-export-dormitory-segment")) {
@@ -653,7 +652,7 @@ function partitionFacilities(
   return groups;
 }
 
-function reflowFacilities(grid: HTMLElement, sourceWidth: number): void {
+function reflowFacilities(grid: HTMLElement): void {
   const queueColumn = directChildrenWithClass(
     grid,
     "simulator-queue-column",
@@ -661,7 +660,7 @@ function reflowFacilities(grid: HTMLElement, sourceWidth: number): void {
   const columns = directChildrenWithClass(grid, "simulator-facility-column");
   const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
   const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
-  const maxWidth = Math.max(640, sourceWidth - queueWidth - gap);
+  const maxWidth = EXPORT_FACILITY_MAX_WIDTH;
   const groups = partitionFacilities(columns, maxWidth, gap);
   const facilityFlow = window.document.createElement("div");
   facilityFlow.className = "simulator-export-facility-flow";
@@ -678,16 +677,32 @@ function reflowFacilities(grid: HTMLElement, sourceWidth: number): void {
       group.length,
       gap,
     );
+    row.style.width = `${Math.max(1, Math.round(width))}px`;
     widestRow = Math.max(widestRow, width);
     facilityFlow.append(row);
   });
 
-  facilityFlow.style.width = `${Math.max(1, Math.round(widestRow))}px`;
-  grid.classList.add("simulator-export-facility-grid");
-  grid.style.width = `${Math.max(
+  const resolvedFacilityWidth = Math.max(1, Math.round(widestRow));
+  const resolvedGridWidth = Math.max(
     1,
-    Math.round(queueWidth + (queueColumn ? gap : 0) + widestRow),
-  )}px`;
+    Math.round(queueWidth + (queueColumn ? gap : 0) + resolvedFacilityWidth),
+  );
+  facilityFlow.style.flex = `0 0 ${resolvedFacilityWidth}px`;
+  facilityFlow.style.minWidth = `${resolvedFacilityWidth}px`;
+  facilityFlow.style.width = `${resolvedFacilityWidth}px`;
+  grid.classList.add("simulator-export-facility-grid");
+  grid.style.display = "flex";
+  grid.style.flexWrap = "nowrap";
+  grid.style.alignItems = "flex-start";
+  grid.style.gap = `${gap}px`;
+  grid.style.width = `${resolvedGridWidth}px`;
+  grid.style.minWidth = `${resolvedGridWidth}px`;
+  grid.style.overflow = "visible";
+  if (queueColumn) {
+    queueColumn.style.flex = `0 0 ${queueWidth}px`;
+    queueColumn.style.width = `${queueWidth}px`;
+    queueColumn.style.maxWidth = `${queueWidth}px`;
+  }
   grid.replaceChildren();
   if (queueColumn) {
     grid.append(queueColumn);
@@ -771,7 +786,10 @@ export async function renderScheduleImage(
   );
   const host = window.document.createElement("div");
   host.className = "simulator-image-export-host";
-  host.style.width = `${sourceWidth}px`;
+  host.style.width = `${Math.max(
+    sourceWidth,
+    EXPORT_FACILITY_MAX_WIDTH + 240,
+  )}px`;
   const parts = createExportRoot(options.source, options.schedule);
   host.append(parts.root);
   window.document.body.append(host);
@@ -783,7 +801,7 @@ export async function renderScheduleImage(
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
     removeExportControls(parts.root);
-    reflowFacilities(parts.grid, sourceWidth);
+    reflowFacilities(parts.grid);
     await waitForImages(parts.root);
     const svgUrl = await toSvg(parts.root, {
       backgroundColor: "#f4f6f7",
