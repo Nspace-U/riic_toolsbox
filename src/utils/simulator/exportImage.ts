@@ -20,7 +20,8 @@ export type ScheduleImageResolutionKey =
 export type ScheduleImageResolution =
   (typeof SCHEDULE_IMAGE_RESOLUTIONS)[number];
 
-const EXPORT_FACILITY_MAX_WIDTH = 1440;
+const EXPORT_CANVAS_WIDTH = 1920;
+const EXPORT_ROOT_HORIZONTAL_PADDING = 48;
 
 interface ExportOperatorContext {
   planIndex: number;
@@ -117,7 +118,9 @@ function prepareQueueColumn(
   }
 
   queueCard.classList.add("simulator-export-queue-card");
-  queueCard.querySelector(".ant-card-head")?.remove();
+  const queueHead = queueCard.querySelector<HTMLElement>(".ant-card-head");
+  queueHead?.classList.add("simulator-export-queue-head-spacer");
+  queueHead?.replaceChildren();
   const entries = queueCard.querySelector<HTMLElement>(
     ".simulator-queue-entries",
   );
@@ -472,13 +475,13 @@ function mergeDormitories(grid: HTMLElement): void {
     const segment = window.document.createElement("div");
     segment.className = "simulator-export-dormitory-segment";
     segment.dataset.exportDormitorySegment = "true";
-    segment.style.width = `${Math.max(
-      1,
-      Math.round(column.getBoundingClientRect().width),
-    )}px`;
+    const width = Math.max(1, Math.round(column.getBoundingClientRect().width));
+    segment.style.flexBasis = `${width}px`;
+    segment.style.width = `${width}px`;
     if (index > 0) {
       segment.classList.add("simulator-export-dormitory-segment--separated");
     }
+    queues.classList.add("simulator-export-dormitory-queues");
     segment.append(queues);
     merged.append(segment);
   });
@@ -510,21 +513,39 @@ function pruneSlotGroup(group: HTMLElement): number {
   const grids = queues
     .map((queue) => queue.querySelector<HTMLElement>(".simulator-slot-grid"))
     .filter((candidate): candidate is HTMLElement => Boolean(candidate));
+  const slotGroups = grids.map((slotGrid) =>
+    Array.from(slotGrid.children).filter(
+      (slot): slot is HTMLElement => slot instanceof HTMLElement,
+    ),
+  );
   const originalSlotCount = Math.max(
     0,
-    ...grids.map((slotGrid) => slotGrid.children.length),
+    ...slotGroups.map((slots) => slots.length),
   );
-  grids.forEach((slotGrid) => {
-    Array.from(slotGrid.children).forEach((slot) => {
-      if (!(slot instanceof HTMLElement) || !occupiedSlot(slot)) {
+  const visibleIndexes = Array.from(
+    { length: originalSlotCount },
+    (_, index) =>
+      slotGroups.some((slots) => {
+        const slot = slots[index];
+        return slot ? occupiedSlot(slot) : false;
+      })
+        ? index
+        : -1,
+  ).filter((index) => index >= 0);
+  const visibleIndexSet = new Set(visibleIndexes);
+  slotGroups.forEach((slots) => {
+    slots.forEach((slot, index) => {
+      if (!visibleIndexSet.has(index)) {
         slot.remove();
+        return;
+      }
+      if (!occupiedSlot(slot)) {
+        slot.replaceChildren();
+        slot.className = "simulator-slot simulator-export-empty-slot";
       }
     });
   });
-  const visibleCount = Math.max(
-    0,
-    ...grids.map((slotGrid) => slotGrid.children.length),
-  );
+  const visibleCount = visibleIndexes.length;
   if (visibleCount === 0) {
     return 0;
   }
@@ -615,10 +636,17 @@ function partitionFacilities(
   }
   const widths = columns.map(facilityColumnWidth);
   const totalWidth = rowWidth(widths, 0, widths.length, gap);
-  const rowCount = Math.min(
-    columns.length,
-    Math.max(1, Math.ceil(totalWidth / Math.max(1, maxWidth))),
-  );
+  let rowCount = 1;
+  let currentWidth = 0;
+  widths.forEach((width) => {
+    const nextWidth = currentWidth === 0 ? width : currentWidth + gap + width;
+    if (currentWidth > 0 && nextWidth > maxWidth) {
+      rowCount += 1;
+      currentWidth = width;
+      return;
+    }
+    currentWidth = nextWidth;
+  });
   if (rowCount === 1) {
     return [columns];
   }
@@ -640,6 +668,9 @@ function partitionFacilities(
           continue;
         }
         const width = rowWidth(widths, start, end, gap);
+        if (width > maxWidth && end - start > 1) {
+          continue;
+        }
         const cost = previousCost + (width - targetWidth) ** 2;
         if (cost < costs[rows]![end]!) {
           costs[rows]![end] = cost;
@@ -647,6 +678,9 @@ function partitionFacilities(
         }
       }
     }
+  }
+  if (!Number.isFinite(costs[rowCount]![columns.length])) {
+    return [columns];
   }
 
   const groups: HTMLElement[][] = [];
@@ -668,7 +702,13 @@ function reflowFacilities(grid: HTMLElement): void {
   const columns = directChildrenWithClass(grid, "simulator-facility-column");
   const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
   const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
-  const maxWidth = EXPORT_FACILITY_MAX_WIDTH;
+  const maxWidth = Math.max(
+    1,
+    EXPORT_CANVAS_WIDTH -
+      EXPORT_ROOT_HORIZONTAL_PADDING -
+      queueWidth -
+      (queueColumn ? gap : 0),
+  );
   const groups = partitionFacilities(columns, maxWidth, gap);
   const facilityFlow = window.document.createElement("div");
   facilityFlow.className = "simulator-export-facility-flow";
@@ -679,18 +719,14 @@ function reflowFacilities(grid: HTMLElement): void {
     row.className = "simulator-export-facility-row";
     row.style.gap = `${gap}px`;
     group.forEach((column) => row.append(column));
-    const width = rowWidth(
-      group.map(facilityColumnWidth),
-      0,
-      group.length,
-      gap,
-    );
-    row.style.width = `${Math.max(1, Math.round(width))}px`;
-    widestRow = Math.max(widestRow, width);
+    row.style.width = `${maxWidth}px`;
+    row.style.minWidth = "0";
+    row.style.justifyContent = "center";
+    widestRow = Math.max(widestRow, maxWidth);
     facilityFlow.append(row);
   });
 
-  const resolvedFacilityWidth = Math.max(1, Math.round(widestRow));
+  const resolvedFacilityWidth = Math.max(1, Math.round(widestRow || maxWidth));
   const resolvedGridWidth = Math.max(
     1,
     Math.round(queueWidth + (queueColumn ? gap : 0) + resolvedFacilityWidth),
@@ -703,6 +739,8 @@ function reflowFacilities(grid: HTMLElement): void {
   grid.style.flexWrap = "nowrap";
   grid.style.alignItems = "flex-start";
   grid.style.gap = `${gap}px`;
+  grid.style.marginInline = "0";
+  grid.style.paddingInline = "0";
   grid.style.width = `${resolvedGridWidth}px`;
   grid.style.minWidth = `${resolvedGridWidth}px`;
   grid.style.overflow = "visible";
@@ -787,17 +825,9 @@ function svgToPng(
 export async function prepareScheduleImage(
   options: ScheduleImagePreparationOptions,
 ): Promise<PreparedScheduleImage> {
-  const sourceWidth = Math.max(
-    options.source.clientWidth,
-    Math.round(options.source.getBoundingClientRect().width),
-    960,
-  );
   const host = window.document.createElement("div");
   host.className = "simulator-image-export-host";
-  host.style.width = `${Math.max(
-    sourceWidth,
-    EXPORT_FACILITY_MAX_WIDTH + 240,
-  )}px`;
+  host.style.width = `${EXPORT_CANVAS_WIDTH}px`;
   const parts = createExportRoot(options.source, options.schedule);
   host.append(parts.root);
   window.document.body.append(host);

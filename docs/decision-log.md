@@ -992,3 +992,9 @@
 - **映射**：跨表粘贴沿用现有目标规则；同一逻辑设施保留队列和槽位相对位置，跨设施或无法匹配时按目标队列顺序线性写入，目标空间不足时截断，空槽位和干员状态照常覆盖。
 - **历史与兼容性**：跨表剪切仍在剪切时清空源表，源表清空和目标表粘贴分别记录到各自历史，不修改 `RoomAssignment`、`OperatorState`、排班 JSON 或 Maa JSON 契约。
 - **验证**：`npm run lint`、`npm run type-check`、`npm run build`、`npm run test:schedule-list`、`npm run test:simulator-layout`、`npm run test:simulator-result` 和 `git diff --check` 通过；本地页面无控制台错误。浏览器自动化的系统级 `Ctrl/Cmd+C/V` 仍受剪贴板通道接管，未据此宣称快捷键分支已自动化验证。
+
+## 2026-09-19：修复排班图片导出的固定画布布局
+
+- **决定**：图片导出始终以 `1920×1080` 逻辑画布计算设施区域，在不超出可用宽度的前提下选择最少行数，再以行宽差异最小化保持设施顺序并平衡留白；预览使用固定 stage 的 transform 缩放，外层布局尺寸同步缩放尺寸，避免 CSS `zoom` 导致视觉尺寸与滚动尺寸不一致。
+- **显示**：队列标题栏改为透明占位以维持与设施队列的垂直对齐；宿舍 body 统一重建，只有同设施同槽位在所有队列均为空时才删除该列，宿舍 segment 之间保留竖线而标题栏不分割。
+- **验证**：`npm run type-check`、定向 ESLint、`npm run test:simulator-layout`、`npm run test:simulator-result`、`npm run test:schedule-import`、`npm run test:efficiency`、`npm run test:operator-avatar`、`npm run build`、目标文件 Prettier 和 `git diff --check` 通过。全仓 lint 仍受用户已有 `BasicCalculatorPage.vue` 与 `BasicCalculatorScheduleEditor.vue` 未使用符号阻断；浏览器页面可正常加载，完整图片预览未使用当前含无效干员映射的本地样本验证。

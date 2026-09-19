@@ -3841,8 +3841,9 @@ a {
 .simulator-image-export-root {
   display: grid;
   box-sizing: border-box;
-  width: max-content;
-  min-width: 960px;
+  width: 1920px;
+  min-width: 1920px;
+  max-width: 1920px;
   gap: 14px;
   padding: 24px;
   color: #253238;
@@ -3901,13 +3902,24 @@ a {
   overflow: visible;
 }
 
+.simulator-image-export-root .simulator-export-queue-head-spacer {
+  visibility: hidden;
+  min-height: 46px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
 .simulator-image-export-root .simulator-export-queue-entries {
   gap: 8px;
-  padding: 0;
+  padding-block: 8px;
+  padding-inline: 0;
 }
 
 .simulator-image-export-root .simulator-export-queue-info {
+  box-sizing: border-box;
   display: grid;
+  height: var(--simulator-queue-min-height, 135px);
   min-height: var(--simulator-queue-min-height, 135px);
   align-content: center;
   gap: 4px;
@@ -3940,7 +3952,7 @@ a {
 .simulator-export-facility-flow {
   display: grid;
   flex: 0 0 auto;
-  min-width: max-content;
+  min-width: 0;
   align-items: stretch;
   gap: 10px;
 }
@@ -3949,7 +3961,7 @@ a {
   display: flex;
   flex: 0 0 auto;
   align-items: stretch;
-  min-width: max-content;
+  min-width: 0;
 }
 
 .simulator-export-facility-row > .simulator-facility-column {
@@ -3980,6 +3992,16 @@ a {
   min-width: 0;
 }
 
+.simulator-export-dormitory-segment > .simulator-export-dormitory-queues {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px;
+}
+
+.simulator-export-dormitory-segment .simulator-facility-queue {
+  width: 100%;
+}
+
 .simulator-image-export-modal .ant-modal-body {
   padding-block-start: 0;
 }
@@ -4008,18 +4030,25 @@ a {
   border: 1px solid #dce8e4;
 }
 
+.simulator-image-export-preview--auto {
+  overflow-x: hidden;
+}
+
 .simulator-image-export-preview--overflow {
   overflow: visible;
 }
 
 .simulator-image-export-preview-zoom {
-  width: max-content;
+  width: 1920px;
+  height: 1080px;
+  flex: 0 0 auto;
 }
 
 .simulator-image-export-preview-stage {
   position: relative;
   width: 1920px;
   height: 1080px;
+  transform-origin: top left;
   overflow: hidden;
   background: #f4f6f7;
 }

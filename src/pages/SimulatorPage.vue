@@ -6355,6 +6355,18 @@ const imageExportPreviewEffectiveZoom = computed<number>(() => {
   return targetWidth > 0 ? targetWidth / IMAGE_EXPORT_PREVIEW_WIDTH : 1;
 });
 
+const imageExportPreviewZoomStyle = computed<Record<string, string>>(() => {
+  const zoom = imageExportPreviewEffectiveZoom.value;
+  return {
+    width: `${IMAGE_EXPORT_PREVIEW_WIDTH * zoom}px`,
+    height: `${IMAGE_EXPORT_PREVIEW_HEIGHT * zoom}px`,
+  };
+});
+
+const imageExportPreviewStageStyle = computed<Record<string, string>>(() => ({
+  transform: `scale(${imageExportPreviewEffectiveZoom.value})`,
+}));
+
 const imageExportPreviewContentStyle = computed<Record<string, string>>(() => {
   const { width, height } = imageExportPreviewContentSize.value;
   const scale = imageExportPreviewContentScale.value;
@@ -6369,7 +6381,8 @@ const imageExportPreviewContentStyle = computed<Record<string, string>>(() => {
       0,
       (IMAGE_EXPORT_PREVIEW_HEIGHT - height * scale) / 2,
     )}px`,
-    zoom: String(scale),
+    transform: `scale(${scale})`,
+    transformOrigin: "top left",
   };
 });
 
@@ -6995,6 +7008,9 @@ watch(showScheduleSidebar, () => {
           :class="[
             'simulator-image-export-preview',
             {
+              'simulator-image-export-preview--auto':
+                imageExportPreviewZoom === 'auto' &&
+                imageExportPreviewWidthMode === 'scroll',
               'simulator-image-export-preview--overflow':
                 imageExportPreviewWidthMode === 'overflow',
             },
@@ -7002,9 +7018,12 @@ watch(showScheduleSidebar, () => {
         >
           <div
             class="simulator-image-export-preview-zoom"
-            :style="{ zoom: imageExportPreviewEffectiveZoom }"
+            :style="imageExportPreviewZoomStyle"
           >
-            <div class="simulator-image-export-preview-stage">
+            <div
+              class="simulator-image-export-preview-stage"
+              :style="imageExportPreviewStageStyle"
+            >
               <div
                 class="simulator-image-export-preview-content"
                 :style="imageExportPreviewContentStyle"
