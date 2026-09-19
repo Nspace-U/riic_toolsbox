@@ -702,58 +702,43 @@ function reflowFacilities(grid: HTMLElement): void {
   const columns = directChildrenWithClass(grid, "simulator-facility-column");
   const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
   const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
-  const maxWidth = Math.max(
+  const availableWidth = Math.max(
     1,
-    EXPORT_CANVAS_WIDTH -
-      EXPORT_ROOT_HORIZONTAL_PADDING -
-      queueWidth -
-      (queueColumn ? gap : 0),
+    EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING,
   );
-  const groups = partitionFacilities(columns, maxWidth, gap);
-  const facilityFlow = window.document.createElement("div");
-  facilityFlow.className = "simulator-export-facility-flow";
-
-  let widestRow = 0;
+  const facilityMaxWidth = Math.max(
+    1,
+    availableWidth - (queueColumn ? queueWidth + gap : 0),
+  );
+  const groups = partitionFacilities(columns, facilityMaxWidth, gap);
+  const rows: HTMLElement[] = [];
   groups.forEach((group) => {
     const row = window.document.createElement("div");
     row.className = "simulator-export-facility-row";
     row.style.gap = `${gap}px`;
-    group.forEach((column) => row.append(column));
-    row.style.width = `${maxWidth}px`;
+    row.style.width = `${availableWidth}px`;
     row.style.minWidth = "0";
-    row.style.justifyContent = "center";
-    widestRow = Math.max(widestRow, maxWidth);
-    facilityFlow.append(row);
+    row.style.justifyContent = "flex-start";
+    if (queueColumn) {
+      const queueCopy = queueColumn.cloneNode(true) as HTMLElement;
+      queueCopy.style.flex = `0 0 ${queueWidth}px`;
+      queueCopy.style.width = `${queueWidth}px`;
+      queueCopy.style.maxWidth = `${queueWidth}px`;
+      row.append(queueCopy);
+    }
+    group.forEach((column) => row.append(column));
+    rows.push(row);
   });
 
-  const resolvedFacilityWidth = Math.max(1, Math.round(widestRow || maxWidth));
-  const resolvedGridWidth = Math.max(
-    1,
-    Math.round(queueWidth + (queueColumn ? gap : 0) + resolvedFacilityWidth),
-  );
-  facilityFlow.style.flex = `0 0 ${resolvedFacilityWidth}px`;
-  facilityFlow.style.minWidth = `${resolvedFacilityWidth}px`;
-  facilityFlow.style.width = `${resolvedFacilityWidth}px`;
   grid.classList.add("simulator-export-facility-grid");
-  grid.style.display = "flex";
-  grid.style.flexWrap = "nowrap";
-  grid.style.alignItems = "flex-start";
-  grid.style.gap = `${gap}px`;
+  grid.style.display = "grid";
+  grid.style.rowGap = `${gap}px`;
   grid.style.marginInline = "0";
   grid.style.paddingInline = "0";
-  grid.style.width = `${resolvedGridWidth}px`;
-  grid.style.minWidth = `${resolvedGridWidth}px`;
+  grid.style.width = `${availableWidth}px`;
+  grid.style.minWidth = `${availableWidth}px`;
   grid.style.overflow = "visible";
-  if (queueColumn) {
-    queueColumn.style.flex = `0 0 ${queueWidth}px`;
-    queueColumn.style.width = `${queueWidth}px`;
-    queueColumn.style.maxWidth = `${queueWidth}px`;
-  }
-  grid.replaceChildren();
-  if (queueColumn) {
-    grid.append(queueColumn);
-  }
-  grid.append(facilityFlow);
+  grid.replaceChildren(...rows);
 }
 
 function waitForImages(root: HTMLElement): Promise<void> {

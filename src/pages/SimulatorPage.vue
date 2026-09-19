@@ -6351,6 +6351,15 @@ function updateImageExportPreviewViewportWidth(): void {
     imageExportPreviewViewport.value?.clientWidth ?? 0;
 }
 
+function resetImageExportPreviewScroll(): void {
+  const viewport = imageExportPreviewViewport.value;
+  if (!viewport || imageExportPreviewWidthMode.value !== "scroll") {
+    return;
+  }
+  viewport.scrollLeft = 0;
+  viewport.scrollTop = 0;
+}
+
 function observeImageExportPreview(): void {
   imageExportPreviewResizeObserver?.disconnect();
   imageExportPreviewResizeObserver = undefined;
@@ -6456,6 +6465,8 @@ async function prepareImageExport(): Promise<void> {
     imageExportPreviewMount.value.replaceChildren(prepared.root);
     await nextTick();
     updateImageExportPreviewContent();
+    await nextTick();
+    resetImageExportPreviewScroll();
   } catch (error: unknown) {
     if (requestId === imageExportRequestVersion) {
       imageExportError.value =
@@ -6512,6 +6523,7 @@ function updateImageExportPreviewWidthMode(event: {
   const mode = String(event.target.value);
   if (mode === "scroll" || mode === "overflow") {
     imageExportPreviewWidthMode.value = mode;
+    void nextTick(resetImageExportPreviewScroll);
   }
 }
 
@@ -6521,11 +6533,13 @@ function updateImageExportPreviewZoom(event: {
   const value = String(event.target.value);
   if (value === "auto") {
     imageExportPreviewZoom.value = value;
+    void nextTick(resetImageExportPreviewScroll);
     return;
   }
   const zoom = Number(value);
   if ([0.5, 1, 2].includes(zoom)) {
     imageExportPreviewZoom.value = zoom;
+    void nextTick(resetImageExportPreviewScroll);
   }
 }
 
