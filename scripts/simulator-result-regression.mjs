@@ -37,10 +37,12 @@ assert.match(queueBlock, /class="simulator-calculation-step-column"/);
 assert.match(queueBlock, /<span>队列计算明细<\/span>/);
 assert.match(queueBlock, /队列时长总产出/);
 assert.match(queueBlock, /v-for="material in facility\.materials"/);
-assert.match(queueBlock, /v-for="material in queue\.materials"/);
-assert.match(queueBlock, /队列材料消耗合计/);
-assert.match(queueBlock, /队列折算每日/);
+assert.match(queueBlock, /v-for="material in product\.materials"/);
+assert.match(queueBlock, /队列折算<\/span>/);
+assert.doesNotMatch(queueBlock, /队列折算每日/);
 assert.match(queueBlock, /队列时长总消耗/);
+assert.match(queueBlock, /sanityIconUrl\(\)/);
+assert.match(queueBlock, /理智\/日/);
 assert.doesNotMatch(
   queueBlock,
   /<span class="simulator-step-subheading">队列计算明细<\/span>/,
