@@ -695,22 +695,17 @@ function partitionFacilities(
 }
 
 function reflowFacilities(grid: HTMLElement): void {
-  const queueColumn = directChildrenWithClass(
-    grid,
-    "simulator-queue-column",
-  )[0];
-  const columns = directChildrenWithClass(grid, "simulator-facility-column");
+  const queueColumns = directChildrenWithClass(grid, "simulator-queue-column");
+  const columns = [
+    ...queueColumns,
+    ...directChildrenWithClass(grid, "simulator-facility-column"),
+  ];
   const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
-  const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
   const availableWidth = Math.max(
     1,
     EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING,
   );
-  const facilityMaxWidth = Math.max(
-    1,
-    availableWidth - (queueColumn ? queueWidth + gap : 0),
-  );
-  const groups = partitionFacilities(columns, facilityMaxWidth, gap);
+  const groups = partitionFacilities(columns, availableWidth, gap);
   const rows: HTMLElement[] = [];
   groups.forEach((group) => {
     const row = window.document.createElement("div");
@@ -719,13 +714,6 @@ function reflowFacilities(grid: HTMLElement): void {
     row.style.width = `${availableWidth}px`;
     row.style.minWidth = "0";
     row.style.justifyContent = "flex-start";
-    if (queueColumn) {
-      const queueCopy = queueColumn.cloneNode(true) as HTMLElement;
-      queueCopy.style.flex = `0 0 ${queueWidth}px`;
-      queueCopy.style.width = `${queueWidth}px`;
-      queueCopy.style.maxWidth = `${queueWidth}px`;
-      row.append(queueCopy);
-    }
     group.forEach((column) => row.append(column));
     rows.push(row);
   });
