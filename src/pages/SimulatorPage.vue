@@ -158,8 +158,10 @@ import {
 } from "@/utils/simulator/presentation";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 import {
-  renderScheduleImage,
+  prepareScheduleImage,
+  renderPreparedScheduleImage,
   SCHEDULE_IMAGE_RESOLUTIONS,
+  type PreparedScheduleImage,
   type ScheduleImageResolutionKey,
 } from "@/utils/simulator/exportImage";
 
@@ -640,10 +642,17 @@ const lmdDroneStrategyDraft = ref("");
 const restoreOperatorProgressionModalOpen = ref(false);
 const imageExportModalOpen = ref(false);
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
-const imageExportDataUrl = ref("");
 const imageExportError = ref("");
 const imageExportLoading = ref(false);
 const imageExportDocumentId = ref("");
+const imageExportPrepared = ref<PreparedScheduleImage>();
+const imageExportPreviewViewport = ref<HTMLElement>();
+const imageExportPreviewMount = ref<HTMLElement>();
+const imageExportPreviewWidthMode = ref<"scroll" | "overflow">("scroll");
+const imageExportPreviewZoom = ref<number | "auto">("auto");
+const imageExportPreviewViewportWidth = ref(0);
+const imageExportPreviewContentSize = ref({ width: 1920, height: 1080 });
+const imageExportPreviewContentScale = ref(1);
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const layoutLevelFixNotice = layoutLevelNotice.value;
 if (layoutLevelFixNotice) {
@@ -692,6 +701,7 @@ let importLayoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let documentSidebarMeasureFrame: number | undefined;
 let documentSidebarResizeObserver: ResizeObserver | undefined;
+let imageExportPreviewResizeObserver: ResizeObserver | undefined;
 let catalogRequestVersion = 0;
 let imageExportRequestVersion = 0;
 
@@ -5827,6 +5837,7 @@ function handleWindowResize() {
   closeContextMenu();
   void updateOperatorPickerPosition();
   scheduleDocumentSidebarHeightUpdate();
+  updateImageExportPreviewViewportWidth();
 }
 
 function handleWindowKeydown(event: KeyboardEvent): void {
@@ -6328,11 +6339,90 @@ function handleExport(documentId?: string): void {
   }
 }
 
+const IMAGE_EXPORT_PREVIEW_WIDTH = 1920;
+const IMAGE_EXPORT_PREVIEW_HEIGHT = 1080;
+
+const imageExportPreviewEffectiveZoom = computed<number>(() => {
+  if (imageExportPreviewZoom.value !== "auto") {
+    return imageExportPreviewZoom.value;
+  }
+  const viewportWidth = imageExportPreviewViewportWidth.value;
+  const targetWidth =
+    imageExportPreviewWidthMode.value === "overflow"
+      ? (window.document.querySelector<HTMLElement>("main")?.clientWidth ??
+        viewportWidth)
+      : viewportWidth;
+  return targetWidth > 0 ? targetWidth / IMAGE_EXPORT_PREVIEW_WIDTH : 1;
+});
+
+const imageExportPreviewContentStyle = computed<Record<string, string>>(() => {
+  const { width, height } = imageExportPreviewContentSize.value;
+  const scale = imageExportPreviewContentScale.value;
+  return {
+    width: `${width}px`,
+    height: `${height}px`,
+    insetInlineStart: `${Math.max(
+      0,
+      (IMAGE_EXPORT_PREVIEW_WIDTH - width * scale) / 2,
+    )}px`,
+    insetBlockStart: `${Math.max(
+      0,
+      (IMAGE_EXPORT_PREVIEW_HEIGHT - height * scale) / 2,
+    )}px`,
+    zoom: String(scale),
+  };
+});
+
+function updateImageExportPreviewViewportWidth(): void {
+  imageExportPreviewViewportWidth.value =
+    imageExportPreviewViewport.value?.clientWidth ?? 0;
+}
+
+function observeImageExportPreview(): void {
+  imageExportPreviewResizeObserver?.disconnect();
+  imageExportPreviewResizeObserver = undefined;
+  updateImageExportPreviewViewportWidth();
+  const viewport = imageExportPreviewViewport.value;
+  if (!viewport || typeof ResizeObserver === "undefined") {
+    return;
+  }
+  imageExportPreviewResizeObserver = new ResizeObserver(
+    updateImageExportPreviewViewportWidth,
+  );
+  imageExportPreviewResizeObserver.observe(viewport);
+}
+
+function updateImageExportPreviewContent(): void {
+  const root = imageExportPrepared.value?.root;
+  const width = Math.max(1, root?.offsetWidth ?? IMAGE_EXPORT_PREVIEW_WIDTH);
+  const height = Math.max(1, root?.offsetHeight ?? IMAGE_EXPORT_PREVIEW_HEIGHT);
+  imageExportPreviewContentSize.value = { width, height };
+  imageExportPreviewContentScale.value = Math.min(
+    1,
+    IMAGE_EXPORT_PREVIEW_WIDTH / width,
+    IMAGE_EXPORT_PREVIEW_HEIGHT / height,
+  );
+}
+
+function cleanupImageExportPreview(): void {
+  imageExportPreviewResizeObserver?.disconnect();
+  imageExportPreviewResizeObserver = undefined;
+  imageExportPrepared.value?.cleanup();
+  imageExportPrepared.value = undefined;
+  imageExportPreviewMount.value?.replaceChildren();
+  imageExportPreviewContentSize.value = {
+    width: IMAGE_EXPORT_PREVIEW_WIDTH,
+    height: IMAGE_EXPORT_PREVIEW_HEIGHT,
+  };
+  imageExportPreviewContentScale.value = 1;
+  imageExportPreviewViewportWidth.value = 0;
+}
+
 function closeImageExport(): void {
   imageExportRequestVersion += 1;
   imageExportModalOpen.value = false;
   imageExportLoading.value = false;
-  imageExportDataUrl.value = "";
+  cleanupImageExportPreview();
   imageExportError.value = "";
 }
 
@@ -6344,7 +6434,7 @@ function imageExportResolutionValue(): (typeof SCHEDULE_IMAGE_RESOLUTIONS)[numbe
   );
 }
 
-async function renderImageExport(): Promise<void> {
+async function prepareImageExport(): Promise<void> {
   const documentId = imageExportDocumentId.value;
   const stored = documents.value.find((item) => item.id === documentId);
   const schedule = stored?.document;
@@ -6353,21 +6443,24 @@ async function renderImageExport(): Promise<void> {
   );
   if (!schedule || !source) {
     imageExportError.value = "当前没有可导出的排班内容";
-    imageExportDataUrl.value = "";
     return;
   }
 
   const requestId = ++imageExportRequestVersion;
   imageExportLoading.value = true;
   imageExportError.value = "";
-  imageExportDataUrl.value = "";
+  cleanupImageExportPreview();
   try {
+    await nextTick();
+    observeImageExportPreview();
+    if (!imageExportPreviewMount.value) {
+      throw new Error("图片预览区域初始化失败");
+    }
     const normalizedSchedule = JSON.parse(
       serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
     ) as ScheduleDocument;
-    const dataUrl = await renderScheduleImage({
+    const prepared = await prepareScheduleImage({
       normalizedSchedule,
-      resolution: imageExportResolutionValue(),
       resolveEliteLevel: (name, context) => {
         const plan = schedule.plans[context.planIndex];
         const room =
@@ -6383,9 +6476,13 @@ async function renderImageExport(): Promise<void> {
       source,
     });
     if (requestId !== imageExportRequestVersion) {
+      prepared.cleanup();
       return;
     }
-    imageExportDataUrl.value = dataUrl;
+    imageExportPrepared.value = prepared;
+    imageExportPreviewMount.value.replaceChildren(prepared.root);
+    await nextTick();
+    updateImageExportPreviewContent();
   } catch (error: unknown) {
     if (requestId === imageExportRequestVersion) {
       imageExportError.value =
@@ -6410,7 +6507,7 @@ async function handleExportImage(documentId?: string): Promise<void> {
   }
   imageExportDocumentId.value = id;
   imageExportModalOpen.value = true;
-  await renderImageExport();
+  await prepareImageExport();
 }
 
 function handleExportMenuClick(
@@ -6434,26 +6531,68 @@ function updateImageExportResolution(event: {
     return;
   }
   imageExportResolution.value = key;
-  if (imageExportModalOpen.value) {
-    void renderImageExport();
+}
+
+function updateImageExportPreviewWidthMode(event: {
+  target: { value: string | number };
+}): void {
+  const mode = String(event.target.value);
+  if (mode === "scroll" || mode === "overflow") {
+    imageExportPreviewWidthMode.value = mode;
   }
 }
 
-function downloadImageExport(): void {
-  if (!imageExportDataUrl.value) {
+function updateImageExportPreviewZoom(event: {
+  target: { value: string | number };
+}): void {
+  const value = String(event.target.value);
+  if (value === "auto") {
+    imageExportPreviewZoom.value = value;
     return;
   }
+  const zoom = Number(value);
+  if ([0.5, 1, 2].includes(zoom)) {
+    imageExportPreviewZoom.value = zoom;
+  }
+}
+
+async function downloadImageExport(): Promise<void> {
+  const prepared = imageExportPrepared.value;
+  if (!prepared || imageExportLoading.value) {
+    return;
+  }
+  const requestId = imageExportRequestVersion;
+  imageExportLoading.value = true;
+  imageExportError.value = "";
   const stored = documents.value.find(
     (document) => document.id === imageExportDocumentId.value,
   );
-  const title = (stored?.document.title?.trim() || "排班模拟器").replace(
-    /[\\/:*?"<>|]/g,
-    "_",
-  );
-  const link = window.document.createElement("a");
-  link.href = imageExportDataUrl.value;
-  link.download = `${title}-${imageExportResolutionValue().key}.png`;
-  link.click();
+  try {
+    const dataUrl = await renderPreparedScheduleImage(
+      prepared.root,
+      imageExportResolutionValue(),
+    );
+    if (requestId !== imageExportRequestVersion) {
+      return;
+    }
+    const title = (stored?.document.title?.trim() || "排班模拟器").replace(
+      /[\\/:*?"<>|]/g,
+      "_",
+    );
+    const link = window.document.createElement("a");
+    link.href = dataUrl;
+    link.download = `${title}-${imageExportResolutionValue().key}.png`;
+    link.click();
+  } catch (error: unknown) {
+    if (requestId === imageExportRequestVersion) {
+      imageExportError.value =
+        error instanceof Error ? error.message : "排班表图片导出失败";
+    }
+  } finally {
+    if (requestId === imageExportRequestVersion) {
+      imageExportLoading.value = false;
+    }
+  }
 }
 
 function isStoredDocument(document: StoredDocument): boolean {
@@ -6549,6 +6688,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  cleanupImageExportPreview();
   cancelDocumentSidebarHeightUpdate();
   documentSidebarResizeObserver?.disconnect();
   documentSidebarResizeObserver = undefined;
@@ -6797,12 +6937,30 @@ watch(showScheduleSidebar, () => {
     <a-modal
       v-model:open="imageExportModalOpen"
       :footer="null"
-      :title="`排班表图片预览 · ${imageExportResolutionValue().label}`"
+      title="排班表图片预览"
       :width="1180"
       wrap-class-name="simulator-image-export-modal"
       @cancel="closeImageExport"
     >
       <div class="simulator-image-export-toolbar">
+        <a-radio-group
+          :value="imageExportPreviewWidthMode"
+          button-style="solid"
+          @change="updateImageExportPreviewWidthMode"
+        >
+          <a-radio-button value="scroll">滚动</a-radio-button>
+          <a-radio-button value="overflow">溢出</a-radio-button>
+        </a-radio-group>
+        <a-radio-group
+          :value="imageExportPreviewZoom"
+          button-style="solid"
+          @change="updateImageExportPreviewZoom"
+        >
+          <a-radio-button value="auto">自动</a-radio-button>
+          <a-radio-button :value="0.5">0.5x</a-radio-button>
+          <a-radio-button :value="1">1x</a-radio-button>
+          <a-radio-button :value="2">2x</a-radio-button>
+        </a-radio-group>
         <a-radio-group
           :value="imageExportResolution"
           button-style="solid"
@@ -6817,9 +6975,9 @@ watch(showScheduleSidebar, () => {
           </a-radio-button>
         </a-radio-group>
         <a-button
-          :disabled="!imageExportDataUrl || imageExportLoading"
+          :disabled="!imageExportPrepared || imageExportLoading"
           type="primary"
-          @click="downloadImageExport"
+          @click="void downloadImageExport()"
         >
           <template #icon><DownloadOutlined /></template>
           下载 PNG
@@ -6831,19 +6989,41 @@ watch(showScheduleSidebar, () => {
         show-icon
         type="error"
       />
-      <div class="simulator-image-export-preview">
-        <a-spin :spinning="imageExportLoading">
-          <img
-            v-if="imageExportDataUrl"
-            :src="imageExportDataUrl"
-            alt="排班表图片预览"
-          />
-          <a-empty
-            v-else-if="!imageExportLoading && !imageExportError"
-            description="暂无图片预览"
-          />
-        </a-spin>
-      </div>
+      <a-spin :spinning="imageExportLoading">
+        <div
+          ref="imageExportPreviewViewport"
+          :class="[
+            'simulator-image-export-preview',
+            {
+              'simulator-image-export-preview--overflow':
+                imageExportPreviewWidthMode === 'overflow',
+            },
+          ]"
+        >
+          <div
+            class="simulator-image-export-preview-zoom"
+            :style="{ zoom: imageExportPreviewEffectiveZoom }"
+          >
+            <div class="simulator-image-export-preview-stage">
+              <div
+                class="simulator-image-export-preview-content"
+                :style="imageExportPreviewContentStyle"
+              >
+                <div ref="imageExportPreviewMount" />
+              </div>
+              <a-empty
+                v-if="
+                  !imageExportPrepared &&
+                  !imageExportLoading &&
+                  !imageExportError
+                "
+                class="simulator-image-export-preview-empty"
+                description="暂无图片预览"
+              />
+            </div>
+          </div>
+        </div>
+      </a-spin>
     </a-modal>
 
     <div

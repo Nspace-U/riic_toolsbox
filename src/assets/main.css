@@ -3987,13 +3987,18 @@ a {
 .simulator-image-export-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 12px;
   margin-block-end: 12px;
 }
 
+.simulator-image-export-toolbar > .ant-btn {
+  margin-inline-start: auto;
+}
+
 .simulator-image-export-preview {
-  display: grid;
+  display: block;
   min-height: 240px;
   max-height: calc(100vh - 220px);
   overflow: auto;
@@ -4003,10 +4008,35 @@ a {
   border: 1px solid #dce8e4;
 }
 
-.simulator-image-export-preview img {
-  display: block;
-  max-width: 100%;
-  height: auto;
+.simulator-image-export-preview--overflow {
+  overflow: visible;
+}
+
+.simulator-image-export-preview-zoom {
+  width: max-content;
+}
+
+.simulator-image-export-preview-stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #f4f6f7;
+}
+
+.simulator-image-export-preview-content {
+  position: absolute;
+}
+
+.simulator-image-export-preview-content > div {
+  width: max-content;
+}
+
+.simulator-image-export-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
 }
 
 @media (max-width: 640px) {

@@ -29,16 +29,24 @@ interface ExportOperatorContext {
   slotIndex: number;
 }
 
-export interface ScheduleImageExportOptions {
+export interface ScheduleImagePreparationOptions {
   source: HTMLElement;
   schedule: ScheduleDocument;
   normalizedSchedule: ScheduleDocument;
-  resolution: ScheduleImageResolution;
   resolveOperator: (name: string) => Operator | undefined;
   resolveEliteLevel: (
     name: string,
     context: ExportOperatorContext,
   ) => EliteLevel;
+}
+
+export interface ScheduleImageExportOptions extends ScheduleImagePreparationOptions {
+  resolution: ScheduleImageResolution;
+}
+
+export interface PreparedScheduleImage {
+  root: HTMLDivElement;
+  cleanup: () => void;
 }
 
 interface ExportRootParts {
@@ -294,7 +302,7 @@ function roomOperators(
 }
 
 function normalizedOperatorName(
-  options: ScheduleImageExportOptions,
+  options: ScheduleImagePreparationOptions,
   sourceName: string,
   context: ExportOperatorContext,
 ): string {
@@ -329,7 +337,7 @@ function replaceMappedSpecialAvatar(
   slot: HTMLElement,
   mappedName: string,
   context: ExportOperatorContext,
-  options: ScheduleImageExportOptions,
+  options: ScheduleImagePreparationOptions,
 ): void {
   const display = slot.querySelector<HTMLElement>(".operator-avatar-display");
   const frame = display?.querySelector<HTMLElement>(".operator-avatar-frame");
@@ -405,7 +413,7 @@ function replaceMappedSpecialAvatar(
 
 function replaceMappedSpecialOperators(
   grid: HTMLElement,
-  options: ScheduleImageExportOptions,
+  options: ScheduleImagePreparationOptions,
 ): void {
   grid.querySelectorAll<HTMLElement>(".simulator-slot").forEach((slot) => {
     const sourceName = slot.dataset.exportOriginalName?.trim() ?? "";
@@ -776,9 +784,9 @@ function svgToPng(
   });
 }
 
-export async function renderScheduleImage(
-  options: ScheduleImageExportOptions,
-): Promise<string> {
+export async function prepareScheduleImage(
+  options: ScheduleImagePreparationOptions,
+): Promise<PreparedScheduleImage> {
   const sourceWidth = Math.max(
     options.source.clientWidth,
     Math.round(options.source.getBoundingClientRect().width),
@@ -803,17 +811,43 @@ export async function renderScheduleImage(
     removeExportControls(parts.root);
     reflowFacilities(parts.grid);
     await waitForImages(parts.root);
-    const svgUrl = await toSvg(parts.root, {
-      backgroundColor: "#f4f6f7",
-      cacheBust: true,
-      skipFonts: true,
-      style: {
-        inset: "auto",
-        position: "static",
+    return {
+      root: parts.root,
+      cleanup: () => {
+        parts.root.remove();
+        host.remove();
       },
-    });
-    return await svgToPng(svgUrl, options.resolution);
-  } finally {
+    };
+  } catch (error: unknown) {
     host.remove();
+    throw error;
+  }
+}
+
+export async function renderPreparedScheduleImage(
+  root: HTMLElement,
+  resolution: ScheduleImageResolution,
+): Promise<string> {
+  await waitForImages(root);
+  const svgUrl = await toSvg(root, {
+    backgroundColor: "#f4f6f7",
+    cacheBust: true,
+    skipFonts: true,
+    style: {
+      inset: "auto",
+      position: "static",
+    },
+  });
+  return await svgToPng(svgUrl, resolution);
+}
+
+export async function renderScheduleImage(
+  options: ScheduleImageExportOptions,
+): Promise<string> {
+  const prepared = await prepareScheduleImage(options);
+  try {
+    return await renderPreparedScheduleImage(prepared.root, options.resolution);
+  } finally {
+    prepared.cleanup();
   }
 }
