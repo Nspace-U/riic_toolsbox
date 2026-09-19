@@ -183,6 +183,16 @@ function meetsAllNodes(
   return nodes.every((node) => meetsNode(entry, node));
 }
 
+function isProgressionHigher(
+  left: Pick<OperatorProgressionEntry, "elite" | "level">,
+  right: Pick<OperatorProgressionEntry, "elite" | "level">,
+): boolean {
+  return (
+    left.elite > right.elite ||
+    (left.elite === right.elite && left.level > right.level)
+  );
+}
+
 export function minimumProgressionForNodes(
   nodes: OperatorProgressionNode[],
 ): Pick<OperatorProgressionEntry, "elite" | "level"> {
@@ -286,7 +296,9 @@ export function resolveOperatorProgression(
         manualElite ?? (Math.max(sourceElite, maximum.elite) as EliteLevel),
       level: manualLevel ?? Math.max(sourceLevel, maximum.level),
       owned: base.owned,
-      upgraded: base.elite < maximum.elite || base.level < maximum.level,
+      upgraded: profileEntry
+        ? isProgressionHigher(base, profileEntry)
+        : base.elite < maximum.elite || base.level < maximum.level,
     };
   }
 
