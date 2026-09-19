@@ -11,6 +11,7 @@ import {
 import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import BasicCalculatorScheduleEditor from "@/components/BasicCalculatorScheduleEditor.vue";
 import OperatorPickerPanel, {
   type OperatorPickerCandidateView,
 } from "@/components/OperatorPickerPanel.vue";
@@ -19,10 +20,16 @@ import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type { EfficiencyCatalog } from "@/types/efficiency";
-import type { RoomKey } from "@/types/schedule";
+import type {
+  OperatorState,
+  RoomAssignment,
+  RoomKey,
+  ScheduleDocument,
+} from "@/types/schedule";
 import { MANUFACTURE_RULES } from "@/utils/efficiency/baseRules";
 import {
   applyBasicCalculatorPatch,
+  buildBasicCalculatorSchedule,
   cloneBasicCalculatorConfig,
   compareValues,
   createBasicCalculatorConfig,
@@ -102,6 +109,7 @@ const columnDraftPath = ref("");
 const columnDraftAggregate = ref<BasicCalculatorAggregate>("list");
 const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
+const rowDraftSchedule = ref<ScheduleDocument>();
 const rowDraftGroupId = ref("");
 const draftCoreName = ref("");
 const draftOperatorNames = ref<string[]>([]);
@@ -129,6 +137,14 @@ const operatorOptions = computed(() =>
 );
 const rowDraftGroup = computed(() =>
   config.value?.groups.find((group) => group.id === rowDraftGroupId.value),
+);
+const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
+  () => {
+    const group = rowDraftGroup.value;
+    return group
+      ? { control: 5, [group.facility]: group.facilityLevel }
+      : { control: 5 };
+  },
 );
 const draftWorkNames = computed(() =>
   draftOperatorNames.value.filter(
@@ -757,6 +773,51 @@ function openColumnEditor(): void {
   columnModalOpen.value = true;
 }
 
+function editorOperatorCandidates(
+  type: RoomKey,
+): OperatorPickerCandidateView[] {
+  if (!catalog.value) return [];
+  return operators.value
+    .filter((operator) =>
+      catalog.value?.operators[operator.name]?.skillFile?.chains.some(
+        (chain) => chain.room === type,
+      ),
+    )
+    .sort((first, second) => {
+      const firstOrder = first.implementationOrder ?? -1;
+      const secondOrder = second.implementationOrder ?? -1;
+      return secondOrder - firstOrder;
+    })
+    .map((operator) => ({
+      operator,
+      eliteLevel: editorOperatorEliteLevel(operator.name, type),
+    }));
+}
+
+function editorOperatorEliteLevel(name: string, type: RoomKey): EliteLevel {
+  const operator = operatorFor(name);
+  const profile = operator
+    ? catalog.value?.operators[operator.name]
+    : undefined;
+  const rooms = rowDraftSchedule.value?.plans[0]?.rooms[type];
+  const assignments = Array.isArray(rooms) ? (rooms as RoomAssignment[]) : [];
+  const state = assignments
+    .flatMap((room) => Object.entries(room.operatorStates ?? []))
+    .find(([operatorName]) => operatorName === name)?.[1] as
+    OperatorState | undefined;
+  return resolveOperatorProgression({
+    operatorId: operator?.id ?? name,
+    facility: type,
+    operatorSkillFile: profile?.skillFile,
+    maxEliteLevel: operator?.maxEliteLevel,
+    manualElite: state?.elite,
+    manualLevel: state?.level,
+    profile: activeProfile.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
+  }).elite;
+}
+
 function saveColumn(): void {
   const id = `column-${Date.now().toString(36)}`;
   const column: BasicCalculatorColumn = {
@@ -790,6 +851,14 @@ function openRowEditor(
   rowDraft.value.coreOperator = row.coreOperator
     ? { ...row.coreOperator }
     : { ...group.coreOperator };
+  rowDraftSchedule.value = config.value
+    ? buildBasicCalculatorSchedule(
+        group,
+        rowDraft.value,
+        24,
+        config.value.settings,
+      )
+    : undefined;
   draftCoreName.value = rowDraft.value.coreOperator.name;
   draftOperatorNames.value = rowDraft.value.operators.map(({ name }) => name);
   draftControlNames.value = [
@@ -952,6 +1021,107 @@ function setDraftControlOperators(names: string[]): void {
   draftControlNames.value = names;
 }
 
+function operatorStateFromRoom(
+  document: ScheduleDocument,
+  type: RoomKey,
+  name: string,
+): BasicCalculatorOperator {
+  const rooms = document.plans[0]?.rooms[type];
+  const assignments = Array.isArray(rooms) ? (rooms as RoomAssignment[]) : [];
+  const state = assignments
+    .flatMap((room) => Object.entries(room.operatorStates ?? []))
+    .find(([operatorName]) => operatorName === name)?.[1] as
+    OperatorState | undefined;
+  return {
+    name,
+    ...(state?.elite === undefined ? {} : { elite: state.elite }),
+    ...(state?.level === undefined ? {} : { level: state.level }),
+  };
+}
+
+function uniqueNames(names: string[]): string[] {
+  return names.filter(
+    (name, index) => Boolean(name) && names.indexOf(name) === index,
+  );
+}
+
+function updateRowFromEditorSchedule(
+  draft: BasicCalculatorRow,
+  group: BasicCalculatorGroup,
+  document: ScheduleDocument,
+): void {
+  const workRooms = document.plans[0]?.rooms[group.facility];
+  const workRoom = Array.isArray(workRooms)
+    ? ((workRooms[0] as RoomAssignment | undefined) ?? {})
+    : {};
+  const workNames = uniqueNames(workRoom.operators ?? []);
+  const coreName =
+    workNames.shift() ?? draft.coreOperator?.name ?? group.coreOperator.name;
+  const extraTypes = [
+    ...new Set(
+      document.layout
+        .map((entry) => entry.type)
+        .filter((type) => type !== "control" && type !== group.facility),
+    ),
+  ];
+  const previousExtras = new Map(
+    (draft.extraRooms ?? []).map((room) => [room.type, room]),
+  );
+  const operators = workNames.map((name) => ({
+    ...operatorStateFromRoom(document, group.facility, name),
+  }));
+  const extraRooms = extraTypes.map((type) => {
+    const entries = document.layout.filter((entry) => entry.type === type);
+    const rooms = Array.isArray(document.plans[0]?.rooms[type])
+      ? (document.plans[0]?.rooms[type] as RoomAssignment[])
+      : [];
+    const names = uniqueNames(
+      rooms.flatMap((room) => room.operators ?? []).filter(Boolean),
+    );
+    names.forEach((name) => {
+      if (!operators.some((operator) => operator.name === name)) {
+        operators.push({
+          ...operatorStateFromRoom(document, type, name),
+          room: type,
+        });
+      }
+    });
+    const previous = previousExtras.get(type);
+    return {
+      type,
+      level: entries[0]?.level ?? previous?.level ?? 1,
+      count: entries.length,
+      ...(previous?.product ? { product: previous.product } : {}),
+      ...(previous?.sourceMaterial
+        ? { sourceMaterial: previous.sourceMaterial }
+        : {}),
+    };
+  });
+  const controlRooms = document.plans[0]?.rooms.control;
+  const controlNames = Array.isArray(controlRooms)
+    ? uniqueNames(
+        (controlRooms[0] as RoomAssignment | undefined)?.operators ?? [],
+      )
+    : [];
+  const defaultsForControl =
+    config.value?.settings.defaultControlOperators ?? [];
+  draft.coreOperator = {
+    ...operatorStateFromRoom(document, group.facility, coreName),
+    name: coreName,
+  };
+  draft.operators = operators;
+  draft.controlOperators =
+    JSON.stringify(controlNames) === JSON.stringify(defaultsForControl)
+      ? undefined
+      : controlNames.map((name) => ({
+          ...operatorStateFromRoom(document, "control", name),
+          room: "control" as const,
+        }));
+  draft.extraRooms = extraRooms;
+  draft.product = workRoom.product;
+  draft.sourceMaterial = workRoom.sourceMaterial;
+}
+
 function saveRow(): void {
   if (!rowDraft.value || !rowDraftGroupId.value) return;
   const draft = JSON.parse(
@@ -961,6 +1131,13 @@ function saveRow(): void {
     (item) => item.id === rowDraftGroupId.value,
   );
   if (group) {
+    const product = draft.product;
+    const sourceMaterial = draft.sourceMaterial;
+    if (rowDraftSchedule.value) {
+      updateRowFromEditorSchedule(draft, group, rowDraftSchedule.value);
+    }
+    draft.product = product;
+    draft.sourceMaterial = sourceMaterial;
     const defaultDisplay = defaultDisplayOperators(group, draft);
     const selectedDisplay = draft.displayOperators ?? defaultDisplay;
     if (
@@ -974,10 +1151,6 @@ function saveRow(): void {
       delete draft.displayOperators;
     }
   }
-  draft.coreOperator = {
-    ...(draft.coreOperator ?? { name: draftCoreName.value }),
-    name: draftCoreName.value,
-  };
   draft.operators = draft.operators.filter(
     ({ name }, index, list) =>
       name && list.findIndex((item) => item.name === name) === index,
@@ -1577,11 +1750,80 @@ function toggleGroupColumn(
       cancel-text="取消"
       ok-text="保存"
       title="组合行设置"
-      width="760px"
+      width="1180px"
       @cancel="rowModalOpen = false"
       @ok="saveRow"
     >
-      <a-form v-if="rowDraft" layout="vertical">
+      <div
+        v-if="rowDraft && rowDraftGroup && rowDraftSchedule"
+        class="basic-calculator-row-editor"
+      >
+        <BasicCalculatorScheduleEditor
+          v-model:model-value="rowDraftSchedule"
+          :facility-colors="facilityColors"
+          :fixed-room-levels="rowDraftFixedRoomLevels"
+          :fixed-room-types="['control', rowDraftGroup.facility]"
+          :operator-candidates="editorOperatorCandidates"
+          :operator-elite-level="editorOperatorEliteLevel"
+          :operator-for="operatorFor"
+        />
+        <a-form layout="vertical">
+          <a-form-item label="核心工作设施产物">
+            <a-select v-model:value="rowDraft.product" allow-clear>
+              <a-select-option
+                v-for="option in productOptions"
+                :key="option.value"
+                :value="option.value"
+                >{{ option.label }}</a-select-option
+              >
+            </a-select>
+          </a-form-item>
+          <div
+            v-if="rowDraft.extraRooms?.length"
+            class="basic-calculator-row-editor-products"
+          >
+            <a-form-item
+              v-for="room in rowDraft.extraRooms"
+              :key="room.type"
+              :label="`${ROOM_LABELS[room.type]}产物`"
+            >
+              <a-select
+                v-model:value="room.product"
+                allow-clear
+                :options="productOptions"
+              />
+            </a-form-item>
+          </div>
+          <a-form-item label="备注">
+            <a-input v-model:value="rowDraft.note" />
+          </a-form-item>
+          <a-form-item
+            v-if="draftSpecialOperatorOptions.length"
+            class="basic-calculator-display-operator-form-item"
+            label="额外显示的设施干员"
+          >
+            <a-space wrap>
+              <a-checkbox
+                v-for="option in draftSpecialOperatorOptions"
+                :key="displayOperatorKey(option.operator)"
+                :checked="
+                  draftDisplayOperatorNames.has(
+                    displayOperatorKey(option.operator),
+                  )
+                "
+                @change="
+                  toggleDraftDisplayOperator(
+                    option.operator,
+                    $event.target.checked,
+                  )
+                "
+                >{{ option.label }}</a-checkbox
+              >
+            </a-space>
+          </a-form-item>
+        </a-form>
+      </div>
+      <a-form v-if="rowDraft" v-show="false" layout="vertical">
         <div class="basic-calculator-facility-add">
           <div class="basic-calculator-facility-heading">
             <span>设施布局</span>
@@ -1923,6 +2165,20 @@ function toggleGroupColumn(
   flex-direction: column;
   gap: 16px;
   min-width: 0;
+}
+.basic-calculator-row-editor {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.basic-calculator-row-editor-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0 12px;
+}
+.basic-calculator-row-editor > .ant-form {
+  padding-block-start: 4px;
+  border-block-start: 1px solid rgba(46, 65, 61, 0.12);
 }
 .basic-calculator-header-content,
 .basic-calculator-group-header,
