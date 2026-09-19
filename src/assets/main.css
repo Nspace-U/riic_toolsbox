@@ -2542,13 +2542,22 @@ a {
 
 .simulator-drone-strategy {
   display: grid;
-  grid-template-columns: minmax(180px, 320px) minmax(0, 1fr);
-  align-items: center;
-  gap: 8px 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
 
 .simulator-drone-strategy .ant-form-item {
+  display: flex;
+  align-items: center;
   margin-block-end: 0;
+}
+
+.simulator-drone-strategy .ant-form-item-label {
+  flex: 0 0 auto;
+}
+
+.simulator-drone-strategy .ant-form-item-control {
+  min-width: 0;
 }
 
 .simulator-drone-scenarios {
