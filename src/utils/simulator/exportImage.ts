@@ -756,7 +756,7 @@ function reflowFacilities(grid: HTMLElement): void {
     row.style.gap = `${gap}px`;
     row.style.width = `${availableWidth}px`;
     row.style.minWidth = "0";
-    row.style.justifyContent = "flex-start";
+    row.style.justifyContent = "center";
     group.forEach((column) => row.append(column));
     rows.push(row);
   });
