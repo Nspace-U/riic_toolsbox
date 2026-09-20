@@ -647,41 +647,48 @@ function rowWidth(
   );
 }
 
-function partitionFacilities(
-  columns: HTMLElement[],
+export function partitionFacilityRanges(
+  widths: number[],
   maxWidth: number,
   gap: number,
-): HTMLElement[][] {
-  if (columns.length === 0) {
+): Array<{ start: number; end: number }> {
+  if (widths.length === 0) {
     return [];
   }
-  const widths = columns.map(facilityColumnWidth);
-  const totalWidth = rowWidth(widths, 0, widths.length, gap);
-  let rowCount = 1;
-  let currentWidth = 0;
-  widths.forEach((width) => {
-    const nextWidth = currentWidth === 0 ? width : currentWidth + gap + width;
-    if (currentWidth > 0 && nextWidth > maxWidth) {
-      rowCount += 1;
-      currentWidth = width;
-      return;
+
+  const minimumRows = Array<number>(widths.length + 1).fill(
+    Number.POSITIVE_INFINITY,
+  );
+  minimumRows[0] = 0;
+  for (let end = 1; end <= widths.length; end += 1) {
+    for (let start = end - 1; start >= 0; start -= 1) {
+      const width = rowWidth(widths, start, end, gap);
+      if (width > maxWidth && end - start > 1) {
+        continue;
+      }
+      const previousRows = minimumRows[start] ?? Number.POSITIVE_INFINITY;
+      if (previousRows + 1 < (minimumRows[end] ?? Number.POSITIVE_INFINITY)) {
+        minimumRows[end] = previousRows + 1;
+      }
     }
-    currentWidth = nextWidth;
-  });
-  if (rowCount === 1) {
-    return [columns];
   }
 
+  const rowCount = Number.isFinite(minimumRows[widths.length])
+    ? minimumRows[widths.length]!
+    : widths.length;
+  const totalWidth =
+    widths.reduce((total, width) => total + width, 0) +
+    Math.max(0, widths.length - rowCount) * gap;
   const targetWidth = totalWidth / rowCount;
   const costs = Array.from({ length: rowCount + 1 }, () =>
-    Array<number>(columns.length + 1).fill(Number.POSITIVE_INFINITY),
+    Array<number>(widths.length + 1).fill(Number.POSITIVE_INFINITY),
   );
   const previous = Array.from({ length: rowCount + 1 }, () =>
-    Array<number>(columns.length + 1).fill(-1),
+    Array<number>(widths.length + 1).fill(-1),
   );
   costs[0]![0] = 0;
   for (let rows = 1; rows <= rowCount; rows += 1) {
-    for (let end = rows; end <= columns.length; end += 1) {
+    for (let end = rows; end <= widths.length; end += 1) {
       for (let start = rows - 1; start < end; start += 1) {
         const previousCost =
           costs[rows - 1]![start] ?? Number.POSITIVE_INFINITY;
@@ -700,19 +707,34 @@ function partitionFacilities(
       }
     }
   }
-  if (!Number.isFinite(costs[rowCount]![columns.length])) {
-    return [columns];
+
+  if (!Number.isFinite(costs[rowCount]![widths.length])) {
+    return [{ start: 0, end: widths.length }];
   }
 
-  const groups: HTMLElement[][] = [];
-  let end = columns.length;
+  const ranges: Array<{ start: number; end: number }> = [];
+  let end = widths.length;
   for (let rows = rowCount; rows > 0; rows -= 1) {
     const start = previous[rows]![end] ?? -1;
     const resolvedStart = start >= 0 ? start : rows - 1;
-    groups.unshift(columns.slice(resolvedStart, end));
+    ranges.unshift({ start: resolvedStart, end });
     end = resolvedStart;
   }
-  return groups;
+  return ranges;
+}
+
+function partitionFacilities(
+  columns: HTMLElement[],
+  maxWidth: number,
+  gap: number,
+): HTMLElement[][] {
+  if (columns.length === 0) {
+    return [];
+  }
+  const widths = columns.map(facilityColumnWidth);
+  return partitionFacilityRanges(widths, maxWidth, gap).map(({ start, end }) =>
+    columns.slice(start, end),
+  );
 }
 
 function reflowFacilities(grid: HTMLElement): void {
@@ -802,13 +824,7 @@ function svgToPng(
       );
       const width = image.naturalWidth * scale;
       const height = image.naturalHeight * scale;
-      context.drawImage(
-        image,
-        (canvas.width - width) / 2,
-        (canvas.height - height) / 2,
-        width,
-        height,
-      );
+      context.drawImage(image, 0, 0, width, height);
       resolve(canvas.toDataURL("image/png"));
     };
     image.onerror = () => reject(new Error("排班表图片渲染失败"));

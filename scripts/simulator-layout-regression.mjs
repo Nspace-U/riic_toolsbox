@@ -63,6 +63,25 @@ const vite = await createServer({
 });
 
 try {
+  const { partitionFacilityRanges } = await vite.ssrLoadModule(
+    "/src/utils/simulator/exportImage.ts",
+  );
+  const twoRows = partitionFacilityRanges([600, 600, 600], 1210, 10);
+  assert.equal(twoRows.length, 2);
+  assert.ok(
+    twoRows.every(({ start, end }) => {
+      const width = [600, 600, 600]
+        .slice(start, end)
+        .reduce((total, value) => total + value, 0);
+      return width + (end - start - 1) * 10 <= 1210;
+    }),
+  );
+  assert.deepEqual(partitionFacilityRanges([600, 600, 600], 1209, 10), [
+    { start: 0, end: 1 },
+    { start: 1, end: 2 },
+    { start: 2, end: 3 },
+  ]);
+
   const { default: SimulatorPage } = await vite.ssrLoadModule(
     "/src/pages/SimulatorPage.vue",
   );

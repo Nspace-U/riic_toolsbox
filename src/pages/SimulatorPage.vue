@@ -6333,14 +6333,8 @@ const imageExportPreviewContentStyle = computed<Record<string, string>>(() => {
   return {
     width: `${width}px`,
     height: `${height}px`,
-    insetInlineStart: `${Math.max(
-      0,
-      (IMAGE_EXPORT_PREVIEW_WIDTH - width * scale) / 2,
-    )}px`,
-    insetBlockStart: `${Math.max(
-      0,
-      (IMAGE_EXPORT_PREVIEW_HEIGHT - height * scale) / 2,
-    )}px`,
+    insetInlineStart: "0px",
+    insetBlockStart: "0px",
     transform: `scale(${scale})`,
     transformOrigin: "top left",
   };

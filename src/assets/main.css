@@ -3913,6 +3913,12 @@ a {
   white-space: nowrap;
 }
 
+.simulator-image-export-daily-output
+  .simulator-result-section-heading
+  > .ant-tag {
+  display: none;
+}
+
 .simulator-image-export-daily-output .simulator-daily-output-grid {
   display: flex;
   flex: 1 1 auto;
