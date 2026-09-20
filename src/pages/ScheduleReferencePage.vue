@@ -19,6 +19,13 @@ import {
   SCHEDULE_IMAGE_RESOLUTIONS,
   type PreparedScheduleImage,
 } from "@/utils/simulator/exportImage";
+import {
+  getScheduleReferencePreview,
+  pruneScheduleReferencePreviewCache,
+  removeScheduleReferencePreview,
+  setScheduleReferencePreview,
+  type CachedScheduleReferencePreview,
+} from "@/utils/simulator/scheduleReferencePreviewCache";
 
 type PreviewStatus = "idle" | "loading" | "ready" | "error";
 
@@ -26,7 +33,7 @@ interface PreviewState {
   version: string;
   status: PreviewStatus;
   root?: HTMLDivElement;
-  cleanup?: () => void;
+  cache?: CachedScheduleReferencePreview;
   width: number;
   height: number;
   contentScale: number;
@@ -60,27 +67,30 @@ let previewUnmounted = false;
 
 const hasDocuments = computed(() => documents.value.length > 0);
 
-function createPreviewState(version: string): PreviewState {
+function createPreviewState(documentId: string, version: string): PreviewState {
+  const cache = getScheduleReferencePreview(documentId, version);
   return {
     version,
-    status: "idle",
-    width: PREVIEW_WIDTH,
-    height: PREVIEW_HEIGHT,
-    contentScale: 1,
+    status: cache ? "ready" : "idle",
+    root: cache?.root,
+    cache,
+    width: cache?.width ?? PREVIEW_WIDTH,
+    height: cache?.height ?? PREVIEW_HEIGHT,
+    contentScale: cache?.contentScale ?? 1,
     viewportScale: 1,
     error: "",
     requestVersion: 0,
   };
 }
 
-function clearPreviewState(state: PreviewState): void {
+function clearPreviewState(documentId: string, state: PreviewState): void {
   state.requestVersion += 1;
-  state.cleanup?.();
-  state.cleanup = undefined;
+  removeScheduleReferencePreview(documentId);
+  state.cache = undefined;
   state.root = undefined;
   state.status = "idle";
-  previewMounts.forEach((mount, documentId) => {
-    if (previewStates[documentId] === state) {
+  previewMounts.forEach((mount, mountedDocumentId) => {
+    if (previewStates[mountedDocumentId] === state) {
       mount.replaceChildren();
     }
   });
@@ -92,9 +102,9 @@ function ensurePreviewState(stored: StoredDocument): PreviewState {
     return existing;
   }
   if (existing) {
-    clearPreviewState(existing);
+    clearPreviewState(stored.id, existing);
   }
-  const state = createPreviewState(stored.updatedAt);
+  const state = createPreviewState(stored.id, stored.updatedAt);
   previewStates[stored.id] = state;
   return state;
 }
@@ -151,6 +161,10 @@ function setPreviewMount(
 ): void {
   if (element instanceof HTMLElement) {
     previewMounts.set(documentId, element);
+    const state = previewStates[documentId];
+    if (state?.status === "ready" && state.root) {
+      element.replaceChildren(state.root);
+    }
     return;
   }
   previewMounts.delete(documentId);
@@ -182,15 +196,6 @@ function previewContentStyle(documentId: string): Record<string, string> {
     transform: `scale(${state?.contentScale ?? 1})`,
     transformOrigin: "top left",
   };
-}
-
-function releasePreview(documentId: string): void {
-  const state = previewStates[documentId];
-  if (!state || state.status === "idle") {
-    return;
-  }
-  clearPreviewState(state);
-  state.error = "";
 }
 
 function enqueuePreview(documentId: string): void {
@@ -251,15 +256,27 @@ async function processPreviewQueue(): Promise<void> {
           continue;
         }
 
-        state.root = prepared.root;
-        state.cleanup = prepared.cleanup;
-        state.width = Math.max(1, prepared.root.offsetWidth);
-        state.height = Math.max(1, prepared.root.offsetHeight);
-        state.contentScale = Math.min(
+        const width = Math.max(1, prepared.root.offsetWidth);
+        const height = Math.max(1, prepared.root.offsetHeight);
+        const contentScale = Math.min(
           1,
-          PREVIEW_WIDTH / state.width,
-          PREVIEW_HEIGHT / state.height,
+          PREVIEW_WIDTH / width,
+          PREVIEW_HEIGHT / height,
         );
+        const cache: CachedScheduleReferencePreview = {
+          version: documentVersion,
+          root: prepared.root,
+          cleanup: prepared.cleanup,
+          width,
+          height,
+          contentScale,
+        };
+        setScheduleReferencePreview(documentId, cache);
+        state.cache = cache;
+        state.root = cache.root;
+        state.width = cache.width;
+        state.height = cache.height;
+        state.contentScale = cache.contentScale;
         state.status = "ready";
         previewMounts.get(documentId)?.replaceChildren(prepared.root);
       } catch (error: unknown) {
@@ -291,8 +308,6 @@ function handlePreviewIntersection(entries: IntersectionObserverEntry[]): void {
         state.status = "idle";
       }
       enqueuePreview(documentId);
-    } else {
-      releasePreview(documentId);
     }
   });
 }
@@ -334,16 +349,17 @@ watch(
   () => documents.value.map(({ id, updatedAt }) => `${id}:${updatedAt}`),
   () => {
     const documentIds = new Set(documents.value.map((document) => document.id));
+    pruneScheduleReferencePreviewCache(documentIds);
     Object.entries(previewStates).forEach(([documentId, state]) => {
       if (!documentIds.has(documentId)) {
-        clearPreviewState(state);
+        clearPreviewState(documentId, state);
         delete previewStates[documentId];
       }
     });
     documents.value.forEach((stored) => {
       const state = previewStates[stored.id];
       if (state && state.version !== stored.updatedAt) {
-        clearPreviewState(state);
+        clearPreviewState(stored.id, state);
         state.version = stored.updatedAt;
         state.error = "";
         if (isNearViewport(stored.id)) {
@@ -355,6 +371,9 @@ watch(
 );
 
 onMounted(() => {
+  pruneScheduleReferencePreviewCache(
+    new Set(documents.value.map((document) => document.id)),
+  );
   void initializePreviewObservers();
 });
 
@@ -364,7 +383,6 @@ onBeforeUnmount(() => {
   previewResizeObserver?.disconnect();
   previewObserver = undefined;
   previewResizeObserver = undefined;
-  Object.values(previewStates).forEach(clearPreviewState);
   previewQueue.length = 0;
   queuedPreviewIds.clear();
 });

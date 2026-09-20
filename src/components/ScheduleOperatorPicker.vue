@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, unref } from "vue";
 
 import OperatorPickerPanel, {
   type OperatorPickerCandidateView,
@@ -32,13 +32,14 @@ const emit = defineEmits<{
 }>();
 
 const panel = ref<{ panelElement?: HTMLElement }>();
+const panelElement = computed(() => unref(panel.value?.panelElement));
 
-defineExpose({ panelElement: panel });
+defineExpose({ panelElement });
 
 function handleWindowClick(event: MouseEvent): void {
   if (!props.dismissOnOutside) return;
   const target = event.target;
-  if (target instanceof Node && panel.value?.panelElement?.contains(target)) {
+  if (target instanceof Node && panelElement.value?.contains(target)) {
     return;
   }
   if (
