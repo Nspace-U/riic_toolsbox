@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import type { RouteLocationNormalizedLoaded } from "vue-router";
 
 import BasicCalculatorPage from "@/pages/BasicCalculatorPage.vue";
 import OperatorSkillsPage from "@/pages/OperatorSkillsPage.vue";
@@ -8,6 +9,15 @@ import SimulatorPage from "@/pages/SimulatorPage.vue";
 import AvatarGeneratorPage from "@/pages/AvatarGeneratorPage.vue";
 import SkillGeneratorPage from "@/pages/SkillGeneratorPage.vue";
 import ToolboxPage from "@/pages/ToolboxPage.vue";
+
+function simulatorRouteProps(route: RouteLocationNormalizedLoaded): {
+  initialDocumentId?: string;
+} {
+  const documentId = route.query.scheduleId;
+  return {
+    initialDocumentId: typeof documentId === "string" ? documentId : undefined,
+  };
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,6 +30,7 @@ const router = createRouter({
       path: "/simulator",
       name: "simulator",
       component: SimulatorPage,
+      props: simulatorRouteProps,
       meta: { title: "排班模拟器" },
     },
     {

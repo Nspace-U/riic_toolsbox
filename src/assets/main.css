@@ -1253,6 +1253,117 @@ a {
   padding-block-end: 40px;
 }
 
+.schedule-reference-heading-icon {
+  color: #2f7068;
+  background: #dcefeb;
+}
+
+.schedule-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr));
+  gap: 16px;
+}
+
+.schedule-reference-card {
+  min-width: 0;
+  border: 1px solid #e0e8e5;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+.schedule-reference-card .ant-card-head-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.schedule-reference-preview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #f4f6f7;
+  border: 1px solid #dce8e4;
+}
+
+.schedule-reference-preview-zoom {
+  flex: 0 0 auto;
+}
+
+.schedule-reference-preview-stage {
+  position: relative;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: #f4f6f7;
+  transform-origin: top left;
+}
+
+.schedule-reference-preview-content {
+  position: absolute;
+}
+
+.schedule-reference-preview-content > div {
+  width: max-content;
+}
+
+.schedule-reference-preview-status {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(244, 246, 247, 0.86);
+}
+
+.schedule-reference-preview-status.ant-result {
+  padding: 24px;
+}
+
+.schedule-reference-renderer {
+  position: fixed;
+  z-index: -1;
+  inset-block-start: 0;
+  inset-inline-start: -100000px;
+  width: 1920px;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.schedule-reference-renderer .simulator-page--preview-source {
+  width: 1920px;
+  min-width: 1920px;
+  max-width: none;
+}
+
+.schedule-reference-renderer .simulator-page--preview-source .page-heading,
+.schedule-reference-renderer .simulator-page--preview-source .simulator-alert,
+.schedule-reference-renderer
+  .simulator-page--preview-source
+  .simulator-document-sidebar,
+.schedule-reference-renderer
+  .simulator-page--preview-source
+  .simulator-editor
+  > *:not(.simulator-facility-grid) {
+  display: none;
+}
+
+.schedule-reference-renderer .simulator-page--preview-source .simulator-layout {
+  display: block;
+  width: 1920px;
+}
+
+.schedule-reference-renderer .simulator-page--preview-source .simulator-editor {
+  width: 1920px;
+}
+
+.schedule-reference-renderer
+  .simulator-page--preview-source
+  .simulator-facility-grid {
+  width: 1920px;
+  max-width: none;
+  overflow: visible;
+}
+
 .simulator-page-heading-icon {
   color: #2c6070;
   background: #dcecf0;

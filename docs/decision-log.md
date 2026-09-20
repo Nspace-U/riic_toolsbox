@@ -998,3 +998,10 @@
 - **决定**：图片导出始终以 `1920×1080` 逻辑画布计算设施区域，在不超出可用宽度的前提下选择最少行数，再以行宽差异最小化保持设施顺序并平衡留白；预览使用固定 stage 的 transform 缩放，外层布局尺寸同步缩放尺寸，避免 CSS `zoom` 导致视觉尺寸与滚动尺寸不一致。
 - **显示**：队列标题栏改为透明占位以维持与设施队列的垂直对齐；宿舍 body 统一重建，只有同设施同槽位在所有队列均为空时才删除该列，宿舍 segment 之间保留竖线而标题栏不分割。
 - **验证**：`npm run type-check`、定向 ESLint、`npm run test:simulator-layout`、`npm run test:simulator-result`、`npm run test:schedule-import`、`npm run test:efficiency`、`npm run test:operator-avatar`、`npm run build`、目标文件 Prettier 和 `git diff --check` 通过。全仓 lint 仍受用户已有 `BasicCalculatorPage.vue` 与 `BasicCalculatorScheduleEditor.vue` 未使用符号阻断；浏览器页面可正常加载，完整图片预览未使用当前含无效干员映射的本地样本验证。
+
+## 2026-09-20：增加排班表参考页的预览与跳转
+
+- **决定**：排班表参考页读取所有已保存的 `StoredDocument`，按保存顺序展示名称和图片预览；名称通过 `/simulator?scheduleId=` 跳转到模拟器并选中对应排班表。
+- **图片边界**：参考页复用模拟器图片导出的 DOM 预览，不生成或持久化 PNG，统一使用 `1920×1080` 逻辑画布；模拟器原有 PNG 下载仍保留。
+- **性能策略**：参考页使用单个隐藏的只读模拟器渲染源，预览卡片通过 `IntersectionObserver` 按可见范围串行生成；排班表更新只使对应预览失效，离开视口后清理预览 DOM，避免一次性挂载所有排班表的完整布局。
+- **验证**：`npm run lint`、`npm run type-check`、`npm run build`、`npm run test:schedule-list`、`npm run test:simulator-layout`、`npm run test:simulator-result` 和 `git diff --check` 通过；浏览器回放确认参考页预览显示、路由参数跳转和模拟器目标排班表选中，控制台无错误。

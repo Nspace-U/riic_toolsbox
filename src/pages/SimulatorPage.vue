@@ -166,6 +166,11 @@ import {
   type ScheduleImageResolutionKey,
 } from "@/utils/simulator/exportImage";
 
+const props = defineProps<{
+  initialDocumentId?: string;
+  previewOnly?: boolean;
+}>();
+
 interface FacilityEntry {
   entry: LayoutEntry;
   index: number;
@@ -6412,12 +6417,10 @@ function imageExportResolutionValue(): (typeof SCHEDULE_IMAGE_RESOLUTIONS)[numbe
 
 async function prepareImageExport(): Promise<void> {
   const documentId = imageExportDocumentId.value;
-  const stored = documents.value.find((item) => item.id === documentId);
-  const schedule = stored?.document;
   const source = window.document.querySelector<HTMLElement>(
     ".simulator-editor .simulator-facility-grid",
   );
-  if (!schedule || !source) {
+  if (!source) {
     imageExportError.value = "当前没有可导出的排班内容";
     return;
   }
@@ -6432,25 +6435,7 @@ async function prepareImageExport(): Promise<void> {
     if (!imageExportPreviewMount.value) {
       throw new Error("图片预览区域初始化失败");
     }
-    const normalizedSchedule = JSON.parse(
-      serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
-    ) as ScheduleDocument;
-    const prepared = await prepareScheduleImage({
-      normalizedSchedule,
-      resolveEliteLevel: (name, context) => {
-        const plan = schedule.plans[context.planIndex];
-        const room =
-          context.position === FIAMMETTA_POSITION
-            ? fiammettaRoomAtDocument(schedule, context.planIndex, false)
-            : plan
-              ? roomAt(plan, context.type, context.position)
-              : undefined;
-        return operatorElite(room, name, context.type);
-      },
-      resolveOperator: operatorByName,
-      schedule,
-      source,
-    });
+    const prepared = await createPreparedScheduleImage(documentId, source);
     if (requestId !== imageExportRequestVersion) {
       prepared.cleanup();
       return;
@@ -6469,6 +6454,70 @@ async function prepareImageExport(): Promise<void> {
   } finally {
     if (requestId === imageExportRequestVersion) {
       imageExportLoading.value = false;
+    }
+  }
+}
+
+async function createPreparedScheduleImage(
+  documentId: string,
+  source: HTMLElement,
+): Promise<PreparedScheduleImage> {
+  const stored = documents.value.find((item) => item.id === documentId);
+  const schedule = stored?.document;
+  if (!schedule) {
+    throw new Error("当前没有可导出的排班内容");
+  }
+
+  const normalizedSchedule = JSON.parse(
+    serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
+  ) as ScheduleDocument;
+  return prepareScheduleImage({
+    normalizedSchedule,
+    resolveEliteLevel: (name, context) => {
+      const plan = schedule.plans[context.planIndex];
+      const room =
+        context.position === FIAMMETTA_POSITION
+          ? fiammettaRoomAtDocument(schedule, context.planIndex, false)
+          : plan
+            ? roomAt(plan, context.type, context.position)
+            : undefined;
+      return operatorElite(room, name, context.type);
+    },
+    resolveOperator: operatorByName,
+    schedule,
+    source,
+  });
+}
+
+async function prepareScheduleReferenceImage(
+  documentId: string,
+): Promise<PreparedScheduleImage> {
+  if (!documents.value.some((document) => document.id === documentId)) {
+    throw new Error("排班表不存在");
+  }
+
+  const previousDocumentId = activeDocumentId.value;
+  const shouldRestore =
+    previousDocumentId !== documentId &&
+    documents.value.some((document) => document.id === previousDocumentId);
+  if (previousDocumentId !== documentId) {
+    setActiveDocument(documentId);
+    await nextTick();
+  }
+
+  try {
+    const source = window.document.querySelector<HTMLElement>(
+      ".simulator-editor .simulator-facility-grid",
+    );
+    if (!source) {
+      throw new Error("排班表预览区域初始化失败");
+    }
+    await nextTick();
+    return await createPreparedScheduleImage(documentId, source);
+  } finally {
+    if (shouldRestore) {
+      setActiveDocument(previousDocumentId);
+      await nextTick();
     }
   }
 }
@@ -6643,8 +6692,25 @@ watch(
   },
 );
 
+watch(
+  () => props.initialDocumentId,
+  (value) => {
+    const documentId = value ?? "";
+    if (
+      documentId &&
+      documents.value.some((document) => document.id === documentId)
+    ) {
+      selectDocument(documentId);
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(() => {
   void loadFacilityOperatorOverrides();
+  if (props.previewOnly) {
+    return;
+  }
   window.addEventListener("pointerdown", handleWindowPointerDown, true);
   window.addEventListener("click", handleWindowClick);
   window.addEventListener("keydown", handleWindowKeydown, true);
@@ -6712,10 +6778,15 @@ onBeforeUnmount(() => {
 watch(showScheduleSidebar, () => {
   void nextTick(observeDocumentSidebar);
 });
+
+defineExpose({ prepareScheduleReferenceImage });
 </script>
 
 <template>
-  <div class="page-shell simulator-page">
+  <div
+    :class="{ 'simulator-page--preview-source': props.previewOnly }"
+    class="page-shell simulator-page"
+  >
     <div class="page-heading">
       <div
         class="page-heading-icon simulator-page-heading-icon"
