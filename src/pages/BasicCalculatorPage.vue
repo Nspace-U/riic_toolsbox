@@ -10,11 +10,9 @@ import {
 } from "@ant-design/icons-vue";
 import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
-import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import BasicCalculatorScheduleEditor from "@/components/BasicCalculatorScheduleEditor.vue";
-import OperatorPickerPanel, {
-  type OperatorPickerCandidateView,
-} from "@/components/OperatorPickerPanel.vue";
+import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
@@ -26,7 +24,10 @@ import type {
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
-import { MANUFACTURE_RULES } from "@/utils/efficiency/baseRules";
+import type {
+  OperatorProgressionNode,
+  ResolvedOperatorProgression,
+} from "@/types/operatorProgression";
 import {
   applyBasicCalculatorPatch,
   buildBasicCalculatorSchedule,
@@ -61,10 +62,11 @@ import {
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_REPRESENTATIVE_COLORS,
-  roomLevelRange,
 } from "@/utils/schedule";
-import { resolveOperatorProgression } from "@/utils/operatorProgression";
-import { sortProfessionValues } from "@/utils/operatorOrdering";
+import {
+  progressionNodesForFacility,
+  resolveOperatorProgression,
+} from "@/utils/operatorProgression";
 
 interface BasicCalculatorRowView {
   group: BasicCalculatorGroup;
@@ -84,8 +86,6 @@ interface GroupDraft {
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
-
-type DraftPickerTarget = "core" | "work" | "control" | "extra";
 
 const STORAGE_KEY = "riic-tools:basic-calculator:v1";
 const { operators, terms, ready, errorMessage } = useBaseData();
@@ -114,12 +114,6 @@ const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
 const rowDraftSchedule = ref<ScheduleDocument>();
 const rowDraftGroupId = ref("");
-const draftCoreName = ref("");
-const draftOperatorNames = ref<string[]>([]);
-const draftControlNames = ref<string[]>([]);
-const draftPickerTarget = ref<DraftPickerTarget>();
-const draftPickerExtraRoomIndex = ref<number>();
-const draftPickerProfession = ref("");
 const calculatorWorker = ref<Worker>();
 const rowCalculations = ref<Record<string, BasicCalculatorRowCalculation>>({});
 const calculationLoading = ref(false);
@@ -149,19 +143,6 @@ const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
       : { control: 5 };
   },
 );
-const draftWorkNames = computed(() =>
-  draftOperatorNames.value.filter(
-    (name) =>
-      !draftControlNames.value.includes(name) &&
-      rowDraft.value?.operators.find((operator) => operator.name === name)
-        ?.room === undefined,
-  ),
-);
-const draftExtraRoomOptions = computed(() =>
-  extraRoomOptions.filter(
-    (option) => option.value !== rowDraftGroup.value?.facility,
-  ),
-);
 const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
   () => {
     const group = rowDraftGroup.value;
@@ -174,6 +155,12 @@ const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
       })),
       ...row.operators.filter(
         (operator) => operator.room && operator.room !== group.facility,
+      ),
+      ...(row.extraRooms ?? []).flatMap((room) =>
+        (room.operators ?? []).map((operator) => ({
+          ...operator,
+          room: room.type,
+        })),
       ),
     ];
     const seen = new Set<string>();
@@ -195,83 +182,9 @@ const draftDisplayOperatorNames = computed(() => {
     ),
   );
 });
-const draftPickerProfessionOptions = computed(() =>
-  sortProfessionValues(operators.value.map((operator) => operator.profession)),
-);
-const draftPickerTitle = computed(() => {
-  if (draftPickerTarget.value === "core") return "核心干员";
-  if (draftPickerTarget.value === "control") return "控制中枢";
-  if (draftPickerTarget.value === "extra") {
-    const room =
-      rowDraft.value?.extraRooms?.[draftPickerExtraRoomIndex.value ?? -1];
-    return room ? ROOM_LABELS[room.type] : "其他设施";
-  }
-  return rowDraftGroup.value
-    ? ROOM_LABELS[rowDraftGroup.value.facility]
-    : "选择干员";
-});
-const draftPickerCandidates = computed<OperatorPickerCandidateView[]>(() => {
-  const group = rowDraftGroup.value;
-  const target = draftPickerTarget.value;
-  if (!group || !target || !catalog.value) return [];
-  const facility =
-    target === "control"
-      ? "control"
-      : target === "extra"
-        ? rowDraft.value?.extraRooms?.[draftPickerExtraRoomIndex.value ?? -1]
-            ?.type
-        : group.facility;
-  if (!facility) return [];
-  const selectedNames = new Set(
-    target === "core"
-      ? [draftCoreName.value]
-      : target === "work"
-        ? draftWorkNames.value
-        : target === "control"
-          ? draftControlNames.value
-          : (rowDraft.value?.operators
-              .filter((operator) => operator.room === facility)
-              .map((operator) => operator.name) ?? []),
-  );
-  return operators.value
-    .filter((operator) => {
-      const profile = catalog.value?.operators[operator.name];
-      return Boolean(
-        profile?.skillFile?.chains.some((chain) => chain.room === facility),
-      );
-    })
-    .filter(
-      (operator) =>
-        (showUnownedOperatorsInPicker.value ||
-          isOperatorOwned(operator.name) ||
-          selectedNames.has(operator.name)) &&
-        (!draftPickerProfession.value ||
-          operator.profession === draftPickerProfession.value),
-    )
-    .sort((first, second) => {
-      const firstOrder = first.implementationOrder ?? -1;
-      const secondOrder = second.implementationOrder ?? -1;
-      return secondOrder - firstOrder;
-    })
-    .map((operator) => ({
-      operator,
-      eliteLevel: draftOperatorEliteLevel(operator.name, facility),
-      operatorOwned: isOperatorOwned(operator.name),
-    }));
-});
 const fieldOptions = computed(() =>
   catalog.value ? operatorFieldOptions(catalog.value) : [],
 );
-const productOptions = computed(() => [
-  { label: "不限产物", value: "" },
-  ...Object.keys(MANUFACTURE_RULES)
-    .filter((key) => !key.includes(":"))
-    .map((product) => ({ label: product, value: product })),
-  { label: "龙门币", value: "龙门币" },
-]);
-const extraRoomOptions = Object.entries(ROOM_LABELS)
-  .filter(([type]) => type !== "control")
-  .map(([value, label]) => ({ value, label }));
 
 interface DraftDisplayOperatorOption {
   operator: BasicCalculatorOperator;
@@ -457,6 +370,12 @@ function defaultDisplayOperators(
     })),
     ...row.operators.filter(
       (operator) => operator.room && operator.room !== group.facility,
+    ),
+    ...(row.extraRooms ?? []).flatMap((room) =>
+      (room.operators ?? []).map((operator) => ({
+        ...operator,
+        room: room.type,
+      })),
     ),
   ];
   const seen = new Set<string>();
@@ -697,17 +616,6 @@ function toggleDraftDisplayOperator(
   row.displayOperators = [...selected.values()];
 }
 
-function draftFacilityStyle(type: RoomKey): Record<string, string> {
-  return {
-    "--basic-calculator-facility-accent":
-      facilityColors.value[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
-  };
-}
-
-function draftFacilityLevelMax(type: RoomKey): number {
-  return roomLevelRange(type).max;
-}
-
 function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
   key: K,
   value: BasicCalculatorConfig["settings"][K],
@@ -795,11 +703,22 @@ function editorOperatorCandidates(
   type: RoomKey,
 ): OperatorPickerCandidateView[] {
   if (!catalog.value) return [];
+  const rooms = rowDraftSchedule.value?.plans[0]?.rooms[type];
+  const assignments = Array.isArray(rooms) ? (rooms as RoomAssignment[]) : [];
+  const selectedNames = new Set(
+    assignments.flatMap((room) => room.operators ?? []),
+  );
   return operators.value
     .filter((operator) =>
       catalog.value?.operators[operator.name]?.skillFile?.chains.some(
         (chain) => chain.room === type,
       ),
+    )
+    .filter(
+      (operator) =>
+        showUnownedOperatorsInPicker.value ||
+        isOperatorOwned(operator.name) ||
+        selectedNames.has(operator.name),
     )
     .sort((first, second) => {
       const firstOrder = first.implementationOrder ?? -1;
@@ -809,6 +728,7 @@ function editorOperatorCandidates(
     .map((operator) => ({
       operator,
       eliteLevel: editorOperatorEliteLevel(operator.name, type),
+      operatorOwned: isOperatorOwned(operator.name),
     }));
 }
 
@@ -834,6 +754,44 @@ function editorOperatorEliteLevel(name: string, type: RoomKey): EliteLevel {
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
   }).elite;
+}
+
+function editorOperatorProgression(
+  name: string,
+  type: RoomKey,
+  state: OperatorState,
+):
+  | {
+      nodes: OperatorProgressionNode[];
+      current: Pick<ResolvedOperatorProgression, "elite" | "level">;
+      hasManualProgression: boolean;
+    }
+  | undefined {
+  const operator = operatorFor(name);
+  if (!operator) return undefined;
+  const profile = catalog.value?.operators[operator.name];
+  const nodes = progressionNodesForFacility(
+    profile?.skillFile,
+    type,
+    operator.rarity,
+  );
+  const current = resolveOperatorProgression({
+    operatorId: operator.id,
+    facility: type,
+    operatorSkillFile: profile?.skillFile,
+    maxEliteLevel: operator.maxEliteLevel,
+    manualElite: state.elite,
+    manualLevel: state.level,
+    profile: activeProfile.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
+  });
+  return {
+    nodes,
+    current,
+    hasManualProgression:
+      state.elite !== undefined || state.level !== undefined,
+  };
 }
 
 function saveColumn(): void {
@@ -877,181 +835,26 @@ function openRowEditor(
         config.value.settings,
       )
     : undefined;
-  draftCoreName.value = rowDraft.value.coreOperator.name;
-  draftOperatorNames.value = rowDraft.value.operators.map(({ name }) => name);
-  draftControlNames.value = [
-    ...(row.controlOperators?.map(({ name }) => name) ??
-      config.value?.settings.defaultControlOperators ??
-      []),
-    ...(!row.controlOperators
-      ? row.operators
-          .filter((operator) => operator.room === "control")
-          .map(({ name }) => name)
-      : []),
-  ].filter((name, index, names) => names.indexOf(name) === index);
-  draftPickerTarget.value = undefined;
-  draftPickerExtraRoomIndex.value = undefined;
-  draftPickerProfession.value = "";
   rowModalOpen.value = true;
-}
-
-function openDraftPicker(target: DraftPickerTarget): void {
-  draftPickerTarget.value = target;
-  draftPickerExtraRoomIndex.value = undefined;
-  draftPickerProfession.value = "";
-}
-
-function openExtraRoomPicker(index: number): void {
-  draftPickerTarget.value = "extra";
-  draftPickerExtraRoomIndex.value = index;
-  draftPickerProfession.value = "";
-}
-
-function closeDraftPicker(): void {
-  draftPickerTarget.value = undefined;
-  draftPickerExtraRoomIndex.value = undefined;
-  draftPickerProfession.value = "";
-}
-
-function selectDraftOperator(operator: Operator): void {
-  const target = draftPickerTarget.value;
-  if (!target || !rowDraft.value) return;
-  if (target === "core") {
-    draftCoreName.value = operator.name;
-    rowDraft.value.coreOperator = {
-      ...(rowDraft.value.coreOperator ?? {}),
-      name: operator.name,
-    };
-    closeDraftPicker();
-    return;
-  }
-  if (target === "work") {
-    setDraftWorkOperator(operator.name);
-  } else if (target === "control") {
-    if (!draftControlNames.value.includes(operator.name)) {
-      setDraftControlOperators([...draftControlNames.value, operator.name]);
-    }
-  } else {
-    const index = draftPickerExtraRoomIndex.value;
-    const room = rowDraft.value.extraRooms?.[index ?? -1];
-    if (!room) return;
-    const current = rowDraft.value.operators.find(
-      (candidate) => candidate.name === operator.name,
-    );
-    if (current) {
-      current.room = room.type;
-    } else {
-      rowDraft.value.operators.push({ name: operator.name, room: room.type });
-      draftOperatorNames.value = [...draftOperatorNames.value, operator.name];
-    }
-    draftControlNames.value = draftControlNames.value.filter(
-      (name) => name !== operator.name,
-    );
-    rowDraft.value.controlOperators = rowDraft.value.controlOperators?.filter(
-      ({ name }) => name !== operator.name,
-    );
-  }
-}
-
-function removeDraftOperator(
-  name: string,
-  target: Exclude<DraftPickerTarget, "core">,
-): void {
-  if (target === "control") {
-    setDraftControlOperators(
-      draftControlNames.value.filter((candidate) => candidate !== name),
-    );
-  }
-  draftOperatorNames.value = draftOperatorNames.value.filter(
-    (candidate) => candidate !== name,
-  );
-  if (rowDraft.value) {
-    rowDraft.value.operators = rowDraft.value.operators.filter(
-      (operator) => operator.name !== name,
-    );
-    rowDraft.value.controlOperators = rowDraft.value.controlOperators?.filter(
-      (operator) => operator.name !== name,
-    );
-  }
-}
-
-function draftOperatorEliteLevel(name: string, facility: RoomKey): EliteLevel {
-  const operator = operatorFor(name);
-  const profile = operator
-    ? catalog.value?.operators[operator.name]
-    : undefined;
-  const draftOperator = rowDraft.value?.operators.find(
-    (candidate) => candidate.name === name,
-  );
-  return resolveOperatorProgression({
-    operatorId: operator?.id ?? name,
-    facility,
-    operatorSkillFile: profile?.skillFile,
-    maxEliteLevel: operator?.maxEliteLevel,
-    manualElite: draftOperator?.elite,
-    manualLevel: draftOperator?.level,
-    profile: activeProfile.value,
-    dormitoryDefaultIncludesMoodRecovery:
-      dormitoryDefaultIncludesMoodRecovery.value,
-  }).elite;
-}
-
-function setDraftWorkOperator(name: string): void {
-  if (!rowDraft.value) return;
-  const current = rowDraft.value.operators.find(
-    (operator) => operator.name === name,
-  );
-  if (current) current.room = undefined;
-  else rowDraft.value.operators.push({ name });
-  if (!draftOperatorNames.value.includes(name)) {
-    draftOperatorNames.value = [...draftOperatorNames.value, name];
-  }
-  draftControlNames.value = draftControlNames.value.filter(
-    (candidate) => candidate !== name,
-  );
-  rowDraft.value.controlOperators = rowDraft.value.controlOperators?.filter(
-    (operator) => operator.name !== name,
-  );
-}
-
-function setDraftControlOperators(names: string[]): void {
-  if (!rowDraft.value) return;
-  const old = new Map(
-    rowDraft.value.operators.map((operator) => [operator.name, operator]),
-  );
-  const visibleNames = new Set(draftOperatorNames.value);
-  names.forEach((name) => visibleNames.add(name));
-  rowDraft.value.operators = [...visibleNames].map((name) => ({
-    ...(old.get(name) ?? { name }),
-    name,
-    room: names.includes(name)
-      ? "control"
-      : old.get(name)?.room === "control"
-        ? undefined
-        : old.get(name)?.room,
-  }));
-  rowDraft.value.controlOperators = names.map((name) => ({
-    ...(old.get(name) ?? { name }),
-    name,
-    room: "control",
-  }));
-  draftOperatorNames.value = [...visibleNames];
-  draftControlNames.value = names;
 }
 
 function operatorStateFromRoom(
   document: ScheduleDocument,
   type: RoomKey,
   name: string,
+  position?: number,
 ): BasicCalculatorOperator {
   const rooms = document.plans[0]?.rooms[type];
   const assignments = Array.isArray(rooms) ? (rooms as RoomAssignment[]) : [];
-  const state = assignments
-    .flatMap((room) => Object.entries(room.operatorStates ?? []))
-    .find(([operatorName]) => operatorName === name)?.[1] as
+  const state = (
+    position === undefined
+      ? assignments.flatMap((room) => Object.entries(room.operatorStates ?? []))
+      : Object.entries(assignments[position]?.operatorStates ?? [])
+  ).find(([operatorName]) => operatorName === name)?.[1] as
     OperatorState | undefined;
   return {
     name,
+    ...(state?.mood === undefined ? {} : { mood: state.mood }),
     ...(state?.elite === undefined ? {} : { elite: state.elite }),
     ...(state?.level === undefined ? {} : { level: state.level }),
   };
@@ -1075,46 +878,9 @@ function updateRowFromEditorSchedule(
   const workNames = uniqueNames(workRoom.operators ?? []);
   const coreName =
     workNames.shift() ?? draft.coreOperator?.name ?? group.coreOperator.name;
-  const extraTypes = [
-    ...new Set(
-      document.layout
-        .map((entry) => entry.type)
-        .filter((type) => type !== "control" && type !== group.facility),
-    ),
-  ];
-  const previousExtras = new Map(
-    (draft.extraRooms ?? []).map((room) => [room.type, room]),
+  const operators = workNames.map((name) =>
+    operatorStateFromRoom(document, group.facility, name, 0),
   );
-  const operators = workNames.map((name) => ({
-    ...operatorStateFromRoom(document, group.facility, name),
-  }));
-  const extraRooms = extraTypes.map((type) => {
-    const entries = document.layout.filter((entry) => entry.type === type);
-    const rooms = Array.isArray(document.plans[0]?.rooms[type])
-      ? (document.plans[0]?.rooms[type] as RoomAssignment[])
-      : [];
-    const names = uniqueNames(
-      rooms.flatMap((room) => room.operators ?? []).filter(Boolean),
-    );
-    names.forEach((name) => {
-      if (!operators.some((operator) => operator.name === name)) {
-        operators.push({
-          ...operatorStateFromRoom(document, type, name),
-          room: type,
-        });
-      }
-    });
-    const previous = previousExtras.get(type);
-    return {
-      type,
-      level: entries[0]?.level ?? previous?.level ?? 1,
-      count: entries.length,
-      ...(previous?.product ? { product: previous.product } : {}),
-      ...(previous?.sourceMaterial
-        ? { sourceMaterial: previous.sourceMaterial }
-        : {}),
-    };
-  });
   const controlRooms = document.plans[0]?.rooms.control;
   const controlNames = Array.isArray(controlRooms)
     ? uniqueNames(
@@ -1123,6 +889,37 @@ function updateRowFromEditorSchedule(
     : [];
   const defaultsForControl =
     config.value?.settings.defaultControlOperators ?? [];
+  const controlOperators = controlNames.map((name) => ({
+    ...operatorStateFromRoom(document, "control", name, 0),
+    room: "control" as const,
+  }));
+  operators.push(...controlOperators);
+  const extraRooms = document.layout
+    .map((entry, index) => ({ entry, index }))
+    .filter(
+      ({ entry }) => entry.type !== "control" && entry.type !== group.facility,
+    )
+    .map(({ entry }) => {
+      const position = document.layout
+        .filter((item) => item.type === entry.type)
+        .findIndex((item) => item === entry);
+      const room = Array.isArray(document.plans[0]?.rooms[entry.type])
+        ? (document.plans[0]?.rooms[entry.type] as RoomAssignment[])[position]
+        : undefined;
+      const roomOperators = uniqueNames(room?.operators ?? []).map((name) => ({
+        ...operatorStateFromRoom(document, entry.type, name, position),
+        room: entry.type,
+      }));
+      return {
+        type: entry.type,
+        level: entry.level,
+        ...(roomOperators.length ? { operators: roomOperators } : {}),
+        ...(room?.product ? { product: room.product } : {}),
+        ...(room?.sourceMaterial
+          ? { sourceMaterial: room.sourceMaterial }
+          : {}),
+      };
+    });
   draft.coreOperator = {
     ...operatorStateFromRoom(document, group.facility, coreName),
     name: coreName,
@@ -1131,10 +928,7 @@ function updateRowFromEditorSchedule(
   draft.controlOperators =
     JSON.stringify(controlNames) === JSON.stringify(defaultsForControl)
       ? undefined
-      : controlNames.map((name) => ({
-          ...operatorStateFromRoom(document, "control", name),
-          room: "control" as const,
-        }));
+      : controlOperators;
   draft.extraRooms = extraRooms;
   draft.product = workRoom.product;
   draft.sourceMaterial = workRoom.sourceMaterial;
@@ -1149,13 +943,9 @@ function saveRow(): void {
     (item) => item.id === rowDraftGroupId.value,
   );
   if (group) {
-    const product = draft.product;
-    const sourceMaterial = draft.sourceMaterial;
     if (rowDraftSchedule.value) {
       updateRowFromEditorSchedule(draft, group, rowDraftSchedule.value);
     }
-    draft.product = product;
-    draft.sourceMaterial = sourceMaterial;
     const defaultDisplay = defaultDisplayOperators(group, draft);
     const selectedDisplay = draft.displayOperators ?? defaultDisplay;
     if (
@@ -1198,55 +988,6 @@ function addRow(group: BasicCalculatorGroup): void {
     draft.groups.find((item) => item.id === group.id)?.rows.push(row);
   });
   openRowEditor(group, row);
-}
-
-function addExtraRoom(type: string = "dormitory"): void {
-  if (!rowDraft.value) return;
-  if (
-    !(type in ROOM_LABELS) ||
-    type === "control" ||
-    type === rowDraftGroup.value?.facility ||
-    rowDraft.value.extraRooms?.some((room) => room.type === type)
-  ) {
-    return;
-  }
-  rowDraft.value.extraRooms = [
-    ...(rowDraft.value.extraRooms ?? []),
-    { type: type as RoomKey, level: 3, count: 1 },
-  ];
-}
-
-function updateExtraRoomType(index: number, type: string): void {
-  const draft = rowDraft.value;
-  const room = draft?.extraRooms?.[index];
-  if (!draft || !room || !(type in ROOM_LABELS) || type === "control") return;
-  const previousType = room.type;
-  const nextType = type as RoomKey;
-  if (
-    draft.extraRooms?.some(
-      (item, itemIndex) => itemIndex !== index && item.type === nextType,
-    )
-  ) {
-    return;
-  }
-  room.type = nextType;
-  draft.operators.forEach((operator) => {
-    if (operator.room === previousType) operator.room = nextType;
-  });
-}
-
-function removeExtraRoom(index: number): void {
-  const rooms = rowDraft.value?.extraRooms;
-  if (!rowDraft.value || !rooms) return;
-  const room = rooms[index];
-  if (!room) return;
-  rooms.splice(index, 1);
-  if (!rooms.some((item) => item.type === room.type)) {
-    rowDraft.value.operators = rowDraft.value.operators.filter(
-      (operator) => operator.room !== room.type,
-    );
-    draftOperatorNames.value = rowDraft.value.operators.map(({ name }) => name);
-  }
 }
 
 function openGroupEditor(group?: BasicCalculatorGroup): void {
@@ -1295,9 +1036,7 @@ function operatorFor(name: string): Operator | undefined {
 }
 
 function isOperatorOwned(name: string): boolean {
-  if (!activeProfile.value) {
-    return true;
-  }
+  if (!activeProfile.value) return true;
   const operator = operatorFor(name);
   return operator
     ? activeProfile.value.entries[operator.id]?.owned === true
@@ -1793,35 +1532,10 @@ function toggleGroupColumn(
           :fixed-room-types="['control', rowDraftGroup.facility]"
           :operator-candidates="editorOperatorCandidates"
           :operator-elite-level="editorOperatorEliteLevel"
+          :operator-progression="editorOperatorProgression"
           :operator-for="operatorFor"
         />
         <a-form layout="vertical">
-          <a-form-item label="核心工作设施产物">
-            <a-select v-model:value="rowDraft.product" allow-clear>
-              <a-select-option
-                v-for="option in productOptions"
-                :key="option.value"
-                :value="option.value"
-                >{{ option.label }}</a-select-option
-              >
-            </a-select>
-          </a-form-item>
-          <div
-            v-if="rowDraft.extraRooms?.length"
-            class="basic-calculator-row-editor-products"
-          >
-            <a-form-item
-              v-for="room in rowDraft.extraRooms"
-              :key="room.type"
-              :label="`${ROOM_LABELS[room.type]}产物`"
-            >
-              <a-select
-                v-model:value="room.product"
-                allow-clear
-                :options="productOptions"
-              />
-            </a-form-item>
-          </div>
           <a-form-item label="备注">
             <a-input v-model:value="rowDraft.note" />
           </a-form-item>
@@ -1851,338 +1565,6 @@ function toggleGroupColumn(
           </a-form-item>
         </a-form>
       </div>
-      <a-form v-if="rowDraft" v-show="false" layout="vertical">
-        <div class="basic-calculator-facility-add">
-          <div class="basic-calculator-facility-heading">
-            <span>设施布局</span>
-            <span class="basic-calculator-facility-hint"
-              >点击设施按钮添加设施</span
-            >
-          </div>
-          <a-space wrap>
-            <a-button
-              v-for="option in draftExtraRoomOptions"
-              :key="option.value"
-              :style="draftFacilityStyle(option.value as RoomKey)"
-              size="small"
-              @click="addExtraRoom(option.value)"
-              >{{ option.label }}</a-button
-            >
-          </a-space>
-        </div>
-        <a-form-item
-          class="basic-calculator-facility-card"
-          :style="draftFacilityStyle(rowDraftGroup?.facility ?? 'manufacture')"
-          label="核心工作设施"
-        >
-          <div class="basic-calculator-draft-operator-section">
-            <button
-              class="basic-calculator-draft-avatar"
-              type="button"
-              @click="openDraftPicker('core')"
-            >
-              <OperatorAvatarDisplay
-                :display-name="draftCoreName"
-                :elite-level="
-                  draftOperatorEliteLevel(
-                    draftCoreName,
-                    rowDraftGroup?.facility ?? 'manufacture',
-                  )
-                "
-                :operator="operatorFor(draftCoreName)"
-                :plain="true"
-                :proportional-layout="true"
-                :show-elite-level="true"
-                :show-name="true"
-                :show-profession="true"
-                :show-rarity="true"
-                :size="64"
-                :special-label="
-                  operatorFor(draftCoreName)
-                    ? undefined
-                    : draftCoreName.slice(0, 2)
-                "
-              />
-            </button>
-            <OperatorPickerPanel
-              v-if="draftPickerTarget === 'core'"
-              :avatar-size="64"
-              :candidates="draftPickerCandidates"
-              :inline="true"
-              :profession-options="draftPickerProfessionOptions"
-              :selected-profession="draftPickerProfession"
-              :title="draftPickerTitle"
-              @select="selectDraftOperator"
-              @update:selected-profession="draftPickerProfession = $event"
-            />
-          </div>
-        </a-form-item>
-        <a-form-item
-          class="basic-calculator-facility-card"
-          :style="draftFacilityStyle(rowDraftGroup?.facility ?? 'manufacture')"
-          label="工作干员"
-        >
-          <div class="basic-calculator-draft-operator-section">
-            <div class="basic-calculator-draft-avatars">
-              <div
-                v-for="name in draftWorkNames"
-                :key="name"
-                class="basic-calculator-draft-slot"
-              >
-                <button
-                  class="basic-calculator-draft-avatar"
-                  type="button"
-                  @click="openDraftPicker('work')"
-                >
-                  <OperatorAvatarDisplay
-                    :display-name="name"
-                    :elite-level="
-                      draftOperatorEliteLevel(
-                        name,
-                        rowDraftGroup?.facility ?? 'manufacture',
-                      )
-                    "
-                    :operator="operatorFor(name)"
-                    :plain="true"
-                    :proportional-layout="true"
-                    :show-elite-level="true"
-                    :show-name="true"
-                    :show-profession="true"
-                    :show-rarity="true"
-                    :size="64"
-                    :special-label="
-                      operatorFor(name) ? undefined : name.slice(0, 2)
-                    "
-                  />
-                </button>
-                <a-button
-                  :icon="h(DeleteOutlined)"
-                  aria-label="删除展示干员"
-                  danger
-                  size="small"
-                  type="text"
-                  @click.stop="removeDraftOperator(name, 'work')"
-                />
-              </div>
-              <a-tooltip title="添加干员">
-                <a-button
-                  :icon="h(PlusOutlined)"
-                  aria-label="添加展示干员"
-                  type="dashed"
-                  @click="openDraftPicker('work')"
-                />
-              </a-tooltip>
-            </div>
-            <OperatorPickerPanel
-              v-if="draftPickerTarget === 'work'"
-              :avatar-size="64"
-              :candidates="draftPickerCandidates"
-              :inline="true"
-              :profession-options="draftPickerProfessionOptions"
-              :selected-profession="draftPickerProfession"
-              :title="draftPickerTitle"
-              @select="selectDraftOperator"
-              @update:selected-profession="draftPickerProfession = $event"
-            />
-          </div>
-        </a-form-item>
-        <a-form-item
-          class="basic-calculator-facility-card"
-          :style="draftFacilityStyle('control')"
-          label="控制中枢 · Lv5"
-        >
-          <div class="basic-calculator-draft-operator-section">
-            <div class="basic-calculator-draft-avatars">
-              <div
-                v-for="name in draftControlNames"
-                :key="name"
-                class="basic-calculator-draft-slot"
-              >
-                <button
-                  class="basic-calculator-draft-avatar"
-                  type="button"
-                  @click="openDraftPicker('control')"
-                >
-                  <OperatorAvatarDisplay
-                    :display-name="name"
-                    :elite-level="draftOperatorEliteLevel(name, 'control')"
-                    :operator="operatorFor(name)"
-                    :plain="true"
-                    :proportional-layout="true"
-                    :show-elite-level="true"
-                    :show-name="true"
-                    :show-profession="true"
-                    :show-rarity="true"
-                    :size="64"
-                    :special-label="
-                      operatorFor(name) ? undefined : name.slice(0, 2)
-                    "
-                  />
-                </button>
-                <a-button
-                  :icon="h(DeleteOutlined)"
-                  aria-label="删除控制中枢干员"
-                  danger
-                  size="small"
-                  type="text"
-                  @click.stop="removeDraftOperator(name, 'control')"
-                />
-              </div>
-              <a-tooltip title="添加干员">
-                <a-button
-                  :icon="h(PlusOutlined)"
-                  aria-label="添加控制中枢干员"
-                  type="dashed"
-                  @click="openDraftPicker('control')"
-                />
-              </a-tooltip>
-            </div>
-            <OperatorPickerPanel
-              v-if="draftPickerTarget === 'control'"
-              :avatar-size="64"
-              :candidates="draftPickerCandidates"
-              :inline="true"
-              :profession-options="draftPickerProfessionOptions"
-              :selected-profession="draftPickerProfession"
-              :title="draftPickerTitle"
-              @select="selectDraftOperator"
-              @update:selected-profession="draftPickerProfession = $event"
-            />
-          </div>
-        </a-form-item>
-        <a-form-item label="制造站产物">
-          <a-select v-model:value="rowDraft.product" allow-clear
-            ><a-select-option
-              v-for="option in productOptions"
-              :key="option.value"
-              :value="option.value"
-              >{{ option.label }}</a-select-option
-            ></a-select
-          >
-        </a-form-item>
-        <a-form-item label="备注"
-          ><a-input v-model:value="rowDraft.note"
-        /></a-form-item>
-        <div
-          v-for="(room, index) in rowDraft.extraRooms ?? []"
-          :key="`${room.type}-${index}`"
-          class="basic-calculator-extra-room-editor"
-        >
-          <div class="basic-calculator-extra-room-row">
-            <a-select
-              :value="room.type"
-              :options="extraRoomOptions"
-              @change="updateExtraRoomType(index, $event)"
-            /><a-input-number
-              v-model:value="room.level"
-              :max="draftFacilityLevelMax(room.type)"
-              :min="1"
-            /><a-input-number
-              v-model:value="room.count"
-              :max="4"
-              :min="1"
-            /><a-select
-              v-model:value="room.product"
-              allow-clear
-              :options="productOptions"
-            /><a-button
-              :icon="h(DeleteOutlined)"
-              aria-label="删除设施"
-              danger
-              type="text"
-              @click="removeExtraRoom(index)"
-            />
-          </div>
-          <div class="basic-calculator-extra-room-operators">
-            <span>{{ ROOM_LABELS[room.type] }}干员</span>
-            <div class="basic-calculator-draft-avatars">
-              <div
-                v-for="name in rowDraft.operators
-                  .filter((operator) => operator.room === room.type)
-                  .map(({ name }) => name)"
-                :key="name"
-                class="basic-calculator-draft-slot"
-              >
-                <button
-                  class="basic-calculator-draft-avatar"
-                  type="button"
-                  @click="openExtraRoomPicker(index)"
-                >
-                  <OperatorAvatarDisplay
-                    :display-name="name"
-                    :elite-level="draftOperatorEliteLevel(name, room.type)"
-                    :operator="operatorFor(name)"
-                    :plain="true"
-                    :proportional-layout="true"
-                    :show-elite-level="true"
-                    :show-name="true"
-                    :show-profession="true"
-                    :show-rarity="true"
-                    :size="64"
-                    :special-label="
-                      operatorFor(name) ? undefined : name.slice(0, 2)
-                    "
-                  />
-                </button>
-                <a-button
-                  :icon="h(DeleteOutlined)"
-                  aria-label="删除其他设施干员"
-                  danger
-                  size="small"
-                  type="text"
-                  @click.stop="removeDraftOperator(name, 'extra')"
-                />
-              </div>
-              <a-tooltip title="添加干员">
-                <a-button
-                  :icon="h(PlusOutlined)"
-                  aria-label="添加其他设施干员"
-                  type="dashed"
-                  @click="openExtraRoomPicker(index)"
-                />
-              </a-tooltip>
-            </div>
-            <OperatorPickerPanel
-              v-if="
-                draftPickerTarget === 'extra' &&
-                draftPickerExtraRoomIndex === index
-              "
-              :avatar-size="64"
-              :candidates="draftPickerCandidates"
-              :inline="true"
-              :profession-options="draftPickerProfessionOptions"
-              :selected-profession="draftPickerProfession"
-              :title="draftPickerTitle"
-              @select="selectDraftOperator"
-              @update:selected-profession="draftPickerProfession = $event"
-            />
-          </div>
-        </div>
-        <a-form-item
-          v-if="draftSpecialOperatorOptions.length"
-          class="basic-calculator-display-operator-form-item"
-          label="额外显示的设施干员"
-        >
-          <a-space wrap>
-            <a-checkbox
-              v-for="option in draftSpecialOperatorOptions"
-              :key="displayOperatorKey(option.operator)"
-              :checked="
-                draftDisplayOperatorNames.has(
-                  displayOperatorKey(option.operator),
-                )
-              "
-              @change="
-                toggleDraftDisplayOperator(
-                  option.operator,
-                  $event.target.checked,
-                )
-              "
-              >{{ option.label }}</a-checkbox
-            >
-          </a-space>
-        </a-form-item>
-      </a-form>
     </a-modal>
   </div>
 </template>
@@ -2199,19 +1581,13 @@ function toggleGroupColumn(
   gap: 16px;
   min-width: 0;
 }
-.basic-calculator-row-editor-products {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0 12px;
-}
 .basic-calculator-row-editor > .ant-form {
   padding-block-start: 4px;
   border-block-start: 1px solid rgba(46, 65, 61, 0.12);
 }
 .basic-calculator-header-content,
 .basic-calculator-group-header,
-.basic-calculator-group-toolbar,
-.basic-calculator-extra-rooms-heading {
+.basic-calculator-group-toolbar {
   align-items: center;
   display: flex;
   gap: 12px;
@@ -2315,65 +1691,6 @@ function toggleGroupColumn(
   opacity: 0;
   transition: opacity 120ms ease;
 }
-.basic-calculator-facility-add {
-  border-block-end: 1px solid rgba(46, 65, 61, 0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-block-end: 12px;
-  padding-block-end: 12px;
-}
-.basic-calculator-facility-heading,
-.basic-calculator-facility-card :deep(.ant-form-item-label) {
-  align-items: center;
-  display: flex;
-  gap: 8px;
-}
-.basic-calculator-facility-heading {
-  font-weight: 700;
-}
-.basic-calculator-facility-hint {
-  color: #768581;
-  font-size: 12px;
-  font-weight: 400;
-}
-.basic-calculator-facility-add .ant-btn {
-  border-color: var(--basic-calculator-facility-accent, #216a66);
-}
-.basic-calculator-facility-card {
-  background: color-mix(
-    in srgb,
-    var(--basic-calculator-facility-accent, #216a66) 7%,
-    white
-  );
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--basic-calculator-facility-accent, #216a66) 30%,
-      white
-    );
-  border-radius: 6px;
-  margin-block-end: 12px;
-  padding: 12px;
-}
-.basic-calculator-extra-room-editor {
-  background: color-mix(
-    in srgb,
-    var(--basic-calculator-facility-accent, #216a66) 7%,
-    white
-  );
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--basic-calculator-facility-accent, #216a66) 30%,
-      white
-    );
-  border-radius: 6px;
-  margin-block-start: 12px;
-  padding: 12px;
-}
-.basic-calculator-facility-card :deep(.ant-form-item-label),
-.basic-calculator-facility-card :deep(.ant-form-item-control),
 .basic-calculator-display-operator-form-item {
   margin-block-end: 0;
 }
@@ -2395,59 +1712,10 @@ function toggleGroupColumn(
   flex: 1;
   min-width: 120px;
 }
-.basic-calculator-extra-room-row {
-  align-items: center;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(120px, 1fr) 90px 90px minmax(150px, 1fr) 32px;
-  margin-block-start: 8px;
-}
-.basic-calculator-extra-room-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-block-start: 12px;
-}
-.basic-calculator-extra-room-operators {
-  align-items: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.basic-calculator-draft-operator-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.basic-calculator-draft-avatars {
-  align-items: flex-start;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.basic-calculator-draft-slot {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.basic-calculator-draft-avatar {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.basic-calculator-draft-avatar:focus-visible {
-  outline: 2px solid #216a66;
-  outline-offset: 2px;
-}
 @media (max-width: 720px) {
   .basic-calculator-header-content {
     align-items: flex-start;
     flex-direction: column;
-  }
-  .basic-calculator-extra-room-row {
-    grid-template-columns: 1fr 80px 80px 1fr 32px;
   }
 }
 </style>

@@ -36,6 +36,7 @@ export interface BasicCalculatorColumn {
 export interface BasicCalculatorOperator {
   name: string;
   room?: RoomKey;
+  mood?: number;
   elite?: number;
   level?: number;
 }
@@ -43,6 +44,7 @@ export interface BasicCalculatorOperator {
 export interface BasicCalculatorExtraRoom {
   type: RoomKey;
   level: number;
+  operators?: BasicCalculatorOperator[];
   count?: number;
   product?: string;
   sourceMaterial?: string;
@@ -179,6 +181,41 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function normalizeExtraRooms(
+  rooms: BasicCalculatorExtraRoom[] | undefined,
+): BasicCalculatorExtraRoom[] | undefined {
+  if (!rooms?.length) return rooms;
+  return rooms.flatMap((room) => {
+    const count = Math.max(1, room.count ?? 1);
+    return Array.from({ length: count }, () => ({
+      ...room,
+      ...(room.operators ? { operators: clone(room.operators) } : {}),
+      count: undefined,
+    }));
+  });
+}
+
+function normalizeRow(row: BasicCalculatorRow): BasicCalculatorRow {
+  const next = clone(row);
+  const extraRooms = normalizeExtraRooms(next.extraRooms);
+  if (extraRooms) {
+    next.extraRooms = extraRooms.map((room) => {
+      const normalized = { ...room };
+      delete normalized.count;
+      return normalized;
+    });
+  }
+  return next;
+}
+
+function normalizeConfig(config: BasicCalculatorConfig): BasicCalculatorConfig {
+  const next = clone(config);
+  next.groups.forEach((group) => {
+    group.rows = group.rows.map(normalizeRow);
+  });
+  return next;
+}
+
 function sameValue(first: unknown, second: unknown): boolean {
   return JSON.stringify(first) === JSON.stringify(second);
 }
@@ -214,10 +251,10 @@ export function cloneBasicCalculatorConfig(
 export function createBasicCalculatorConfig(
   asset: BasicCalculatorAsset,
 ): BasicCalculatorConfig {
-  return {
+  return normalizeConfig({
     ...clone(asset),
     settings: clone(DEFAULT_BASIC_CALCULATOR_SETTINGS),
-  };
+  });
 }
 
 export function applyBasicCalculatorPatch(
@@ -225,7 +262,7 @@ export function applyBasicCalculatorPatch(
   patch: BasicCalculatorPatch | undefined,
 ): BasicCalculatorConfig {
   if (!patch || patch.version !== defaults.version) {
-    return cloneBasicCalculatorConfig(defaults);
+    return normalizeConfig(defaults);
   }
 
   const config = cloneBasicCalculatorConfig(defaults);
@@ -298,7 +335,7 @@ export function applyBasicCalculatorPatch(
   if (patch.groupOrder) {
     config.groups = reorder(config.groups, patch.groupOrder);
   }
-  return config;
+  return normalizeConfig(config);
 }
 
 export function createBasicCalculatorPatch(
@@ -458,6 +495,7 @@ export function createBasicCalculatorPatch(
 
 function stateForOperator(operator: BasicCalculatorOperator): OperatorState {
   return {
+    ...(operator.mood === undefined ? {} : { mood: operator.mood }),
     ...(operator.elite === undefined ? {} : { elite: operator.elite }),
     ...(operator.level === undefined ? {} : { level: operator.level }),
   };
@@ -499,6 +537,7 @@ export function buildBasicCalculatorSchedule(
   const participants = uniqueOperators([
     ...(core ? [core] : []),
     ...row.operators,
+    ...(row.extraRooms ?? []).flatMap((room) => room.operators ?? []),
   ]);
   const controlOperators = uniqueOperators(
     row.controlOperators ?? [
@@ -512,15 +551,11 @@ export function buildBasicCalculatorSchedule(
   const workOperators = participants.filter(
     (operator) => !operator.room || operator.room === group.facility,
   );
+  const extraRooms = row.extraRooms ?? [];
   const layout = [
     { type: "control" as const, level: 5 },
     { type: group.facility, level: group.facilityLevel },
-    ...(row.extraRooms ?? []).flatMap((room) =>
-      Array.from({ length: room.count ?? 1 }, () => ({
-        type: room.type,
-        level: room.level,
-      })),
-    ),
+    ...extraRooms.map((room) => ({ type: room.type, level: room.level })),
   ];
   const rooms: Record<string, unknown[]> = {};
   const controlStates = Object.fromEntries(
@@ -544,24 +579,21 @@ export function buildBasicCalculatorSchedule(
       ]),
     ),
   });
-  (row.extraRooms ?? []).forEach((room) => {
-    const operators = participants.filter(
-      (operator) => operator.room === room.type,
-    );
-    const count = room.count ?? 1;
-    for (let index = 0; index < count; index += 1) {
-      addRoomAssignment(rooms, room.type, {
-        operators: index === 0 ? operators.map(({ name }) => name) : [],
-        product: room.product,
-        sourceMaterial: room.sourceMaterial,
-        operatorStates: Object.fromEntries(
-          operators.map((operator) => [
-            operator.name,
-            stateForOperator(operator),
-          ]),
-        ),
-      });
-    }
+  extraRooms.forEach((room) => {
+    const operators =
+      room.operators ??
+      participants.filter((operator) => operator.room === room.type);
+    addRoomAssignment(rooms, room.type, {
+      operators: operators.map(({ name }) => name),
+      product: room.product,
+      sourceMaterial: room.sourceMaterial,
+      operatorStates: Object.fromEntries(
+        operators.map((operator) => [
+          operator.name,
+          stateForOperator(operator),
+        ]),
+      ),
+    });
   });
   return {
     title: `${group.name} · ${row.id}`,
