@@ -58,6 +58,7 @@ interface ExportRootParts {
 interface FacilityColumnMeasurement {
   width: number;
   slotWidth: number;
+  slotGridWidth: number;
 }
 
 function directChildrenWithClass(
@@ -136,7 +137,7 @@ function prepareQueueColumn(
       return;
     }
     entry.className = "simulator-export-queue-info";
-    entry.replaceChildren(
+    const queueInfo = [
       createTextElement(
         "div",
         "simulator-export-queue-name",
@@ -147,7 +148,17 @@ function prepareQueueColumn(
         "simulator-export-queue-duration",
         formatDurationHours(planDurationHoursValue(plan)),
       ),
-    );
+    ];
+    if (plan.description?.trim()) {
+      queueInfo.push(
+        createTextElement(
+          "div",
+          "simulator-export-queue-description",
+          plan.description.trim(),
+        ),
+      );
+    }
+    entry.replaceChildren(...queueInfo);
   });
 }
 
@@ -176,8 +187,6 @@ function createExportRoot(
       ),
     );
   }
-  root.append(heading);
-
   const editor = source.closest<HTMLElement>(".simulator-editor");
   const dailyOutput = editor?.querySelector<HTMLElement>(
     ".simulator-daily-output",
@@ -185,8 +194,10 @@ function createExportRoot(
   if (dailyOutput) {
     const dailyOutputClone = dailyOutput.cloneNode(true) as HTMLElement;
     dailyOutputClone.classList.add("simulator-image-export-daily-output");
-    root.append(dailyOutputClone);
+    heading.append(dailyOutputClone);
   }
+
+  root.append(heading);
 
   const grid = source.cloneNode(true) as HTMLElement;
   root.append(grid);
@@ -504,7 +515,13 @@ function facilityColumnMeasurement(
   );
   const slotWidth = slots[0]?.getBoundingClientRect().width ?? 90;
   const width = Math.max(1, group.getBoundingClientRect().width);
-  return { width, slotWidth };
+  const slotGridWidth = Math.max(
+    0,
+    ...Array.from(group.querySelectorAll<HTMLElement>(".simulator-slot-grid"))
+      .map((slotGrid) => slotGrid.getBoundingClientRect().width)
+      .filter((gridWidth) => gridWidth > 0),
+  );
+  return { width, slotWidth, slotGridWidth };
 }
 
 function pruneSlotGroup(group: HTMLElement): number {
@@ -550,19 +567,23 @@ function pruneSlotGroup(group: HTMLElement): number {
     return 0;
   }
 
-  const overhead = Math.max(
-    0,
-    measurement.width - originalSlotCount * measurement.slotWidth,
+  const originalGridWidth = Math.max(
+    measurement.slotGridWidth,
+    originalSlotCount * measurement.slotWidth,
   );
+  const overhead = Math.max(0, measurement.width - originalGridWidth);
   const width = overhead + visibleCount * measurement.slotWidth;
   if (group.classList.contains("simulator-export-dormitory-segment")) {
-    group.style.width = `${Math.max(1, Math.round(width))}px`;
+    const segmentWidth = `${Math.max(1, Math.round(width))}px`;
+    group.style.flexBasis = segmentWidth;
+    group.style.width = segmentWidth;
   } else {
     const column = group.closest<HTMLElement>(".simulator-facility-column");
     column?.style.setProperty(
       "--simulator-column-width",
       `${Math.max(1, Math.round(width))}px`,
     );
+    column?.style.setProperty("width", `${Math.max(1, Math.round(width))}px`);
   }
   return visibleCount;
 }
