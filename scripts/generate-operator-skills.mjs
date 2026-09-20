@@ -1281,6 +1281,7 @@ function parseManuEffects(text, target, groups, cond, warn) {
         capUnit: "value",
         source: "stat",
         stat: "manuProd",
+        statScope: "sameFacility",
         except: ["facilityCount"],
       },
     });
@@ -1886,6 +1887,7 @@ function parseTradeEffects(text, target, groups, cond, warn, name) {
         capUnit: "value",
         source: "stat",
         stat: "tradeSpd",
+        statScope: "targetFacility",
       },
     });
     text = del(

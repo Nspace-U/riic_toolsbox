@@ -22,7 +22,8 @@
                 "cap": 25,
                 "capUnit": "value",
                 "source": "stat",
-                "stat": "tradeSpd"
+                "stat": "tradeSpd",
+                "statScope": "targetFacility"
               }
             }
           ]
@@ -43,7 +44,8 @@
                 "cap": 35,
                 "capUnit": "value",
                 "source": "stat",
-                "stat": "tradeSpd"
+                "stat": "tradeSpd",
+                "statScope": "targetFacility"
               }
             }
           ]

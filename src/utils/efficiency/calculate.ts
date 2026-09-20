@@ -791,7 +791,11 @@ function perCount(
     case "stat": {
       const stat = per.stat ?? "";
       const facilityIdValue = target?.id ?? owner.facility.id;
-      count = Object.entries(data.bonusByFacility[facilityIdValue] ?? {})
+      const bonusByFacility =
+        per.statScope === "targetFacility"
+          ? data.bonusByFacility
+          : (data.sameFacilityBonusByFacility ?? data.bonusByFacility);
+      count = Object.entries(bonusByFacility[facilityIdValue] ?? {})
         .filter(([name]) => !per.other || name !== owner.name)
         .reduce((total, [, values]) => total + (Number(values[stat]) || 0), 0);
       break;
@@ -883,7 +887,9 @@ function perCount(
   const perUnit = Math.max(EPSILON, Number(per.per) || 1);
   const shouldFloor = per.floor ?? per.source !== "facCap";
   const times = shouldFloor
-    ? Math.max(0, Math.floor(count / perUnit))
+    ? per.source === "stat" && per.statScope === "targetFacility"
+      ? Math.floor(count / perUnit)
+      : Math.max(0, Math.floor(count / perUnit))
     : count / perUnit;
   const raw = times * (Number(per.value) || 0);
   const value =
@@ -2486,6 +2492,7 @@ function collectBonusByFacility(
   catalog: EfficiencyCatalog,
   attributeStates: Map<string, AttributeState>,
   capacityCalculations: Map<string, CapacityCalculation>,
+  scope: "sameFacility" | "targetFacility",
 ): Record<string, Record<string, Record<string, number>>> {
   const result: Record<string, Record<string, Record<string, number>>> = {};
   context.facilities.forEach((facility) => {
@@ -2506,27 +2513,54 @@ function collectBonusByFacility(
       "droneCharge",
       "abyssalBoost",
     ]);
+    const scopedActive = context.active.filter(
+      (item) =>
+        item.target?.id === facility.id &&
+        (scope === "targetFacility" ||
+          item.owner.facility.id === facility.id) &&
+        !["facilityCount", "powerCount"].includes(
+          item.effect.per?.source ?? "",
+        ),
+    );
     const aggregate = aggregateEffectValues(
       context,
       facility,
       catalog,
-      context.active.filter(
-        (item) =>
-          item.owner.facility.id === facility.id &&
-          !["facilityCount", "powerCount"].includes(
-            item.effect.per?.source ?? "",
-          ),
-      ),
+      scopedActive,
       data,
       zeroed,
       stats,
+      "combination",
     );
     const byOperator: Record<string, Record<string, number>> = {};
-    aggregate.details.forEach(({ item, value }) => {
+    function addBonus(item: ActiveEffect, value: number): void {
+      if (item.effect.excludeFromStat) return;
+      const stat =
+        item.effect.stat === "tradeNetEff" || item.effect.stat === "tradeGapEff"
+          ? "tradeSpd"
+          : item.effect.stat;
       const values =
         byOperator[item.owner.name] ?? (byOperator[item.owner.name] = {});
-      values[item.effect.stat] = (values[item.effect.stat] ?? 0) + value;
-    });
+      values[stat] = (values[stat] ?? 0) + value;
+    }
+    aggregate.details.forEach(({ item, value }) => addBonus(item, value));
+    if (scope === "targetFacility" && facility.type === "trading") {
+      const attributeState = attributeStates.get(facility.id);
+      if (attributeState) {
+        const special = tradeSpecialEfficiency(
+          context,
+          facility,
+          catalog,
+          attributeState,
+          context.active,
+          data,
+          zeroed,
+          aggregate.total,
+          0,
+        );
+        special.details.forEach(({ item, value }) => addBonus(item, value));
+      }
+    }
     result[facility.id] = byOperator;
   });
   return result;
@@ -2853,6 +2887,10 @@ function calculateFacility(
   catalog: EfficiencyCatalog,
   attributeState: AttributeState,
   bonusByFacility: Record<string, Record<string, Record<string, number>>>,
+  sameFacilityBonusByFacility: Record<
+    string,
+    Record<string, Record<string, number>>
+  >,
   capacityCalculation: CapacityCalculation | undefined,
 ): FacilityEfficiencyResult {
   const resolvedAssignment = resolveRoomAssignment(
@@ -2864,6 +2902,7 @@ function calculateFacility(
   const data: EvaluationData = {
     capBoosts: attributeState.capBoosts,
     bonusByFacility,
+    sameFacilityBonusByFacility,
     ...(capacityCalculation
       ? { capacitySegments: capacityCalculation.segments }
       : {}),
@@ -3698,6 +3737,10 @@ function calculatePowerGroup(
   catalog: EfficiencyCatalog,
   attributeStates: Map<string, AttributeState>,
   bonusByFacility: Record<string, Record<string, Record<string, number>>>,
+  sameFacilityBonusByFacility: Record<
+    string,
+    Record<string, Record<string, number>>
+  >,
 ): FacilityEfficiencyResult | undefined {
   const powerFacilities = context.facilities.filter(
     (facility) => facility.type === "power",
@@ -3720,6 +3763,7 @@ function calculatePowerGroup(
     const data: EvaluationData = {
       capBoosts: attributeStates.get(facility.id)?.capBoosts ?? {},
       bonusByFacility,
+      sameFacilityBonusByFacility,
     };
     const combination = aggregateEffectValues(
       context,
@@ -3858,6 +3902,14 @@ function calculatePlan(
     catalog,
     attributes,
     capacityCalculations,
+    "targetFacility",
+  );
+  const sameFacilityBonusByFacility = collectBonusByFacility(
+    context,
+    catalog,
+    attributes,
+    capacityCalculations,
+    "sameFacility",
   );
   const facilities: FacilityEfficiencyResult[] = [];
   const powerResult = calculatePowerGroup(
@@ -3865,6 +3917,7 @@ function calculatePlan(
     catalog,
     attributes,
     bonusByFacility,
+    sameFacilityBonusByFacility,
   );
   context.facilities.forEach((facility) => {
     if (
@@ -3893,6 +3946,7 @@ function calculatePlan(
         catalog,
         state,
         bonusByFacility,
+        sameFacilityBonusByFacility,
         capacityCalculations.get(facility.id),
       ),
     );

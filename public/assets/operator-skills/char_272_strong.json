@@ -16,7 +16,8 @@
             {
               "target": "trading",
               "stat": "tradeGapEff",
-              "value": 4
+              "value": 4,
+              "excludeFromStat": true
             }
           ]
         }
@@ -41,8 +42,10 @@
                 "value": -1,
                 "source": "stat",
                 "stat": "tradeSpd",
-                "other": true
-              }
+                "other": true,
+                "statScope": "sameFacility"
+              },
+              "excludeFromStat": true
             },
             {
               "target": "trading",
@@ -51,7 +54,8 @@
                 "per": 1,
                 "value": 4,
                 "source": "orderCount"
-              }
+              },
+              "excludeFromStat": true
             }
           ]
         }

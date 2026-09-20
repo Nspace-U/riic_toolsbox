@@ -43,6 +43,7 @@
                 "capUnit": "value",
                 "source": "stat",
                 "stat": "manuProd",
+                "statScope": "sameFacility",
                 "except": [
                   "facilityCount"
                 ]

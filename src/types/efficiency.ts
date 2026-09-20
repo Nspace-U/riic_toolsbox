@@ -65,6 +65,7 @@ export interface EfficiencyPer {
   cap?: number;
   capUnit?: "count" | "value";
   source: EfficiencyPerSource | string;
+  statScope?: "sameFacility" | "targetFacility";
   group?: string;
   term?: string;
   tag?: string;
@@ -154,6 +155,7 @@ export interface EfficiencyEffect {
   text?: string;
   cluePreference?: CluePreference;
   suppresses?: string[];
+  excludeFromStat?: boolean;
   [key: string]: unknown;
 }
 

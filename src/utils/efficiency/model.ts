@@ -159,6 +159,10 @@ export interface CurveEvaluation {
 export interface EvaluationData {
   capBoosts: Record<string, Record<string, number>>;
   bonusByFacility: Record<string, Record<string, Record<string, number>>>;
+  sameFacilityBonusByFacility?: Record<
+    string,
+    Record<string, Record<string, number>>
+  >;
   capacitySegments?: CapacityEvaluationSegment[];
 }
 

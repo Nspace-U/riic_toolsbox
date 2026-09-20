@@ -57,6 +57,7 @@ export const OPERATOR_SKILL_OVERRIDES = {
       target: TRADING,
       stat: "tradeGapEff",
       value: 4,
+      excludeFromStat: true,
     },
   ],
   "char_272_strong#市井之道": [
@@ -69,12 +70,15 @@ export const OPERATOR_SKILL_OVERRIDES = {
         source: "stat",
         stat: "tradeSpd",
         other: true,
+        statScope: "sameFacility",
       },
+      excludeFromStat: true,
     },
     {
       target: TRADING,
       stat: "tradeSpd",
       per: { per: 1, value: 4, source: "orderCount" },
+      excludeFromStat: true,
     },
   ],
   "char_226_hmau#坚毅随和": [

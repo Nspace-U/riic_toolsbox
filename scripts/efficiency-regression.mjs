@@ -1610,6 +1610,143 @@ function runTests(runtime) {
   assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
   assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
 
+  const huaihuCrossFacility = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "manufacture", level: 3 },
+        { type: "manufacture", level: 3 },
+        { type: "power", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            manufacture: [
+              {
+                ...assignment(["槐琥", "野鬃"], {
+                  槐琥: 2,
+                  野鬃: 2,
+                }),
+                product: "赤金",
+              },
+              { product: "赤金" },
+            ],
+            power: [
+              {
+                ...assignment(["正义骑士号"], {}),
+                operatorStates: {
+                  正义骑士号: { elite: 0, level: 30, mood: 24 },
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+    { treatSkillsAsUnlocked: true },
+  );
+  const huaihuCrossFacilityManufacture = manufactureResult(huaihuCrossFacility);
+  assert.equal(huaihuCrossFacilityManufacture.skillEfficiency, 55);
+  assert.equal(
+    contribution(huaihuCrossFacilityManufacture, "槐琥").skillEfficiency,
+    25,
+  );
+
+  const snowWithGnosis = calculateEfficiency(
+    documentFor({
+      control: ["灵知"],
+      trading: ["雪雉", "初雪", "耶拉"],
+      eliteLevels: { 灵知: 2, 雪雉: 0, 初雪: 2, 耶拉: 2 },
+    }),
+    catalog,
+  );
+  const snowWithGnosisTrading = tradingResult(snowWithGnosis);
+  assert.equal(snowWithGnosisTrading.skillEfficiency, -60);
+  assert.equal(snowWithGnosisTrading.efficiency, 43);
+  assert.equal(
+    snowWithGnosisTrading.combinationDetails.find(
+      ({ operator, skill }) => operator === "雪雉" && skill === "天道酬勤·α",
+    )?.value,
+    -30,
+  );
+
+  const snowWithMorig = calculateEfficiency(
+    documentFor({
+      control: ["八幡海铃"],
+      trading: ["雪雉", "拉普兰德"],
+      eliteLevels: { 八幡海铃: 2, 雪雉: 0, 拉普兰德: 2 },
+    }),
+    catalog,
+  );
+  const snowWithMorigTrading = tradingResult(snowWithMorig);
+  assert.equal(snowWithMorigTrading.skillEfficiency, 10);
+  assert.equal(contribution(snowWithMorigTrading, "雪雉").skillEfficiency, 5);
+
+  const snowWithFacilitySkills = calculateEfficiency(
+    documentFor({
+      control: ["阿米娅", "诗怀雅"],
+      trading: ["雪雉"],
+      eliteLevels: { 阿米娅: 0, 诗怀雅: 0, 雪雉: 0 },
+    }),
+    catalog,
+  );
+  const snowWithFacilitySkillsTrading = tradingResult(snowWithFacilitySkills);
+  assert.equal(snowWithFacilitySkillsTrading.baseEfficiency, 107);
+  assert.equal(snowWithFacilitySkillsTrading.skillEfficiency, 0);
+  assert.equal(snowWithFacilitySkillsTrading.efficiency, 108);
+
+  const snowWithSwire = calculateEfficiency(
+    documentFor({
+      control: ["灵知"],
+      trading: ["雪雉", "琳琅诗怀雅", "银灰"],
+      eliteLevels: { 灵知: 2, 雪雉: 2, 琳琅诗怀雅: 2, 银灰: 0 },
+    }),
+    catalog,
+  );
+  const snowWithSwireTrading = tradingResult(snowWithSwire);
+  assert.equal(snowWithSwireTrading.skillEfficiency, 87);
+  assert.equal(
+    snowWithSwireTrading.combinationDetails.find(
+      ({ operator, stat }) =>
+        operator === "琳琅诗怀雅" && stat === "tradeNetEff",
+    )?.value,
+    32,
+  );
+  assert.equal(contribution(snowWithSwireTrading, "雪雉").skillEfficiency, 35);
+
+  const snowWithJieGap = calculateEfficiency(
+    documentFor({
+      trading: ["雪雉", "孑"],
+      eliteLevels: { 雪雉: 0, 孑: 0 },
+    }),
+    catalog,
+  );
+  const snowWithJieGapTrading = tradingResult(snowWithJieGap);
+  assert.equal(contribution(snowWithJieGapTrading, "雪雉").skillEfficiency, 0);
+  assert.equal(
+    snowWithJieGapTrading.combinationDetails.some(
+      ({ operator, stat }) => operator === "雪雉" && stat === "tradeSpd",
+    ),
+    false,
+  );
+
+  const snowWithJieOrder = calculateEfficiency(
+    documentFor({
+      trading: ["雪雉", "孑"],
+      eliteLevels: { 雪雉: 0, 孑: 1 },
+      settings: { orderProgress: { "trading-1": 100 } },
+    }),
+    catalog,
+  );
+  const snowWithJieOrderTrading = tradingResult(snowWithJieOrder);
+  assert.equal(
+    contribution(snowWithJieOrderTrading, "雪雉").skillEfficiency,
+    0,
+  );
+
   const suppressed = calculateEfficiency(
     documentFor({
       manufacture: ["红云", "泡泡"],
