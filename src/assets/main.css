@@ -1109,6 +1109,7 @@ a {
   display: grid;
   gap: 6px;
   margin-block-start: 2px;
+  min-width: 0;
   padding-block-start: 5px;
   border-block-start: 1px solid #edf0ef;
 }
@@ -1117,7 +1118,9 @@ a {
   display: block;
   color: #748184;
   line-height: 1.5;
-  white-space: nowrap;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .operator-skills-list {
@@ -1230,11 +1233,13 @@ a {
 }
 
 .operator-term-definition .rich-description {
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .term-tooltip-definition .rich-description {
-  white-space: normal;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .operator-hidden-skills-button {
