@@ -3986,7 +3986,7 @@ a {
   color: #647275;
   font-size: 13px;
   line-height: 1.5;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
 .simulator-image-export-daily-output {
@@ -4057,6 +4057,11 @@ a {
 
 .simulator-image-export-root .simulator-facility-grid {
   margin-block-start: 0;
+}
+
+.simulator-image-export-facility-content {
+  min-width: 0;
+  overflow: visible;
 }
 
 .simulator-image-export-root .simulator-export-facility-grid {

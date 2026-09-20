@@ -6378,11 +6378,7 @@ function updateImageExportPreviewContent(): void {
   const width = Math.max(1, root?.offsetWidth ?? IMAGE_EXPORT_PREVIEW_WIDTH);
   const height = Math.max(1, root?.offsetHeight ?? IMAGE_EXPORT_PREVIEW_HEIGHT);
   imageExportPreviewContentSize.value = { width, height };
-  imageExportPreviewContentScale.value = Math.min(
-    1,
-    IMAGE_EXPORT_PREVIEW_WIDTH / width,
-    IMAGE_EXPORT_PREVIEW_HEIGHT / height,
-  );
+  imageExportPreviewContentScale.value = 1;
 }
 
 function cleanupImageExportPreview(): void {

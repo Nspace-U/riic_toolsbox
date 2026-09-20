@@ -21,7 +21,9 @@ export type ScheduleImageResolution =
   (typeof SCHEDULE_IMAGE_RESOLUTIONS)[number];
 
 const EXPORT_CANVAS_WIDTH = 1920;
+const EXPORT_CANVAS_HEIGHT = 1080;
 const EXPORT_ROOT_HORIZONTAL_PADDING = 48;
+const EXPORT_MAX_FACILITY_ROWS = 2;
 
 interface ExportOperatorContext {
   planIndex: number;
@@ -52,6 +54,8 @@ export interface PreparedScheduleImage {
 
 interface ExportRootParts {
   root: HTMLDivElement;
+  heading: HTMLDivElement;
+  facilityContent: HTMLDivElement;
   grid: HTMLElement;
 }
 
@@ -178,12 +182,13 @@ function createExportRoot(
       schedule.title?.trim() || "未命名排班表",
     ),
   );
-  if (schedule.description?.trim()) {
+  const description = schedule.description ?? "";
+  if (description.trim()) {
     heading.append(
       createTextElement(
         "div",
         "simulator-image-export-description",
-        schedule.description.trim(),
+        description,
       ),
     );
   }
@@ -199,9 +204,12 @@ function createExportRoot(
 
   root.append(heading);
 
+  const facilityContent = window.document.createElement("div");
+  facilityContent.className = "simulator-image-export-facility-content";
   const grid = source.cloneNode(true) as HTMLElement;
-  root.append(grid);
-  return { root, grid };
+  facilityContent.append(grid);
+  root.append(facilityContent);
+  return { root, heading, facilityContent, grid };
 }
 
 function removeExportControls(root: HTMLElement): void {
@@ -651,6 +659,7 @@ export function partitionFacilityRanges(
   widths: number[],
   maxWidth: number,
   gap: number,
+  maxRows: number = EXPORT_MAX_FACILITY_ROWS,
 ): Array<{ start: number; end: number }> {
   if (widths.length === 0) {
     return [];
@@ -673,9 +682,14 @@ export function partitionFacilityRanges(
     }
   }
 
-  const rowCount = Number.isFinite(minimumRows[widths.length])
+  const minimumRowCount = Number.isFinite(minimumRows[widths.length])
     ? minimumRows[widths.length]!
     : widths.length;
+  const rowCount = Math.min(
+    minimumRowCount,
+    Math.max(1, Math.min(Math.floor(maxRows), widths.length)),
+  );
+  const allowWidthOverflow = rowCount < minimumRowCount;
   const totalWidth =
     widths.reduce((total, width) => total + width, 0) +
     Math.max(0, widths.length - rowCount) * gap;
@@ -696,7 +710,7 @@ export function partitionFacilityRanges(
           continue;
         }
         const width = rowWidth(widths, start, end, gap);
-        if (width > maxWidth && end - start > 1) {
+        if (!allowWidthOverflow && width > maxWidth && end - start > 1) {
           continue;
         }
         const cost = previousCost + (width - targetWidth) ** 2;
@@ -737,7 +751,23 @@ function partitionFacilities(
   );
 }
 
-function reflowFacilities(grid: HTMLElement): void {
+export function facilityContentScale(
+  maxRowWidth: number,
+  contentHeight: number,
+  availableWidth: number,
+  availableHeight: number,
+): number {
+  return Math.max(
+    0.01,
+    Math.min(
+      1,
+      availableWidth / Math.max(1, maxRowWidth),
+      availableHeight / Math.max(1, contentHeight),
+    ),
+  );
+}
+
+function reflowFacilities(grid: HTMLElement): number {
   const queueColumns = directChildrenWithClass(grid, "simulator-queue-column");
   const columns = [
     ...queueColumns,
@@ -770,6 +800,48 @@ function reflowFacilities(grid: HTMLElement): void {
   grid.style.minWidth = `${availableWidth}px`;
   grid.style.overflow = "visible";
   grid.replaceChildren(...rows);
+  return Math.max(
+    1,
+    ...groups.map((group) =>
+      rowWidth(group.map(facilityColumnWidth), 0, group.length, gap),
+    ),
+  );
+}
+
+function scaleFacilityContent(
+  root: HTMLElement,
+  heading: HTMLElement,
+  facilityContent: HTMLElement,
+  grid: HTMLElement,
+  maxRowWidth: number,
+): void {
+  const rootStyle = getComputedStyle(root);
+  const verticalPadding =
+    (Number.parseFloat(rootStyle.paddingBlockStart) || 0) +
+    (Number.parseFloat(rootStyle.paddingBlockEnd) || 0);
+  const rootGap = Number.parseFloat(rootStyle.rowGap) || 0;
+  const availableWidth = Math.max(
+    1,
+    EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING,
+  );
+  const contentHeight = Math.max(1, grid.getBoundingClientRect().height);
+  const availableHeight = Math.max(
+    1,
+    EXPORT_CANVAS_HEIGHT -
+      verticalPadding -
+      heading.getBoundingClientRect().height -
+      rootGap,
+  );
+  const scale = facilityContentScale(
+    maxRowWidth,
+    contentHeight,
+    availableWidth,
+    availableHeight,
+  );
+  facilityContent.style.width = `${availableWidth}px`;
+  facilityContent.style.height = `${contentHeight * scale}px`;
+  grid.style.transform = `scale(${scale})`;
+  grid.style.transformOrigin = "top center";
 }
 
 function waitForImages(root: HTMLElement): Promise<void> {
@@ -849,8 +921,15 @@ export async function prepareScheduleImage(
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
     removeExportControls(parts.root);
-    reflowFacilities(parts.grid);
+    const maxRowWidth = reflowFacilities(parts.grid);
     await waitForImages(parts.root);
+    scaleFacilityContent(
+      parts.root,
+      parts.heading,
+      parts.facilityContent,
+      parts.grid,
+      maxRowWidth,
+    );
     return {
       root: parts.root,
       cleanup: () => {

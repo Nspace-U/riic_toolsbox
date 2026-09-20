@@ -64,15 +64,29 @@ const vite = await createServer({
 });
 
 try {
-  const exportImageSource = await readFile(
-    "src/utils/simulator/exportImage.ts",
-    "utf8",
-  );
+  const [exportImageSource, stylesheet, simulatorPageSource] =
+    await Promise.all([
+      readFile("src/utils/simulator/exportImage.ts", "utf8"),
+      readFile("src/assets/main.css", "utf8"),
+      readFile("src/pages/SimulatorPage.vue", "utf8"),
+    ]);
   assert.match(exportImageSource, /row\.style\.justifyContent = "center"/);
-
-  const { partitionFacilityRanges } = await vite.ssrLoadModule(
-    "/src/utils/simulator/exportImage.ts",
+  assert.match(
+    exportImageSource,
+    /const description = schedule\.description \?\? ""/,
   );
+  assert.match(exportImageSource, /const EXPORT_MAX_FACILITY_ROWS = 2/);
+  assert.match(
+    stylesheet,
+    /\.simulator-image-export-description[\s\S]*white-space: pre;/,
+  );
+  assert.match(
+    simulatorPageSource,
+    /imageExportPreviewContentScale\.value = 1/,
+  );
+
+  const { facilityContentScale, partitionFacilityRanges } =
+    await vite.ssrLoadModule("/src/utils/simulator/exportImage.ts");
   const twoRows = partitionFacilityRanges([600, 600, 600], 1210, 10);
   assert.equal(twoRows.length, 2);
   assert.ok(
@@ -83,11 +97,9 @@ try {
       return width + (end - start - 1) * 10 <= 1210;
     }),
   );
-  assert.deepEqual(partitionFacilityRanges([600, 600, 600], 1209, 10), [
-    { start: 0, end: 1 },
-    { start: 1, end: 2 },
-    { start: 2, end: 3 },
-  ]);
+  const cappedRows = partitionFacilityRanges([600, 600, 600], 1209, 10);
+  assert.equal(cappedRows.length, 2);
+  assert.equal(facilityContentScale(2000, 1200, 1872, 800), 2 / 3);
 
   const { default: SimulatorPage } = await vite.ssrLoadModule(
     "/src/pages/SimulatorPage.vue",
