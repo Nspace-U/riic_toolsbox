@@ -2369,24 +2369,6 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
     }
   }
 
-  // 中枢自身与中枢全员的心情。
-  if (
-    (match = rest.match(
-      /控制中枢内所有干员(?:的)?心情每小时恢复([+-]?\d+(?:\.\d+)?)/,
-    ))
-  ) {
-    pushControlEffect(
-      effects,
-      {
-        target: "control",
-        stat: "moodRecover",
-        value: Number(match[1]),
-        scope: "room",
-      },
-      condition,
-    );
-    rest = rest.replace(match[0], "");
-  }
   if (
     (match = rest.match(
       /控制中枢内每个(.+?)干员可使控制中枢内所有干员(?:的)?心情每小时恢复([+-]?\d+(?:\.\d+)?)/,
@@ -2405,6 +2387,25 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
           group: controlTermKey(match[1], groups, warn),
           facility: "same",
         },
+      },
+      condition,
+    );
+    rest = rest.replace(match[0], "");
+  }
+
+  // 中枢自身与中枢全员的心情。
+  if (
+    (match = rest.match(
+      /控制中枢内所有干员(?:的)?心情每小时恢复([+-]?\d+(?:\.\d+)?)/,
+    ))
+  ) {
+    pushControlEffect(
+      effects,
+      {
+        target: "control",
+        stat: "moodRecover",
+        value: Number(match[1]),
+        scope: "room",
       },
       condition,
     );

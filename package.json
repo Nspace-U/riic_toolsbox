@@ -20,6 +20,7 @@
     "test:simulator-clipboard": "node scripts/simulator-clipboard-regression.mjs",
     "test:operator-avatar": "node scripts/operator-avatar-regression.mjs",
     "test:operator-progression": "node scripts/operator-progression-regression.mjs",
+    "test:operator-skill-generation": "node scripts/operator-skill-generation-regression.mjs",
     "test:efficiency": "node scripts/efficiency-regression.mjs",
     "test:sanity": "node scripts/sanity-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",

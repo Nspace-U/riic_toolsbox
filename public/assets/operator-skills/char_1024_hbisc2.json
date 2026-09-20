@@ -16,8 +16,14 @@
             {
               "target": "control",
               "stat": "moodRecover",
-              "value": 0.05,
-              "scope": "room"
+              "scope": "room",
+              "per": {
+                "per": 1,
+                "value": 0.05,
+                "source": "opGroupInFacility",
+                "group": "cc.g.sp",
+                "facility": "same"
+              }
             }
           ]
         }
