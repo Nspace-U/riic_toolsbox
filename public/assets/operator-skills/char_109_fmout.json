@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_109_fmout",
   "name": "远山",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

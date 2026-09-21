@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_108_silent",
   "name": "赫默",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

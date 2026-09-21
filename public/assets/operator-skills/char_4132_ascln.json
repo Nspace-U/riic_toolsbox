@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4132_ascln",
   "name": "阿斯卡纶",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

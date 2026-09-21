@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_1029_yato2",
   "name": "麒麟R夜刀",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_felyne",
+    "cc.tag.mh"
+  ],
   "chains": [
     {
       "slot": 1,

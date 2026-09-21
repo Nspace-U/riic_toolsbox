@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4137_udflow",
   "name": "深巡",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

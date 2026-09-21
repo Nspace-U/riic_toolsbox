@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4066_highmo",
   "name": "海沫",
+  "rarity": 5,
+  "termKeys": [
+    "cc.sk.manu2",
+    "cc.sk.manu3"
+  ],
   "chains": [
     {
       "slot": 1,

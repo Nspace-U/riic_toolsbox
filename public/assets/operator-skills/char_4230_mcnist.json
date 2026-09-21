@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4230_mcnist",
   "name": "机械师",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 1,

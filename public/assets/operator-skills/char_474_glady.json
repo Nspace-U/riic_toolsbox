@@ -1,6 +1,14 @@
 {
+  "schemaVersion": 1,
   "id": "char_474_glady",
   "name": "歌蕾蒂娅",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.abyssal",
+    "cc.c.abyssal2_1",
+    "cc.c.abyssal2_3",
+    "cc.c.abyssal2_2"
+  ],
   "chains": [
     {
       "slot": 1,

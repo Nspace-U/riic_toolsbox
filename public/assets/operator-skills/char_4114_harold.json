@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4114_harold",
   "name": "哈洛德",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

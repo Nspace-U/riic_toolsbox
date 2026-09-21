@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4218_aigis",
   "name": "埃癸斯",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.sees"
+  ],
   "chains": [
     {
       "slot": 1,

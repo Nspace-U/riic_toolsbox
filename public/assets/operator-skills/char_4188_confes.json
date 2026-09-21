@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4188_confes",
   "name": "CONFESS-47",
+  "rarity": 1,
+  "termKeys": [
+    "cc.g.laterano",
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

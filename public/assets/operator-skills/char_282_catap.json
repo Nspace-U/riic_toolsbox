@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_282_catap",
   "name": "空爆",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

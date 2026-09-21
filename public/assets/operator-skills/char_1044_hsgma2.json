@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1044_hsgma2",
   "name": "斩业星熊",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.lgd"
+  ],
   "chains": [
     {
       "slot": 1,

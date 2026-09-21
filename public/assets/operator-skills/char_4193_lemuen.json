@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4193_lemuen",
   "name": "蕾缪安",
+  "rarity": 6,
+  "termKeys": [
+    "cc.angel",
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

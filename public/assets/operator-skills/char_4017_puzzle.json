@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4017_puzzle",
   "name": "谜图",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

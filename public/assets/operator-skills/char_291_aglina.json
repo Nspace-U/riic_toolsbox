@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_291_aglina",
   "name": "安洁莉娜",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1016_agoat2",
   "name": "纯烬艾雅法拉",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

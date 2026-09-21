@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_367_swllow",
   "name": "灰喉",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

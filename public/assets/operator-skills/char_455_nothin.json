@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_455_nothin",
   "name": "乌有",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_b1"
+  ],
   "chains": [
     {
       "slot": 1,

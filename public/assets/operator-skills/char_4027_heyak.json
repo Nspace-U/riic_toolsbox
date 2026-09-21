@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4027_heyak",
   "name": "霍尔海雅",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

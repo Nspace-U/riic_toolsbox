@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4148_philae",
   "name": "菲莱",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

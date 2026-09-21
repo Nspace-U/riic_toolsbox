@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4026_vulpis",
   "name": "忍冬",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

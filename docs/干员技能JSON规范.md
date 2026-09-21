@@ -23,16 +23,19 @@ npm run generate:operator-skills
 
 旧项目的 CSV、`ctrl-skill-map.js`、旧项目 `index.json` 均不参与运行。
 
-输出目录为 `public/assets/operator-skills/`。每名有当前范围技能的干员生成一个 `{干员ID}.json`，不生成 `index.json`。再次生成时会清理该目录中的 JSON 后重建。
+输出目录为 `public/assets/operator-skills/`。每名干员生成一个 `{干员ID}.json`，不生成 `index.json`。再次生成时会清理该目录中的 JSON 后重建。
 
-加工站和训练室技能作为**来源房间**暂不生成，也不会为此输出警告。控制中枢技能跨设施作用到训练室的效果可以保留在 JSON 中，供未来训练室模块使用。
+加工站和训练室技能作为**来源房间**暂不解析，也不会为此输出警告；只有这类技能的干员仍会生成包含基础信息的空 `chains`。控制中枢技能跨设施作用到训练室的效果可以保留在 JSON 中，供未来训练室模块使用。
 
 ## 2. 顶层结构
 
 ```json
 {
+  "schemaVersion": 1,
   "id": "char_4064_mlynar",
   "name": "玛恩纳",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,
@@ -51,11 +54,14 @@ npm run generate:operator-skills
 
 ### 2.1 顶层字段
 
-| 字段     | 类型   | 说明                                       |
-| -------- | ------ | ------------------------------------------ |
-| `id`     | string | Torappu 干员 ID，例如 `char_4064_mlynar`   |
-| `name`   | string | 干员中文名，仅用于展示和人工阅读           |
-| `chains` | array  | 技能链列表。每个 `(room, slot)` 对应一条链 |
+| 字段            | 类型   | 说明                                       |
+| --------------- | ------ | ------------------------------------------ |
+| `schemaVersion` | number | 数据契约版本，当前为 `1`                   |
+| `id`            | string | Torappu 干员 ID，例如 `char_4064_mlynar`   |
+| `name`          | string | 干员中文名，仅用于展示和人工阅读           |
+| `rarity`        | number | 干员稀有度，范围为 `1` 到 `6`              |
+| `termKeys`      | array  | 干员所属术语 key 列表                      |
+| `chains`        | array  | 技能链列表。每个 `(room, slot)` 对应一条链 |
 
 ### 2.2 chain 字段
 
@@ -77,7 +83,7 @@ npm run generate:operator-skills
 | `hire`        | 办公室/人力办公室 |
 | `dormitory`   | 宿舍              |
 
-`processing`（加工站）和 `training`（训练室）已保留为数据层可识别的设施 key，但当前不会作为来源房间生成技能链。
+`processing`（加工站）和 `training`（训练室）已保留为数据层可识别的设施 key，但当前不会作为来源房间解析技能链。
 
 ### 2.3 stage 字段
 

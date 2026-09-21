@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_340_shwaz",
   "name": "黑",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

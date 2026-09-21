@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_225_haak",
   "name": "阿",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.lda"
+  ],
   "chains": [
     {
       "slot": 1,

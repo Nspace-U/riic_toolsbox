@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4178_alanna",
   "name": "阿兰娜",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

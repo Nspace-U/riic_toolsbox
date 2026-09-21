@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1049_catap2",
   "name": "雷狼龙S空爆",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.mh2"
+  ],
   "chains": [
     {
       "slot": 2,

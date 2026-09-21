@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1020_reed2",
   "name": "焰影苇草",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

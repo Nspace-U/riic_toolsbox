@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4141_marcil",
   "name": "玛露西尔",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_dungeon",
+    "cc.tag.dungeon"
+  ],
   "chains": [
     {
       "slot": 1,

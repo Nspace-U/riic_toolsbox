@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4138_narant",
   "name": "娜仁图亚",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_325_bison",
   "name": "拜松",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

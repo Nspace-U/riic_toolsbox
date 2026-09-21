@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4184_dolris",
   "name": "三角初华",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_mujica"
+  ],
   "chains": [
     {
       "slot": 1,

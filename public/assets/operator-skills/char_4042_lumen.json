@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4042_lumen",
   "name": "流明",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

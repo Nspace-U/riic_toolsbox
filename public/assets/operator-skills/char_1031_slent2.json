@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1031_slent2",
   "name": "淬羽赫默",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

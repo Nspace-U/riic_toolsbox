@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_254_vodfox",
   "name": "巫恋",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

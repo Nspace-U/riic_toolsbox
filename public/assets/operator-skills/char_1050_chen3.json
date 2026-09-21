@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1050_chen3",
   "name": "赤刃明霄陈",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_b1"
+  ],
   "chains": [
     {
       "slot": 1,

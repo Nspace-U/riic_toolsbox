@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_486_takila",
   "name": "龙舌兰",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_2012_typhon",
   "name": "提丰",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

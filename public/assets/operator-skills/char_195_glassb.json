@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_195_glassb",
   "name": "真理",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 2,

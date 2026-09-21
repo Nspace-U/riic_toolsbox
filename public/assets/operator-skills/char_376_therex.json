@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_376_therex",
   "name": "THRM-EX",
+  "rarity": 1,
+  "termKeys": [
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4143_sensi",
   "name": "森西",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.dungeon",
+    "cc.bd_dungeon"
+  ],
   "chains": [
     {
       "slot": 1,

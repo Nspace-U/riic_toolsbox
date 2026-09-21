@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_192_falco",
   "name": "翎羽",
+  "rarity": 3,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 2,

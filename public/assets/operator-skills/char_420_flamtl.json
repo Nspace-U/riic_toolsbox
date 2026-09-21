@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_420_flamtl",
   "name": "焰尾",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.psk",
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4225_tanya",
   "name": "裂响",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

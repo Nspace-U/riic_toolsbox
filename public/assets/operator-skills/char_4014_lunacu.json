@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4014_lunacu",
   "name": "子月",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

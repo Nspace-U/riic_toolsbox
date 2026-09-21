@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_411_tomimi",
   "name": "特米米",
+  "rarity": 5,
+  "termKeys": [
+    "cc.gvial",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

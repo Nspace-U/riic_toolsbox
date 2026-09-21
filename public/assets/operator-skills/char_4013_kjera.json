@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4013_kjera",
   "name": "耶拉",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

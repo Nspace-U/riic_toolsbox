@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_499_kaitou",
   "name": "折光",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

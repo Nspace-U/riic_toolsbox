@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_235_jesica",
   "name": "杰西卡",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 1,

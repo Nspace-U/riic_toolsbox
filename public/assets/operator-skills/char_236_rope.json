@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_236_rope",
   "name": "暗索",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_302_glaze",
   "name": "安比尔",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

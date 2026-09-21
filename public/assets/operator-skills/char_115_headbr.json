@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_115_headbr",
   "name": "凛冬",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 1,

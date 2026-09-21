@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_017_huang",
   "name": "煌",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 1,

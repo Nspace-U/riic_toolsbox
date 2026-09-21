@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_149_scave",
   "name": "清道夫",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

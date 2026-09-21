@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_261_sddrag",
   "name": "苇草",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

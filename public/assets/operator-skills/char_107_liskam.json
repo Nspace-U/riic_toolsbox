@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_107_liskam",
   "name": "雷蛇",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_209_ardign",
   "name": "卡缇",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

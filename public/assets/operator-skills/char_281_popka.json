@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_281_popka",
   "name": "泡普卡",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

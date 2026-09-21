@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_365_aprl",
   "name": "四月",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

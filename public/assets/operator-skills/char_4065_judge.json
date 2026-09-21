@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4065_judge",
   "name": "斥罪",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_164_nightm",
   "name": "夜魔",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

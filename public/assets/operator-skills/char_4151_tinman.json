@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4151_tinman",
   "name": "锡人",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

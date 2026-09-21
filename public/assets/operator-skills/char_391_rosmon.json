@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_391_rosmon",
   "name": "迷迭香",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_a1",
+    "cc.bd_A",
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 1,

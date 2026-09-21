@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_134_ifrit",
   "name": "伊芙利特",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

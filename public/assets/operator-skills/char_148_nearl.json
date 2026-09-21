@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_148_nearl",
   "name": "临光",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

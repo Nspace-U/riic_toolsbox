@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_277_sqrrel",
   "name": "阿消",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

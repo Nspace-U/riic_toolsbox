@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_4000_jnight",
   "name": "正义骑士号",
+  "rarity": 1,
+  "termKeys": [
+    "cc.g.psk",
+    "cc.tag.op",
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

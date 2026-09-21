@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_501_durin",
   "name": "杜林",
+  "rarity": 2,
+  "termKeys": [
+    "cc.tag.durin"
+  ],
   "chains": [
     {
       "slot": 1,

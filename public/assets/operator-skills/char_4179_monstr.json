@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4179_monstr",
   "name": "Mon3tr",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

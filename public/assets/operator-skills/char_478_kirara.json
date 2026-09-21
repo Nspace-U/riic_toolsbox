@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_478_kirara",
   "name": "绮良",
+  "rarity": 5,
+  "termKeys": [
+    "cc.t.flow_gold"
+  ],
   "chains": [
     {
       "slot": 1,

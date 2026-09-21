@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_341_sntlla",
   "name": "寒檀",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

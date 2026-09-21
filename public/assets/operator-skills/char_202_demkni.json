@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_202_demkni",
   "name": "塞雷娅",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

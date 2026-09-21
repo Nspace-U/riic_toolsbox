@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_472_pasngr",
   "name": "异客",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

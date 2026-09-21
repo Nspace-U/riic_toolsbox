@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_106_franka",
   "name": "芙兰卡",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 2,

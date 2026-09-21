@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_328_cammou",
   "name": "卡达",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_243_waaifu",
   "name": "槐琥",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.lda"
+  ],
   "chains": [
     {
       "slot": 1,

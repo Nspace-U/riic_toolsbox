@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4047_pianst",
   "name": "车尔尼",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_a1_a3",
+    "cc.bd_a1"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_249_mlyss",
   "name": "缪尔赛思",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

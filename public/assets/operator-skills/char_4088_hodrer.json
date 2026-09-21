@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4088_hodrer",
   "name": "赫德雷",
+  "rarity": 6,
+  "termKeys": [
+    "cc.c.room3"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_253_greyy",
   "name": "格雷伊",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

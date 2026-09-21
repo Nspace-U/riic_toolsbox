@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1502_crosly",
   "name": "弑君者",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

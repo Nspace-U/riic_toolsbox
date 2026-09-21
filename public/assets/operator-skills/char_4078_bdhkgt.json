@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4078_bdhkgt",
   "name": "截云",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_b1",
+    "cc.bd_C"
+  ],
   "chains": [
     {
       "slot": 1,

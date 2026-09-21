@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_405_absin",
   "name": "苦艾",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 1,

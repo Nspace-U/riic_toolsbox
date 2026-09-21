@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4208_wintim",
   "name": "冬时",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

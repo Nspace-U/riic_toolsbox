@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4052_surfer",
   "name": "寻澜",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 1,

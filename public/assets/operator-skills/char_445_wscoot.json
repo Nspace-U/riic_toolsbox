@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_445_wscoot",
   "name": "骋风",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

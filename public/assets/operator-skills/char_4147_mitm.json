@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4147_mitm",
   "name": "渡桥",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

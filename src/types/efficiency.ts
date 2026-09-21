@@ -174,8 +174,11 @@ export interface EfficiencySkillChain {
 }
 
 export interface OperatorSkillFile {
+  schemaVersion?: number;
   id: string;
   name: string;
+  rarity?: number;
+  termKeys?: string[];
   chains: EfficiencySkillChain[];
 }
 

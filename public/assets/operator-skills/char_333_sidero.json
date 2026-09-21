@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "char_333_sidero",
+  "name": "铸铁",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.minos"
+  ],
+  "chains": []
+}

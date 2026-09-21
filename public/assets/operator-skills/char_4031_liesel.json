@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4031_liesel",
   "name": "复奏",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_173_slchan",
   "name": "崖心",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

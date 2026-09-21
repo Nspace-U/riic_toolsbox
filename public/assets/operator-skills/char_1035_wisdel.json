@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_1035_wisdel",
   "name": "维什戴尔",
+  "rarity": 6,
+  "termKeys": [
+    "cc.c.room2",
+    "cc.c.sui2_1"
+  ],
   "chains": [
     {
       "slot": 1,

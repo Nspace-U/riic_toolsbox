@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_112_siege",
   "name": "推进之王",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.glasgow"
+  ],
   "chains": [
     {
       "slot": 1,

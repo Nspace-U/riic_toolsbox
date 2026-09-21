@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_242_otter",
   "name": "梅尔",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 2,

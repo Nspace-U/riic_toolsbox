@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_348_ceylon",
   "name": "锡兰",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

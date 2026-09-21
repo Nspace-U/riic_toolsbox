@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_4064_mlynar",
   "name": "玛恩纳",
+  "rarity": 6,
+  "termKeys": [
+    "cc.c.room1",
+    "cc.c.skill",
+    "cc.c.room2"
+  ],
   "chains": [
     {
       "slot": 1,

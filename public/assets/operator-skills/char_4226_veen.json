@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4226_veen",
   "name": "维伊",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

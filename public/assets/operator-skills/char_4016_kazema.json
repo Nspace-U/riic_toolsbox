@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4016_kazema",
   "name": "风丸",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

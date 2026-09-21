@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_4054_malist",
   "name": "至简",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_malist",
+    "cc.g.sargon",
+    "cc.tag.durin"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_385_finlpp",
   "name": "清流",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

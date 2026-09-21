@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_498_inside",
   "name": "隐现",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

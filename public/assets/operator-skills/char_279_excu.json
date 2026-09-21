@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_279_excu",
   "name": "送葬人",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 2,

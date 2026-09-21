@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_275_breeze",
   "name": "微风",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4215_buddy",
   "name": "罗德岛隐秘队",
+  "rarity": 1,
+  "termKeys": [
+    "cc.tag.mh",
+    "cc.tag.mh2"
+  ],
   "chains": [
     {
       "slot": 1,

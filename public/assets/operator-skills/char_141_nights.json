@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_141_nights",
   "name": "夜烟",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_188_helage",
   "name": "赫拉格",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

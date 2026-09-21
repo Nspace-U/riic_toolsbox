@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_144_red",
   "name": "红",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

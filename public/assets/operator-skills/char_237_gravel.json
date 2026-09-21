@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_237_gravel",
   "name": "砾",
+  "rarity": 4,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 2,

@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_402_tuye",
   "name": "图耶",
+  "rarity": 5,
+  "termKeys": [
+    "cc.t.flow_gold",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

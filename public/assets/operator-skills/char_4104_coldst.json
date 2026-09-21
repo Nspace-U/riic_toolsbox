@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4104_coldst",
   "name": "冰酿",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

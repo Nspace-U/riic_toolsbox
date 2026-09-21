@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_252_bibeak",
   "name": "柏喙",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

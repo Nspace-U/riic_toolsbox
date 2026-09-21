@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_308_swire",
   "name": "诗怀雅",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.lgd"
+  ],
   "chains": [
     {
       "slot": 1,

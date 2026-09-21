@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4098_vvana",
   "name": "薇薇安娜",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

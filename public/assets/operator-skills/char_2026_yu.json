@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_2026_yu",
   "name": "余",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sui",
+    "cc.bd_b1"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,10 +1,34 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const skillRoot = path.join(projectRoot, "public", "assets", "operator-skills");
+const characterTable = JSON.parse(
+  await readFile(
+    path.join(
+      projectRoot,
+      "public",
+      "assets",
+      "gamedata",
+      "latest",
+      "excel",
+      "character_table.json",
+    ),
+    "utf8",
+  ),
+);
+
+const expectedOperatorIds = Object.entries(characterTable)
+  .filter(([id, character]) => id.startsWith("char_") && character?.name)
+  .map(([id]) => id)
+  .sort();
+const actualOperatorIds = (await readdir(skillRoot))
+  .filter((fileName) => fileName.endsWith(".json"))
+  .map((fileName) => fileName.slice(0, -5))
+  .sort();
+assert.deepEqual(actualOperatorIds, expectedOperatorIds);
 
 const cases = [
   ["char_010_chen", "德才兼备", "cc.g.lgd"],
@@ -23,6 +47,10 @@ for (const [id, skillName, group] of cases) {
   const file = JSON.parse(
     await readFile(path.join(skillRoot, `${id}.json`), "utf8"),
   );
+  assert.equal(file.schemaVersion, 1, `${id} schema version`);
+  assert.equal(typeof file.rarity, "number", `${id} rarity`);
+  assert.ok(Array.isArray(file.termKeys), `${id} term keys`);
+  assert.ok(file.termKeys.includes(group), `${id} term key`);
   const stage = file.chains
     .find((chain) => chain.room === "control")
     ?.stages.find((candidate) => candidate.name === skillName);

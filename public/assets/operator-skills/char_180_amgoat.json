@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_180_amgoat",
   "name": "艾雅法拉",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

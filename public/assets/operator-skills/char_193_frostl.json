@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_193_frostl",
   "name": "霜叶",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

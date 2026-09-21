@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4202_haruka",
   "name": "遥",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

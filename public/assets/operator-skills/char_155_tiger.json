@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_155_tiger",
   "name": "因陀罗",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.glasgow"
+  ],
   "chains": [
     {
       "slot": 1,

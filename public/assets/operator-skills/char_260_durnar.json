@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_260_durnar",
   "name": "坚雷",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

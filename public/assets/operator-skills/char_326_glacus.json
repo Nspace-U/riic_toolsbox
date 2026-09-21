@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_326_glacus",
   "name": "格劳克斯",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

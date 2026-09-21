@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4083_chimes",
   "name": "铎铃",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_b1"
+  ],
   "chains": [
     {
       "slot": 1,

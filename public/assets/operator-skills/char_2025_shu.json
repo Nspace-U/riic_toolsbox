@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_2025_shu",
   "name": "黍",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_b1",
+    "cc.g.sui"
+  ],
   "chains": [
     {
       "slot": 1,

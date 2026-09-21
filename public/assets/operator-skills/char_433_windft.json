@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_433_windft",
   "name": "掠风",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

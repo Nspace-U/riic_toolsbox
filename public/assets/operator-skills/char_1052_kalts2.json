@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1052_kalts2",
   "name": "凯尔希·思衡托",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 2,

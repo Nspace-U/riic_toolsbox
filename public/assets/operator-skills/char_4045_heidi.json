@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4045_heidi",
   "name": "海蒂",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

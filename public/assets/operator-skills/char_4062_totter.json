@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4062_totter",
   "name": "铅踝",
+  "rarity": 4,
+  "termKeys": [
+    "cc.bd.costdrop",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

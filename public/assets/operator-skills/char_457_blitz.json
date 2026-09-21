@@ -1,6 +1,14 @@
 {
+  "schemaVersion": 1,
   "id": "char_457_blitz",
   "name": "闪击",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.R6",
+    "cc.bd_ash",
+    "cc.bd_tachanka",
+    "cc.g.Attack"
+  ],
   "chains": [
     {
       "slot": 1,

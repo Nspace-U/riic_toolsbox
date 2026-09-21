@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "char_415_flint",
+  "name": "燧石",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
+  "chains": []
+}

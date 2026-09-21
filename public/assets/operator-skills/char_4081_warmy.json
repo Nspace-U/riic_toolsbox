@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4081_warmy",
   "name": "温米",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

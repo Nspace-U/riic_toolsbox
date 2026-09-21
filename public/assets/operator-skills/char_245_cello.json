@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_245_cello",
   "name": "塑心",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_B",
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

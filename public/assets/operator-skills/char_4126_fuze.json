@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_4126_fuze",
   "name": "导火索",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.Attack",
+    "cc.bd_tachanka",
+    "cc.g.R6"
+  ],
   "chains": [
     {
       "slot": 2,

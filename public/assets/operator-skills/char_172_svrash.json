@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_172_svrash",
   "name": "银灰",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_199_yak",
   "name": "角峰",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

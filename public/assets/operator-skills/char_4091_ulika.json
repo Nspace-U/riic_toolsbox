@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4091_ulika",
   "name": "U-Official",
+  "rarity": 1,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

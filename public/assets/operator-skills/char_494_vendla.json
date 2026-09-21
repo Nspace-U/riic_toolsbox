@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_494_vendla",
   "name": "刺玫",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

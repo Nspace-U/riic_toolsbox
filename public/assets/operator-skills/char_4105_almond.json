@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4105_almond",
   "name": "杏仁",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 1,

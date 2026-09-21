@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_264_f12yin",
   "name": "山",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

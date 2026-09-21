@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4203_kichi",
   "name": "吉星",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

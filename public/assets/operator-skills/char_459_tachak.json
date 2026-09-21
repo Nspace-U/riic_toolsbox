@@ -1,6 +1,14 @@
 {
+  "schemaVersion": 1,
   "id": "char_459_tachak",
   "name": "战车",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.R6",
+    "cc.g.ussg",
+    "cc.bd_tachanka",
+    "cc.g.Defence"
+  ],
   "chains": [
     {
       "slot": 1,

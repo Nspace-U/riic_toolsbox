@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_103_angel",
   "name": "能天使",
+  "rarity": 6,
+  "termKeys": [
+    "cc.angel"
+  ],
   "chains": [
     {
       "slot": 1,

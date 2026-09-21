@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1027_greyy2",
   "name": "承曦格雷伊",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

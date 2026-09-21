@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_201_moeshd",
   "name": "可颂",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

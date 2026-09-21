@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_135_halo",
   "name": "星源",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4023_rfalcn",
   "name": "红隼",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

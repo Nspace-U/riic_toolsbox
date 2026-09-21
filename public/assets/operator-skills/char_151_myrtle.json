@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_151_myrtle",
   "name": "桃金娘",
+  "rarity": 4,
+  "termKeys": [
+    "cc.tag.durin"
+  ],
   "chains": [
     {
       "slot": 1,

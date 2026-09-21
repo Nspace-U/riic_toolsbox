@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4058_pepe",
   "name": "佩佩",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tra.pepe",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

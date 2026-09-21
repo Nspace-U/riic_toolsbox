@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4183_mortis",
   "name": "若叶睦",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_mujica"
+  ],
   "chains": [
     {
       "slot": 1,

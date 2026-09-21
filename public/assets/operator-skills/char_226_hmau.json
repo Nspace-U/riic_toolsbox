@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_226_hmau",
   "name": "吽",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.lda"
+  ],
   "chains": [
     {
       "slot": 2,

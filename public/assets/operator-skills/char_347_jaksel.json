@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_347_jaksel",
   "name": "杰克",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

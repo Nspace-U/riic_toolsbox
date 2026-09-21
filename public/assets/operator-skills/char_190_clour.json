@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_190_clour",
   "name": "红云",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

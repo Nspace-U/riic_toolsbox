@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4198_christ",
   "name": "Miss.Christine",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

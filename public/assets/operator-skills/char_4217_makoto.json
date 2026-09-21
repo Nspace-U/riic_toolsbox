@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4217_makoto",
   "name": "结城理",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tag.sees"
+  ],
   "chains": [
     {
       "slot": 1,

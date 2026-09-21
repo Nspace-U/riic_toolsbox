@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_388_mint",
   "name": "薄绿",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

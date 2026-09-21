@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_343_tknogi",
   "name": "月禾",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

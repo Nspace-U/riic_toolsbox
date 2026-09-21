@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_500_noirc",
   "name": "黑角",
+  "rarity": 2,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4182_oblvns",
   "name": "丰川祥子",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_mujica"
+  ],
   "chains": [
     {
       "slot": 1,

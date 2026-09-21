@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_338_iris",
   "name": "爱丽丝",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_a1_a2",
+    "cc.bd_a1"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_110_deepcl",
   "name": "深海色",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

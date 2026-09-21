@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4110_delphn",
   "name": "戴菲恩",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.glasgow"
+  ],
   "chains": [
     {
       "slot": 1,

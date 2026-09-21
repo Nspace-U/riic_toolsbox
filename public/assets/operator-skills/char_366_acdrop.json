@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_366_acdrop",
   "name": "酸糖",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

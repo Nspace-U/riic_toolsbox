@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_010_chen",
   "name": "陈",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.lgd"
+  ],
   "chains": [
     {
       "slot": 1,

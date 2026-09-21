@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_159_peacok",
   "name": "断罪者",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.minos"
+  ],
   "chains": [
     {
       "slot": 1,

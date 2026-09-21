@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_208_melan",
   "name": "玫兰莎",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

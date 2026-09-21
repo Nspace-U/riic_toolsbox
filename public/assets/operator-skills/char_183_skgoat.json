@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_183_skgoat",
   "name": "地灵",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

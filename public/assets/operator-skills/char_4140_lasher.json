@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4140_lasher",
   "name": "衡沙",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

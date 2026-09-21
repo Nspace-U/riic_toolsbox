@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_2027_wang",
   "name": "望",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_wang_1",
+    "cc.bd_wang_2",
+    "cc.g.sui"
+  ],
   "chains": [
     {
       "slot": 1,

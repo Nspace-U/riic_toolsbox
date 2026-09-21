@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_337_utage",
   "name": "宴",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

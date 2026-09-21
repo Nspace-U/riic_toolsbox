@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1040_blaze2",
   "name": "烛煌",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 1,

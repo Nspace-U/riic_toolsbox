@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_101_sora",
   "name": "空",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

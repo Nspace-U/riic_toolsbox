@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_431_ashlok",
   "name": "灰毫",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.psk",
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

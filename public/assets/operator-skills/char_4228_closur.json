@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4228_closur",
   "name": "可露希尔",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tra.closure"
+  ],
   "chains": [
     {
       "slot": 1,

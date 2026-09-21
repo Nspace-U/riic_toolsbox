@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4122_grabds",
   "name": "小满",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

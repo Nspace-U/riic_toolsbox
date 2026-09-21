@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4102_threye",
   "name": "凛视",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

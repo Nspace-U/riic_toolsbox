@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4055_bgsnow",
   "name": "鸿雪",
+  "rarity": 6,
+  "termKeys": [
+    "cc.t.flow_gold",
+    "cc.tag.durin"
+  ],
   "chains": [
     {
       "slot": 1,

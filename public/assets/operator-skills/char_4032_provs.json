@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4032_provs",
   "name": "但书",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

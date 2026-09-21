@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_117_myrrh",
   "name": "末药",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

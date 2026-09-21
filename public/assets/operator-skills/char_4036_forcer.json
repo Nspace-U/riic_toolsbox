@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4036_forcer",
   "name": "见行者",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

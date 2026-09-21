@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_263_skadi",
   "name": "斯卡蒂",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.abyssal"
+  ],
   "chains": [
     {
       "slot": 1,

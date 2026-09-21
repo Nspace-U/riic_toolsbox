@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_2023_ling",
   "name": "令",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sui",
+    "cc.bd_b1",
+    "cc.bd_a1"
+  ],
   "chains": [
     {
       "slot": 1,

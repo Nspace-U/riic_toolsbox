@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_124_kroos",
   "name": "克洛丝",
+  "rarity": 3,
+  "termKeys": [
+    "cc.g.A1"
+  ],
   "chains": [
     {
       "slot": 1,

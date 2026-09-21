@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4222_taraxa",
   "name": "风絮",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sui"
+  ],
   "chains": [
     {
       "slot": 1,

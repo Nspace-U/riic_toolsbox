@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_473_mberry",
   "name": "桑葚",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_b1"
+  ],
   "chains": [
     {
       "slot": 1,

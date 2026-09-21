@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4220_kormr",
   "name": "虎狼丸",
+  "rarity": 1,
+  "termKeys": [
+    "cc.tag.sees"
+  ],
   "chains": [
     {
       "slot": 1,

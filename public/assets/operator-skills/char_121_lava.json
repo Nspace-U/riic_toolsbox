@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_121_lava",
   "name": "炎熔",
+  "rarity": 3,
+  "termKeys": [
+    "cc.g.A1"
+  ],
   "chains": [
     {
       "slot": 1,

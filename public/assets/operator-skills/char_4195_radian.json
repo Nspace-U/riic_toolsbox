@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4195_radian",
   "name": "电弧",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
   "chains": [
     {
       "slot": 1,

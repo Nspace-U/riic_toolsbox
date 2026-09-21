@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_241_panda",
   "name": "食铁兽",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

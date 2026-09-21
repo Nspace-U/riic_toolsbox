@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4071_peper",
   "name": "明椒",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_196_sunbr",
   "name": "古米",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 1,

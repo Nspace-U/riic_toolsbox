@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_436_whispr",
   "name": "絮雨",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_a1_a1",
+    "cc.bd_a1"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_332_archet",
   "name": "空弦",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

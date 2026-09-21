@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_427_vigil",
   "name": "伺夜",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

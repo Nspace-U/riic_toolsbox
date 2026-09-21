@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_158_milu",
   "name": "守林人",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_240_wyvern",
   "name": "香草",
+  "rarity": 3,
+  "termKeys": [
+    "cc.g.bs"
+  ],
   "chains": [
     {
       "slot": 1,

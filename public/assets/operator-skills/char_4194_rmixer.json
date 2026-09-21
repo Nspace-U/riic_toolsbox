@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4194_rmixer",
   "name": "信仰搅拌机",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

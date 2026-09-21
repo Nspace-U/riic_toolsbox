@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1024_hbisc2",
   "name": "濯尘芙蓉",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sp"
+  ],
   "chains": [
     {
       "slot": 1,

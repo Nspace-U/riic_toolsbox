@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_133_mm",
   "name": "梅",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

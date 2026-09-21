@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_140_whitew",
   "name": "拉普兰德",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

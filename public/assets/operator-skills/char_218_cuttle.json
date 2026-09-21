@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_218_cuttle",
   "name": "安哲拉",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.abyssal"
+  ],
   "chains": [
     {
       "slot": 1,

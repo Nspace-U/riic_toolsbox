@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_212_ansel",
   "name": "安赛尔",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_381_bubble",
   "name": "泡泡",
+  "rarity": 4,
+  "termKeys": [
+    "cc.m.var1",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

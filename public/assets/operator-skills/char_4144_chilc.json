@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4144_chilc",
   "name": "齐尔查克",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_dungeon",
+    "cc.tag.dungeon"
+  ],
   "chains": [
     {
       "slot": 1,

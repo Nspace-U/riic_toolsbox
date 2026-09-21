@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_163_hpsts",
   "name": "火神",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.minos"
+  ],
   "chains": [
     {
       "slot": 1,

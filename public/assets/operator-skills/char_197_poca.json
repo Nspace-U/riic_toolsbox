@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_197_poca",
   "name": "早露",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 1,

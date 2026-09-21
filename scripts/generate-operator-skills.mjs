@@ -27,8 +27,9 @@ const BUILDING_DATA_PATH = path.join(EXCEL_DIR, "building_data.json");
 const GAMEDATA_CONST_PATH = path.join(EXCEL_DIR, "gamedata_const.json");
 const MOOD_CHECK_PATH = path.join(ROOT, "public", "skill-mood-check.json");
 const OUT_DIR = path.join(ROOT, "public", "assets", "operator-skills");
+const SCHEMA_VERSION = 1;
 
-// 当前模拟器的数据契约使用这些稳定的设施 key。加工站和训练室暂不进入效率 JSON。
+// 当前模拟器的数据契约使用这些稳定的设施 key。
 const ROOM_MAP = {
   控制中枢: "control",
   贸易站: "trading",
@@ -101,6 +102,58 @@ function cleanDesc(desc) {
   });
   text = text.replace(/<\/>/g, "");
   return { text, groups };
+}
+
+function rarityValue(value) {
+  const match = String(value ?? "").match(/\d+/);
+  return match ? Number(match[0]) : 0;
+}
+
+function termKeysFromDescription(description, richTextStyles) {
+  const normalizedDescription = String(description ?? "").replace(
+    /<<(?=[$@])/g,
+    "<",
+  );
+  return [...normalizedDescription.matchAll(/<\$([^>]+)>([\s\S]*?)<\/>/g)]
+    .map((match) => ({
+      key: match[1]?.trim(),
+      name: String(match[2] ?? "")
+        .replace(/<@[^>]+>/g, "")
+        .replace(/<\/>/g, "")
+        .trim(),
+    }))
+    .filter(
+      (reference) =>
+        reference.key &&
+        reference.name &&
+        !Object.hasOwn(richTextStyles, reference.key),
+    )
+    .map((reference) => reference.key);
+}
+
+function listedOperatorNames(description) {
+  const lines = String(description ?? "").split(/\r?\n/);
+  if (lines[0]?.trim() !== "包含以下干员") return [];
+  return lines
+    .slice(1)
+    .join("")
+    .split(/[、,，]/)
+    .map((member) => member.trim())
+    .filter(Boolean);
+}
+
+function operatorTermKeys(operatorName, descriptions, terms, richTextStyles) {
+  const keys = new Set(
+    descriptions.flatMap((description) =>
+      termKeysFromDescription(description, richTextStyles),
+    ),
+  );
+  Object.entries(terms).forEach(([key, term]) => {
+    if (listedOperatorNames(term.description).includes(operatorName)) {
+      keys.add(key);
+    }
+  });
+  return [...keys];
 }
 
 // 标签文字 → 术语 key（在 gamedata_const.termDescriptionDict 中）；找不到时警告并返回 null
@@ -3587,6 +3640,7 @@ function main() {
   );
   const buffs = buildingData.buffs ?? {};
   const termDescriptions = gamedataConst.termDescriptionDict ?? {};
+  const richTextStyles = gamedataConst.richTextStyles ?? {};
   configureFacilityTerms(termDescriptions);
 
   TERM_BY_NAME = new Map();
@@ -3600,13 +3654,13 @@ function main() {
     moodCheck = source?.skills ?? null;
   }
 
-  // 加工站和训练室暂不进入输出；跳过时不产生警告。
   const byOperator = new Map();
   let skippedFacilitySkillCount = 0;
   let missingBuffCount = 0;
   for (const [id, character] of Object.entries(characterTable)) {
     if (!id.startsWith("char_") || !character?.name) continue;
     const records = [];
+    const descriptions = [];
     for (const [slotIndex, slotData] of (character.buffChar ?? []).entries()) {
       for (const buffData of slotData.buffData ?? []) {
         const buff = buffs[buffData.buffId ?? ""];
@@ -3614,6 +3668,7 @@ function main() {
           missingBuffCount += 1;
           continue;
         }
+        descriptions.push(buff.description ?? "");
         const room = ROOM_TYPE_MAP[buff.roomType ?? ""];
         if (!room) continue;
         if (!OUTPUT_ROOMS.has(room)) {
@@ -3632,7 +3687,17 @@ function main() {
         });
       }
     }
-    if (records.length > 0) byOperator.set(id, records);
+    byOperator.set(id, {
+      name: character.name,
+      rarity: rarityValue(character.rarity),
+      termKeys: operatorTermKeys(
+        character.name,
+        descriptions,
+        termDescriptions,
+        richTextStyles,
+      ),
+      records,
+    });
   }
 
   if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
@@ -3647,7 +3712,8 @@ function main() {
     warnCount += 1;
   };
 
-  for (const [id, records] of byOperator) {
+  for (const [id, operator] of byOperator) {
+    const { name, rarity, termKeys, records } = operator;
     const slotMap = new Map();
     records.forEach((record) => {
       const key = `${record.room}#${record.slot}`;
@@ -3692,14 +3758,21 @@ function main() {
         return { slot, room, stages };
       });
 
-    const output = { id, name: records[0].name, chains };
+    const output = {
+      schemaVersion: SCHEMA_VERSION,
+      id,
+      name,
+      rarity,
+      termKeys,
+      chains,
+    };
     fs.writeFileSync(
       path.join(OUT_DIR, `${id}.json`),
       `${JSON.stringify(output, null, 2)}\n`,
       "utf8",
     );
     console.log(
-      `✓ ${records[0].name} (${id})：${chains.map((chain) => `槽${chain.slot}@${chain.room}×${chain.stages.length}阶段`).join("、")}`,
+      `✓ ${name} (${id})：${chains.map((chain) => `槽${chain.slot}@${chain.room}×${chain.stages.length}阶段`).join("、")}`,
     );
   }
 

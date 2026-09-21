@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_222_bpipe",
   "name": "风笛",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

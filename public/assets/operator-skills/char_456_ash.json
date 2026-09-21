@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_456_ash",
   "name": "灰烬",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.R6",
+    "cc.bd_ash",
+    "cc.g.Attack"
+  ],
   "chains": [
     {
       "slot": 1,

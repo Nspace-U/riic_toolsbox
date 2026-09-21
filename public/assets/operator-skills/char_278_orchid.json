@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_278_orchid",
   "name": "梓兰",
+  "rarity": 3,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

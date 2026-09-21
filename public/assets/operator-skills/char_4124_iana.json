@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_4124_iana",
   "name": "双月",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.Attack",
+    "cc.bd_ash",
+    "cc.g.R6"
+  ],
   "chains": [
     {
       "slot": 2,

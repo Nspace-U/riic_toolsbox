@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_437_mizuki",
   "name": "水月",
+  "rarity": 6,
+  "termKeys": [
+    "cc.sk.manu1"
+  ],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4015_spuria",
   "name": "空构",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

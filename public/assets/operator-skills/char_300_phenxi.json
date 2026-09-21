@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_300_phenxi",
   "name": "菲亚梅塔",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

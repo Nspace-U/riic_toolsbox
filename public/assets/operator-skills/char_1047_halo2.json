@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1047_halo2",
   "name": "溯光星源",
+  "rarity": 6,
+  "termKeys": [
+    "cc.sk.manu2"
+  ],
   "chains": [
     {
       "slot": 1,

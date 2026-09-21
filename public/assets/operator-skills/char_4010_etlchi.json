@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4010_etlchi",
   "name": "隐德来希",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

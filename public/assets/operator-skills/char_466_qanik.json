@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_466_qanik",
   "name": "雪绒",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sm"
+  ],
   "chains": [
     {
       "slot": 1,

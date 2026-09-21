@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_306_leizi",
   "name": "惊蛰",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

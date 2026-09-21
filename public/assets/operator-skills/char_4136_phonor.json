@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4136_phonor",
   "name": "PhonoR-0",
+  "rarity": 1,
+  "termKeys": [
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

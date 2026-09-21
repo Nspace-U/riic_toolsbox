@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_430_fartth",
   "name": "远牙",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.psk",
+    "cc.tag.knight"
+  ],
   "chains": [
     {
       "slot": 1,

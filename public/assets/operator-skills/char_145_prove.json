@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_145_prove",
   "name": "普罗旺斯",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

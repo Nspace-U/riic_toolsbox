@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1019_siege2",
   "name": "维娜·维多利亚",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.glasgow"
+  ],
   "chains": [
     {
       "slot": 1,

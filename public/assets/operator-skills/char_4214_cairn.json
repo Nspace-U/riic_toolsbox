@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4214_cairn",
   "name": "响石",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4004_pudd",
   "name": "布丁",
+  "rarity": 4,
+  "termKeys": [
+    "cc.tag.op"
+  ],
   "chains": [
     {
       "slot": 1,

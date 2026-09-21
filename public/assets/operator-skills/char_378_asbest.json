@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_378_asbest",
   "name": "石棉",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

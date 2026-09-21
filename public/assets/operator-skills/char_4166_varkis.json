@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4166_varkis",
   "name": "摆渡人",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.minos",
+    "cc.g.sargon"
+  ],
   "chains": [
     {
       "slot": 1,

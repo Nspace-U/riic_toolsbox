@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4046_ebnhlz",
   "name": "黑键",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_a1",
+    "cc.bd_B"
+  ],
   "chains": [
     {
       "slot": 1,

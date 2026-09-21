@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4041_chnut",
   "name": "褐果",
+  "rarity": 4,
+  "termKeys": [
+    "cc.tag.durin"
+  ],
   "chains": [
     {
       "slot": 1,

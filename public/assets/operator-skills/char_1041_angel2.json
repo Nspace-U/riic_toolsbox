@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_1041_angel2",
   "name": "新约能天使",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.laterano",
+    "cc.angel"
+  ],
   "chains": [
     {
       "slot": 1,

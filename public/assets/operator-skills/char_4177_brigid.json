@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4177_brigid",
   "name": "水灯心",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

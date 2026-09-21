@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_492_quercu",
   "name": "夏栎",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

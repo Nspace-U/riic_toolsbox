@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4186_tmoris",
   "name": "八幡海铃",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_mujica",
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

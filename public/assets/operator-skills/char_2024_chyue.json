@@ -1,6 +1,14 @@
 {
+  "schemaVersion": 1,
   "id": "char_2024_chyue",
   "name": "重岳",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.sui",
+    "cc.bd_b1",
+    "cc.c.room2",
+    "cc.c.sui2_1"
+  ],
   "chains": [
     {
       "slot": 1,

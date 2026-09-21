@@ -1,6 +1,13 @@
 {
+  "schemaVersion": 1,
   "id": "char_2015_dusk",
   "name": "夕",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_b1",
+    "cc.bd_a1",
+    "cc.g.sui"
+  ],
   "chains": [
     {
       "slot": 1,

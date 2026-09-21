@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4155_talr",
   "name": "裁度",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

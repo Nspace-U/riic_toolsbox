@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_174_slbell",
   "name": "初雪",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

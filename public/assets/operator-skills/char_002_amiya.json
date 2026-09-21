@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_002_amiya",
   "name": "阿米娅",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

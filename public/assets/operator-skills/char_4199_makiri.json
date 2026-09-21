@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4199_makiri",
   "name": "松桐",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

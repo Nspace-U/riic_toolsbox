@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4116_blkkgt",
   "name": "锏",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,

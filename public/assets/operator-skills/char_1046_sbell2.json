@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1046_sbell2",
   "name": "圣聆初雪",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

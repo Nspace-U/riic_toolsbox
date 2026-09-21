@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_503_rang",
   "name": "巡林者",
+  "rarity": 2,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

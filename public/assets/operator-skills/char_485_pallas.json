@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_485_pallas",
   "name": "帕拉斯",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.minos"
+  ],
   "chains": [
     {
       "slot": 1,

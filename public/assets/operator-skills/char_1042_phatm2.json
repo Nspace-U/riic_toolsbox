@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_1042_phatm2",
   "name": "酒神",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

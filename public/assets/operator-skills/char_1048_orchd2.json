@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1048_orchd2",
   "name": "焰狐龙梓兰",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tag.mh2"
+  ],
   "chains": [
     {
       "slot": 1,

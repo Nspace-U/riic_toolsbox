@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4212_nasti",
   "name": "娜斯提",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.rh"
+  ],
   "chains": [
     {
       "slot": 1,

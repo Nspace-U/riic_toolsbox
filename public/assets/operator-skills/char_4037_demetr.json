@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4037_demetr",
   "name": "贝洛内",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
   "chains": [
     {
       "slot": 1,

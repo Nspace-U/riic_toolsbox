@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4237_jcinta",
   "name": "嘉辛塔",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

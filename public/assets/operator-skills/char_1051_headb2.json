@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1051_headb2",
   "name": "怒潮凛冬",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 1,

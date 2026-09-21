@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_194_leto",
   "name": "烈夏",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
   "chains": [
     {
       "slot": 2,

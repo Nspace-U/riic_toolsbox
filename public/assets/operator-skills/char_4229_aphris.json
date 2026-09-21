@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4229_aphris",
   "name": "谬因",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

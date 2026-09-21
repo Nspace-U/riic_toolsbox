@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4109_baslin",
   "name": "深律",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_B"
+  ],
   "chains": [
     {
       "slot": 1,

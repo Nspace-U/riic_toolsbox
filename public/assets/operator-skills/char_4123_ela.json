@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4123_ela",
   "name": "艾拉",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.Defence",
+    "cc.g.R6"
+  ],
   "chains": [
     {
       "slot": 2,

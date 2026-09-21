@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_1036_fang2",
   "name": "历阵锐枪芬",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.A1"
+  ],
   "chains": [
     {
       "slot": 1,

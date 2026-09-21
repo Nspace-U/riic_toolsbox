@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_322_lmlee",
   "name": "老鲤",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.lda"
+  ],
   "chains": [
     {
       "slot": 1,

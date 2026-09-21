@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4219_yukari",
   "name": "岳羽由加莉",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.sees"
+  ],
   "chains": [
     {
       "slot": 1,

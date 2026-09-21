@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_493_firwhl",
   "name": "火哨",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

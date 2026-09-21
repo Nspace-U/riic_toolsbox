@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_497_ctable",
   "name": "晓歌",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

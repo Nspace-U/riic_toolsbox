@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_4125_rdoc",
   "name": "医生",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.Defence",
+    "cc.g.R6"
+  ],
   "chains": [
     {
       "slot": 2,

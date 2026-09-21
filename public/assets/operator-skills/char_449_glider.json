@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_449_glider",
   "name": "蜜莓",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 2,

@@ -1,6 +1,12 @@
 {
+  "schemaVersion": 1,
   "id": "char_1030_noirc2",
   "name": "火龙S黑角",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.mh",
+    "cc.bd_felyne"
+  ],
   "chains": [
     {
       "slot": 1,

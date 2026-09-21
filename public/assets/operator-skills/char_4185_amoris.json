@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4185_amoris",
   "name": "祐天寺若麦",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_mujica"
+  ],
   "chains": [
     {
       "slot": 1,

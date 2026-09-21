@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4187_graceb",
   "name": "聆音",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

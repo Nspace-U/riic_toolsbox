@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_271_spikes",
   "name": "芳汀",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 2,

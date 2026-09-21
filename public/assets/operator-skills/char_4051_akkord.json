@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4051_akkord",
   "name": "协律",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4224_turdus",
   "name": "乌啾",
+  "rarity": 5,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

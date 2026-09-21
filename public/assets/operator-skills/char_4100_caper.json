@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_4100_caper",
   "name": "跃跃",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

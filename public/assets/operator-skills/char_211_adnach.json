@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_211_adnach",
   "name": "安德切尔",
+  "rarity": 3,
+  "termKeys": [
+    "cc.g.laterano"
+  ],
   "chains": [
     {
       "slot": 1,

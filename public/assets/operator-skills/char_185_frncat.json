@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_185_frncat",
   "name": "慕斯",
+  "rarity": 4,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

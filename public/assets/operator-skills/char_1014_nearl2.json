@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "char_1014_nearl2",
+  "name": "耀骑士临光",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
+  "chains": []
+}

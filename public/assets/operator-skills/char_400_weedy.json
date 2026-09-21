@@ -1,6 +1,9 @@
 {
+  "schemaVersion": 1,
   "id": "char_400_weedy",
   "name": "温蒂",
+  "rarity": 6,
+  "termKeys": [],
   "chains": [
     {
       "slot": 1,

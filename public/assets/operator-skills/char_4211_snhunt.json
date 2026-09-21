@@ -1,6 +1,11 @@
 {
+  "schemaVersion": 1,
   "id": "char_4211_snhunt",
   "name": "雪猎",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
   "chains": [
     {
       "slot": 1,
