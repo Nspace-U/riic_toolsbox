@@ -1,11 +1,18 @@
-import type { ProductionValue } from "@/types/efficiency";
 import {
+  DRONE_ACCELERATION_MINUTES,
   manufactureRule,
   ORUNDUM_TRADE_ORDER,
-} from "@/utils/efficiency/baseRules";
+  type ProductionValue,
+  type SanityFlowResource,
+  type SanityResourceAmounts,
+} from "@arknights/riic-efficiency";
+
+export type {
+  SanityFlowResource,
+  SanityResourceAmounts,
+} from "@arknights/riic-efficiency";
 import { canonicalResourceKey } from "@/utils/schedule";
 
-export const DRONE_ACCELERATION_MINUTES = 3;
 export const BATTLE_RECORD_EXPERIENCE = 1000;
 export const PURE_GOLD_POINTS = 500;
 
@@ -42,20 +49,6 @@ export interface SanityValues {
   solidRock: number | null;
   device: number | null;
 }
-
-export type SanityFlowResource =
-  | "龙门币"
-  | "合成玉"
-  | "赤金"
-  | "中级作战记录"
-  | "源石碎片"
-  | "无人机"
-  | "信用"
-  | "公开招募标签刷新次数"
-  | "固源岩"
-  | "装置";
-
-export type SanityResourceAmounts = Partial<Record<SanityFlowResource, number>>;
 
 export interface SanityResultItem {
   resource: SanityFlowResource;

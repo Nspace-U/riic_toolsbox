@@ -2,14 +2,14 @@ import type {
   EfficiencyCatalog,
   EfficiencyResult,
   FacilityEfficiencyResult,
-} from "@/types/efficiency";
+  OperatorProgressionProfile,
+} from "@arknights/riic-efficiency";
 import type {
   OperatorState,
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
-import type { OperatorProgressionProfile } from "@/types/operatorProgression";
-import { calculateEfficiency } from "@/utils/efficiency/calculate";
+import { calculateEfficiency } from "@arknights/riic-efficiency";
 
 export type BasicCalculatorColumnKind =
   | "operators"
@@ -717,12 +717,25 @@ function calculateEfficiencyForBasicCalculator(
   catalog: EfficiencyCatalog,
   options: BasicCalculatorCalculationOptions,
 ): EfficiencyResult {
-  return calculateEfficiency(document, catalog, {
-    dormitoryDefaultIncludesMoodRecovery:
-      options.dormitoryDefaultIncludesMoodRecovery,
-    progressionProfile: options.progressionProfile,
-    treatSkillsAsUnlocked: false,
-  });
+  return calculateEfficiency(
+    {
+      ...document,
+      settings: {
+        ...document.settings,
+        ...(options.progressionProfile
+          ? { progressionProfile: options.progressionProfile }
+          : {}),
+        ...(options.dormitoryDefaultIncludesMoodRecovery === undefined
+          ? {}
+          : {
+              dormitoryDefaultIncludesMoodRecovery:
+                options.dormitoryDefaultIncludesMoodRecovery,
+            }),
+        treatSkillsAsUnlocked: false,
+      },
+    },
+    { catalog, ruleset: catalog.ruleset },
+  );
 }
 
 export function facilityResultOf(

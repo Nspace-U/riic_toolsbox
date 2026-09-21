@@ -1,7 +1,7 @@
 // =====================================================================
 // 当前项目的干员效率 JSON 生成器。
 // 输入仅来自 public/assets/gamedata/latest/excel 下的 Torappu 三份快照，
-// 输出为 public/assets/operator-skills/{干员ID}.json；不会生成索引文件。
+// 输出为 packages/riic-efficiency/data/operators/{干员ID}.json；不会生成索引文件。
 // =====================================================================
 import fs from "node:fs";
 import path from "node:path";
@@ -26,7 +26,6 @@ const CHARACTER_TABLE_PATH = path.join(EXCEL_DIR, "character_table.json");
 const BUILDING_DATA_PATH = path.join(EXCEL_DIR, "building_data.json");
 const GAMEDATA_CONST_PATH = path.join(EXCEL_DIR, "gamedata_const.json");
 const MOOD_CHECK_PATH = path.join(ROOT, "public", "skill-mood-check.json");
-const OUT_DIR = path.join(ROOT, "public", "assets", "operator-skills");
 const PACKAGE_DATA_DIR = path.join(ROOT, "packages", "riic-efficiency", "data");
 const PACKAGE_OPERATOR_DIR = path.join(PACKAGE_DATA_DIR, "operators");
 const SCHEMA_VERSION = 1;
@@ -3864,12 +3863,12 @@ function main() {
     });
   }
 
-  for (const outputDir of [OUT_DIR, PACKAGE_OPERATOR_DIR]) {
-    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-    for (const fileName of fs.readdirSync(outputDir)) {
-      if (fileName.endsWith(".json")) {
-        fs.unlinkSync(path.join(outputDir, fileName));
-      }
+  if (!fs.existsSync(PACKAGE_OPERATOR_DIR)) {
+    fs.mkdirSync(PACKAGE_OPERATOR_DIR, { recursive: true });
+  }
+  for (const fileName of fs.readdirSync(PACKAGE_OPERATOR_DIR)) {
+    if (fileName.endsWith(".json")) {
+      fs.unlinkSync(path.join(PACKAGE_OPERATOR_DIR, fileName));
     }
   }
 
@@ -3935,13 +3934,11 @@ function main() {
       terms: operatorTerms(termKeys, termDescriptions),
       chains,
     };
-    [OUT_DIR, PACKAGE_OPERATOR_DIR].forEach((outputDir) => {
-      fs.writeFileSync(
-        path.join(outputDir, `${id}.json`),
-        `${JSON.stringify(output, null, 2)}\n`,
-        "utf8",
-      );
-    });
+    fs.writeFileSync(
+      path.join(PACKAGE_OPERATOR_DIR, `${id}.json`),
+      `${JSON.stringify(output, null, 2)}\n`,
+      "utf8",
+    );
     console.log(
       `✓ ${name} (${id})：${chains.map((chain) => `槽${chain.slot}@${chain.room}×${chain.stages.length}阶段`).join("、")}`,
     );
@@ -3973,7 +3970,7 @@ function main() {
 
   console.log("----");
   console.log(`生成完成：${byOperator.size} 名干员 / ${skillCount} 条技能`);
-  console.log(`输出目录：${OUT_DIR}`);
+  console.log(`输出目录：${PACKAGE_OPERATOR_DIR}`);
   console.log(
     `跳过暂缓设施技能：${skippedFacilitySkillCount} 条（加工站/训练室）`,
   );

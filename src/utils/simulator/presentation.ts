@@ -4,7 +4,7 @@ import type {
   MoodSnapshot,
   OperatorEfficiencyDetail,
   ProductionValue,
-} from "@/types/efficiency";
+} from "@arknights/riic-efficiency";
 import { canonicalResourceKey, PRODUCT_LABELS } from "@/utils/schedule";
 
 export function planDurationHoursValue(plan: { duration?: number }): number {

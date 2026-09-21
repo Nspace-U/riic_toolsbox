@@ -10,6 +10,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@arknights/riic-efficiency": fileURLToPath(
+        new URL("./packages/riic-efficiency/src/index.ts", import.meta.url),
+      ),
     },
   },
 });

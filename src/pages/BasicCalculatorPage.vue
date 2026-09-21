@@ -17,17 +17,20 @@ import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import type { EliteLevel, Operator } from "@/types/baseData";
-import type { EfficiencyCatalog } from "@/types/efficiency";
+import { getRiicEfficiencyCatalog } from "@/adapters/riicEfficiencyData";
+import {
+  progressionNodesForFacility,
+  resolveOperatorProgression,
+  type EfficiencyCatalog,
+  type OperatorProgressionNode,
+  type ResolvedOperatorProgression,
+} from "@arknights/riic-efficiency";
 import type {
   OperatorState,
   RoomAssignment,
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
-import type {
-  OperatorProgressionNode,
-  ResolvedOperatorProgression,
-} from "@/types/operatorProgression";
 import {
   applyBasicCalculatorPatch,
   buildBasicCalculatorSchedule,
@@ -53,7 +56,6 @@ import type {
   BasicCalculatorRow,
   BasicCalculatorWorkerResponse,
 } from "@/utils/basicCalculator";
-import { loadEfficiencyCatalog } from "@/utils/efficiency/catalog";
 import {
   formatEfficiencyNumber,
   formatNumber,
@@ -63,10 +65,6 @@ import {
   ROOM_LABELS,
   ROOM_REPRESENTATIVE_COLORS,
 } from "@/utils/schedule";
-import {
-  progressionNodesForFacility,
-  resolveOperatorProgression,
-} from "@/utils/operatorProgression";
 
 interface BasicCalculatorRowView {
   group: BasicCalculatorGroup;
@@ -88,7 +86,7 @@ interface GroupDraft {
 }
 
 const STORAGE_KEY = "riic-tools:basic-calculator:v1";
-const { operators, terms, ready, errorMessage } = useBaseData();
+const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
   activeProfile,
@@ -231,10 +229,9 @@ function updateConfig(update: (draft: BasicCalculatorConfig) => void): void {
 async function loadResources(): Promise<void> {
   if (!ready.value || defaults.value) return;
   try {
-    const [defaultResponse, nextCatalog] = await Promise.all([
-      fetch(`${import.meta.env.BASE_URL}assets/basic-calculator.json`),
-      loadEfficiencyCatalog(operators.value, terms.value),
-    ]);
+    const defaultResponse = await fetch(
+      `${import.meta.env.BASE_URL}assets/basic-calculator.json`,
+    );
     if (!defaultResponse.ok) {
       throw new Error(
         `基础计算器配置读取失败（HTTP ${defaultResponse.status}）`,
@@ -245,7 +242,7 @@ async function loadResources(): Promise<void> {
     );
     defaults.value = nextDefaults;
     config.value = applyBasicCalculatorPatch(nextDefaults, readStoredPatch());
-    catalog.value = nextCatalog;
+    catalog.value = getRiicEfficiencyCatalog();
     loadError.value = "";
   } catch (error: unknown) {
     loadError.value =

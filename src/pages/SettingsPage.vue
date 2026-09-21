@@ -23,26 +23,27 @@ import {
 } from "@/composables/useOperatorPickerSettings";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useSanitySettings } from "@/composables/useSanitySettings";
+import {
+  getRiicEfficiencyCatalog,
+  getRiicEfficiencyOperatorSkillFile,
+} from "@/adapters/riicEfficiencyData";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
-import type { OperatorSkillFile } from "@/types/efficiency";
-import type {
-  OperatorProgressionEntry,
-  OperatorProgressionNode,
-} from "@/types/operatorProgression";
+import {
+  basePointTermOptions,
+  fixedProgressionNodes,
+  nodesForOperator,
+  type OperatorProgressionEntry,
+  type OperatorProgressionNode,
+} from "@arknights/riic-efficiency";
 import type { RoomKey } from "@/types/schedule";
 import type { SanitySettings } from "@/utils/sanity";
-import type { LmdDroneStrategyLevel } from "@/utils/efficiency/drone";
-import { basePointTermOptions } from "@/utils/efficiency/basePoints";
+import type { LmdDroneStrategyLevel } from "@arknights/riic-efficiency";
 import {
   sortBranchValues,
   sortProfessionValues,
 } from "@/utils/operatorOrdering";
 import { ROOM_ORDER } from "@/utils/schedule";
-import {
-  fixedProgressionNodes,
-  nodesForOperator,
-} from "@/utils/operatorProgression";
 
 const {
   facilityColors,
@@ -57,7 +58,7 @@ const {
   resetProductColor,
   resetFiammettaColor,
 } = useFacilityColors();
-const { operators, terms, ready: baseDataReady } = useBaseData();
+const { operators, ready: baseDataReady } = useBaseData();
 const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
   useBasePointDisplaySettings();
 const {
@@ -138,11 +139,8 @@ const renameProfileModalOpen = ref(false);
 const renameProfileName = ref("");
 const clearLocalDataModalOpen = ref(false);
 const clearLocalDataError = ref("");
-const skillFiles = ref<Record<string, OperatorSkillFile | undefined>>({});
-let skillFileRequestVersion = 0;
-
 const basePointDisplayOptions = computed(() =>
-  basePointTermOptions(terms.value),
+  basePointTermOptions(getRiicEfficiencyCatalog().terms),
 );
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
@@ -228,7 +226,7 @@ function progressionEntry(
 }
 
 function progressionNodes(operator: Operator): OperatorProgressionNode[] {
-  return nodesForOperator(skillFiles.value[operator.id]);
+  return nodesForOperator(getRiicEfficiencyOperatorSkillFile(operator.id));
 }
 
 function nodeIsCurrent(
@@ -378,54 +376,27 @@ function handleRemoveProfile(): void {
   progressionSuccess.value = "已删除练度档案。";
 }
 
-async function refreshProgressionSkillFiles(): Promise<void> {
-  const requestVersion = ++skillFileRequestVersion;
+function refreshProgressionSkillFiles(): void {
   if (!baseDataReady.value) {
-    skillFiles.value = {};
     progressionLoading.value = false;
     return;
   }
   progressionLoading.value = true;
   try {
-    const response = await Promise.all(
-      operators.value.map(async (operator) => {
-        try {
-          const result = await fetch(
-            `${import.meta.env.BASE_URL}assets/operator-skills/${operator.id}.json`,
-          );
-          return [
-            operator.id,
-            result.ok
-              ? ((await result.json()) as OperatorSkillFile)
-              : undefined,
-            !result.ok,
-          ] as const;
-        } catch {
-          return [operator.id, undefined, true] as const;
-        }
-      }),
-    );
-    if (requestVersion === skillFileRequestVersion) {
-      skillFiles.value = Object.fromEntries(
-        response.map(([id, skillFile]) => [id, skillFile]),
-      );
-      if (activeProfile.value) {
-        operators.value.forEach((operator) => {
-          ensureEntry(activeProfile.value!.id, {
-            id: operator.id,
-            name: operator.name,
-            elite: 0,
-            level: 0,
-            owned: false,
-            rarity: operator.rarity,
-          });
+    if (activeProfile.value) {
+      operators.value.forEach((operator) => {
+        ensureEntry(activeProfile.value!.id, {
+          id: operator.id,
+          name: operator.name,
+          elite: 0,
+          level: 0,
+          owned: false,
+          rarity: operator.rarity,
         });
-      }
+      });
     }
   } finally {
-    if (requestVersion === skillFileRequestVersion) {
-      progressionLoading.value = false;
-    }
+    progressionLoading.value = false;
   }
 }
 
@@ -457,7 +428,9 @@ function handleOperatorPickerColumnsChange(value: number | null): void {
 
 function setAllBasePointTermsVisible(visible: boolean): void {
   setAllBasePointsVisible(
-    basePointTermOptions(terms.value).map((option) => option.key),
+    basePointTermOptions(getRiicEfficiencyCatalog().terms).map(
+      (option) => option.key,
+    ),
     visible,
   );
 }
@@ -579,7 +552,7 @@ watch(selectedProgressionProfession, () => {
 watch(
   baseDataReady,
   () => {
-    void refreshProgressionSkillFiles();
+    refreshProgressionSkillFiles();
   },
   { immediate: true },
 );

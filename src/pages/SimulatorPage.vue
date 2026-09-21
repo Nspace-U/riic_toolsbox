@@ -49,17 +49,27 @@ import SimulatorCalculationStepContent, {
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
+import {
+  getRiicEfficiencyCatalog,
+  getRiicEfficiencyTerms,
+} from "@/adapters/riicEfficiencyData";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
   BasePointDetail,
   BasePointSource,
+} from "@arknights/riic-efficiency";
+import type {
   EfficiencyCatalog,
   EfficiencyNotice,
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
   MoodSnapshot,
-} from "@/types/efficiency";
+  OperatorProgressionNode,
+  ResolvedOperatorProgression,
+  DroneAccelerationResult,
+  DroneAccelerationScenario,
+} from "@arknights/riic-efficiency";
 import type {
   LayoutEntry,
   OperatorState,
@@ -71,10 +81,16 @@ import type {
   ScheduleDocument,
   StoredDocument,
 } from "@/types/schedule";
-import type {
-  OperatorProgressionNode,
-  ResolvedOperatorProgression,
-} from "@/types/operatorProgression";
+import {
+  EPSILON,
+  calculateDroneAcceleration,
+  calculateEfficiency,
+  createSpecialOperatorAvatarLabelResolver,
+  facilityId,
+  nodesForOperator,
+  progressionNodesForFacility,
+  resolveOperatorProgression,
+} from "@arknights/riic-efficiency";
 import {
   DEFAULT_SOURCE_MATERIAL,
   createDefaultRoomAssignment,
@@ -105,29 +121,12 @@ import {
 } from "@/utils/schedule";
 import { importPowerSummary, resizeImportedRooms } from "@/utils/importLayout";
 import {
-  calculateDroneAcceleration,
-  calculateEfficiency,
-  loadEfficiencyCatalog,
-} from "@/utils/efficiency";
-import { facilityId } from "@/utils/efficiency/baseRules";
-import { EPSILON } from "@/utils/efficiency/model";
-import type {
-  DroneAccelerationResult,
-  DroneAccelerationScenario,
-} from "@/utils/efficiency/drone";
-import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarSkippedLabelFontSize,
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
-import {
-  nodesForOperator,
-  progressionNodesForFacility,
-  resolveOperatorProgression,
-} from "@/utils/operatorProgression";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
-import { createSpecialOperatorAvatarLabelResolver } from "@/utils/specialOperators";
 import {
   addProductionFlow,
   BATTLE_RECORD_EXPERIENCE,
@@ -507,7 +506,7 @@ const {
   duplicateDocument,
   reorderDocuments,
 } = useScheduleDocuments();
-const { operators, terms, itemTable, ready: baseDataReady } = useBaseData();
+const { operators, itemTable, ready: baseDataReady } = useBaseData();
 const operatorByNameMap = computed(() => {
   const map = new Map<string, Operator>();
   operators.value.forEach((operator) => {
@@ -518,7 +517,7 @@ const operatorByNameMap = computed(() => {
   return map;
 });
 const specialOperatorAvatarLabelResolver = computed(() =>
-  createSpecialOperatorAvatarLabelResolver(terms.value),
+  createSpecialOperatorAvatarLabelResolver(getRiicEfficiencyCatalog().terms),
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
 const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
@@ -707,7 +706,6 @@ let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let documentSidebarMeasureFrame: number | undefined;
 let documentSidebarResizeObserver: ResizeObserver | undefined;
 let imageExportPreviewResizeObserver: ResizeObserver | undefined;
-let catalogRequestVersion = 0;
 let imageExportRequestVersion = 0;
 
 const MAX_SCHEDULE_HISTORY = 100;
@@ -974,17 +972,30 @@ const importLossWarnings = computed(() =>
   importDraft.value ? importedOperatorLosses(importDraft.value) : [],
 );
 
+function efficiencySchedule(document: ScheduleDocument): ScheduleDocument {
+  return {
+    ...document,
+    settings: {
+      ...document.settings,
+      ...(activeProfile.value
+        ? { progressionProfile: activeProfile.value }
+        : {}),
+      treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
+      dormitoryDefaultIncludesMoodRecovery:
+        dormitoryDefaultIncludesMoodRecovery.value,
+    },
+  };
+}
+
 const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   const document = currentDocument.value;
   const catalog = efficiencyCatalog.value;
   if (!document || !catalog) {
     return undefined;
   }
-  return calculateEfficiency(document, catalog, {
-    progressionProfile: activeProfile.value,
-    treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
-    dormitoryDefaultIncludesMoodRecovery:
-      dormitoryDefaultIncludesMoodRecovery.value,
+  return calculateEfficiency(efficiencySchedule(document), {
+    catalog,
+    ruleset: catalog.ruleset,
   });
 });
 
@@ -1483,14 +1494,16 @@ const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
   if (!document || !catalog || !result || !amounts) {
     return undefined;
   }
-  return calculateDroneAcceleration(document, catalog, amounts, {
-    efficiencyResult: result,
-    progressionProfile: activeProfile.value,
-    treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
-    dormitoryDefaultIncludesMoodRecovery:
-      dormitoryDefaultIncludesMoodRecovery.value,
-    lmdDroneStrategies: lmdDroneStrategies.value,
-  });
+  return calculateDroneAcceleration(
+    efficiencySchedule(document),
+    catalog,
+    amounts,
+    {
+      efficiencyResult: result,
+      lmdDroneStrategies: lmdDroneStrategies.value,
+      ruleset: catalog.ruleset,
+    },
+  );
 });
 
 const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
@@ -5000,7 +5013,7 @@ function facilityResultLabel(result: FacilityEfficiencyResult): string {
 }
 
 function basePointLabel(term: string): string {
-  return terms.value[term]?.name ?? term;
+  return getRiicEfficiencyCatalog().terms[term]?.name ?? term;
 }
 
 function basePointSourceText(source: BasePointSource): string {
@@ -5020,8 +5033,7 @@ function inheritedSourceLabel(result: FacilityEfficiencyResult): string {
   return `继承自 ${source?.name || `队列${result.inheritedFromPlanIndex + 1}`}`;
 }
 
-async function refreshEfficiencyCatalog(): Promise<void> {
-  const requestVersion = ++catalogRequestVersion;
+function refreshEfficiencyCatalog(): void {
   efficiencyCatalog.value = undefined;
   efficiencyError.value = "";
   if (!baseDataReady.value || operators.value.length === 0) {
@@ -5031,21 +5043,12 @@ async function refreshEfficiencyCatalog(): Promise<void> {
 
   efficiencyLoading.value = true;
   try {
-    const catalog = await loadEfficiencyCatalog(operators.value, terms.value);
-    if (requestVersion !== catalogRequestVersion) {
-      return;
-    }
-    efficiencyCatalog.value = catalog;
+    efficiencyCatalog.value = getRiicEfficiencyCatalog();
   } catch (error: unknown) {
-    if (requestVersion !== catalogRequestVersion) {
-      return;
-    }
     efficiencyError.value =
       error instanceof Error ? error.message : "效率数据读取失败";
   } finally {
-    if (requestVersion === catalogRequestVersion) {
-      efficiencyLoading.value = false;
-    }
+    efficiencyLoading.value = false;
   }
 }
 
@@ -6227,7 +6230,7 @@ async function handleFileChange(event: Event): Promise<void> {
   clearImportedScheduleNotice();
   try {
     const text = await file.text();
-    const parsed = parseScheduleImport(text, terms.value);
+    const parsed = parseScheduleImport(text, getRiicEfficiencyTerms());
     importDraft.value = {
       parsed,
       fileName: file.name,
@@ -6286,7 +6289,7 @@ function handleExport(documentId?: string): void {
     });
     const duplicateWarning = formatDuplicateOperatorWarnings(
       document,
-      terms.value,
+      getRiicEfficiencyTerms(),
     );
     const blob = new Blob([json], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);

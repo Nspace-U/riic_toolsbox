@@ -1,5 +1,10 @@
 export { calculateEfficiency } from "./utils/efficiency/calculate";
 export {
+  aggregateDaily,
+  aggregateDailyOutputs,
+  aggregateDailyProductions,
+} from "./utils/efficiency/aggregate";
+export {
   calculateDroneAcceleration,
   parseLmdDroneStrategy,
   DRONE_ACCELERATABLE_PRODUCTS,
@@ -11,13 +16,103 @@ export {
   groupMembers,
   hasGroupMember,
 } from "./utils/efficiency/catalog";
+export {
+  basePointTermOptions,
+  compareBasePointDetails,
+  compareBasePointSources,
+  compareBasePointTermOptions,
+  BASE_POINT_TERM_KEYS,
+} from "./utils/efficiency/basePoints";
+export {
+  buildFacilities,
+  dormitoryAtmosphere,
+  eliteEfficiency,
+  facilityBaseEfficiency,
+  facilityId,
+  manufactureRule,
+  meetingAtmosphereBonus,
+  meetingBaseEfficiency,
+  rarityEfficiency,
+  DEFAULT_RULESET,
+  ORUNDUM_TRADE_ORDER,
+  TRADE_ORDER_LIMIT,
+} from "./utils/efficiency/baseRules";
+export {
+  clampMood,
+  EPSILON,
+  firstItemProgress,
+  hasFlowGoldDisplayOperator,
+  roomAssignments,
+  stateOf,
+} from "./utils/efficiency/model";
+export {
+  cloneProgressionEntries,
+  entryHasNode,
+  entryUnlocksFacility,
+  fixedProgressionNodes,
+  highestEliteLevel,
+  maximumProgressionForFacility,
+  minimumProgressionForNodes,
+  nodesForOperator,
+  parseOperatorProgressionImport,
+  progressionEntryFromUnknown,
+  progressionNodes,
+  progressionNodesForFacility,
+  resolveOperatorProgression,
+} from "./utils/operatorProgression";
+export {
+  createSpecialOperatorAvatarLabelResolver,
+  groupIncludesOperator,
+  isKnownSpecialOperator,
+  isPercentageOperator,
+  isSpecialOperator,
+  isTermOperator,
+  percentageOperatorValue,
+  specialOperatorAvatarLabel,
+  specialOperatorTermMembers,
+  termKeysForSpecialOperator,
+} from "./utils/specialOperators";
+export { DRONE_ACCELERATION_MINUTES } from "./utils/sanity";
 export type {
+  ComparisonOperator,
+  CurveCalculationStep,
+  EfficiencyCalculationOptions,
+  EfficiencyCondition,
+  EfficiencyCurve,
   EfficiencyCalculationInput,
   EfficiencyCatalog,
+  EfficiencyEffect,
   EfficiencyTerm,
   EfficiencyResult,
   FacilityEfficiencyResult,
   OperatorSkillFile,
+  OperatorEfficiencyContribution,
+  OperatorEfficiencyDetail,
+  BasePointDetail,
+  BasePointSource,
+  BasePointSourceKind,
+  CluePreference,
+  DailyOutput,
+  EfficiencyFacility,
+  EfficiencyNotice,
+  EfficiencyNoticeLevel,
+  EfficiencyOperator,
+  EfficiencyOrderRule,
+  EfficiencyPer,
+  EfficiencyPerSource,
+  EfficiencyPlanResult,
+  EfficiencySkillChain,
+  EfficiencySkillStage,
+  EfficiencyStat,
+  FacilityAttributes,
+  FacilityCapacity,
+  FacilityCapacitySegment,
+  MoodRateDetail,
+  MoodRateDetailKind,
+  MoodSnapshot,
+  ProductionValue,
+  TradeOrderSummary,
+  OperatorEfficiencyCalculation,
 } from "./types/efficiency";
 export type {
   DroneAccelerationOptions,
@@ -30,9 +125,34 @@ export type {
   LmdDroneStrategyParseResult,
 } from "./utils/efficiency/drone";
 export type {
+  BaseSkillTerms,
+  EliteLevel,
+  Operator,
+  SkillTerm,
+  SkillTermReference,
+} from "./types/baseData";
+export type {
+  OperatorProgressionEntry,
+  OperatorProgressionNode,
+  OperatorProgressionProfile,
+  OperatorProgressionResolverInput,
+  ProgressionNodeType,
+  ResolvedOperatorProgression,
+} from "./types/operatorProgression";
+export type {
+  FiammettaMode,
+  LayoutEntry,
+  OperatorState,
+  Plan,
+  RoomAssignment,
+  RoomKey,
+  Rooms,
+  ScheduleDocument,
+  ScheduleSettings,
+} from "./types/schedule";
+export type {
   EfficiencyRuleset,
   ManufactureRule,
   TradeOrder,
 } from "./utils/efficiency/baseRules";
-export { DEFAULT_RULESET } from "./utils/efficiency/baseRules";
-export type { ScheduleDocument } from "./types/schedule";
+export type { SanityFlowResource, SanityResourceAmounts } from "./utils/sanity";

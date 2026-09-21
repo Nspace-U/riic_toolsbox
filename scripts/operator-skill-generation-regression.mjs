@@ -4,7 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const skillRoot = path.join(projectRoot, "public", "assets", "operator-skills");
+const skillRoot = path.join(
+  projectRoot,
+  "packages",
+  "riic-efficiency",
+  "data",
+  "operators",
+);
 const characterTable = JSON.parse(
   await readFile(
     path.join(

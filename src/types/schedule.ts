@@ -1,3 +1,5 @@
+import type { OperatorProgressionProfile } from "@arknights/riic-efficiency";
+
 export const ROOM_KEYS = [
   "control",
   "trading",
@@ -69,6 +71,9 @@ export interface ScheduleSettings {
   orderProgress?: Record<string, number>;
   overflowMode?: OverflowMode;
   firstItemProgress?: number | Record<string, number>;
+  progressionProfile?: OperatorProgressionProfile;
+  treatSkillsAsUnlocked?: boolean;
+  dormitoryDefaultIncludesMoodRecovery?: boolean;
 }
 
 export interface ScheduleDocument {

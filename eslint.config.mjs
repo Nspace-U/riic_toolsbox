@@ -10,7 +10,7 @@ export default tseslint.config(
       "**/dist/**",
       "**/node_modules/**",
       "public/assets/gamedata/**",
-      "public/assets/operator-skills/**",
+      "packages/riic-efficiency/data/**",
     ],
   },
   eslint.configs.recommended,

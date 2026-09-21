@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createServer } from "vite";
 
+const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const packageModule = await import(
+  pathToFileURL(
+    path.join(projectRoot, "packages", "riic-efficiency", "dist", "index.js"),
+  ).href
+);
 const vite = await createServer({
   root: process.cwd(),
   server: { middlewareMode: true, hmr: false },
@@ -15,9 +23,7 @@ try {
     calculateSanityValues,
     DEFAULT_SANITY_SETTINGS,
   } = await vite.ssrLoadModule("/src/utils/sanity.ts");
-  const { manufactureRule } = await vite.ssrLoadModule(
-    "/src/utils/efficiency/baseRules.ts",
-  );
+  const { manufactureRule } = packageModule;
   assert.equal(manufactureRule("中级作战记录")?.recipe, "作战记录");
   assert.equal(manufactureRule("赤金")?.recipe, "贵金属");
   assert.equal(manufactureRule("源石碎片", "固源岩")?.recipe, "源石碎片");

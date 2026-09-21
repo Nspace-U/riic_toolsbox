@@ -13,7 +13,7 @@ import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
 import ScheduleOperatorSlot from "@/components/ScheduleOperatorSlot.vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
-import type { OperatorProgressionNode } from "@/types/operatorProgression";
+import type { OperatorProgressionNode } from "@arknights/riic-efficiency";
 import type {
   LayoutEntry,
   OperatorState,

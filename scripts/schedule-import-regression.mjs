@@ -1,7 +1,27 @@
 import assert from "node:assert/strict";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createServer } from "vite";
 
 const projectRoot = process.cwd();
+const packageRoot = path.join(projectRoot, "packages", "riic-efficiency");
+const packageModule = await import(
+  pathToFileURL(path.join(packageRoot, "dist", "index.js")).href
+);
+const operatorFiles = await Promise.all(
+  (await readdir(path.join(packageRoot, "data", "operators")))
+    .filter((fileName) => fileName.endsWith(".json"))
+    .map(async (fileName) =>
+      JSON.parse(
+        await readFile(
+          path.join(packageRoot, "data", "operators", fileName),
+          "utf8",
+        ),
+      ),
+    ),
+);
+const componentCatalog = packageModule.createEfficiencyCatalog(operatorFiles);
 const vite = await createServer({
   root: projectRoot,
   server: { middlewareMode: true, hmr: false },
@@ -10,25 +30,14 @@ const vite = await createServer({
 });
 
 try {
-  const [
-    textModule,
-    maaModule,
-    catalogModule,
-    parseModule,
-    calculateModule,
-    importLayoutModule,
-    scheduleModule,
-    specialOperatorsModule,
-  ] = await Promise.all([
-    vite.ssrLoadModule("/src/adapters/textSchedule.ts"),
-    vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
-    vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
-    vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
-    vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
-    vite.ssrLoadModule("/src/utils/importLayout.ts"),
-    vite.ssrLoadModule("/src/utils/schedule.ts"),
-    vite.ssrLoadModule("/src/utils/specialOperators.ts"),
-  ]);
+  const [textModule, maaModule, importLayoutModule, scheduleModule] =
+    await Promise.all([
+      vite.ssrLoadModule("/src/adapters/textSchedule.ts"),
+      vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
+      vite.ssrLoadModule("/src/utils/importLayout.ts"),
+      vite.ssrLoadModule("/src/utils/schedule.ts"),
+    ]);
+  const specialOperatorsModule = packageModule;
   const rawText = `满血 252
 一天三换
 -=-
@@ -343,46 +352,7 @@ EXP 0
     [3, 1, 1, 1],
   );
 
-  const characterTable = await import(
-    "../public/assets/gamedata/latest/excel/character_table.json",
-    {
-      with: { type: "json" },
-    }
-  );
-  const buildingData = await import(
-    "../public/assets/gamedata/latest/excel/building_data.json",
-    {
-      with: { type: "json" },
-    }
-  );
-  const gamedataConst = await import(
-    "../public/assets/gamedata/latest/excel/gamedata_const.json",
-    {
-      with: { type: "json" },
-    }
-  );
-  const metadata = await import(
-    "../public/assets/gamedata/latest/torappu-meta.json",
-    {
-      with: { type: "json" },
-    }
-  );
-  const operators = parseModule.parseTorappuData(
-    characterTable.default,
-    buildingData.default,
-    metadata.default,
-    gamedataConst.default.termDescriptionDict,
-    gamedataConst.default.richTextStyles,
-  );
-  const terms = Object.fromEntries(
-    Object.entries(gamedataConst.default.termDescriptionDict).map(
-      ([key, term]) => [
-        key,
-        { name: term.termName, definition: term.description },
-      ],
-    ),
-  );
-  const catalog = catalogModule.createEfficiencyCatalog(operators, {}, terms);
+  const catalog = componentCatalog;
   const document = {
     layout: [
       { type: "control", level: 5 },
@@ -412,7 +382,7 @@ EXP 0
     "酒神",
   ]);
   assert.equal(serialized.plans[0].rooms.power[0].operators[0], "格雷伊");
-  const result = calculateModule.calculateEfficiency(document, catalog);
+  const result = packageModule.calculateEfficiency(document, { catalog });
   assert.equal(result.warnings.length, 0);
   const manufactureResult = result.plans[0].facilities.find(
     (facility) => facility.facility.type === "manufacture",

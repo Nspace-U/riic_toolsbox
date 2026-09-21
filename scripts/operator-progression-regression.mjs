@@ -1,17 +1,16 @@
 import assert from "node:assert/strict";
-import { createServer } from "vite";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const vite = await createServer({
-  root: process.cwd(),
-  server: { middlewareMode: true, hmr: false },
-  appType: "custom",
-  logLevel: "error",
-});
+const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
+const packageModule = await import(
+  pathToFileURL(
+    path.join(projectRoot, "packages", "riic-efficiency", "dist", "index.js"),
+  ).href
+);
 
-try {
-  const { resolveOperatorProgression } = await vite.ssrLoadModule(
-    "/src/utils/operatorProgression.ts",
-  );
+{
+  const { resolveOperatorProgression } = packageModule;
   const skillFile = {
     id: "test_operator",
     name: "测试干员",
@@ -99,6 +98,4 @@ try {
   assert.equal(resolve({ profile: profile(1, 80) }).upgraded, true);
   assert.equal(resolve({ manualElite: 1, manualLevel: 1 }).upgraded, true);
   console.log("operator progression regression: passed");
-} finally {
-  await vite.close();
 }

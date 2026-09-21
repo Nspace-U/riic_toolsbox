@@ -23,7 +23,7 @@ npm run generate:operator-skills
 
 旧项目的 CSV、`ctrl-skill-map.js`、旧项目 `index.json` 均不参与运行。
 
-输出目录为 `public/assets/operator-skills/` 和组件数据目录 `packages/riic-efficiency/data/operators/`。每名干员生成一个 `{干员ID}.json`，不生成 `index.json`。再次生成时会清理两个目录中的 JSON 后重建。
+输出目录为组件数据目录 `packages/riic-efficiency/data/operators/`。每名干员生成一个 `{干员ID}.json`，不生成 `index.json`。再次生成时会清理该目录中的 JSON 后重建。
 
 加工站和训练室技能作为**来源房间**暂不解析，也不会为此输出警告；只有这类技能的干员仍会生成包含基础信息的空 `chains`。控制中枢技能跨设施作用到训练室的效果可以保留在 JSON 中，供未来训练室模块使用。
 
@@ -393,8 +393,8 @@ npm run generate:operator-skills
 应满足：
 
 - 退出码为 0，警告为 0；
-- 输出目录存在 345 个当前快照干员 JSON（数量随快照变化）；
-- 不存在 `public/assets/operator-skills/index.json`；
+- 输出目录存在当前快照全部干员 JSON（本快照为 429 个，数量随快照变化）；
+- 不存在 `packages/riic-efficiency/data/operators/index.json`；
 - 来源 `room` 不包含 `processing` 或 `training`；
 - `moodCheck` 只来自 `public/skill-mood-check.json`；
 - 控制中枢设施集合使用当前快照术语展开，且效果 key 使用当前项目命名。

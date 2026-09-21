@@ -16,7 +16,7 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import type { ScheduleAdapter } from "@/adapters";
-import type { EfficiencyCatalog } from "@/types/efficiency";
+import type { EfficiencyCatalog } from "@arknights/riic-efficiency";
 import {
   completeInferredRooms,
   inferScheduleLayout,
@@ -26,7 +26,7 @@ import {
   isPercentageOperator,
   isTermOperator,
   specialOperatorTermMembers,
-} from "@/utils/specialOperators";
+} from "@arknights/riic-efficiency";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

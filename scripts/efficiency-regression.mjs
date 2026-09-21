@@ -1,17 +1,20 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { createServer } from "vite";
 
 const projectRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
-const assetRoot = path.join(projectRoot, "public", "assets");
+const packageRoot = path.join(projectRoot, "packages", "riic-efficiency");
 
 async function readJson(filePath) {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
 async function loadRuntime() {
+  const packageModule = await import(
+    pathToFileURL(path.join(packageRoot, "dist", "index.js")).href
+  );
   const vite = await createServer({
     root: projectRoot,
     server: { middlewareMode: true, hmr: false },
@@ -19,97 +22,64 @@ async function loadRuntime() {
     logLevel: "error",
   });
   try {
-    const [
-      parseModule,
-      catalogModule,
-      calculateModule,
-      droneModule,
-      aggregateModule,
-      maaModule,
-    ] = await Promise.all([
-      vite.ssrLoadModule("/src/utils/parseTorappuData.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/catalog.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/calculate.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/drone.ts"),
-      vite.ssrLoadModule("/src/utils/efficiency/aggregate.ts"),
+    const [maaModule, operatorFileNames] = await Promise.all([
       vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
+      readdir(path.join(packageRoot, "data", "operators")),
     ]);
-    const [characterTable, buildingData, gamedataConst, metadata] =
-      await Promise.all([
-        readJson(
-          path.join(
-            assetRoot,
-            "gamedata",
-            "latest",
-            "excel",
-            "character_table.json",
-          ),
+    const skillFiles = await Promise.all(
+      operatorFileNames
+        .filter((fileName) => fileName.endsWith(".json"))
+        .map(async (fileName) =>
+          readJson(path.join(packageRoot, "data", "operators", fileName)),
         ),
-        readJson(
-          path.join(
-            assetRoot,
-            "gamedata",
-            "latest",
-            "excel",
-            "building_data.json",
-          ),
-        ),
-        readJson(
-          path.join(
-            assetRoot,
-            "gamedata",
-            "latest",
-            "excel",
-            "gamedata_const.json",
-          ),
-        ),
-        readJson(
-          path.join(assetRoot, "gamedata", "latest", "torappu-meta.json"),
-        ),
-      ]);
-    const operators = parseModule.parseTorappuData(
-      characterTable,
-      buildingData,
-      metadata,
-      gamedataConst.termDescriptionDict ?? {},
-      gamedataConst.richTextStyles ?? {},
     );
-    const skillFiles = Object.fromEntries(
-      await Promise.all(
-        operators.map(async (operator) => {
-          try {
-            return [
-              operator.id,
-              await readJson(
-                path.join(assetRoot, "operator-skills", `${operator.id}.json`),
-              ),
-            ];
-          } catch {
-            return [operator.id, undefined];
-          }
-        }),
-      ),
-    );
-    const terms = Object.fromEntries(
-      Object.entries(gamedataConst.termDescriptionDict ?? {}).map(
-        ([key, term]) => [
-          key,
-          { name: term.termName, definition: term.description },
-        ],
-      ),
-    );
+    const catalog = packageModule.createEfficiencyCatalog(skillFiles);
+    function withSettings(document, options = {}) {
+      return {
+        ...document,
+        settings: {
+          ...document.settings,
+          ...(options.progressionProfile === undefined
+            ? {}
+            : { progressionProfile: options.progressionProfile }),
+          ...(options.treatSkillsAsUnlocked === undefined
+            ? {}
+            : { treatSkillsAsUnlocked: options.treatSkillsAsUnlocked }),
+          ...(options.dormitoryDefaultIncludesMoodRecovery === undefined
+            ? {}
+            : {
+                dormitoryDefaultIncludesMoodRecovery:
+                  options.dormitoryDefaultIncludesMoodRecovery,
+              }),
+        },
+      };
+    }
     return {
-      calculateEfficiency: calculateModule.calculateEfficiency,
-      calculateDroneAcceleration: droneModule.calculateDroneAcceleration,
-      aggregateDailyOutputs: aggregateModule.aggregateDailyOutputs,
-      parseLmdDroneStrategy: droneModule.parseLmdDroneStrategy,
+      calculateEfficiency: (document, currentCatalog, options = {}) =>
+        packageModule.calculateEfficiency(withSettings(document, options), {
+          catalog: currentCatalog,
+          ruleset: options.ruleset ?? currentCatalog.ruleset,
+        }),
+      calculateDroneAcceleration: (
+        document,
+        currentCatalog,
+        amounts,
+        options = {},
+      ) =>
+        packageModule.calculateDroneAcceleration(
+          withSettings(document, options),
+          currentCatalog,
+          amounts,
+          {
+            ...options,
+            ruleset: options.ruleset ?? currentCatalog.ruleset,
+          },
+        ),
+      aggregateDailyOutputs: packageModule.aggregateDailyOutputs,
+      parseLmdDroneStrategy: packageModule.parseLmdDroneStrategy,
       parseMaaScheduleText: maaModule.parseMaaScheduleText,
       serializeMaaSchedule: maaModule.serializeMaaSchedule,
-      catalog: catalogModule.createEfficiencyCatalog(
-        operators,
-        skillFiles,
-        terms,
-      ),
+      catalog,
       close: () => vite.close(),
     };
   } catch (error) {

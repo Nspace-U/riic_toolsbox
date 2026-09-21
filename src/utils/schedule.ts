@@ -10,7 +10,7 @@ import {
   type ScheduleDocument,
 } from "@/types/schedule";
 import type { BaseSkillTerms } from "@/types/baseData";
-import { isKnownSpecialOperator } from "@/utils/specialOperators";
+import { isKnownSpecialOperator } from "@arknights/riic-efficiency";
 
 export const ROOM_LABELS: Record<RoomKey, string> = {
   control: "控制中枢",

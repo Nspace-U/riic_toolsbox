@@ -5,7 +5,7 @@ import type {
   EfficiencyPlanResult,
   FacilityEfficiencyResult,
   MoodSnapshot,
-} from "@/types/efficiency";
+} from "@arknights/riic-efficiency";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import {
   cluePreferenceText,

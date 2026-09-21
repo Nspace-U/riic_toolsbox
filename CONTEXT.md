@@ -9,7 +9,7 @@
 - 生成入口：`scripts/generate-operator-skills.mjs`
 - 人工覆盖：`scripts/operator-skill-overrides.mjs`
 - 运行命令：`npm run generate:operator-skills`
-- 输出目录：`public/assets/operator-skills/`
+- 输出目录：`packages/riic-efficiency/data/operators/`
 - 规范：`干员技能JSON规范.md`
 - 心情检查表：`public/skill-mood-check.json`
 
@@ -30,11 +30,11 @@
 - 已实现富文本术语解析、固定效果、线性效果、条件效果、心情检查标记和控制中枢设施集合展开。
 - 已将无法稳定从描述推导的少量规则集中到人工覆盖表。
 - 已根据旧项目 Markdown 整理并确认效率计算基础规则：`docs/效率计算基础规则待核对.md`。
-- 已新增 `src/types/efficiency.ts`、`src/utils/efficiency/` 纯计算模块和 `docs/效率计算模块使用说明.md`。
-- 干员技能 JSON 生成器已按效率组件交接契约为 `character_table.json` 中全部 429 名干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity`、`termKeys`、内嵌 `terms` 和 `chains`，同时输出到 `public/assets/operator-skills/` 与 `packages/riic-efficiency/data/operators/`，加工站/训练室来源技能仍暂不解析，仅保留干员基础文档。
+- 效率计算数据和类型已迁移到 `packages/riic-efficiency`，宿主通过 `src/adapters/riicEfficiencyData.ts` 读取组件数据。
+- 干员技能 JSON 生成器已按效率组件交接契约为 `character_table.json` 中全部 429 名干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity`、`termKeys`、内嵌 `terms` 和 `chains`，只输出到 `packages/riic-efficiency/data/operators/`，加工站/训练室来源技能仍暂不解析，仅保留干员基础文档。
 - 效率计算已拆为 `packages/riic-efficiency` 独立 ESM 组件，公共入口为 `src/index.ts`，构建输出 ESM 与声明文件；组件不读取浏览器数据，排班设置中的 `progressionProfile`、`treatSkillsAsUnlocked` 和 `dormitoryDefaultIncludesMoodRecovery` 由调用方直接放入 `schedule.settings`。
 - 组件数据目录同时输出版本化 `ruleset.json` 与 `manifest.json`；规则集参与基础效率、制造配方、贸易订单、容量、线索、招募标签和无人机计算，订单数量使用 `schedule.settings.tradeOrderCount`。
-- 当前项目的 `src/utils/efficiency/calculate.ts` 与 `drone.ts` 只保留页面兼容适配，实际计算由独立组件完成；`loadEfficiencyCatalog` 仍是当前项目的浏览器加载适配器。
+- 当前项目所有效率计算直接调用 `@arknights/riic-efficiency` 公共 API；组件规则数据使用 `packages/riic-efficiency/data/ruleset.json`，宿主不再维护第二套效率逻辑或重复干员技能数据。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
 - 已修复琴柳“感染力”判断：以不含自身效果的办公室完整效率与 130% 比较，完整效率包含设施基础效率、有效干员心情效率和其他干员技能效率；低于 130% 时追加 20% 干员效率，恰好 130% 不触发。琴柳效果可与八幡海铃的设施基础效率叠加，不使用 `stack: "max"`；0 心情干员不提供自身心情/技能效率，但所在设施仍保留基础效率。
 - 已修复效率计算中的 `source: "stat"` 折算链：这类效果重新参与最终设施效率聚合，属性折算基数限定为同一设施内干员的直接效率贡献，并排除按设施数量计算的来源；新增正义骑士号、野鬃、槐琥回归场景。
@@ -49,7 +49,7 @@
 - 通用设置的基地点数显示只覆盖当前 17 个基地点数，默认全部显示；设置页提供每个点数的显示开关以及全选显示和全部隐藏，不提供单项恢复默认，隐藏列表使用全局 `localStorage` 保存，只影响模拟器结果展示。
 - 会客室基础产出按 1 条线索/20 小时计算，每条线索折算 40 信用，线索上限为 11 条；计算结果以线索为主单位并提供信用折算值。
 - 已将效率计算接入排班模拟器：设施队列小卡片展示不含心情效率的干员效率与设施最终效率，独立结果区展示按产物拆分的每日产出与可核对的计算步骤。
-- 模拟器页面的布局规则与结果展示格式化已拆到 `src/utils/simulator/`；效率计算的共享模型/常量与每日结果聚合已拆到 `src/utils/efficiency/model.ts`、`aggregate.ts`，页面交互和 `calculateEfficiency` 公开入口保持在原模块。
+- 模拟器页面的布局规则与结果展示格式化已拆到 `src/utils/simulator/`；效率计算模型、规则、结果聚合、练度和特殊干员逻辑均由 `packages/riic-efficiency` 公共 API 提供。
 - 模拟器每日产出使用毛收入卡片整合净收入和对应等效理智；赤金、经验同时显示原始道具数量、毛点数、净点数和理智，仅消耗资源追加到末尾，模拟器页面数字不使用千位分隔；每日产出和无人机策略产物卡片的背景色优先使用产物独立颜色，其次使用明确产出设施颜色的浅色背景，信用使用会客室颜色，无独立颜色且无产出来源的纯消耗资源和每日总理智卡保持原有背景；每日总理智使用独立横向卡片，显示 Torappu `AP_GAMEPLAY.png` 图标和数值，队列内部理智汇总保持原样。
 - 模拟器每日产出下方显示无人机加速策略；每日无人机按每架 3 分钟换算加速时长，分别假设全部加速龙门币、合成玉、赤金、作战记录或源石碎片。普通产物每种只从单个队列中的单个贸易站或制造站选择一个场景，基础速率复用该设施计算明细中的基础产出，不汇总多个相同房间；每种场景只展示无人机额外流和全部无人机加速后的结果，左侧显示产物、来源房间、无人机数量与加速时长及基础产出速率，右侧显示两组结果；全部无人机加速后的净流按全设施原始每日净流叠加当前场景额外流计算，但仍只显示目标产物和该场景额外涉及的材料；不展示无人机资源卡或无人机结果的理智，主产物在毛量与净量不同时补充原始资源净量。无人机加速统一使用设施基础产出，不读取当前设施总效率；龙门币策略使用单行“贸易站等级 干员…”文本，干员名末尾 `0/1/2` 表示精英化等级，裁缝、但书、龙舌兰和其他贸易订单规则沿用效率计算器。策略只对龙门币贸易站生效并保存在 `ScheduleDocument.settings`，双芯片不参与。
 - 无人机使用策略编辑区将专用策略标签与输入框保持同一行，输入说明固定放在下一行并横跨策略区域。

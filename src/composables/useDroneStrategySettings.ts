@@ -4,7 +4,7 @@ import {
   DEFAULT_LMD_DRONE_STRATEGIES,
   type LmdDroneStrategies,
   type LmdDroneStrategyLevel,
-} from "@/utils/efficiency/drone";
+} from "@arknights/riic-efficiency";
 
 export const DRONE_STRATEGY_SETTINGS_STORAGE_KEY =
   "riic-tools:drone-strategy-settings:v1";

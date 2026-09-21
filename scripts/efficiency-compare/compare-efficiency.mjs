@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
-import { fileURLToPath } from "node:url";
-import { createServer } from "vite";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { readdir } from "node:fs/promises";
 import {
   scenarioOperatorNames,
   scenarios,
@@ -14,7 +14,7 @@ const projectRoot = path.resolve(
   fileURLToPath(new URL("../..", import.meta.url)),
 );
 const oldProjectRoot = path.resolve(projectRoot, "..", "基建");
-const newAssetRoot = path.join(projectRoot, "public", "assets");
+const packageRoot = path.join(projectRoot, "packages", "riic-efficiency");
 
 const oldScriptPaths = [
   "src/js/operator-data.js",
@@ -324,89 +324,20 @@ async function loadOldRuntime() {
 }
 
 async function loadNewRuntime() {
-  const vite = await createServer({
-    root: projectRoot,
-    server: { middlewareMode: true, hmr: false },
-    appType: "custom",
-    logLevel: "error",
-  });
-  const parseModule = await vite.ssrLoadModule(
-    "/src/utils/parseTorappuData.ts",
+  const packageModule = await import(
+    pathToFileURL(path.join(packageRoot, "dist", "index.js")).href
   );
-  const catalogModule = await vite.ssrLoadModule(
-    "/src/utils/efficiency/catalog.ts",
-  );
-  const calculateModule = await vite.ssrLoadModule(
-    "/src/utils/efficiency/calculate.ts",
-  );
-  const [characterTable, buildingData, gamedataConst, metadata] =
-    await Promise.all([
-      readJson(
-        path.join(
-          newAssetRoot,
-          "gamedata",
-          "latest",
-          "excel",
-          "character_table.json",
-        ),
+  const skillFiles = await Promise.all(
+    (await readdir(path.join(packageRoot, "data", "operators")))
+      .filter((fileName) => fileName.endsWith(".json"))
+      .map((fileName) =>
+        readJson(path.join(packageRoot, "data", "operators", fileName)),
       ),
-      readJson(
-        path.join(
-          newAssetRoot,
-          "gamedata",
-          "latest",
-          "excel",
-          "building_data.json",
-        ),
-      ),
-      readJson(
-        path.join(
-          newAssetRoot,
-          "gamedata",
-          "latest",
-          "excel",
-          "gamedata_const.json",
-        ),
-      ),
-      readJson(
-        path.join(newAssetRoot, "gamedata", "latest", "torappu-meta.json"),
-      ),
-    ]);
-  const operators = parseModule.parseTorappuData(
-    characterTable,
-    buildingData,
-    metadata,
-    gamedataConst.termDescriptionDict ?? {},
-    gamedataConst.richTextStyles ?? {},
-  );
-  const skillFiles = {};
-  await Promise.all(
-    operators.map(async (operator) => {
-      try {
-        skillFiles[operator.id] = await readJson(
-          path.join(newAssetRoot, "operator-skills", `${operator.id}.json`),
-        );
-      } catch {
-        skillFiles[operator.id] = undefined;
-      }
-    }),
-  );
-  const terms = Object.fromEntries(
-    Object.entries(gamedataConst.termDescriptionDict ?? {}).map(
-      ([key, term]) => [
-        key,
-        { name: term.termName, definition: term.description },
-      ],
-    ),
   );
   return {
-    calculateEfficiency: calculateModule.calculateEfficiency,
-    catalog: catalogModule.createEfficiencyCatalog(
-      operators,
-      skillFiles,
-      terms,
-    ),
-    close: () => vite.close(),
+    calculateEfficiency: packageModule.calculateEfficiency,
+    catalog: packageModule.createEfficiencyCatalog(skillFiles),
+    close: () => {},
   };
 }
 
@@ -1249,10 +1180,9 @@ async function run() {
       await oldRuntime.SimSkills.ensureOps(names);
       const newDocument = buildNewDocument(scenario);
       const oldSchedule = buildOldSchedule(scenario, oldRuntime);
-      const newResult = newRuntime.calculateEfficiency(
-        newDocument,
-        newRuntime.catalog,
-      );
+      const newResult = newRuntime.calculateEfficiency(newDocument, {
+        catalog: newRuntime.catalog,
+      });
       const oldResult = oldResults(oldRuntime, oldSchedule);
       const normalizedNewPlans = newFacilityResults(newResult, scenario);
       const normalizedNew = {

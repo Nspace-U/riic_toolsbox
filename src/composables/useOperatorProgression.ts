@@ -3,11 +3,11 @@ import { computed, ref } from "vue";
 import type {
   OperatorProgressionEntry,
   OperatorProgressionProfile,
-} from "@/types/operatorProgression";
+} from "@arknights/riic-efficiency";
 import {
   cloneProgressionEntries,
   parseOperatorProgressionImport,
-} from "@/utils/operatorProgression";
+} from "@arknights/riic-efficiency";
 
 const STORAGE_KEY = "riic-tools:operator-progression:v1";
 const SETTINGS_STORAGE_KEY = "riic-tools:operator-progression-settings:v1";
