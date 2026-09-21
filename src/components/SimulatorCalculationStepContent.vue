@@ -41,6 +41,17 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
 <template>
   <div class="simulator-step-content">
     <template v-if="step.facility">
+      <section v-if="step.facility.inherited" class="simulator-step-section">
+        <span class="simulator-step-subheading">继承说明</span>
+        <div class="simulator-step-detail-grid">
+          <span>说明</span>
+          <span>
+            本队列为跳过队列，已继承
+            {{ inheritedLabel.replace(/^继承自 /, "") }}
+            的干员与练度；心情按当前队列重新计算。
+          </span>
+        </div>
+      </section>
       <section class="simulator-step-section">
         <span class="simulator-step-subheading">效率汇总</span>
         <div class="simulator-step-detail-grid">
@@ -51,7 +62,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               unit="%"
             />%</strong
           >
-          <span>干员效率</span>
+          <span>干员心情效率</span>
           <strong
             ><SimulatorNumericValue
               mode="signed"
@@ -74,24 +85,6 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               unit="%"
             />%</strong
           >
-          <span>计算公式</span>
-          <span>
-            基础 {{ formatNumber(step.facility.baseEfficiency) }}% + 心情
-            {{ formatNumber(step.facility.moodEfficiency) }}% + 干员技能
-            {{ formatNumber(step.facility.operatorSkillEfficiency) }}% =
-            {{ formatNumber(step.facility.efficiency) }}%
-          </span>
-        </div>
-      </section>
-      <section v-if="step.facility.inherited" class="simulator-step-section">
-        <span class="simulator-step-subheading">继承说明</span>
-        <div class="simulator-step-detail-grid">
-          <span>说明</span>
-          <span>
-            本队列为跳过队列，已继承
-            {{ inheritedLabel.replace(/^继承自 /, "") }}
-            的干员与练度；心情按当前队列重新计算。
-          </span>
         </div>
       </section>
       <div
@@ -115,10 +108,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             <strong>
               <SimulatorNumericValue
                 mode="production"
-                :value="
-                  step.facility.production.baseAmountPerHour ??
-                  step.facility.production.amountPerHour
-                "
+                :value="step.facility.production.baseAmountPerHour"
                 unit="/小时"
               />/小时
             </strong>
@@ -316,35 +306,6 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
                 </template>
               </span>
             </div>
-          </div>
-        </div>
-      </div>
-      <div
-        v-if="step.facility.operatorContributions.length"
-        class="simulator-step-section"
-      >
-        <span class="simulator-step-subheading">干员组合贡献</span>
-        <div class="simulator-step-detail-grid">
-          <div
-            v-for="contribution in step.facility.operatorContributions"
-            :key="contribution.operator"
-            class="simulator-step-detail-row"
-          >
-            <span>{{ contribution.operator }}</span>
-            <span>
-              <SimulatorNumericValue
-                mode="signed"
-                :value="contribution.efficiency"
-              />（基础
-              <SimulatorNumericValue
-                mode="signed"
-                :value="contribution.baseEfficiency"
-              />，技能
-              <SimulatorNumericValue
-                mode="signed"
-                :value="contribution.skillEfficiency"
-              />）
-            </span>
           </div>
         </div>
       </div>

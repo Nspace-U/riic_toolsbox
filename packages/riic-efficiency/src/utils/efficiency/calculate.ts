@@ -21,7 +21,6 @@ import type {
   MoodRateDetail,
   MoodSnapshot,
   OperatorEfficiencyDetail,
-  OperatorEfficiencyContribution,
   OperatorSkillFile,
   ProductionValue,
   TradeOrderSummary,
@@ -2830,55 +2829,6 @@ function operatorTrainingEfficiency(placement: Placement): number {
   );
 }
 
-function operatorContributions(
-  placements: Placement[],
-  combinationDetails: OperatorEfficiencyDetail[],
-): OperatorEfficiencyContribution[] {
-  const skillValues = new Map<string, number>();
-  const sourceFacilities = new Map<string, RoomKey>();
-  combinationDetails.forEach((detail) => {
-    skillValues.set(
-      detail.operator,
-      (skillValues.get(detail.operator) ?? 0) + detail.value,
-    );
-    sourceFacilities.set(
-      detail.operator,
-      detail.ownerFacility ?? detail.facility,
-    );
-  });
-  const contributions = new Map<string, OperatorEfficiencyContribution>();
-  placements.forEach((placement) => {
-    const baseEfficiency = operatorBaseEfficiency(
-      placement.facility,
-      placement,
-    );
-    const skillEfficiency = skillValues.get(placement.name) ?? 0;
-    const contribution = {
-      operator: placement.name,
-      baseEfficiency,
-      skillEfficiency,
-      efficiency: baseEfficiency + skillEfficiency,
-      sourceFacility: placement.facility.type,
-    };
-    if (Math.abs(contribution.efficiency) > EPSILON) {
-      contributions.set(placement.name, contribution);
-    }
-  });
-  skillValues.forEach((value, operator) => {
-    if (contributions.has(operator) || Math.abs(value) <= EPSILON) {
-      return;
-    }
-    contributions.set(operator, {
-      operator,
-      baseEfficiency: 0,
-      skillEfficiency: value,
-      efficiency: value,
-      sourceFacility: sourceFacilities.get(operator),
-    });
-  });
-  return Array.from(contributions.values());
-}
-
 function calculateFacility(
   context: PlanContext,
   facility: EfficiencyFacility,
@@ -3026,10 +2976,6 @@ function calculateFacility(
     details,
     baseDetails,
     combinationDetails,
-    operatorContributions: operatorContributions(
-      placements,
-      combinationDetails,
-    ),
   };
   const production = productionFor(
     context,
@@ -3900,10 +3846,6 @@ function calculatePowerGroup(
     details: [...skillDetails, ...baseDetails],
     baseDetails,
     combinationDetails: skillDetails,
-    operatorContributions: operatorContributions(
-      placementsInRoomType(context, "power"),
-      skillDetails,
-    ),
   };
 }
 

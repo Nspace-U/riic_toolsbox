@@ -550,8 +550,7 @@ function normalizedProduction(
       ? Math.max(0, Math.min(1, breachTime / durationHours))
       : 1;
   const baseAmountPerHour =
-    (Number(production.baseAmountPerHour ?? production.baseRate) || 0) *
-    unitFactor;
+    (Number(production.baseAmountPerHour) || 0) * unitFactor;
   const efficiencyMultiplier = isFixedIgnoreEfficiency
     ? 1
     : baseAmountPerHour > 0
@@ -807,7 +806,6 @@ function newFacilityResults(result, scenario) {
             details: mapNumbers(facility.details),
             baseDetails: mapNumbers(facility.baseDetails),
             combinationDetails: mapNumbers(facility.combinationDetails),
-            operatorContributions: mapNumbers(facility.operatorContributions),
           },
         ];
       }),

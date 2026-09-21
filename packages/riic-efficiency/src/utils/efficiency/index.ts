@@ -5,7 +5,6 @@ export type {
   EfficiencyCatalog,
   EfficiencyResult,
   FacilityEfficiencyResult,
-  OperatorEfficiencyContribution,
   OperatorSkillFile,
 } from "../../types/efficiency";
 export type {

@@ -271,7 +271,7 @@ export interface ProductionValue {
     sourceUnit: string;
     baseCycleHours: number;
   };
-  baseAmountPerHour?: number;
+  baseAmountPerHour: number;
   baseAmountPerDay?: number;
   baseMaterialPerHour?: Record<string, number>;
   amountPerHour: number;
@@ -363,14 +363,6 @@ export interface OperatorEfficiencyDetail {
   calculation?: OperatorEfficiencyCalculation;
 }
 
-export interface OperatorEfficiencyContribution {
-  operator: string;
-  baseEfficiency: number;
-  skillEfficiency: number;
-  efficiency: number;
-  sourceFacility?: RoomKey;
-}
-
 export interface FacilityEfficiencyResult {
   facility: EfficiencyFacility;
   inherited?: boolean;
@@ -388,7 +380,6 @@ export interface FacilityEfficiencyResult {
   details: OperatorEfficiencyDetail[];
   baseDetails: OperatorEfficiencyDetail[];
   combinationDetails: OperatorEfficiencyDetail[];
-  operatorContributions: OperatorEfficiencyContribution[];
 }
 
 export type MoodRateDetailKind =

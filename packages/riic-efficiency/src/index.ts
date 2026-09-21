@@ -86,7 +86,6 @@ export type {
   EfficiencyResult,
   FacilityEfficiencyResult,
   OperatorSkillFile,
-  OperatorEfficiencyContribution,
   OperatorEfficiencyDetail,
   BasePointDetail,
   BasePointSource,

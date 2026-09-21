@@ -1147,8 +1147,7 @@ const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
         (facility) =>
           facility.production !== undefined ||
           facility.capacity !== undefined ||
-          facility.details.length > 0 ||
-          facility.operatorContributions.length > 0,
+          facility.details.length > 0,
       )
       .map((facility) => ({
         plan,
@@ -1211,8 +1210,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
           return;
         }
         addProductionFlow(queueAmounts, production, plan.durationHours);
-        const baseRate =
-          production.baseAmountPerHour ?? production.amountPerHour;
+        const baseRate = production.baseAmountPerHour;
         const totalOutputPerHour = production.amountPerHour;
         const selectedOutputPerHour =
           production.effectiveAmountPerHour ?? totalOutputPerHour;

@@ -433,14 +433,6 @@ function facilityResult(result, type) {
   return facility;
 }
 
-function contribution(result, operator) {
-  const value = result.operatorContributions.find(
-    (item) => item.operator === operator,
-  );
-  assert.ok(value);
-  return value;
-}
-
 function assertSkillDetails(result, operators) {
   assert.deepEqual(
     [...new Set(result.combinationDetails.map((detail) => detail.operator))],
@@ -515,7 +507,7 @@ function runTests(runtime) {
   assert.ok(efficientManufacture?.production);
   assert.ok(
     (efficientManufacture.production?.amountPerHour ?? 0) >
-      (pureGoldDroneScenario.baseAmountPerHour ?? 0),
+      pureGoldDroneScenario.baseAmountPerHour,
   );
   const efficientDroneScenario = calculateDroneAcceleration(
     efficientDroneDocument,
@@ -693,11 +685,6 @@ function runTests(runtime) {
     "队列 1：找不到干员“未知干员”的技能数据",
   ]);
   assert.ok(partialManufacture.production);
-  assert.ok(
-    partialManufacture.operatorContributions.some(
-      (item) => item.operator === "温蒂",
-    ),
-  );
 
   const dailyOutput = calculateEfficiency(dailyOutputDocument(), catalog);
   assert.deepEqual(
@@ -1071,15 +1058,6 @@ function runTests(runtime) {
   assert.equal(wendyManufacture.operatorSkillEfficiency, 45);
   assert.equal(wendyManufacture.efficiency, 147);
   assertSkillDetails(wendyManufacture, ["温蒂"]);
-  assert.deepEqual(contribution(wendyManufacture, "砾"), {
-    operator: "砾",
-    baseEfficiency: 1,
-    skillEfficiency: 0,
-    efficiency: 1,
-    sourceFacility: "manufacture",
-  });
-  assert.equal(contribution(wendyManufacture, "温蒂").skillEfficiency, 45);
-
   const percentageWendy = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "35%"],
@@ -1090,11 +1068,6 @@ function runTests(runtime) {
   const percentageWendyManufacture = manufactureResult(percentageWendy);
   assert.equal(percentageWendyManufacture.skillEfficiency, 45);
   assertSkillDetails(percentageWendyManufacture, ["温蒂"]);
-  assert.equal(
-    contribution(percentageWendyManufacture, "35%").skillEfficiency,
-    0,
-  );
-
   const percentageHuaihu = calculateEfficiency(
     documentFor({
       manufacture: ["槐琥", "35%"],
@@ -1104,15 +1077,6 @@ function runTests(runtime) {
   );
   const percentageHuaihuManufacture = manufactureResult(percentageHuaihu);
   assert.equal(percentageHuaihuManufacture.skillEfficiency, 70);
-  assert.equal(
-    contribution(percentageHuaihuManufacture, "槐琥").skillEfficiency,
-    35,
-  );
-  assert.equal(
-    contribution(percentageHuaihuManufacture, "35%").skillEfficiency,
-    35,
-  );
-
   const percentageTrading = calculateEfficiency(
     percentageFacilityDocument("trading", ["35%"]),
     catalog,
@@ -1404,13 +1368,6 @@ function runTests(runtime) {
   );
   assert.equal(redCloudCapacityManufacture.capacity?.segments[1]?.endHours, 12);
   assert.equal(redCloudCapacityManufacture.capacity?.segments[1]?.total, 68);
-  assert.ok(
-    Math.abs(
-      (contribution(redCloudCapacityManufacture, "红云").skillEfficiency ?? 0) -
-        26.736842105263158,
-    ) < 1e-9,
-  );
-
   const bubbleCapacity = calculateEfficiency(
     documentFor({
       manufacture: ["泡泡", "红云", "铅踝"],
@@ -1422,13 +1379,6 @@ function runTests(runtime) {
   );
   const bubbleCapacityManufacture = manufactureResult(bubbleCapacity);
   assert.equal(bubbleCapacityManufacture.capacity?.total, 78);
-  assert.ok(
-    Math.abs(
-      (contribution(bubbleCapacityManufacture, "泡泡").skillEfficiency ?? 0) -
-        23.333333333333332,
-    ) < 1e-9,
-  );
-
   const directPreviousQueueMood = calculateEfficiency(
     {
       layout: [{ type: "manufacture", level: 3 }],
@@ -1577,9 +1527,6 @@ function runTests(runtime) {
   const huaihuManufacture = manufactureResult(huaihu);
   assert.equal(huaihuManufacture.skillEfficiency, 70);
   assert.equal(huaihuManufacture.operatorSkillEfficiency, 70);
-  assert.equal(contribution(huaihuManufacture, "槐琥").skillEfficiency, 35);
-  assert.equal(contribution(huaihuManufacture, "砾").skillEfficiency, 35);
-
   const huaihuCrossFacility = calculateEfficiency(
     {
       layout: [
@@ -1620,11 +1567,6 @@ function runTests(runtime) {
   );
   const huaihuCrossFacilityManufacture = manufactureResult(huaihuCrossFacility);
   assert.equal(huaihuCrossFacilityManufacture.skillEfficiency, 55);
-  assert.equal(
-    contribution(huaihuCrossFacilityManufacture, "槐琥").skillEfficiency,
-    25,
-  );
-
   const snowWithGnosis = calculateEfficiency(
     documentFor({
       control: ["灵知"],
@@ -1653,8 +1595,6 @@ function runTests(runtime) {
   );
   const snowWithMorigTrading = tradingResult(snowWithMorig);
   assert.equal(snowWithMorigTrading.skillEfficiency, 10);
-  assert.equal(contribution(snowWithMorigTrading, "雪雉").skillEfficiency, 5);
-
   const snowWithFacilitySkills = calculateEfficiency(
     documentFor({
       control: ["阿米娅", "诗怀雅"],
@@ -1685,8 +1625,6 @@ function runTests(runtime) {
     )?.value,
     32,
   );
-  assert.equal(contribution(snowWithSwireTrading, "雪雉").skillEfficiency, 35);
-
   const snowWithJieGap = calculateEfficiency(
     documentFor({
       trading: ["雪雉", "孑"],
@@ -1695,26 +1633,11 @@ function runTests(runtime) {
     catalog,
   );
   const snowWithJieGapTrading = tradingResult(snowWithJieGap);
-  assert.equal(contribution(snowWithJieGapTrading, "雪雉").skillEfficiency, 0);
   assert.equal(
     snowWithJieGapTrading.combinationDetails.some(
       ({ operator, stat }) => operator === "雪雉" && stat === "tradeSpd",
     ),
     false,
-  );
-
-  const snowWithJieOrder = calculateEfficiency(
-    documentFor({
-      trading: ["雪雉", "孑"],
-      eliteLevels: { 雪雉: 0, 孑: 1 },
-      settings: { orderProgress: { "trading-1": 100 } },
-    }),
-    catalog,
-  );
-  const snowWithJieOrderTrading = tradingResult(snowWithJieOrder);
-  assert.equal(
-    contribution(snowWithJieOrderTrading, "雪雉").skillEfficiency,
-    0,
   );
 
   const suppressed = calculateEfficiency(
@@ -1776,15 +1699,6 @@ function runTests(runtime) {
   assert.equal(clearedDerivedManufacture.skillEfficiency, 45);
   assert.equal(clearedDerivedManufacture.operatorSkillEfficiency, 45);
   assertSkillDetails(clearedDerivedManufacture, ["温蒂"]);
-  assert.equal(
-    contribution(clearedDerivedManufacture, "槐琥").skillEfficiency,
-    0,
-  );
-  assert.equal(
-    contribution(clearedDerivedManufacture, "砾").skillEfficiency,
-    0,
-  );
-
   const mutual = calculateEfficiency(
     documentFor({
       manufacture: ["温蒂", "冬时"],
@@ -1795,9 +1709,6 @@ function runTests(runtime) {
   const mutualManufacture = manufactureResult(mutual);
   assert.equal(mutualManufacture.skillEfficiency, 65);
   assert.equal(mutualManufacture.operatorSkillEfficiency, 65);
-  assert.equal(contribution(mutualManufacture, "温蒂").skillEfficiency, 45);
-  assert.equal(contribution(mutualManufacture, "冬时").skillEfficiency, 20);
-
   const facilitySkill = calculateEfficiency(
     documentFor({
       control: ["斩业星熊", "诗怀雅"],

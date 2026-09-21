@@ -52,7 +52,7 @@ export function aggregateDaily(
           (candidate) => candidate.facility.id === result.facility.id,
         )?.production;
         if (!production) return sum;
-        sum.base += (production.baseAmountPerHour ?? 0) * plan.durationHours;
+        sum.base += production.baseAmountPerHour * plan.durationHours;
         sum.actual += production.amountPerHour * plan.durationHours;
         sum.effective +=
           (production.effectiveAmountPerHour ?? production.amountPerHour) *
@@ -190,8 +190,7 @@ export function aggregateDailyProductions(
         ...(production.cluePreferences ?? []),
       ]);
       current.basePerCycle +=
-        (production.baseAmountPerHour ?? production.amountPerHour) *
-        plan.durationHours;
+        production.baseAmountPerHour * plan.durationHours;
       current.actualPerCycle += production.amountPerHour * plan.durationHours;
       current.effectivePerCycle += rate * plan.durationHours;
       Object.entries(

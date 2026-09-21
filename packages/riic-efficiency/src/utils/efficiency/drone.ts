@@ -168,23 +168,11 @@ function isDroneAcceleratableProduct(
 function baseFlowFromProduction(
   production: ProductionValue,
 ): BaseProductFlow | undefined {
-  const amountPerHour =
-    production.baseAmountPerHour ?? production.amountPerHour;
+  const amountPerHour = production.baseAmountPerHour;
   if (amountPerHour <= 0) {
     return undefined;
   }
-  const materialScale =
-    production.amountPerHour > 0 ? amountPerHour / production.amountPerHour : 1;
-  const baseMaterialPerHour =
-    production.baseMaterialPerHour ??
-    Object.fromEntries(
-      Object.entries(production.materialPerHour ?? {}).map(
-        ([material, amount]) => [
-          canonicalResourceKey(material),
-          amount * materialScale,
-        ],
-      ),
-    );
+  const baseMaterialPerHour = production.baseMaterialPerHour ?? {};
   return {
     amountPerHour,
     materialPerHour: Object.fromEntries(

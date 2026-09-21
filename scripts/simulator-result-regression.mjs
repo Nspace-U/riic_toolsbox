@@ -29,6 +29,10 @@ assert.ok(calculationEndIndex > basePointIndex);
 const calculationBlock = template.slice(calculationIndex, calculationEndIndex);
 const queueBlock = template.slice(queueIndex, basePointIndex);
 const basePointBlock = template.slice(basePointIndex, basePointEndIndex);
+const calculationStepContent = await readFile(
+  "src/components/SimulatorCalculationStepContent.vue",
+  "utf8",
+);
 
 assert.match(calculationBlock, /<a-collapse ghost>/);
 assert.match(queueBlock, /v-for="queue in dailyOutputQueueDetails"/);
@@ -64,6 +68,12 @@ assert.doesNotMatch(basePointBlock, /simulator-base-point-source-title/);
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
 assert.doesNotMatch(template, /class="simulator-base-point-results"/);
 assert.doesNotMatch(template, /combinationEfficiency/);
+assert.match(calculationStepContent, /<span>干员心情效率<\/span>/);
+assert.doesNotMatch(calculationStepContent, /<span>计算公式<\/span>/);
+const inheritedIndex = calculationStepContent.indexOf(">继承说明<");
+const summaryIndex = calculationStepContent.indexOf(">效率汇总<");
+assert.ok(inheritedIndex >= 0 && inheritedIndex < summaryIndex);
+assert.doesNotMatch(calculationStepContent, /干员组合贡献/);
 assert.match(template, /function dailyOutputSourceFacility\(product: string\)/);
 assert.match(template, /if \(product === "信用"\) \{\s+return "meeting";/);
 assert.match(template, /function dailyOutputCardAccent\(/);
