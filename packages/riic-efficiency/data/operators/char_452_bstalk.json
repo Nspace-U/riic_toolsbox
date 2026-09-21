@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_452_bstalk",
   "name": "豆苗",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_377_gdglow",
   "name": "澄闪",
   "rarity": 6,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

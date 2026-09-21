@@ -1,7 +1,7 @@
 // =====================================================================
 // 当前项目的干员效率 JSON 生成器。
 // 输入仅来自 public/assets/gamedata/latest/excel 下的 Torappu 三份快照，
-// 输出为 packages/riic-efficiency/data/operators/{干员ID}.json；不会生成索引文件。
+// 输出为 packages/riic-efficiency/data/operators/{干员ID}.json 和 terms.json。
 // =====================================================================
 import fs from "node:fs";
 import path from "node:path";
@@ -28,7 +28,7 @@ const GAMEDATA_CONST_PATH = path.join(EXCEL_DIR, "gamedata_const.json");
 const MOOD_CHECK_PATH = path.join(ROOT, "public", "skill-mood-check.json");
 const PACKAGE_DATA_DIR = path.join(ROOT, "packages", "riic-efficiency", "data");
 const PACKAGE_OPERATOR_DIR = path.join(PACKAGE_DATA_DIR, "operators");
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 // 当前模拟器的数据契约使用这些稳定的设施 key。
 const ROOM_MAP = {
@@ -110,31 +110,20 @@ function rarityValue(value) {
   return match ? Number(match[0]) : 0;
 }
 
-function termKeysFromDescription(description, richTextStyles) {
-  const normalizedDescription = String(description ?? "").replace(
-    /<<(?=[$@])/g,
-    "<",
-  );
-  return [...normalizedDescription.matchAll(/<\$([^>]+)>([\s\S]*?)<\/>/g)]
-    .map((match) => ({
-      key: match[1]?.trim(),
-      name: String(match[2] ?? "")
-        .replace(/<@[^>]+>/g, "")
-        .replace(/<\/>/g, "")
-        .trim(),
-    }))
-    .filter(
-      (reference) =>
-        reference.key &&
-        reference.name &&
-        !Object.hasOwn(richTextStyles, reference.key),
-    )
-    .map((reference) => reference.key);
-}
-
-function listedOperatorNames(description) {
+function listedTermMembers(description, characterTable) {
   const lines = String(description ?? "").split(/\r?\n/);
-  if (lines[0]?.trim() !== "包含以下干员") return [];
+  const heading = lines[0]?.trim();
+  if (heading === "包含所有异格干员") {
+    return Object.entries(characterTable)
+      .filter(
+        ([id, character]) =>
+          id.startsWith("char_") && character?.name && character.isSpChar,
+      )
+      .map(([, character]) => character.name);
+  }
+  if (!heading?.startsWith("包含以下") && !heading?.startsWith("由以下")) {
+    return [];
+  }
   return lines
     .slice(1)
     .join("")
@@ -143,34 +132,17 @@ function listedOperatorNames(description) {
     .filter(Boolean);
 }
 
-function operatorTermKeys(operatorName, descriptions, terms, richTextStyles) {
-  const keys = new Set(
-    descriptions.flatMap((description) =>
-      termKeysFromDescription(description, richTextStyles),
-    ),
-  );
-  Object.entries(terms).forEach(([key, term]) => {
-    if (listedOperatorNames(term.description).includes(operatorName)) {
-      keys.add(key);
-    }
-  });
-  return [...keys];
-}
-
-function operatorTerms(termKeys, terms) {
+function sharedTerms(termDescriptions, characterTable) {
   return Object.fromEntries(
-    termKeys.flatMap((key) => {
-      const term = terms[key];
-      if (!term?.termName) return [];
+    Object.entries(termDescriptions).map(([key, term]) => {
+      const members = listedTermMembers(term?.description, characterTable);
       return [
-        [
-          key,
-          {
-            name: term.termName,
-            definition: term.description ?? "",
-            members: listedOperatorNames(term.description),
-          },
-        ],
+        key,
+        {
+          name: term?.termName ?? key,
+          ...(term?.description ? { definition: term.description } : {}),
+          ...(members.length ? { members } : {}),
+        },
       ];
     }),
   );
@@ -3803,7 +3775,6 @@ function main() {
   );
   const buffs = buildingData.buffs ?? {};
   const termDescriptions = gamedataConst.termDescriptionDict ?? {};
-  const richTextStyles = gamedataConst.richTextStyles ?? {};
   configureFacilityTerms(termDescriptions);
 
   TERM_BY_NAME = new Map();
@@ -3823,7 +3794,6 @@ function main() {
   for (const [id, character] of Object.entries(characterTable)) {
     if (!id.startsWith("char_") || !character?.name) continue;
     const records = [];
-    const descriptions = [];
     for (const [slotIndex, slotData] of (character.buffChar ?? []).entries()) {
       for (const buffData of slotData.buffData ?? []) {
         const buff = buffs[buffData.buffId ?? ""];
@@ -3831,7 +3801,6 @@ function main() {
           missingBuffCount += 1;
           continue;
         }
-        descriptions.push(buff.description ?? "");
         const room = ROOM_TYPE_MAP[buff.roomType ?? ""];
         if (!room) continue;
         if (!OUTPUT_ROOMS.has(room)) {
@@ -3853,12 +3822,6 @@ function main() {
     byOperator.set(id, {
       name: character.name,
       rarity: rarityValue(character.rarity),
-      termKeys: operatorTermKeys(
-        character.name,
-        descriptions,
-        termDescriptions,
-        richTextStyles,
-      ),
       records,
     });
   }
@@ -3880,7 +3843,7 @@ function main() {
   };
 
   for (const [id, operator] of byOperator) {
-    const { name, rarity, termKeys, records } = operator;
+    const { name, rarity, records } = operator;
     const slotMap = new Map();
     records.forEach((record) => {
       const key = `${record.room}#${record.slot}`;
@@ -3930,8 +3893,6 @@ function main() {
       id,
       name,
       rarity,
-      termKeys,
-      terms: operatorTerms(termKeys, termDescriptions),
       chains,
     };
     fs.writeFileSync(
@@ -3945,6 +3906,18 @@ function main() {
   }
 
   fs.mkdirSync(PACKAGE_DATA_DIR, { recursive: true });
+  fs.writeFileSync(
+    path.join(PACKAGE_DATA_DIR, "terms.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: SCHEMA_VERSION,
+        terms: sharedTerms(termDescriptions, characterTable),
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
   const rulesetData = ruleset();
   fs.writeFileSync(
     path.join(PACKAGE_DATA_DIR, "ruleset.json"),
@@ -3960,6 +3933,7 @@ function main() {
         gameDataVersion: "torappu-latest",
         generatedAt: new Date().toISOString(),
         operators: "operators",
+        terms: "terms.json",
         ruleset: "ruleset.json",
       },
       null,

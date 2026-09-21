@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1039_thorn2",
   "name": "引星棘刺",
   "rarity": 6,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

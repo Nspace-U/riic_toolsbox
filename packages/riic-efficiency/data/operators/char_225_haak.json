@@ -1,23 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_225_haak",
   "name": "阿",
   "rarity": 6,
-  "termKeys": [
-    "cc.g.lda"
-  ],
-  "terms": {
-    "cc.g.lda": {
-      "name": "鲤氏侦探事务所",
-      "definition": "包含以下干员\n老鲤、阿、吽、槐琥",
-      "members": [
-        "老鲤",
-        "阿",
-        "吽",
-        "槐琥"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

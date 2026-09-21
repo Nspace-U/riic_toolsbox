@@ -33,7 +33,13 @@ async function loadRuntime() {
           readJson(path.join(packageRoot, "data", "operators", fileName)),
         ),
     );
-    const catalog = packageModule.createEfficiencyCatalog(skillFiles);
+    const termsData = await readJson(
+      path.join(packageRoot, "data", "terms.json"),
+    );
+    const catalog = packageModule.createEfficiencyCatalog(
+      skillFiles,
+      termsData.terms,
+    );
     function withSettings(document, options = {}) {
       return {
         ...document,
@@ -169,7 +175,6 @@ function catalogWithManufactureSkill(catalog, name, effects) {
         name,
         maxEliteLevel: 2,
         rarity: 1,
-        termKeys: [],
         skillFile,
         skillNames: ["测试技能"],
       },

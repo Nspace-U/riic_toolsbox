@@ -1,23 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4219_yukari",
   "name": "岳羽由加莉",
   "rarity": 5,
-  "termKeys": [
-    "cc.tag.sees"
-  ],
-  "terms": {
-    "cc.tag.sees": {
-      "name": "S.E.E.S.",
-      "definition": "包含以下干员\n结城理、埃癸斯、岳羽由加莉、虎狼丸",
-      "members": [
-        "结城理",
-        "埃癸斯",
-        "岳羽由加莉",
-        "虎狼丸"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

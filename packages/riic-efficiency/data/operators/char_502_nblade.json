@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_502_nblade",
   "name": "夜刀",
   "rarity": 2,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

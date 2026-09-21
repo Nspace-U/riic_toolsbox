@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_464_cement",
   "name": "洋灰",
   "rarity": 5,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

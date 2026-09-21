@@ -31,7 +31,7 @@
 - 已将无法稳定从描述推导的少量规则集中到人工覆盖表。
 - 已根据旧项目 Markdown 整理并确认效率计算基础规则：`docs/效率计算基础规则待核对.md`。
 - 效率计算数据和类型已迁移到 `packages/riic-efficiency`，宿主通过 `src/adapters/riicEfficiencyData.ts` 读取组件数据。
-- 干员技能 JSON 生成器已按效率组件交接契约为 `character_table.json` 中全部 429 名干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity`、`termKeys`、内嵌 `terms` 和 `chains`，只输出到 `packages/riic-efficiency/data/operators/`，加工站/训练室来源技能仍暂不解析，仅保留干员基础文档。
+- 干员技能 JSON 生成器已按效率组件交接契约为 `character_table.json` 中全部 429 名干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity` 和 `chains`，共享术语由源数据直接生成到 `packages/riic-efficiency/data/terms.json`，加工站/训练室来源技能仍暂不解析，仅保留干员基础文档。
 - 效率计算已拆为 `packages/riic-efficiency` 独立 ESM 组件，公共入口为 `src/index.ts`，构建输出 ESM 与声明文件；组件不读取浏览器数据，排班设置中的 `progressionProfile`、`treatSkillsAsUnlocked` 和 `dormitoryDefaultIncludesMoodRecovery` 由调用方直接放入 `schedule.settings`。
 - 组件数据目录同时输出版本化 `ruleset.json` 与 `manifest.json`；规则集参与基础效率、制造配方、贸易订单、容量、线索、招募标签和无人机计算，订单数量使用 `schedule.settings.tradeOrderCount`。
 - 当前项目所有效率计算直接调用 `@arknights/riic-efficiency` 公共 API；组件规则数据使用 `packages/riic-efficiency/data/ruleset.json`，宿主不再维护第二套效率逻辑或重复干员技能数据。

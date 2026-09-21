@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_179_cgbird",
   "name": "夜莺",
   "rarity": 6,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

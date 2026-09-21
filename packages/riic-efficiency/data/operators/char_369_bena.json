@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_369_bena",
   "name": "贝娜",
   "rarity": 5,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

@@ -21,7 +21,13 @@ const operatorFiles = await Promise.all(
       ),
     ),
 );
-const componentCatalog = packageModule.createEfficiencyCatalog(operatorFiles);
+const termsData = JSON.parse(
+  await readFile(path.join(packageRoot, "data", "terms.json"), "utf8"),
+);
+const componentCatalog = packageModule.createEfficiencyCatalog(
+  operatorFiles,
+  termsData.terms,
+);
 const vite = await createServer({
   root: projectRoot,
   server: { middlewareMode: true, hmr: false },
@@ -480,10 +486,10 @@ EXP 0
 
   const termFallbackCatalog = {
     operators: {
-      甲: { name: "甲", termKeys: ["term"] },
-      乙: { name: "乙", termKeys: ["term"] },
+      甲: { name: "甲" },
+      乙: { name: "乙" },
     },
-    terms: { term: { name: "术语", members: [] } },
+    terms: { term: { name: "术语", members: ["甲", "乙"] } },
   };
   assert.deepEqual(
     specialOperatorsModule.specialOperatorTermMembers(

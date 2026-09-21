@@ -22,11 +22,22 @@ const operatorFile = JSON.parse(
     "utf8",
   ),
 );
+const termsData = JSON.parse(
+  await readFile(
+    path.join(root, "packages", "riic-efficiency", "data", "terms.json"),
+    "utf8",
+  ),
+);
 
-assert.equal(operatorFile.terms["cc.g.lgd"].name, "龙门近卫局");
-assert.ok(operatorFile.terms["cc.g.lgd"].members.includes("陈"));
+assert.equal(operatorFile.terms, undefined);
+assert.equal(operatorFile.termKeys, undefined);
+assert.equal(termsData.terms["cc.g.lgd"].name, "龙门近卫局");
+assert.ok(termsData.terms["cc.g.lgd"].members.includes("陈"));
 
-const catalog = packageModule.createEfficiencyCatalog([operatorFile]);
+const catalog = packageModule.createEfficiencyCatalog(
+  [operatorFile],
+  termsData.terms,
+);
 const ruleset = {
   ...packageModule.DEFAULT_RULESET,
   baseEfficiency: {

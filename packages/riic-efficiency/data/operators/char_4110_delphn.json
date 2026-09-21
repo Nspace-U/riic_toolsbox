@@ -1,23 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4110_delphn",
   "name": "戴菲恩",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.glasgow"
-  ],
-  "terms": {
-    "cc.g.glasgow": {
-      "name": "格拉斯哥帮",
-      "definition": "包含以下干员\n推进之王、摩根、达格达、因陀罗",
-      "members": [
-        "推进之王",
-        "摩根",
-        "达格达",
-        "因陀罗"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

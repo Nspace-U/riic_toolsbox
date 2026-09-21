@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1032_excu2",
   "name": "圣约送葬人",
   "rarity": 6,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

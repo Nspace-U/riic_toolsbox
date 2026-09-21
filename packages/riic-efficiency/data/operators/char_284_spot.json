@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_284_spot",
   "name": "斑点",
   "rarity": 3,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 2,

@@ -1,24 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4066_highmo",
   "name": "海沫",
   "rarity": 5,
-  "termKeys": [
-    "cc.sk.manu2",
-    "cc.sk.manu3"
-  ],
-  "terms": {
-    "cc.sk.manu2": {
-      "name": "莱茵科技类技能",
-      "definition": "包含以下技能\n莱茵科技·α、莱茵科技·β、莱茵科技·γ",
-      "members": []
-    },
-    "cc.sk.manu3": {
-      "name": "红松骑士团类技能",
-      "definition": "包含以下技能\n红松骑士团·α、红松骑士团·β",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

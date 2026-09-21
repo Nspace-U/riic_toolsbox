@@ -1,42 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_474_glady",
   "name": "歌蕾蒂娅",
   "rarity": 6,
-  "termKeys": [
-    "cc.g.abyssal",
-    "cc.c.abyssal2_1",
-    "cc.c.abyssal2_3",
-    "cc.c.abyssal2_2"
-  ],
-  "terms": {
-    "cc.g.abyssal": {
-      "name": "深海猎人",
-      "definition": "包含以下干员\n歌蕾蒂娅、斯卡蒂、幽灵鲨、安哲拉、乌尔比安",
-      "members": [
-        "歌蕾蒂娅",
-        "斯卡蒂",
-        "幽灵鲨",
-        "安哲拉",
-        "乌尔比安"
-      ]
-    },
-    "cc.c.abyssal2_1": {
-      "name": "特殊加成",
-      "definition": "每有1个<$cc.g.abyssal><@cc.kw>深海猎人</></>干员进驻制造站，则控制中枢给每个进驻<$cc.g.abyssal><@cc.kw>深海猎人</></>的制造站提供<@cc.vup>5%</>生产力，最多给单个制造站提供<@cc.vup>45%</>生产力",
-      "members": []
-    },
-    "cc.c.abyssal2_3": {
-      "name": "特殊叠加规则",
-      "definition": "无法与<$cc.m.var2><@cc.rem>配合意识</></>进行叠加，且优先生效\n无法与<$cc.m.pow1><@cc.rem>自动化·α</></>、<$cc.m.pow2><@cc.rem>自动化·β</></>、<$cc.m.pow3><@cc.rem>仿生海龙</></>进行叠加，且清零效果优先生效",
-      "members": []
-    },
-    "cc.c.abyssal2_2": {
-      "name": "特殊加成",
-      "definition": "每有1个<$cc.g.abyssal><@cc.kw>深海猎人</></>干员进驻制造站，则控制中枢给每个进驻<$cc.g.abyssal><@cc.kw>深海猎人</></>的制造站提供<@cc.vup>10%</>生产力，最多给单个制造站提供<@cc.vup>90%</>生产力",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

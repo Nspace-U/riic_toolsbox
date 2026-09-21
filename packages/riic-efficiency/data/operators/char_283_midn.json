@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_283_midn",
   "name": "月见夜",
   "rarity": 3,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

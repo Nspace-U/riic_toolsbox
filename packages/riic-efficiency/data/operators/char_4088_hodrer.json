@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4088_hodrer",
   "name": "赫德雷",
   "rarity": 6,
-  "termKeys": [
-    "cc.c.room3"
-  ],
-  "terms": {
-    "cc.c.room3": {
-      "name": "工作场所",
-      "definition": "包含以下设施\n发电站、制造站、贸易站、人力办公室、会客室、控制中枢、训练室",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

@@ -1,25 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_341_sntlla",
   "name": "寒檀",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.sm"
-  ],
-  "terms": {
-    "cc.g.sm": {
-      "name": "萨米",
-      "definition": "包含以下干员\n远山、柏喙、雪绒、提丰、寒檀、凛视",
-      "members": [
-        "远山",
-        "柏喙",
-        "雪绒",
-        "提丰",
-        "寒檀",
-        "凛视"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

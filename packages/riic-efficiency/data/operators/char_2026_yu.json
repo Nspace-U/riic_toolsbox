@@ -1,32 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_2026_yu",
   "name": "余",
   "rarity": 6,
-  "termKeys": [
-    "cc.g.sui",
-    "cc.bd_b1"
-  ],
-  "terms": {
-    "cc.g.sui": {
-      "name": "岁",
-      "definition": "包含以下干员\n年、夕、令、重岳、黍、余、望",
-      "members": [
-        "年",
-        "夕",
-        "令",
-        "重岳",
-        "黍",
-        "余",
-        "望"
-      ]
-    },
-    "cc.bd_b1": {
-      "name": "人间烟火",
-      "definition": "可影响<$cc.bd_C><@cc.rem>巫术结晶</></>相关技能\n由以下干员的基建技能提供\n夕、令、重岳、乌有、桑葚",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

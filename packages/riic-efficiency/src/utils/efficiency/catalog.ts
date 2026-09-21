@@ -43,26 +43,22 @@ function skillNames(file: OperatorSkillFile | undefined): string[] {
 
 export function createEfficiencyCatalog(
   files: readonly OperatorSkillFile[],
-  terms: Record<string, EfficiencyTerm> = {},
+  terms: Record<string, EfficiencyTerm>,
 ): EfficiencyCatalog {
   const byName: Record<string, EfficiencyOperator> = {};
-  const fileTerms: Record<string, EfficiencyTerm> = {};
   files.forEach((skillFile) => {
-    const termKeys = skillFile.termKeys ?? Object.keys(skillFile.terms ?? {});
-    Object.assign(fileTerms, skillFile.terms ?? {});
     byName[skillFile.name] = {
       id: skillFile.id,
       name: skillFile.name,
       maxEliteLevel: maxEliteLevelForRarity(skillFile.rarity ?? 0),
       rarity: skillFile.rarity ?? 0,
-      termKeys,
       skillFile,
       skillNames: skillNames(skillFile),
     };
   });
   return {
     operators: byName,
-    terms: normalizeTerms({ ...terms, ...fileTerms }),
+    terms: normalizeTerms(terms),
   };
 }
 
@@ -85,12 +81,7 @@ export function groupMembers(
     return [];
   }
   const members = catalog.terms[group]?.members ?? [];
-  if (members.length > 0) {
-    return members;
-  }
-  return Object.values(catalog.operators)
-    .filter((operator) => operator.termKeys.includes(group))
-    .map((operator) => operator.name);
+  return members;
 }
 
 export function hasGroupMember(

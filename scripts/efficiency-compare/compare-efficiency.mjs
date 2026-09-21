@@ -334,9 +334,12 @@ async function loadNewRuntime() {
         readJson(path.join(packageRoot, "data", "operators", fileName)),
       ),
   );
+  const termsData = await readJson(
+    path.join(packageRoot, "data", "terms.json"),
+  );
   return {
     calculateEfficiency: packageModule.calculateEfficiency,
-    catalog: packageModule.createEfficiencyCatalog(skillFiles),
+    catalog: packageModule.createEfficiencyCatalog(skillFiles, termsData.terms),
     close: () => {},
   };
 }

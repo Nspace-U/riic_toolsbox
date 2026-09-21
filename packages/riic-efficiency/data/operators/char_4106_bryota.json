@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4106_bryota",
   "name": "苍苔",
   "rarity": 5,
-  "termKeys": [
-    "cc.sk.manu4"
-  ],
-  "terms": {
-    "cc.sk.manu4": {
-      "name": "金属工艺类技能",
-      "definition": "包含以下技能\n金属工艺·α、金属工艺·β",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

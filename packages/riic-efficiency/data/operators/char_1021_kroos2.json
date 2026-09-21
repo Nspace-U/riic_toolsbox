@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1021_kroos2",
   "name": "寒芒克洛丝",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.sp"
-  ],
-  "terms": {
-    "cc.g.sp": {
-      "name": "异格",
-      "definition": "包含所有异格干员",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

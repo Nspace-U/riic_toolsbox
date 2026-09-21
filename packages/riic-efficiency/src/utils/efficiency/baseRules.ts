@@ -187,7 +187,7 @@ export const TAILOR_PROBABILITIES: Record<string, number[]> = {
 };
 
 export const DEFAULT_RULESET: EfficiencyRuleset = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   version: "arknights-riic-2026-09",
   defaultDurationMinutes: 720,
   powerOutputPerHour: 10,

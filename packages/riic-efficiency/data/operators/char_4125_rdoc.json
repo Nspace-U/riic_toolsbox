@@ -1,38 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4125_rdoc",
   "name": "医生",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.Defence",
-    "cc.g.R6"
-  ],
-  "terms": {
-    "cc.g.Defence": {
-      "name": "防守方",
-      "definition": "包含以下干员\n战车、霜华、艾拉、医生",
-      "members": [
-        "战车",
-        "霜华",
-        "艾拉",
-        "医生"
-      ]
-    },
-    "cc.g.R6": {
-      "name": "彩虹小队",
-      "definition": "包含以下干员\n灰烬、战车、闪击、霜华、艾拉、医生、双月、导火索",
-      "members": [
-        "灰烬",
-        "战车",
-        "闪击",
-        "霜华",
-        "艾拉",
-        "医生",
-        "双月",
-        "导火索"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 2,

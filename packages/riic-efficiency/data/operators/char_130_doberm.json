@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_130_doberm",
   "name": "杜宾",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

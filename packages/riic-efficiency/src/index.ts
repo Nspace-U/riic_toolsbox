@@ -83,6 +83,7 @@ export type {
   EfficiencyCatalog,
   EfficiencyEffect,
   EfficiencyTerm,
+  EfficiencyTermsFile,
   EfficiencyResult,
   FacilityEfficiencyResult,
   OperatorSkillFile,

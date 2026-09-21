@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_210_stward",
   "name": "史都华德",
   "rarity": 3,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

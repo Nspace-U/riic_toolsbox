@@ -23,7 +23,7 @@ npm run generate:operator-skills
 
 旧项目的 CSV、`ctrl-skill-map.js`、旧项目 `index.json` 均不参与运行。
 
-输出目录为组件数据目录 `packages/riic-efficiency/data/operators/`。每名干员生成一个 `{干员ID}.json`，不生成 `index.json`。再次生成时会清理该目录中的 JSON 后重建。
+输出目录为组件数据目录 `packages/riic-efficiency/data/`。每名干员生成一个 `operators/{干员ID}.json`，并从源数据直接生成共享的 `terms.json`，不生成 `index.json`。再次生成时会清理 operators 目录中的 JSON 后重建。
 
 加工站和训练室技能作为**来源房间**暂不解析，也不会为此输出警告；只有这类技能的干员仍会生成包含基础信息的空 `chains`。控制中枢技能跨设施作用到训练室的效果可以保留在 JSON 中，供未来训练室模块使用。
 
@@ -31,12 +31,10 @@ npm run generate:operator-skills
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4064_mlynar",
   "name": "玛恩纳",
   "rarity": 6,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 2,
@@ -57,13 +55,32 @@ npm run generate:operator-skills
 
 | 字段            | 类型   | 说明                                       |
 | --------------- | ------ | ------------------------------------------ |
-| `schemaVersion` | number | 数据契约版本，当前为 `1`                   |
+| `schemaVersion` | number | 数据契约版本，当前为 `2`                   |
 | `id`            | string | Torappu 干员 ID，例如 `char_4064_mlynar`   |
 | `name`          | string | 干员中文名，仅用于展示和人工阅读           |
 | `rarity`        | number | 干员稀有度，范围为 `1` 到 `6`              |
-| `termKeys`      | array  | 干员所属术语 key 列表                      |
-| `terms`         | object | 当前干员引用的术语名称、定义和可解析成员   |
 | `chains`        | array  | 技能链列表。每个 `(room, slot)` 对应一条链 |
+
+术语统一存储在同一数据目录下的 `terms.json`，不重复写入干员 JSON。技能效果中的 `term` 仍然保留，用于引用共享术语。
+
+## 2.4 共享术语文件
+
+`terms.json` 由生成器直接读取 `gamedata_const.json.termDescriptionDict` 生成，不读取已经生成的干员 JSON。
+
+```json
+{
+  "schemaVersion": 2,
+  "terms": {
+    "cc.g.sargon": {
+      "name": "萨尔贡",
+      "definition": "包含以下干员\n钼铅、菲莱、至简",
+      "members": ["钼铅", "菲莱", "至简"]
+    }
+  }
+}
+```
+
+术语描述中的干员、技能和设施列表会生成到 `members`。动态术语（例如“包含所有异格干员”）由生成器结合源数据展开。没有成员列表的术语仍然保留，因为技能效果可能直接引用它们。
 
 ### 2.2 chain 字段
 
@@ -394,6 +411,8 @@ npm run generate:operator-skills
 
 - 退出码为 0，警告为 0；
 - 输出目录存在当前快照全部干员 JSON（本快照为 429 个，数量随快照变化）；
+- `packages/riic-efficiency/data/terms.json` 存在且由源数据直接生成；
+- 干员 JSON 不包含顶层 `terms` 或 `termKeys`；
 - 不存在 `packages/riic-efficiency/data/operators/index.json`；
 - 来源 `room` 不包含 `processing` 或 `training`；
 - `moodCheck` 只来自 `public/skill-mood-check.json`；

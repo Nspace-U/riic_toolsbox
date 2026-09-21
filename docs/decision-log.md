@@ -1005,3 +1005,10 @@
 - **图片边界**：参考页复用模拟器图片导出的 DOM 预览，不生成或持久化 PNG，统一使用 `1920×1080` 逻辑画布；模拟器原有 PNG 下载仍保留。
 - **性能策略**：参考页使用单个隐藏的只读模拟器渲染源，预览卡片通过 `IntersectionObserver` 按可见范围串行生成；排班表更新只使对应预览失效，离开视口后清理预览 DOM，避免一次性挂载所有排班表的完整布局。
 - **验证**：`npm run lint`、`npm run type-check`、`npm run build`、`npm run test:schedule-list`、`npm run test:simulator-layout`、`npm run test:simulator-result` 和 `git diff --check` 通过；浏览器回放确认参考页预览显示、路由参数跳转和模拟器目标排班表选中，控制台无错误。
+
+## 2026-09-21：将效率术语目录独立为共享数据
+
+- **决定**：干员技能 JSON 不再保存顶层 `terms` 或 `termKeys`；生成器直接从 `gamedata_const.json.termDescriptionDict` 生成 `packages/riic-efficiency/data/terms.json`，组件通过 `createEfficiencyCatalog(operatorFiles, terms)` 接收共享术语目录。
+- **成员解析**：术语描述中的干员、技能和设施列表写入 `members`；“包含所有异格干员”使用 `character_table.json` 的 `isSpChar` 展开。技能效果内部的 `term` 引用继续保留。
+- **影响范围**：组件目录不再从干员文件回退合并术语，宿主和基础数据展示统一读取共享术语文件，数据清单增加 `terms` 路径，契约版本升级为 `2`。
+- **验证**：429 个干员 JSON 均无顶层 `terms` / `termKeys`；生成器、组件包、效率、排班导入、lint、类型检查、构建、Prettier 和 `git diff --check` 通过。

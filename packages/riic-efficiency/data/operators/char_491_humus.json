@@ -1,9 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_491_humus",
   "name": "休谟斯",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": []
 }

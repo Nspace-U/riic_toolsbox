@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1024_hbisc2",
   "name": "濯尘芙蓉",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.sp"
-  ],
-  "terms": {
-    "cc.g.sp": {
-      "name": "异格",
-      "definition": "包含所有异格干员",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

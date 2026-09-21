@@ -1,23 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4164_tecno",
   "name": "特克诺",
   "rarity": 5,
-  "termKeys": [
-    "cc.tag.durin"
-  ],
-  "terms": {
-    "cc.tag.durin": {
-      "name": "杜林族",
-      "definition": "包含以下干员\n至简、桃金娘、褐果、杜林、特克诺",
-      "members": [
-        "至简",
-        "桃金娘",
-        "褐果",
-        "杜林",
-        "特克诺"
-      ]
-    }
-  },
   "chains": []
 }

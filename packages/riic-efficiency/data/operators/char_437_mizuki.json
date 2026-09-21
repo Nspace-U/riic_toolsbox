@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_437_mizuki",
   "name": "水月",
   "rarity": 6,
-  "termKeys": [
-    "cc.sk.manu1"
-  ],
-  "terms": {
-    "cc.sk.manu1": {
-      "name": "标准化类技能",
-      "definition": "包含以下技能\n标准化·α、标准化·β",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

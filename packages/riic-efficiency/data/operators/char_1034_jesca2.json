@@ -1,25 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1034_jesca2",
   "name": "涤火杰西卡",
   "rarity": 6,
-  "termKeys": [
-    "cc.g.bs"
-  ],
-  "terms": {
-    "cc.g.bs": {
-      "name": "黑钢国际",
-      "definition": "包含以下干员\n雷蛇、芙兰卡、杰西卡、香草、杏仁、寻澜",
-      "members": [
-        "雷蛇",
-        "芙兰卡",
-        "杰西卡",
-        "香草",
-        "杏仁",
-        "寻澜"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

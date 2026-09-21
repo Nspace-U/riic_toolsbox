@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_258_podego",
   "name": "波登可",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

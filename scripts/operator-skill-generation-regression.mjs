@@ -11,6 +11,26 @@ const skillRoot = path.join(
   "data",
   "operators",
 );
+const termsData = JSON.parse(
+  await readFile(
+    path.join(projectRoot, "packages", "riic-efficiency", "data", "terms.json"),
+    "utf8",
+  ),
+);
+const gamedataConst = JSON.parse(
+  await readFile(
+    path.join(
+      projectRoot,
+      "public",
+      "assets",
+      "gamedata",
+      "latest",
+      "excel",
+      "gamedata_const.json",
+    ),
+    "utf8",
+  ),
+);
 const characterTable = JSON.parse(
   await readFile(
     path.join(
@@ -35,6 +55,20 @@ const actualOperatorIds = (await readdir(skillRoot))
   .map((fileName) => fileName.slice(0, -5))
   .sort();
 assert.deepEqual(actualOperatorIds, expectedOperatorIds);
+assert.equal(termsData.schemaVersion, 2);
+assert.deepEqual(
+  Object.keys(termsData.terms).sort(),
+  Object.keys(gamedataConst.termDescriptionDict).sort(),
+);
+assert.deepEqual(
+  termsData.terms["cc.g.sp"].members,
+  Object.entries(characterTable)
+    .filter(
+      ([id, character]) =>
+        id.startsWith("char_") && character?.name && character.isSpChar,
+    )
+    .map(([, character]) => character.name),
+);
 
 const cases = [
   ["char_010_chen", "德才兼备", "cc.g.lgd"],
@@ -53,13 +87,13 @@ for (const [id, skillName, group] of cases) {
   const file = JSON.parse(
     await readFile(path.join(skillRoot, `${id}.json`), "utf8"),
   );
-  assert.equal(file.schemaVersion, 1, `${id} schema version`);
+  assert.equal(file.schemaVersion, 2, `${id} schema version`);
   assert.equal(typeof file.rarity, "number", `${id} rarity`);
-  assert.ok(Array.isArray(file.termKeys), `${id} term keys`);
-  assert.ok(file.termKeys.includes(group), `${id} term key`);
-  assert.equal(typeof file.terms[group].name, "string", `${id} term name`);
+  assert.equal(file.terms, undefined, `${id} embedded terms`);
+  assert.equal(file.termKeys, undefined, `${id} term keys`);
+  assert.equal(typeof termsData.terms[group].name, "string", `${id} term name`);
   assert.equal(
-    typeof file.terms[group].definition,
+    typeof termsData.terms[group].definition,
     "string",
     `${id} term definition`,
   );

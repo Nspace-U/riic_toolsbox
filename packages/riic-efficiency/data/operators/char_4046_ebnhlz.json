@@ -1,24 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4046_ebnhlz",
   "name": "黑键",
   "rarity": 6,
-  "termKeys": [
-    "cc.bd_a1",
-    "cc.bd_B"
-  ],
-  "terms": {
-    "cc.bd_a1": {
-      "name": "感知信息",
-      "definition": "可影响<$cc.bd_A><@cc.rem>思维链环</></>、<$cc.bd_B><@cc.rem>无声共鸣</></>相关变量\n由以下干员的基建技能提供\n迷迭香、黑键、夕、令、絮雨、爱丽丝、车尔尼",
-      "members": []
-    },
-    "cc.bd_B": {
-      "name": "无声共鸣",
-      "definition": "可影响<$cc.bd_B_1><@cc.rem>徘徊旋律</></>、<$cc.bd_B_2><@cc.rem>怅惘和声</></>、<$cc.bd_B_3><@cc.rem>无词颂歌</></>相关技能\n由以下干员的基建技能提供\n黑键、塑心、深律",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

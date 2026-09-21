@@ -1,9 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4165_ctrail",
   "name": "云迹",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": []
 }

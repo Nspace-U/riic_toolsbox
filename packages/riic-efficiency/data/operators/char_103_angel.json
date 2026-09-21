@@ -1,21 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_103_angel",
   "name": "能天使",
   "rarity": 6,
-  "termKeys": [
-    "cc.angel"
-  ],
-  "terms": {
-    "cc.angel": {
-      "name": "能天使",
-      "definition": "包含以下干员\n新约能天使、能天使",
-      "members": [
-        "新约能天使",
-        "能天使"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

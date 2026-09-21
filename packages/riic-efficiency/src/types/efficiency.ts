@@ -175,8 +175,6 @@ export interface OperatorSkillFile {
   id: string;
   name: string;
   rarity?: number;
-  termKeys?: string[];
-  terms?: Record<string, EfficiencyTerm>;
   chains: EfficiencySkillChain[];
 }
 
@@ -185,7 +183,6 @@ export interface EfficiencyOperator {
   name: string;
   maxEliteLevel?: EliteLevel;
   rarity: number;
-  termKeys: string[];
   skillFile?: OperatorSkillFile;
   skillNames?: string[];
 }
@@ -200,6 +197,11 @@ export interface EfficiencyTerm {
   name?: string;
   members?: string[];
   definition?: string;
+}
+
+export interface EfficiencyTermsFile {
+  schemaVersion?: number;
+  terms: Record<string, EfficiencyTerm>;
 }
 
 export interface EfficiencyCatalog {

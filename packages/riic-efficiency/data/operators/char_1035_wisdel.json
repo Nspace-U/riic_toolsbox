@@ -1,24 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1035_wisdel",
   "name": "维什戴尔",
   "rarity": 6,
-  "termKeys": [
-    "cc.c.room2",
-    "cc.c.sui2_1"
-  ],
-  "terms": {
-    "cc.c.room2": {
-      "name": "其他设施",
-      "definition": "包含以下设施\n发电站、制造站、贸易站、人力办公室、会客室",
-      "members": []
-    },
-    "cc.c.sui2_1": {
-      "name": "特殊比较规则",
-      "definition": "在<@cc.kw>公事公办</>，<@cc.kw>孤光共照</>，<@cc.kw>巴别塔之帜</>提供的<$cc.c.room2><@cc.kw>其他设施</></>每小时心情恢复值中取最高生效",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

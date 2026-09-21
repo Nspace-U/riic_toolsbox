@@ -1,9 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4130_luton",
   "name": "露托",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": []
 }

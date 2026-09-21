@@ -1,5 +1,6 @@
 import { ref } from "vue";
 
+import { getRiicEfficiencyTerms } from "@/adapters/riicEfficiencyData";
 import type {
   BaseData,
   BaseDataMetadata,
@@ -85,17 +86,7 @@ async function fetchTorappuData(): Promise<BaseData> {
         "物品数据",
       ),
     ]);
-  const terms: BaseSkillTerms = Object.fromEntries(
-    Object.entries(gamedataConst.termDescriptionDict ?? {}).map(
-      ([key, term]) => [
-        key,
-        {
-          name: term.termName ?? key,
-          ...(term.description ? { definition: term.description } : {}),
-        },
-      ],
-    ),
-  );
+  const terms: BaseSkillTerms = getRiicEfficiencyTerms();
 
   return {
     operators: parseTorappuData(

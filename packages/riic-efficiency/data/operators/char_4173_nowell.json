@@ -1,9 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4173_nowell",
   "name": "诺威尔",
   "rarity": 5,
-  "termKeys": [],
-  "terms": {},
   "chains": []
 }

@@ -1,34 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_271_spikes",
   "name": "芳汀",
   "rarity": 4,
-  "termKeys": [
-    "cc.g.laterano"
-  ],
-  "terms": {
-    "cc.g.laterano": {
-      "name": "拉特兰",
-      "definition": "包含以下干员\n翎羽、安德切尔、送葬人、莫斯提马、安比尔、芳汀、空弦、菲亚梅塔、见行者、空构、隐现、塑心、蕾缪安、信仰搅拌机、CONFESS-47",
-      "members": [
-        "翎羽",
-        "安德切尔",
-        "送葬人",
-        "莫斯提马",
-        "安比尔",
-        "芳汀",
-        "空弦",
-        "菲亚梅塔",
-        "见行者",
-        "空构",
-        "隐现",
-        "塑心",
-        "蕾缪安",
-        "信仰搅拌机",
-        "CONFESS-47"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 2,

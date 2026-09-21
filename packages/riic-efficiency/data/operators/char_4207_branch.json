@@ -1,9 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4207_branch",
   "name": "折桠",
   "rarity": 5,
-  "termKeys": [],
-  "terms": {},
   "chains": []
 }

@@ -1,18 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_1011_lava2",
   "name": "炎狱炎熔",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.sp"
-  ],
-  "terms": {
-    "cc.g.sp": {
-      "name": "异格",
-      "definition": "包含所有异格干员",
-      "members": []
-    }
-  },
   "chains": [
     {
       "slot": 1,

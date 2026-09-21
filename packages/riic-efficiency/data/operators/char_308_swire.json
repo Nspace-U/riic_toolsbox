@@ -1,22 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_308_swire",
   "name": "诗怀雅",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.lgd"
-  ],
-  "terms": {
-    "cc.g.lgd": {
-      "name": "龙门近卫局",
-      "definition": "包含以下干员\n陈、星熊、诗怀雅",
-      "members": [
-        "陈",
-        "星熊",
-        "诗怀雅"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,

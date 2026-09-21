@@ -1,10 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_4063_quartz",
   "name": "石英",
   "rarity": 4,
-  "termKeys": [],
-  "terms": {},
   "chains": [
     {
       "slot": 1,

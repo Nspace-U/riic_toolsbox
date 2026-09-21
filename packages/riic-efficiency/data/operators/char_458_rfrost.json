@@ -1,50 +1,8 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "char_458_rfrost",
   "name": "霜华",
   "rarity": 5,
-  "termKeys": [
-    "cc.g.R6",
-    "cc.bd_ash",
-    "cc.bd_tachanka",
-    "cc.g.Defence"
-  ],
-  "terms": {
-    "cc.g.R6": {
-      "name": "彩虹小队",
-      "definition": "包含以下干员\n灰烬、战车、闪击、霜华、艾拉、医生、双月、导火索",
-      "members": [
-        "灰烬",
-        "战车",
-        "闪击",
-        "霜华",
-        "艾拉",
-        "医生",
-        "双月",
-        "导火索"
-      ]
-    },
-    "cc.bd_ash": {
-      "name": "情报储备",
-      "definition": "由以下干员的基建技能提供\n灰烬",
-      "members": []
-    },
-    "cc.bd_tachanka": {
-      "name": "乌萨斯特饮",
-      "definition": "由以下干员的基建技能提供\n战车",
-      "members": []
-    },
-    "cc.g.Defence": {
-      "name": "防守方",
-      "definition": "包含以下干员\n战车、霜华、艾拉、医生",
-      "members": [
-        "战车",
-        "霜华",
-        "艾拉",
-        "医生"
-      ]
-    }
-  },
   "chains": [
     {
       "slot": 1,
