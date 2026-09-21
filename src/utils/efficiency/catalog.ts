@@ -48,6 +48,12 @@ export function createEfficiencyCatalog(
   terms: BaseSkillTerms | Record<string, EfficiencyTerm> = {},
 ): EfficiencyCatalog {
   const byName: Record<string, EfficiencyOperator> = {};
+  const skillTerms = Object.values(skillFiles).reduce<
+    Record<string, EfficiencyTerm>
+  >((result, skillFile) => {
+    Object.assign(result, skillFile?.terms ?? {});
+    return result;
+  }, {});
   operators.forEach((operator) => {
     const skillFile = skillFiles[operator.id];
     byName[operator.name] = {
@@ -60,7 +66,10 @@ export function createEfficiencyCatalog(
       skillNames: skillNames(skillFile),
     };
   });
-  return { operators: byName, terms: normalizeTerms(terms) };
+  return {
+    operators: byName,
+    terms: normalizeTerms({ ...terms, ...skillTerms }),
+  };
 }
 
 export async function loadEfficiencyCatalog(

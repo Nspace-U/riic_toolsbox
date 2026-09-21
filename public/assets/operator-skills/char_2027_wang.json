@@ -8,6 +8,31 @@
     "cc.bd_wang_2",
     "cc.g.sui"
   ],
+  "terms": {
+    "cc.bd_wang_1": {
+      "name": "外势",
+      "definition": "由以下干员的基建技能提供\n望\n每有一间贸易站、发电站，外势+1",
+      "members": []
+    },
+    "cc.bd_wang_2": {
+      "name": "实地",
+      "definition": "由以下干员的基建技能提供\n望\n每有一间制造站，实地+1",
+      "members": []
+    },
+    "cc.g.sui": {
+      "name": "岁",
+      "definition": "包含以下干员\n年、夕、令、重岳、黍、余、望",
+      "members": [
+        "年",
+        "夕",
+        "令",
+        "重岳",
+        "黍",
+        "余",
+        "望"
+      ]
+    }
+  },
   "chains": [
     {
       "slot": 1,

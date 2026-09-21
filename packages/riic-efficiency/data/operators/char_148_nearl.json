@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "char_148_nearl",
+  "name": "临光",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
+  "terms": {
+    "cc.tag.knight": {
+      "name": "骑士",
+      "definition": "包含以下干员\n耀骑士临光、临光、瑕光、鞭刃、焰尾、远牙、灰毫、野鬃、正义骑士号、砾、薇薇安娜",
+      "members": [
+        "耀骑士临光",
+        "临光",
+        "瑕光",
+        "鞭刃",
+        "焰尾",
+        "远牙",
+        "灰毫",
+        "野鬃",
+        "正义骑士号",
+        "砾",
+        "薇薇安娜"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "左膀右臂",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "value": 0.05,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "使徒",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.25,
+              "scope": "self"
+            },
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.5,
+              "scope": "room",
+              "other": true,
+              "subjects": "single",
+              "stack": "max",
+              "maxGroup": "dormRec-single"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

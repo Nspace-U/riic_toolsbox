@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "char_197_poca",
+  "name": "早露",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
+  "terms": {
+    "cc.g.ussg": {
+      "name": "乌萨斯学生自治团",
+      "definition": "包含以下干员\n早露、凛冬、真理、古米、烈夏、苦艾",
+      "members": [
+        "早露",
+        "凛冬",
+        "真理",
+        "古米",
+        "烈夏",
+        "苦艾"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "学生会会长",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "scope": "room",
+              "per": {
+                "per": 1,
+                "value": 0.05,
+                "source": "opGroupInFacility",
+                "group": "cc.g.ussg",
+                "facility": "same"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "hire",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "人望",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得线索4",
+              "cluePreference": 4
+            },
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

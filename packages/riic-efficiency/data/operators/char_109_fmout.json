@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "char_109_fmout",
+  "name": "远山",
+  "rarity": 4,
+  "termKeys": [
+    "cc.g.sm"
+  ],
+  "terms": {
+    "cc.g.sm": {
+      "name": "萨米",
+      "definition": "包含以下干员\n远山、柏喙、雪绒、提丰、寒檀、凛视",
+      "members": [
+        "远山",
+        "柏喙",
+        "雪绒",
+        "提丰",
+        "寒檀",
+        "凛视"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "供应管理",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 25
+            },
+            {
+              "target": "trading",
+              "stat": "orderLimit",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 1
+          },
+          "name": "占卜",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 25
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

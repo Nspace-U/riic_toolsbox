@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "id": "char_2025_shu",
+  "name": "黍",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_b1",
+    "cc.g.sui"
+  ],
+  "terms": {
+    "cc.bd_b1": {
+      "name": "人间烟火",
+      "definition": "可影响<$cc.bd_C><@cc.rem>巫术结晶</></>相关技能\n由以下干员的基建技能提供\n夕、令、重岳、乌有、桑葚",
+      "members": []
+    },
+    "cc.g.sui": {
+      "name": "岁",
+      "definition": "包含以下干员\n年、夕、令、重岳、黍、余、望",
+      "members": [
+        "年",
+        "夕",
+        "令",
+        "重岳",
+        "黍",
+        "余",
+        "望"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "春雷响，万物长",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "moodCost",
+              "value": -0.1,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "稻禾厚，顺秋收",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "per": {
+                "per": 3,
+                "value": 1,
+                "source": "basePoint",
+                "term": "cc.bd_b1"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

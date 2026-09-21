@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "char_218_cuttle",
+  "name": "安哲拉",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.abyssal"
+  ],
+  "terms": {
+    "cc.g.abyssal": {
+      "name": "深海猎人",
+      "definition": "包含以下干员\n歌蕾蒂娅、斯卡蒂、幽灵鲨、安哲拉、乌尔比安",
+      "members": [
+        "歌蕾蒂娅",
+        "斯卡蒂",
+        "幽灵鲨",
+        "安哲拉",
+        "乌尔比安"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "独处",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.7,
+              "scope": "self"
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "麻烦回避者",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.85,
+              "scope": "self"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "char_1027_greyy2",
+  "name": "承曦格雷伊",
+  "rarity": 5,
+  "termKeys": [
+    "cc.tag.op"
+  ],
+  "terms": {
+    "cc.tag.op": {
+      "name": "作业平台",
+      "definition": "包含以下干员\nLancet-2、Castle-3、THRM-EX、正义骑士号、Friston-3、PhonoR-0、CONFESS-47、GALLUS²",
+      "members": [
+        "Lancet-2",
+        "Castle-3",
+        "THRM-EX",
+        "正义骑士号",
+        "Friston-3",
+        "PhonoR-0",
+        "CONFESS-47",
+        "GALLUS²"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "power",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "巡线框架",
+          "effects": [
+            {
+              "target": "power",
+              "stat": "droneCharge",
+              "per": {
+                "per": 10,
+                "value": 1,
+                "cap": 25,
+                "capUnit": "value",
+                "source": "droneLimit"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "power",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "晨曦",
+          "effects": [
+            {
+              "target": "power",
+              "stat": "facilityCount",
+              "value": 1,
+              "condition": {
+                "type": "opGroupNotInFacility",
+                "group": "cc.tag.op",
+                "facility": "power",
+                "other": true,
+                "moodCheck": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

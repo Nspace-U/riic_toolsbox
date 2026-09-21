@@ -6,6 +6,22 @@
   "termKeys": [
     "cc.tag.op"
   ],
+  "terms": {
+    "cc.tag.op": {
+      "name": "作业平台",
+      "definition": "包含以下干员\nLancet-2、Castle-3、THRM-EX、正义骑士号、Friston-3、PhonoR-0、CONFESS-47、GALLUS²",
+      "members": [
+        "Lancet-2",
+        "Castle-3",
+        "THRM-EX",
+        "正义骑士号",
+        "Friston-3",
+        "PhonoR-0",
+        "CONFESS-47",
+        "GALLUS²"
+      ]
+    }
+  },
   "chains": [
     {
       "slot": 1,

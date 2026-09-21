@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4140_lasher",
+  "name": "衡沙",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.sargon"
+  ],
+  "terms": {
+    "cc.g.sargon": {
+      "name": "萨尔贡",
+      "definition": "包含以下干员\n钼铅、菲莱、佩佩、娜仁图亚、衡沙、莎草、红隼、铅踝、图耶、泡泡、森蚺、燧石、特米米、蜜蜡、稀音、慑砂、狮蝎、异客、艾丝黛尔、至简、哈蒂娅、缇缇",
+      "members": [
+        "钼铅",
+        "菲莱",
+        "佩佩",
+        "娜仁图亚",
+        "衡沙",
+        "莎草",
+        "红隼",
+        "铅踝",
+        "图耶",
+        "泡泡",
+        "森蚺",
+        "燧石",
+        "特米米",
+        "蜜蜡",
+        "稀音",
+        "慑砂",
+        "狮蝎",
+        "异客",
+        "艾丝黛尔",
+        "至简",
+        "哈蒂娅",
+        "缇缇"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "订单分发·α",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "大巴扎管理学",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 30
+            },
+            {
+              "target": "trading",
+              "stat": "orderLimit",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

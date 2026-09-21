@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "id": "char_420_flamtl",
+  "name": "焰尾",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.psk",
+    "cc.tag.knight"
+  ],
+  "terms": {
+    "cc.g.psk": {
+      "name": "红松骑士团",
+      "definition": "包含以下干员\n焰尾、远牙、灰毫、野鬃、正义骑士号",
+      "members": [
+        "焰尾",
+        "远牙",
+        "灰毫",
+        "野鬃",
+        "正义骑士号"
+      ]
+    },
+    "cc.tag.knight": {
+      "name": "骑士",
+      "definition": "包含以下干员\n耀骑士临光、临光、瑕光、鞭刃、焰尾、远牙、灰毫、野鬃、正义骑士号、砾、薇薇安娜",
+      "members": [
+        "耀骑士临光",
+        "临光",
+        "瑕光",
+        "鞭刃",
+        "焰尾",
+        "远牙",
+        "灰毫",
+        "野鬃",
+        "正义骑士号",
+        "砾",
+        "薇薇安娜"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "小小的领袖",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "value": 0.05,
+              "scope": "room"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "红松的骑士",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "recipe": "作战记录",
+              "per": {
+                "per": 1,
+                "value": 10,
+                "source": "opGroupInFacility",
+                "group": "cc.g.psk",
+                "facility": "same"
+              }
+            },
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "recipe": "贵金属",
+              "per": {
+                "per": 1,
+                "value": -10,
+                "source": "opGroupInFacility",
+                "group": "cc.g.psk",
+                "facility": "same"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "char_206_gnosis",
+  "name": "灵知",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.karlan"
+  ],
+  "terms": {
+    "cc.g.karlan": {
+      "name": "谢拉格",
+      "definition": "包含以下干员\n银灰、灵知、初雪、崖心、角峰、讯使、耶拉、极光、锏、雪猎",
+      "members": [
+        "银灰",
+        "灵知",
+        "初雪",
+        "崖心",
+        "角峰",
+        "讯使",
+        "耶拉",
+        "极光",
+        "锏",
+        "雪猎"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "幕后指挥",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodRecover",
+              "scope": "room",
+              "per": {
+                "per": 1,
+                "value": 0.05,
+                "source": "opGroupInFacility",
+                "group": "cc.g.karlan",
+                "facility": "same"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "精密计算",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 1,
+                "value": -15,
+                "source": "opGroupInFacility",
+                "group": "cc.g.karlan",
+                "facility": "same",
+                "moodCheck": true
+              }
+            },
+            {
+              "target": "trading",
+              "stat": "orderLimit",
+              "per": {
+                "per": 1,
+                "value": 6,
+                "source": "opGroupInFacility",
+                "group": "cc.g.karlan",
+                "facility": "same",
+                "moodCheck": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

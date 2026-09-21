@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4046_ebnhlz",
+  "name": "黑键",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_a1",
+    "cc.bd_B"
+  ],
+  "terms": {
+    "cc.bd_a1": {
+      "name": "感知信息",
+      "definition": "可影响<$cc.bd_A><@cc.rem>思维链环</></>、<$cc.bd_B><@cc.rem>无声共鸣</></>相关变量\n由以下干员的基建技能提供\n迷迭香、黑键、夕、令、絮雨、爱丽丝、车尔尼",
+      "members": []
+    },
+    "cc.bd_B": {
+      "name": "无声共鸣",
+      "definition": "可影响<$cc.bd_B_1><@cc.rem>徘徊旋律</></>、<$cc.bd_B_2><@cc.rem>怅惘和声</></>、<$cc.bd_B_3><@cc.rem>无词颂歌</></>相关技能\n由以下干员的基建技能提供\n黑键、塑心、深律",
+      "members": []
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "乐感",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "basePointGain",
+              "term": "cc.bd_a1",
+              "per": {
+                "per": 1,
+                "value": 1,
+                "source": "dormOccupants"
+              }
+            },
+            {
+              "target": "trading",
+              "stat": "basePointConvert",
+              "from": "cc.bd_a1",
+              "to": "cc.bd_B",
+              "rate": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "徘徊旋律",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 4,
+                "value": 1,
+                "source": "basePoint",
+                "term": "cc.bd_B"
+              }
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "怅惘和声",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 2,
+                "value": 1,
+                "source": "basePoint",
+                "term": "cc.bd_B"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

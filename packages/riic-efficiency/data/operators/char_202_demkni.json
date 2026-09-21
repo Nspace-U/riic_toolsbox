@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "char_202_demkni",
+  "name": "塞雷娅",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.rh"
+  ],
+  "terms": {
+    "cc.g.rh": {
+      "name": "莱茵生命",
+      "definition": "包含以下干员\n赫默、伊芙利特、塞雷娅、白面鸮、梅尔、麦哲伦、多萝西、星源、缪尔赛思、娜斯提",
+      "members": [
+        "赫默",
+        "伊芙利特",
+        "塞雷娅",
+        "白面鸮",
+        "梅尔",
+        "麦哲伦",
+        "多萝西",
+        "星源",
+        "缪尔赛思",
+        "娜斯提"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "线索搜集·α",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "守望者",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得线索1",
+              "cluePreference": 1
+            },
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4041_chnut",
+  "name": "褐果",
+  "rarity": 4,
+  "termKeys": [
+    "cc.tag.durin"
+  ],
+  "terms": {
+    "cc.tag.durin": {
+      "name": "杜林族",
+      "definition": "包含以下干员\n至简、桃金娘、褐果、杜林、特克诺",
+      "members": [
+        "至简",
+        "桃金娘",
+        "褐果",
+        "杜林",
+        "特克诺"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "标准化·α",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 1
+          },
+          "name": "地质学·α",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 30,
+              "recipe": "源石碎片"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

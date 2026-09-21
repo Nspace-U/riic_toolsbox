@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "id": "char_411_tomimi",
+  "name": "特米米",
+  "rarity": 5,
+  "termKeys": [
+    "cc.gvial",
+    "cc.g.sargon"
+  ],
+  "terms": {
+    "cc.gvial": {
+      "name": "嘉维尔",
+      "definition": "包含以下干员\n百炼嘉维尔、嘉维尔",
+      "members": [
+        "百炼嘉维尔",
+        "嘉维尔"
+      ]
+    },
+    "cc.g.sargon": {
+      "name": "萨尔贡",
+      "definition": "包含以下干员\n钼铅、菲莱、佩佩、娜仁图亚、衡沙、莎草、红隼、铅踝、图耶、泡泡、森蚺、燧石、特米米、蜜蜡、稀音、慑砂、狮蝎、异客、艾丝黛尔、至简、哈蒂娅、缇缇",
+      "members": [
+        "钼铅",
+        "菲莱",
+        "佩佩",
+        "娜仁图亚",
+        "衡沙",
+        "莎草",
+        "红隼",
+        "铅踝",
+        "图耶",
+        "泡泡",
+        "森蚺",
+        "燧石",
+        "特米米",
+        "蜜蜡",
+        "稀音",
+        "慑砂",
+        "狮蝎",
+        "异客",
+        "艾丝黛尔",
+        "至简",
+        "哈蒂娅",
+        "缇缇"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "烤肉大师",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.45,
+              "scope": "room",
+              "subjects": "single",
+              "stack": "max",
+              "maxGroup": "dormRec-single",
+              "scopeGroup": "cc.gvial"
+            },
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.55,
+              "scope": "room",
+              "other": true,
+              "subjects": "single",
+              "stack": "max",
+              "maxGroup": "dormRec-single"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

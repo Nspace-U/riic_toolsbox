@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "char_155_tiger",
+  "name": "因陀罗",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.glasgow"
+  ],
+  "terms": {
+    "cc.g.glasgow": {
+      "name": "格拉斯哥帮",
+      "definition": "包含以下干员\n推进之王、摩根、达格达、因陀罗",
+      "members": [
+        "推进之王",
+        "摩根",
+        "达格达",
+        "因陀罗"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "meeting",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "线索搜集·α",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 10
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "传讯者",
+          "effects": [
+            {
+              "target": "meeting",
+              "stat": "clueChance",
+              "text": "更容易获得线索5",
+              "cluePreference": 5
+            },
+            {
+              "target": "meeting",
+              "stat": "clueSpeed",
+              "value": 10
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

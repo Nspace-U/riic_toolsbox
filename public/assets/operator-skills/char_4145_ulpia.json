@@ -6,5 +6,18 @@
   "termKeys": [
     "cc.g.abyssal"
   ],
+  "terms": {
+    "cc.g.abyssal": {
+      "name": "深海猎人",
+      "definition": "包含以下干员\n歌蕾蒂娅、斯卡蒂、幽灵鲨、安哲拉、乌尔比安",
+      "members": [
+        "歌蕾蒂娅",
+        "斯卡蒂",
+        "幽灵鲨",
+        "安哲拉",
+        "乌尔比安"
+      ]
+    }
+  },
   "chains": []
 }

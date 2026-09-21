@@ -179,6 +179,7 @@ export interface OperatorSkillFile {
   name: string;
   rarity?: number;
   termKeys?: string[];
+  terms?: Record<string, EfficiencyTerm>;
   chains: EfficiencySkillChain[];
 }
 

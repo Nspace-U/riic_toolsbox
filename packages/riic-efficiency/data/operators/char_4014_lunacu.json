@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4014_lunacu",
+  "name": "子月",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.siracusa"
+  ],
+  "terms": {
+    "cc.g.siracusa": {
+      "name": "叙拉古",
+      "definition": "包含以下干员\n安洁莉娜、拉普兰德、普罗旺斯、红云、布洛卡、巫恋、铃兰、贾维、奥斯塔、斥罪、子月、伺夜、阿罗玛、忍冬、裁度、荒芜拉普兰德、贝洛内、复奏",
+      "members": [
+        "安洁莉娜",
+        "拉普兰德",
+        "普罗旺斯",
+        "红云",
+        "布洛卡",
+        "巫恋",
+        "铃兰",
+        "贾维",
+        "奥斯塔",
+        "斥罪",
+        "子月",
+        "伺夜",
+        "阿罗玛",
+        "忍冬",
+        "裁度",
+        "荒芜拉普兰德",
+        "贝洛内",
+        "复奏"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "幼狼情性",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.7,
+              "scope": "self"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

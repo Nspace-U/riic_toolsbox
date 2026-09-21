@@ -6,5 +6,12 @@
   "termKeys": [
     "cc.t.accmuguard1"
   ],
+  "terms": {
+    "cc.t.accmuguard1": {
+      "name": "武道",
+      "definition": "协助专精训练至1级时累计<@cc.kw>1</>点、2级时累计<@cc.kw>2</>点、3级时累计<@cc.kw>3</>点，累计上限为<@cc.kw>3</>点（协助者心情为0时，无法累计或消耗）",
+      "members": []
+    }
+  },
   "chains": []
 }

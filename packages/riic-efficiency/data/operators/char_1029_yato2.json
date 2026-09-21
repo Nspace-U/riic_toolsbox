@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "id": "char_1029_yato2",
+  "name": "麒麟R夜刀",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_felyne",
+    "cc.tag.mh"
+  ],
+  "terms": {
+    "cc.bd_felyne": {
+      "name": "木天蓼",
+      "definition": "可影响<$cc.bd_felyne_1><@cc.rem>可爱的艾露猫</></>、<$cc.bd_felyne_2><@cc.rem>可靠的随从们</></>相关技能\n由以下干员的基建技能提供\n火龙S黑角、麒麟R夜刀",
+      "members": []
+    },
+    "cc.tag.mh": {
+      "name": "怪物猎人小队",
+      "definition": "包含以下干员\n火龙S黑角、麒麟R夜刀、泰拉大陆调查团",
+      "members": [
+        "火龙S黑角",
+        "麒麟R夜刀",
+        "泰拉大陆调查团"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "耐力回复",
+          "effects": [
+            {
+              "target": "control",
+              "stat": "moodCost",
+              "value": 0.5
+            },
+            {
+              "target": "any",
+              "stat": "basePointGain",
+              "term": "cc.bd_felyne",
+              "value": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "以身作则",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 2,
+              "stack": "max",
+              "condition": {
+                "type": "opGroupInFacility",
+                "group": "cc.tag.mh",
+                "facility": "same",
+                "other": true,
+                "moodCheck": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

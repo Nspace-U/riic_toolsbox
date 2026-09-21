@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "char_325_bison",
+  "name": "拜松",
+  "rarity": 5,
+  "termKeys": [],
+  "terms": {},
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "峯驰物流",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "少当家",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 30
+            },
+            {
+              "target": "trading",
+              "stat": "orderLimit",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

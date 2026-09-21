@@ -6,5 +6,15 @@
   "termKeys": [
     "cc.gvial"
   ],
+  "terms": {
+    "cc.gvial": {
+      "name": "嘉维尔",
+      "definition": "包含以下干员\n百炼嘉维尔、嘉维尔",
+      "members": [
+        "百炼嘉维尔",
+        "嘉维尔"
+      ]
+    }
+  },
   "chains": []
 }

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "char_1044_hsgma2",
+  "name": "斩业星熊",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.lgd"
+  ],
+  "terms": {
+    "cc.g.lgd": {
+      "name": "龙门近卫局",
+      "definition": "包含以下干员\n陈、星熊、诗怀雅",
+      "members": [
+        "陈",
+        "星熊",
+        "诗怀雅"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "下城人脉",
+          "effects": [
+            {
+              "target": "training",
+              "stat": "facBase",
+              "value": 5,
+              "stack": "max",
+              "condition": {
+                "type": "opCountInFacility",
+                "facility": "training",
+                "min": 1
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "control",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "共事情谊",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 3,
+              "stack": "max",
+              "condition": {
+                "type": "opGroupInFacility",
+                "group": "cc.g.lgd",
+                "facility": "same",
+                "other": true,
+                "moodCheck": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

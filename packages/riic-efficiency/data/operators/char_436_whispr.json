@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "id": "char_436_whispr",
+  "name": "絮雨",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_a1_a1",
+    "cc.bd_a1"
+  ],
+  "terms": {
+    "cc.bd_a1_a1": {
+      "name": "记忆碎片",
+      "definition": "可影响<$cc.bd_a1><@cc.rem>感知信息</></>相关变量\n由以下干员的基建技能提供\n絮雨",
+      "members": []
+    },
+    "cc.bd_a1": {
+      "name": "感知信息",
+      "definition": "可影响<$cc.bd_A><@cc.rem>思维链环</></>、<$cc.bd_B><@cc.rem>无声共鸣</></>相关变量\n由以下干员的基建技能提供\n迷迭香、黑键、夕、令、絮雨、爱丽丝、车尔尼",
+      "members": []
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "hire",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "巡游",
+          "effects": [
+            {
+              "target": "hire",
+              "stat": "basePointGain",
+              "term": "cc.bd_a1_a1",
+              "per": {
+                "per": 1,
+                "value": 10,
+                "source": "recruitSlots"
+              }
+            },
+            {
+              "target": "hire",
+              "stat": "hireSpd",
+              "value": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "hire",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "追忆",
+          "effects": [
+            {
+              "target": "hire",
+              "stat": "basePointConvert",
+              "from": "cc.bd_a1_a1",
+              "to": "cc.bd_a1",
+              "rate": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

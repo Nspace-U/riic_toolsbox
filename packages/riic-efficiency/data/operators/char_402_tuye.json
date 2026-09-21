@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "char_402_tuye",
+  "name": "图耶",
+  "rarity": 5,
+  "termKeys": [
+    "cc.t.flow_gold",
+    "cc.g.sargon"
+  ],
+  "terms": {
+    "cc.t.flow_gold": {
+      "name": "赤金生产线",
+      "definition": "每有<@cc.kw>1</>间<@cc.kw>制造站</>生产<@cc.kw>赤金</>，则赤金生产线<@cc.kw>+1</>",
+      "members": []
+    },
+    "cc.g.sargon": {
+      "name": "萨尔贡",
+      "definition": "包含以下干员\n钼铅、菲莱、佩佩、娜仁图亚、衡沙、莎草、红隼、铅踝、图耶、泡泡、森蚺、燧石、特米米、蜜蜡、稀音、慑砂、狮蝎、异客、艾丝黛尔、至简、哈蒂娅、缇缇",
+      "members": [
+        "钼铅",
+        "菲莱",
+        "佩佩",
+        "娜仁图亚",
+        "衡沙",
+        "莎草",
+        "红隼",
+        "铅踝",
+        "图耶",
+        "泡泡",
+        "森蚺",
+        "燧石",
+        "特米米",
+        "蜜蜡",
+        "稀音",
+        "慑砂",
+        "狮蝎",
+        "异客",
+        "艾丝黛尔",
+        "至简",
+        "哈蒂娅",
+        "缇缇"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "物流规划·α",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 4,
+                "value": 15,
+                "source": "basePoint",
+                "term": "cc.t.flow_gold"
+              }
+            },
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 5
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "物流规划·β",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 2,
+                "value": 15,
+                "source": "basePoint",
+                "term": "cc.t.flow_gold"
+              }
+            },
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 5
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

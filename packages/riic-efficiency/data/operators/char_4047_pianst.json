@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4047_pianst",
+  "name": "车尔尼",
+  "rarity": 5,
+  "termKeys": [
+    "cc.bd_a1_a3",
+    "cc.bd_a1"
+  ],
+  "terms": {
+    "cc.bd_a1_a3": {
+      "name": "小节",
+      "definition": "可影响<$cc.bd_a1><@cc.rem>感知信息</></>相关变量\n由以下干员的基建技能提供\n车尔尼",
+      "members": []
+    },
+    "cc.bd_a1": {
+      "name": "感知信息",
+      "definition": "可影响<$cc.bd_A><@cc.rem>思维链环</></>、<$cc.bd_B><@cc.rem>无声共鸣</></>相关变量\n由以下干员的基建技能提供\n迷迭香、黑键、夕、令、絮雨、爱丽丝、车尔尼",
+      "members": []
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "慢板行歌",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.65,
+              "scope": "room",
+              "other": true,
+              "subjects": "single",
+              "stack": "max",
+              "maxGroup": "dormRec-single"
+            },
+            {
+              "target": "dormitory",
+              "stat": "basePointGain",
+              "term": "cc.bd_a1_a3",
+              "per": {
+                "per": 1,
+                "value": 1,
+                "source": "ownLevel"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "琴键漫步",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "basePointConvert",
+              "from": "cc.bd_a1_a3",
+              "to": "cc.bd_a1",
+              "rate": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

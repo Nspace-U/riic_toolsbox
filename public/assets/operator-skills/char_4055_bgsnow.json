@@ -7,6 +7,24 @@
     "cc.t.flow_gold",
     "cc.tag.durin"
   ],
+  "terms": {
+    "cc.t.flow_gold": {
+      "name": "赤金生产线",
+      "definition": "每有<@cc.kw>1</>间<@cc.kw>制造站</>生产<@cc.kw>赤金</>，则赤金生产线<@cc.kw>+1</>",
+      "members": []
+    },
+    "cc.tag.durin": {
+      "name": "杜林族",
+      "definition": "包含以下干员\n至简、桃金娘、褐果、杜林、特克诺",
+      "members": [
+        "至简",
+        "桃金娘",
+        "褐果",
+        "杜林",
+        "特克诺"
+      ]
+    }
+  },
   "chains": [
     {
       "slot": 1,

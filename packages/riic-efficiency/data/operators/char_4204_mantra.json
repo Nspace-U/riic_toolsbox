@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4204_mantra",
+  "name": "真言",
+  "rarity": 6,
+  "termKeys": [
+    "cc.g.elite"
+  ],
+  "terms": {
+    "cc.g.elite": {
+      "name": "精英干员",
+      "definition": "包含以下干员\n迷迭香、煌、逻各斯、烛煌、电弧、真言、机械师",
+      "members": [
+        "迷迭香",
+        "煌",
+        "逻各斯",
+        "烛煌",
+        "电弧",
+        "真言",
+        "机械师"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "订单分发·α",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "精英小队",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "per": {
+                "per": 1,
+                "value": 2,
+                "cap": 10,
+                "source": "baseFacilityWithGroup",
+                "group": "cc.g.elite"
+              }
+            },
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 25
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

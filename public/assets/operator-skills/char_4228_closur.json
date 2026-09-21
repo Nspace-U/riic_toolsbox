@@ -6,6 +6,13 @@
   "termKeys": [
     "cc.tra.closure"
   ],
+  "terms": {
+    "cc.tra.closure": {
+      "name": "可露希尔特别订单",
+      "definition": "由可露希尔提供的特殊贵金属订单，该订单的收益恒定，所需赤金交付数为2",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

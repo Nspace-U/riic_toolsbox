@@ -7,6 +7,22 @@
     "cc.tag.mh",
     "cc.bd_felyne"
   ],
+  "terms": {
+    "cc.tag.mh": {
+      "name": "怪物猎人小队",
+      "definition": "包含以下干员\n火龙S黑角、麒麟R夜刀、泰拉大陆调查团",
+      "members": [
+        "火龙S黑角",
+        "麒麟R夜刀",
+        "泰拉大陆调查团"
+      ]
+    },
+    "cc.bd_felyne": {
+      "name": "木天蓼",
+      "definition": "可影响<$cc.bd_felyne_1><@cc.rem>可爱的艾露猫</></>、<$cc.bd_felyne_2><@cc.rem>可靠的随从们</></>相关技能\n由以下干员的基建技能提供\n火龙S黑角、麒麟R夜刀",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

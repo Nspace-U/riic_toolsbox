@@ -6,6 +6,13 @@
   "termKeys": [
     "cc.t.flow_gold"
   ],
+  "terms": {
+    "cc.t.flow_gold": {
+      "name": "赤金生产线",
+      "definition": "每有<@cc.kw>1</>间<@cc.kw>制造站</>生产<@cc.kw>赤金</>，则赤金生产线<@cc.kw>+1</>",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

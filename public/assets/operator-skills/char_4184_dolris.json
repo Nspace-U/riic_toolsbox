@@ -6,6 +6,13 @@
   "termKeys": [
     "cc.bd_mujica"
   ],
+  "terms": {
+    "cc.bd_mujica": {
+      "name": "热情值",
+      "definition": "可影响<$cc.bd_mujica_1><@cc.rem>丰富工作经验</></>、<$cc.bd_mujica_2><@cc.rem>演技的怪物</></>相关技能\n由以下干员的基建技能提供\n八幡海铃、三角初华、祐天寺若麦、若叶睦",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

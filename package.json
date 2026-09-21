@@ -24,6 +24,8 @@
     "test:efficiency": "node scripts/efficiency-regression.mjs",
     "test:sanity": "node scripts/sanity-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
+    "build:riic-efficiency": "npm --prefix packages/riic-efficiency run build",
+    "test:riic-efficiency-package": "node scripts/riic-efficiency-package-regression.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",
     "sync:torappu": "node scripts/sync-torappu.mjs",
     "preview": "vite preview",

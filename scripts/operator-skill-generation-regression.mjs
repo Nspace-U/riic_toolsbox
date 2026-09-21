@@ -51,6 +51,12 @@ for (const [id, skillName, group] of cases) {
   assert.equal(typeof file.rarity, "number", `${id} rarity`);
   assert.ok(Array.isArray(file.termKeys), `${id} term keys`);
   assert.ok(file.termKeys.includes(group), `${id} term key`);
+  assert.equal(typeof file.terms[group].name, "string", `${id} term name`);
+  assert.equal(
+    typeof file.terms[group].definition,
+    "string",
+    `${id} term definition`,
+  );
   const stage = file.chains
     .find((chain) => chain.room === "control")
     ?.stages.find((candidate) => candidate.name === skillName);

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "char_230_savage",
+  "name": "暴行",
+  "rarity": 5,
+  "termKeys": [],
+  "terms": {},
+  "chains": [
+    {
+      "slot": 2,
+      "room": "dormitory",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "烹饪",
+          "effects": [
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.35,
+              "scope": "self"
+            },
+            {
+              "target": "dormitory",
+              "stat": "moodRecover",
+              "value": 0.35,
+              "scope": "room",
+              "other": true,
+              "subjects": "single",
+              "stack": "max",
+              "maxGroup": "dormRec-single"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

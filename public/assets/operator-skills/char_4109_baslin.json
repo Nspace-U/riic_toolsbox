@@ -6,6 +6,13 @@
   "termKeys": [
     "cc.bd_B"
   ],
+  "terms": {
+    "cc.bd_B": {
+      "name": "无声共鸣",
+      "definition": "可影响<$cc.bd_B_1><@cc.rem>徘徊旋律</></>、<$cc.bd_B_2><@cc.rem>怅惘和声</></>、<$cc.bd_B_3><@cc.rem>无词颂歌</></>相关技能\n由以下干员的基建技能提供\n黑键、塑心、深律",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

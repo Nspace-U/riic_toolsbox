@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "id": "char_4141_marcil",
+  "name": "玛露西尔",
+  "rarity": 6,
+  "termKeys": [
+    "cc.bd_dungeon",
+    "cc.tag.dungeon"
+  ],
+  "terms": {
+    "cc.bd_dungeon": {
+      "name": "魔物料理",
+      "definition": "由以下干员的基建技能提供\n森西",
+      "members": []
+    },
+    "cc.tag.dungeon": {
+      "name": "莱欧斯小队",
+      "definition": "包含以下干员\n玛露西尔、莱欧斯、齐尔查克、森西",
+      "members": [
+        "玛露西尔",
+        "莱欧斯",
+        "齐尔查克",
+        "森西"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 1,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "差遣使魔·α",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 20
+            }
+          ]
+        },
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "差遣使魔·β",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "意想不到的美味",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "per": {
+                "per": 1,
+                "value": 1,
+                "source": "basePoint",
+                "term": "cc.bd_dungeon"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

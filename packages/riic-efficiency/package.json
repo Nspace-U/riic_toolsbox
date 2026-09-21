@@ -1,0 +1,18 @@
+{
+  "name": "@arknights/riic-efficiency",
+  "version": "0.1.0",
+  "type": "module",
+  "files": [
+    "dist",
+    "data"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --emitDeclarationOnly -p tsconfig.json && vite build --config vite.config.ts"
+  }
+}

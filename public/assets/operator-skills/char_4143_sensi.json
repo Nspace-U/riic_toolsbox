@@ -7,6 +7,23 @@
     "cc.tag.dungeon",
     "cc.bd_dungeon"
   ],
+  "terms": {
+    "cc.tag.dungeon": {
+      "name": "莱欧斯小队",
+      "definition": "包含以下干员\n玛露西尔、莱欧斯、齐尔查克、森西",
+      "members": [
+        "玛露西尔",
+        "莱欧斯",
+        "齐尔查克",
+        "森西"
+      ]
+    },
+    "cc.bd_dungeon": {
+      "name": "魔物料理",
+      "definition": "由以下干员的基建技能提供\n森西",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "char_242_otter",
+  "name": "梅尔",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.rh"
+  ],
+  "terms": {
+    "cc.g.rh": {
+      "name": "莱茵生命",
+      "definition": "包含以下干员\n赫默、伊芙利特、塞雷娅、白面鸮、梅尔、麦哲伦、多萝西、星源、缪尔赛思、娜斯提",
+      "members": [
+        "赫默",
+        "伊芙利特",
+        "塞雷娅",
+        "白面鸮",
+        "梅尔",
+        "麦哲伦",
+        "多萝西",
+        "星源",
+        "缪尔赛思",
+        "娜斯提"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "咪波·制造型",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

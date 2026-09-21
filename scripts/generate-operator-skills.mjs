@@ -27,6 +27,8 @@ const BUILDING_DATA_PATH = path.join(EXCEL_DIR, "building_data.json");
 const GAMEDATA_CONST_PATH = path.join(EXCEL_DIR, "gamedata_const.json");
 const MOOD_CHECK_PATH = path.join(ROOT, "public", "skill-mood-check.json");
 const OUT_DIR = path.join(ROOT, "public", "assets", "operator-skills");
+const PACKAGE_DATA_DIR = path.join(ROOT, "packages", "riic-efficiency", "data");
+const PACKAGE_OPERATOR_DIR = path.join(PACKAGE_DATA_DIR, "operators");
 const SCHEMA_VERSION = 1;
 
 // 当前模拟器的数据契约使用这些稳定的设施 key。
@@ -154,6 +156,168 @@ function operatorTermKeys(operatorName, descriptions, terms, richTextStyles) {
     }
   });
   return [...keys];
+}
+
+function operatorTerms(termKeys, terms) {
+  return Object.fromEntries(
+    termKeys.flatMap((key) => {
+      const term = terms[key];
+      if (!term?.termName) return [];
+      return [
+        [
+          key,
+          {
+            name: term.termName,
+            definition: term.description ?? "",
+            members: listedOperatorNames(term.description),
+          },
+        ],
+      ];
+    }),
+  );
+}
+
+function ruleset() {
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    version: "arknights-riic-2026-09",
+    defaultDurationMinutes: 720,
+    powerOutputPerHour: 10,
+    clueBaseTimeHours: 20,
+    clueOutputPerHour: 0.05,
+    clueLimit: 11,
+    creditPerClue: 40,
+    hireOutputPerHour: 1 / 12,
+    hireLimit: 3,
+    droneLimit: 235,
+    baseEfficiency: {
+      trading: 100,
+      manufacture: 100,
+      power: 100,
+      meeting: 107,
+      hire: 100,
+    },
+    meetingEfficiencyByLevel: { 1: 107, 2: 109, 3: 111 },
+    manufactureStorageByLevel: { 1: 24, 2: 36, 3: 54 },
+    tradeOrderLimitByLevel: { 1: 6, 2: 8, 3: 10 },
+    manufactureRules: {
+      中级作战记录: {
+        product: "中级作战记录",
+        recipe: "作战记录",
+        amount: 1,
+        hours: 3,
+        volume: 5,
+      },
+      赤金: {
+        product: "赤金",
+        recipe: "贵金属",
+        amount: 1,
+        hours: 1.2,
+        volume: 2,
+      },
+      "源石碎片:固源岩": {
+        product: "源石碎片",
+        recipe: "源石碎片",
+        amount: 1,
+        hours: 1,
+        volume: 3,
+        materials: { 固源岩: 2, 龙门币: 1600 },
+      },
+      "源石碎片:装置": {
+        product: "源石碎片",
+        recipe: "源石碎片",
+        amount: 1,
+        hours: 1,
+        volume: 3,
+        materials: { 装置: 1, 龙门币: 1000 },
+      },
+    },
+    tradeOrdersByLevel: {
+      1: [
+        {
+          name: "2贵金属订单",
+          product: "龙门币",
+          amount: 2,
+          gold: 1000,
+          hours: 2.4,
+          probability: 1,
+        },
+      ],
+      2: [
+        {
+          name: "2贵金属订单",
+          product: "龙门币",
+          amount: 2,
+          gold: 1000,
+          hours: 2.4,
+          probability: 0.6,
+        },
+        {
+          name: "3贵金属订单",
+          product: "龙门币",
+          amount: 3,
+          gold: 1500,
+          hours: 3.5,
+          probability: 0.4,
+        },
+      ],
+      3: [
+        {
+          name: "2贵金属订单",
+          product: "龙门币",
+          amount: 2,
+          gold: 1000,
+          hours: 2.4,
+          probability: 0.3,
+        },
+        {
+          name: "3贵金属订单",
+          product: "龙门币",
+          amount: 3,
+          gold: 1500,
+          hours: 3.5,
+          probability: 0.5,
+        },
+        {
+          name: "4贵金属订单",
+          product: "龙门币",
+          amount: 4,
+          gold: 2000,
+          hours: 4.6,
+          probability: 0.2,
+        },
+      ],
+    },
+    orundumTradeOrder: {
+      productAmount: 20,
+      materialAmount: 2,
+      hours: 2,
+    },
+    tailorProbabilities: {
+      "1α": [0.15, 0.3, 0.55],
+      "2α": [0.13, 0.22, 0.65],
+      "1α1β": [0.05, 0.1, 0.85],
+    },
+    cluePreferenceByFaction: {
+      莱茵生命: 1,
+      企鹅物流: 2,
+      黑钢国际: 3,
+      乌萨斯学生自治团: 4,
+      格拉斯哥帮: 5,
+      喀兰贸易: 6,
+      罗德岛制药: 7,
+    },
+    resourceKeyAliases: {
+      LMD: "龙门币",
+      Orundum: "合成玉",
+      "Pure Gold": "赤金",
+      "Battle Record": "中级作战记录",
+      "Originium Shard": "源石碎片",
+      作战记录: "中级作战记录",
+      贵金属: "赤金",
+    },
+    maxEliteLevelByRarity: { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2, 6: 2 },
+  };
 }
 
 // 标签文字 → 术语 key（在 gamedata_const.termDescriptionDict 中）；找不到时警告并返回 null
@@ -3700,9 +3864,13 @@ function main() {
     });
   }
 
-  if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
-  for (const fileName of fs.readdirSync(OUT_DIR)) {
-    if (fileName.endsWith(".json")) fs.unlinkSync(path.join(OUT_DIR, fileName));
+  for (const outputDir of [OUT_DIR, PACKAGE_OPERATOR_DIR]) {
+    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+    for (const fileName of fs.readdirSync(outputDir)) {
+      if (fileName.endsWith(".json")) {
+        fs.unlinkSync(path.join(outputDir, fileName));
+      }
+    }
   }
 
   let warnCount = 0;
@@ -3764,17 +3932,44 @@ function main() {
       name,
       rarity,
       termKeys,
+      terms: operatorTerms(termKeys, termDescriptions),
       chains,
     };
-    fs.writeFileSync(
-      path.join(OUT_DIR, `${id}.json`),
-      `${JSON.stringify(output, null, 2)}\n`,
-      "utf8",
-    );
+    [OUT_DIR, PACKAGE_OPERATOR_DIR].forEach((outputDir) => {
+      fs.writeFileSync(
+        path.join(outputDir, `${id}.json`),
+        `${JSON.stringify(output, null, 2)}\n`,
+        "utf8",
+      );
+    });
     console.log(
       `✓ ${name} (${id})：${chains.map((chain) => `槽${chain.slot}@${chain.room}×${chain.stages.length}阶段`).join("、")}`,
     );
   }
+
+  fs.mkdirSync(PACKAGE_DATA_DIR, { recursive: true });
+  const rulesetData = ruleset();
+  fs.writeFileSync(
+    path.join(PACKAGE_DATA_DIR, "ruleset.json"),
+    `${JSON.stringify(rulesetData, null, 2)}\n`,
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(PACKAGE_DATA_DIR, "manifest.json"),
+    `${JSON.stringify(
+      {
+        schemaVersion: SCHEMA_VERSION,
+        rulesetVersion: rulesetData.version,
+        gameDataVersion: "torappu-latest",
+        generatedAt: new Date().toISOString(),
+        operators: "operators",
+        ruleset: "ruleset.json",
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
 
   console.log("----");
   console.log(`生成完成：${byOperator.size} 名干员 / ${skillCount} 条技能`);

@@ -7,6 +7,18 @@
     "cc.bd_a1_a3",
     "cc.bd_a1"
   ],
+  "terms": {
+    "cc.bd_a1_a3": {
+      "name": "小节",
+      "definition": "可影响<$cc.bd_a1><@cc.rem>感知信息</></>相关变量\n由以下干员的基建技能提供\n车尔尼",
+      "members": []
+    },
+    "cc.bd_a1": {
+      "name": "感知信息",
+      "definition": "可影响<$cc.bd_A><@cc.rem>思维链环</></>、<$cc.bd_B><@cc.rem>无声共鸣</></>相关变量\n由以下干员的基建技能提供\n迷迭香、黑键、夕、令、絮雨、爱丽丝、车尔尼",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

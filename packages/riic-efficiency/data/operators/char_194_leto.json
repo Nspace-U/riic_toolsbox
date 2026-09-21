@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "char_194_leto",
+  "name": "烈夏",
+  "rarity": 5,
+  "termKeys": [
+    "cc.g.ussg"
+  ],
+  "terms": {
+    "cc.g.ussg": {
+      "name": "乌萨斯学生自治团",
+      "definition": "包含以下干员\n早露、凛冬、真理、古米、烈夏、苦艾",
+      "members": [
+        "早露",
+        "凛冬",
+        "真理",
+        "古米",
+        "烈夏",
+        "苦艾"
+      ]
+    }
+  },
+  "chains": [
+    {
+      "slot": 2,
+      "room": "manufacture",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 2
+          },
+          "name": "患难拍档",
+          "effects": [
+            {
+              "target": "manufacture",
+              "stat": "manuProd",
+              "value": 35,
+              "recipe": "作战记录",
+              "condition": {
+                "type": "opAtFacility",
+                "op": "古米",
+                "facility": "trading"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

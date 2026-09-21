@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "char_282_catap",
+  "name": "空爆",
+  "rarity": 3,
+  "termKeys": [],
+  "terms": {},
+  "chains": [
+    {
+      "slot": 1,
+      "room": "trading",
+      "stages": [
+        {
+          "unlock": {
+            "type": "elite",
+            "value": 0
+          },
+          "name": "交际",
+          "effects": [
+            {
+              "target": "trading",
+              "stat": "moodCost",
+              "value": -0.25
+            },
+            {
+              "target": "trading",
+              "stat": "tradeSpd",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

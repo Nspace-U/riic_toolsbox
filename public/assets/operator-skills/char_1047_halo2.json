@@ -6,6 +6,13 @@
   "termKeys": [
     "cc.sk.manu2"
   ],
+  "terms": {
+    "cc.sk.manu2": {
+      "name": "莱茵科技类技能",
+      "definition": "包含以下技能\n莱茵科技·α、莱茵科技·β、莱茵科技·γ",
+      "members": []
+    }
+  },
   "chains": [
     {
       "slot": 1,

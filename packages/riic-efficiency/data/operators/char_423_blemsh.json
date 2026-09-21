@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "char_423_blemsh",
+  "name": "瑕光",
+  "rarity": 6,
+  "termKeys": [
+    "cc.tag.knight"
+  ],
+  "terms": {
+    "cc.tag.knight": {
+      "name": "骑士",
+      "definition": "包含以下干员\n耀骑士临光、临光、瑕光、鞭刃、焰尾、远牙、灰毫、野鬃、正义骑士号、砾、薇薇安娜",
+      "members": [
+        "耀骑士临光",
+        "临光",
+        "瑕光",
+        "鞭刃",
+        "焰尾",
+        "远牙",
+        "灰毫",
+        "野鬃",
+        "正义骑士号",
+        "砾",
+        "薇薇安娜"
+      ]
+    }
+  },
+  "chains": []
+}
