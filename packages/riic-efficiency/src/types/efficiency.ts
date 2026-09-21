@@ -379,7 +379,6 @@ export interface FacilityEfficiencyResult {
   operatorEfficiency: number;
   skillEfficiency: number;
   operatorSkillEfficiency: number;
-  combinationEfficiency: number;
   efficiency: number;
   attributes: FacilityAttributes;
   cluePreferences?: CluePreference[];

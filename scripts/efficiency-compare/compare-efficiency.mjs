@@ -788,7 +788,6 @@ function newFacilityResults(result, scenario) {
             moodEfficiency: round(facility.moodEfficiency),
             operatorEfficiency: round(facility.operatorEfficiency),
             skillEfficiency: round(facility.skillEfficiency),
-            combinationEfficiency: round(facility.combinationEfficiency),
             efficiency: round(facility.efficiency),
             attributes: normalizedAttributes(
               facility.facility.type,
@@ -921,7 +920,6 @@ function oldFacilityResults(runtime, schedule) {
           ),
         ),
         skillEfficiency: round(skill.total),
-        combinationEfficiency: round(skill.total),
         skillTotal: round(skill.total),
         facBase: round(skill.facBase),
         attributes: normalizedAttributes(
@@ -969,7 +967,6 @@ function oldFacilityResults(runtime, schedule) {
         efficiency: round(production?.efficiency),
         operatorEfficiency: round(moodEfficiency),
         skillEfficiency: round(skill.total),
-        combinationEfficiency: round(skill.total),
         skillTotal: round(skill.total),
         facBase: round(skill.facBase),
         attributes: {},

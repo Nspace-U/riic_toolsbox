@@ -510,8 +510,8 @@
 ## 2026-09-12：修正排班模拟器小卡片效率首项口径
 
 - **决定**：设施队列小卡片下方显示 `干员效率% / 整站效率%`；干员效率读取 `skillEfficiency`，不包含心情提供的固定基础效率，整站效率继续读取 `efficiency`。
-- **根因**：原实现读取 `combinationEfficiency`，而计算结果中的该字段是 `moodEfficiency + skillEfficiency`，因此每名有心情干员会额外带入贸易/制造 `+1%` 或发电/会客/办公室 `+5%`。
-- **范围**：只调整 `SimulatorPage.vue` 的小卡片显示字段；整站效率、产出计算和结果对象中的组合效率字段保持不变。
+- **根因**：原实现读取旧组合效率字段，而计算结果中的该字段是 `moodEfficiency + skillEfficiency`，因此每名有心情干员会额外带入贸易/制造 `+1%` 或发电/会客/办公室 `+5%`。
+- **范围**：此前只调整 `SimulatorPage.vue` 的小卡片显示字段；整站效率与产出计算保持不变，结果对象中的旧组合效率字段现已删除。
 - **验证**：`trade-basic` 反馈环修复前以 `1%` 对 `0%` 失败，修复后通过；浏览器实测卡片显示 `0% / 108%`；`npm run lint`、`npm run type-check`、`npm run build` 和 `git diff --check` 通过。全量 `npm run format:check` 仍受工作树中既有的 `CONTEXT.md`、`docs/decision-log.md`、`src/assets/main.css` 和 `src/pages/SimulatorPage.vue` 格式差异影响。
 
 ## 2026-09-12：修复队列名称与持续时间居中回归

@@ -3020,7 +3020,6 @@ function calculateFacility(
     operatorEfficiency: moodEfficiency,
     skillEfficiency,
     operatorSkillEfficiency,
-    combinationEfficiency: moodEfficiency + skillEfficiency,
     efficiency: baseEfficiency + moodEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
     ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
@@ -3831,10 +3830,8 @@ function calculatePowerGroup(
     });
   });
   const baseEfficiency = 100 + facBase;
-  const combinationEfficiency = skillEfficiency;
   const operatorSkillEfficiency = skillEfficiency;
-  const efficiency =
-    baseEfficiency + operatorEfficiency + combinationEfficiency;
+  const efficiency = baseEfficiency + operatorEfficiency + skillEfficiency;
   const production: ProductionValue = {
     product: "无人机",
     baseAmountPerHour: context.ruleset.powerOutputPerHour,
@@ -3873,7 +3870,6 @@ function calculatePowerGroup(
     operatorEfficiency,
     skillEfficiency,
     operatorSkillEfficiency,
-    combinationEfficiency: operatorEfficiency + combinationEfficiency,
     efficiency,
     attributes: {},
     production: decoratedProduction,

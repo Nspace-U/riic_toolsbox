@@ -67,14 +67,6 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
               unit="%"
             />%</strong
           >
-          <span>组合效率</span>
-          <strong
-            ><SimulatorNumericValue
-              mode="efficiency"
-              :value="step.facility.combinationEfficiency"
-              unit="%"
-            />%</strong
-          >
           <span>整体效率</span>
           <strong
             ><SimulatorNumericValue
@@ -138,7 +130,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
                 unit="/小时"
               />/小时</strong
             >
-            <span>容量单位速率</span>
+            <span>容量消耗速率</span>
             <strong>
               <template v-if="step.facility.production.itemRate !== undefined">
                 <SimulatorNumericValue
@@ -250,7 +242,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           "
           class="simulator-step-subsection"
         >
-          <span class="simulator-step-subheading">容量时间段</span>
+          <span class="simulator-step-subheading">动态容量时间段</span>
           <div class="simulator-step-detail-grid">
             <div
               v-for="segment in step.facility.capacity.segments"
