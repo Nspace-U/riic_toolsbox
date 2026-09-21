@@ -3083,10 +3083,16 @@ function tradeProduction(
     const multiplier = efficiency / 100;
     const baseAmountPerHour =
       ruleset.orundumTradeOrder.productAmount / ruleset.orundumTradeOrder.hours;
+    const baseMaterialPerHour = {
+      源石碎片:
+        -ruleset.orundumTradeOrder.materialAmount /
+        ruleset.orundumTradeOrder.hours,
+    };
     return {
       product,
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
+      baseMaterialPerHour,
       amountPerHour: baseAmountPerHour * multiplier,
       amountPerDay: baseAmountPerHour * multiplier * 24,
       itemRate: multiplier / ruleset.orundumTradeOrder.hours,
@@ -3101,12 +3107,12 @@ function tradeProduction(
           amount: ruleset.orundumTradeOrder.materialAmount,
         },
       ],
-      materialPerHour: {
-        源石碎片:
-          (-ruleset.orundumTradeOrder.materialAmount /
-            ruleset.orundumTradeOrder.hours) *
-          multiplier,
-      },
+      materialPerHour: Object.fromEntries(
+        Object.entries(baseMaterialPerHour).map(([material, amount]) => [
+          material,
+          amount * multiplier,
+        ]),
+      ),
     };
   }
   const orders = uniqueTradeOrders(active, facility);
@@ -3126,17 +3132,20 @@ function tradeProduction(
     const fixedMaterial = fixed.order.material
       ? canonicalResourceKey(fixed.order.material)
       : null;
+    const baseMaterial: Record<string, number> = {};
     const material: Record<string, number> = {};
     if (fixedMaterial && fixed.order.amount) {
-      material[fixedMaterial] = -(
-        (Number(fixed.order.amount) / Number(fixed.order.time ?? 1)) *
-        (fixed.order.ignoreEff ? 1 : multiplier)
-      );
+      const baseAmount =
+        Number(fixed.order.amount) / Number(fixed.order.time ?? 1);
+      baseMaterial[fixedMaterial] = -baseAmount;
+      material[fixedMaterial] =
+        -baseAmount * (fixed.order.ignoreEff ? 1 : multiplier);
     }
     return {
       product: "龙门币",
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
+      baseMaterialPerHour: baseMaterial,
       amountPerHour,
       amountPerDay: amountPerHour * 24,
       itemRate:
@@ -3240,11 +3249,15 @@ function tradeProduction(
   });
   if (expectedTime <= EPSILON) return undefined;
   const baseAmountPerHour = expectedGold / expectedTime;
+  const baseMaterialPerHour = {
+    赤金: -(expectedMaterial / expectedTime),
+  };
   const amountPerHour = baseAmountPerHour * multiplier;
   return {
     product: "龙门币",
     baseAmountPerHour,
     baseAmountPerDay: baseAmountPerHour * 24,
+    baseMaterialPerHour,
     amountPerHour,
     amountPerDay: amountPerHour * 24,
     itemRate: multiplier / expectedTime,
@@ -3253,9 +3266,12 @@ function tradeProduction(
         ? "龙门商法（含特殊规则）"
         : "龙门商法",
     orders: orderSummaries,
-    materialPerHour: {
-      赤金: -((expectedMaterial / expectedTime) * multiplier),
-    },
+    materialPerHour: Object.fromEntries(
+      Object.entries(baseMaterialPerHour).map(([material, amount]) => [
+        material,
+        amount * multiplier,
+      ]),
+    ),
   };
 }
 
@@ -3278,17 +3294,24 @@ function productionFor(
     if (!rule) return undefined;
     const multiplier = efficiency / 100;
     const baseAmountPerHour = rule.amount / rule.hours;
+    const baseMaterialPerHour = Object.fromEntries(
+      Object.entries(rule.materials ?? {}).map(([material, amount]) => [
+        material,
+        -amount / rule.hours,
+      ]),
+    );
     return {
       product: rule.product,
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
+      baseMaterialPerHour,
       amountPerHour: baseAmountPerHour * multiplier,
       amountPerDay: baseAmountPerHour * multiplier * 24,
       itemRate: baseAmountPerHour * multiplier,
       materialPerHour: Object.fromEntries(
-        Object.entries(rule.materials ?? {}).map(([material, amount]) => [
+        Object.entries(baseMaterialPerHour).map(([material, amount]) => [
           material,
-          -(amount / rule.hours) * multiplier,
+          amount * multiplier,
         ]),
       ),
     };

@@ -158,6 +158,15 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
                 )"
                 :key="`facility-material-${material.material}`"
               >
+                <span>基础材料消耗速率</span>
+                <strong>
+                  {{ resourceLabel(material.material) }}
+                  <SimulatorNumericValue
+                    mode="signed"
+                    :value="material.baseAmount"
+                    unit="/小时"
+                  />/小时
+                </strong>
                 <span>材料消耗速率</span>
                 <strong>
                   {{ resourceLabel(material.material) }}

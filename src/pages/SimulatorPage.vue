@@ -214,6 +214,7 @@ interface DailyOutputOrderDetail {
 
 interface DailyOutputMaterialDetail {
   material: string;
+  baseAmountPerHour: number;
   dailyAmount: number;
   queueTotal: number;
 }
@@ -1215,14 +1216,30 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
         const totalOutputPerHour = production.amountPerHour;
         const selectedOutputPerHour =
           production.effectiveAmountPerHour ?? totalOutputPerHour;
+        const baseMaterials =
+          production.baseMaterialPerHour ?? production.materialPerHour ?? {};
         const selectedMaterials =
           production.effectiveMaterialPerHour ??
           production.materialPerHour ??
           {};
-        const materials = Object.entries(selectedMaterials)
-          .filter(([, amount]) => amount < -EPSILON)
-          .map(([material, amount]) => ({
+        const materials = [
+          ...new Set([
+            ...Object.keys(baseMaterials),
+            ...Object.keys(selectedMaterials),
+          ]),
+        ]
+          .map((material) => ({
             material,
+            baseAmountPerHour: baseMaterials[material] ?? 0,
+            amount: selectedMaterials[material] ?? 0,
+          }))
+          .filter(
+            ({ baseAmountPerHour, amount }) =>
+              baseAmountPerHour < -EPSILON || amount < -EPSILON,
+          )
+          .map(({ material, baseAmountPerHour, amount }) => ({
+            material,
+            baseAmountPerHour,
             dailyAmount: (amount * plan.durationHours * 24) / result.dailyHours,
             queueTotal: amount * plan.durationHours,
           }));
@@ -1243,6 +1260,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
             (candidate) => candidate.material === material.material,
           );
           if (total) {
+            total.baseAmountPerHour += material.baseAmountPerHour;
             total.dailyAmount += material.dailyAmount;
             total.queueTotal += material.queueTotal;
           } else {
@@ -1251,7 +1269,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
         });
         current.baseEfficiency += facility.baseEfficiency;
         current.totalEfficiency += facility.efficiency;
-        current.baseOutputPerHour += (baseRate * facility.baseEfficiency) / 100;
+        current.baseOutputPerHour += baseRate;
         current.totalOutputPerHour += totalOutputPerHour;
         current.selectedOutputPerHour += selectedOutputPerHour;
         current.queueTotal += selectedOutputPerHour * plan.durationHours;
@@ -1259,7 +1277,7 @@ const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
           label: facilityResultLabel(facility),
           baseEfficiency: facility.baseEfficiency,
           totalEfficiency: facility.efficiency,
-          baseOutputPerHour: (baseRate * facility.baseEfficiency) / 100,
+          baseOutputPerHour: baseRate,
           totalOutputPerHour,
           selectedOutputPerHour,
           materials,
@@ -8537,14 +8555,6 @@ defineExpose({ prepareScheduleReferenceImage });
                             resourceLabel(product.product)
                           }}</span>
                           <div class="simulator-step-detail-grid">
-                            <span>基础效率</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="efficiency"
-                                :value="product.baseEfficiency"
-                                unit="%"
-                              />%</strong
-                            >
                             <span>总效率</span>
                             <strong
                               ><SimulatorNumericValue
@@ -8597,6 +8607,15 @@ defineExpose({ prepareScheduleReferenceImage });
                                 v-for="material in product.materials"
                                 :key="`product-material-${product.product}-${material.material}`"
                               >
+                                <span>基础材料消耗速率</span>
+                                <strong>
+                                  {{ resourceLabel(material.material) }}
+                                  <SimulatorNumericValue
+                                    mode="signed"
+                                    :value="material.baseAmountPerHour"
+                                    unit="/小时"
+                                  />/小时
+                                </strong>
                                 <span>材料消耗 · 队列折算</span>
                                 <strong>
                                   {{ resourceLabel(material.material) }}
@@ -8630,14 +8649,6 @@ defineExpose({ prepareScheduleReferenceImage });
                                 v-for="facility in product.facilities"
                                 :key="facility.label"
                               >
-                                <span>{{ facility.label }} · 基础效率</span>
-                                <strong
-                                  ><SimulatorNumericValue
-                                    mode="efficiency"
-                                    :value="facility.baseEfficiency"
-                                    unit="%"
-                                  />%</strong
-                                >
                                 <span>{{ facility.label }} · 总效率</span>
                                 <strong
                                   ><SimulatorNumericValue
@@ -8666,6 +8677,17 @@ defineExpose({ prepareScheduleReferenceImage });
                                   v-for="material in facility.materials"
                                   :key="`${facility.label}-${material.material}`"
                                 >
+                                  <span>
+                                    {{ facility.label }} · 基础材料消耗速率
+                                  </span>
+                                  <strong>
+                                    {{ resourceLabel(material.material) }}
+                                    <SimulatorNumericValue
+                                      mode="signed"
+                                      :value="material.baseAmountPerHour"
+                                      unit="/小时"
+                                    />/小时
+                                  </strong>
                                   <span>
                                     {{ facility.label }} · 材料消耗 · 队列折算
                                   </span>

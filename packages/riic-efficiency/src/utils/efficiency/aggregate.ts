@@ -57,12 +57,60 @@ export function aggregateDaily(
         sum.effective +=
           (production.effectiveAmountPerHour ?? production.amountPerHour) *
           plan.durationHours;
+        Object.entries(
+          production.baseMaterialPerHour ?? production.materialPerHour ?? {},
+        ).forEach(([material, amount]) => {
+          sum.baseMaterials[canonicalResourceKey(material)] =
+            (sum.baseMaterials[canonicalResourceKey(material)] ?? 0) +
+            amount * plan.durationHours;
+        });
+        Object.entries(production.materialPerHour ?? {}).forEach(
+          ([material, amount]) => {
+            sum.materials[canonicalResourceKey(material)] =
+              (sum.materials[canonicalResourceKey(material)] ?? 0) +
+              amount * plan.durationHours;
+          },
+        );
+        Object.entries(
+          production.effectiveMaterialPerHour ??
+            production.materialPerHour ??
+            {},
+        ).forEach(([material, amount]) => {
+          sum.effectiveMaterials[canonicalResourceKey(material)] =
+            (sum.effectiveMaterials[canonicalResourceKey(material)] ?? 0) +
+            amount * plan.durationHours;
+        });
         return sum;
       },
-      { base: 0, actual: 0, effective: 0 },
+      {
+        base: 0,
+        actual: 0,
+        effective: 0,
+        baseMaterials: {} as Record<string, number>,
+        materials: {} as Record<string, number>,
+        effectiveMaterials: {} as Record<string, number>,
+      },
     );
     const amountPerHour = totals.actual / totalHours;
     const effectiveAmountPerHour = totals.effective / totalHours;
+    const baseMaterialPerHour = Object.fromEntries(
+      Object.entries(totals.baseMaterials).map(([material, amount]) => [
+        material,
+        amount / totalHours,
+      ]),
+    );
+    const materialPerHour = Object.fromEntries(
+      Object.entries(totals.materials).map(([material, amount]) => [
+        material,
+        amount / totalHours,
+      ]),
+    );
+    const effectiveMaterialPerHour = Object.fromEntries(
+      Object.entries(totals.effectiveMaterials).map(([material, amount]) => [
+        material,
+        amount / totalHours,
+      ]),
+    );
     return {
       ...result,
       ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
@@ -74,12 +122,19 @@ export function aggregateDaily(
         ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
         baseAmountPerHour: totals.base / totalHours,
         baseAmountPerDay: (totals.base / totalHours) * 24,
+        ...(Object.keys(baseMaterialPerHour).length > 0
+          ? { baseMaterialPerHour }
+          : {}),
         amountPerHour,
         amountPerDay: amountPerHour * 24,
+        ...(Object.keys(materialPerHour).length > 0 ? { materialPerHour } : {}),
         ...(Math.abs(effectiveAmountPerHour - amountPerHour) > EPSILON
           ? {
               effectiveAmountPerHour,
               effectiveAmountPerDay: effectiveAmountPerHour * 24,
+              ...(Object.keys(effectiveMaterialPerHour).length > 0
+                ? { effectiveMaterialPerHour }
+                : {}),
             }
           : {}),
       },
@@ -103,6 +158,7 @@ export function aggregateDailyProductions(
       effectivePerCycle: number;
       conversion?: ProductionValue["conversion"];
       cluePreferences: CluePreference[];
+      baseMaterialsPerCycle: Record<string, number>;
       materialsPerCycle: Record<string, number>;
       effectiveMaterialsPerCycle: Record<string, number>;
     }
@@ -122,6 +178,7 @@ export function aggregateDailyProductions(
         effectivePerCycle: 0,
         conversion: production.conversion,
         cluePreferences: [],
+        baseMaterialsPerCycle: {},
         materialsPerCycle: {},
         effectiveMaterialsPerCycle: {},
       };
@@ -137,6 +194,14 @@ export function aggregateDailyProductions(
         plan.durationHours;
       current.actualPerCycle += production.amountPerHour * plan.durationHours;
       current.effectivePerCycle += rate * plan.durationHours;
+      Object.entries(
+        production.baseMaterialPerHour ?? production.materialPerHour ?? {},
+      ).forEach(([material, amount]) => {
+        const resource = canonicalResourceKey(material);
+        current.baseMaterialsPerCycle[resource] =
+          (current.baseMaterialsPerCycle[resource] ?? 0) +
+          amount * plan.durationHours;
+      });
       Object.entries(production.materialPerHour ?? {}).forEach(
         ([material, amount]) => {
           const resource = canonicalResourceKey(material);
@@ -167,6 +232,12 @@ export function aggregateDailyProductions(
         amount / totalHours,
       ]),
     );
+    const baseMaterialPerHour = Object.fromEntries(
+      Object.entries(value.baseMaterialsPerCycle).map(([material, amount]) => [
+        material,
+        amount / totalHours,
+      ]),
+    );
     const effectiveMaterialPerHour = Object.fromEntries(
       Object.entries(value.effectiveMaterialsPerCycle).map(
         ([material, amount]) => [material, amount / totalHours],
@@ -180,6 +251,9 @@ export function aggregateDailyProductions(
       ...(value.conversion ? { conversion: value.conversion } : {}),
       baseAmountPerHour,
       baseAmountPerDay: baseAmountPerHour * 24,
+      ...(Object.keys(baseMaterialPerHour).length > 0
+        ? { baseMaterialPerHour }
+        : {}),
       amountPerHour,
       amountPerDay: amountPerHour * 24,
       ...(Math.abs(effectiveAmountPerHour - amountPerHour) > EPSILON

@@ -175,15 +175,23 @@ function baseFlowFromProduction(
   }
   const materialScale =
     production.amountPerHour > 0 ? amountPerHour / production.amountPerHour : 1;
-  return {
-    amountPerHour,
-    materialPerHour: Object.fromEntries(
+  const baseMaterialPerHour =
+    production.baseMaterialPerHour ??
+    Object.fromEntries(
       Object.entries(production.materialPerHour ?? {}).map(
         ([material, amount]) => [
           canonicalResourceKey(material),
           amount * materialScale,
         ],
       ),
+    );
+  return {
+    amountPerHour,
+    materialPerHour: Object.fromEntries(
+      Object.entries(baseMaterialPerHour).map(([material, amount]) => [
+        canonicalResourceKey(material),
+        amount,
+      ]),
     ),
   };
 }

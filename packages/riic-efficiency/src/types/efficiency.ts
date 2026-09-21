@@ -273,6 +273,7 @@ export interface ProductionValue {
   };
   baseAmountPerHour?: number;
   baseAmountPerDay?: number;
+  baseMaterialPerHour?: Record<string, number>;
   amountPerHour: number;
   amountPerDay: number;
   effectiveAmountPerHour?: number;

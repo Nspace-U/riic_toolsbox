@@ -308,14 +308,21 @@ export function efficiencyStatUnit(stat: string): string {
 export function productionMaterialsForDisplay(
   value: ProductionValue,
   effective = false,
-): Array<{ material: string; amount: number }> {
+): Array<{ material: string; amount: number; baseAmount: number }> {
+  const baseMaterials = value.baseMaterialPerHour ?? value.materialPerHour ?? {};
   const materials = effective
-    ? (value.effectiveMaterialPerHour ?? value.materialPerHour)
-    : value.materialPerHour;
-  return Object.entries(materials ?? {}).map(([material, amount]) => ({
-    material,
-    amount,
-  }));
+    ? (value.effectiveMaterialPerHour ?? value.materialPerHour ?? {})
+    : (value.materialPerHour ?? {});
+  return [...new Set([...Object.keys(baseMaterials), ...Object.keys(materials)])]
+    .map((material) => ({
+      material,
+      amount: materials[material] ?? 0,
+      baseAmount: baseMaterials[material] ?? 0,
+    }))
+    .filter(
+      ({ amount, baseAmount }) =>
+        Math.abs(amount) > 0.000001 || Math.abs(baseAmount) > 0.000001,
+    );
 }
 
 export function formatDurationHours(value: number): string {

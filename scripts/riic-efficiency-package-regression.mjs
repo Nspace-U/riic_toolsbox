@@ -56,6 +56,44 @@ const result = packageModule.calculateEfficiency(
 assert.equal(result.plans[0].facilities[0].baseEfficiency, 123);
 assert.equal(result.plans[0].facilities[0].facility.type, "trading");
 
+const materialResult = packageModule.calculateEfficiency(
+  {
+    layout: [{ type: "manufacture", level: 3 }],
+    plans: [
+      {
+        duration: 720,
+        rooms: {
+          manufacture: [
+            {
+              product: "源石碎片",
+              sourceMaterial: "固源岩",
+              operators: ["陈"],
+            },
+          ],
+        },
+      },
+    ],
+  },
+  {
+    catalog,
+    ruleset: {
+      ...packageModule.DEFAULT_RULESET,
+      baseEfficiency: {
+        ...packageModule.DEFAULT_RULESET.baseEfficiency,
+        manufacture: 150,
+      },
+    },
+  },
+);
+const materialProduction = materialResult.plans[0].facilities[0].production;
+assert.equal(materialProduction?.baseAmountPerHour, 1);
+assert.ok(Math.abs((materialProduction?.amountPerHour ?? 0) - 1.51) < 1e-9);
+assert.equal(materialProduction?.baseMaterialPerHour?.["固源岩"], -2);
+assert.ok(
+  Math.abs((materialProduction?.materialPerHour?.["固源岩"] ?? 0) + 3.02) <
+    1e-9,
+);
+
 const droneRuleset = {
   ...packageModule.DEFAULT_RULESET,
   manufactureRules: {
