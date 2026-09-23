@@ -8206,12 +8206,6 @@ defineExpose({ prepareScheduleReferenceImage });
                     <div class="simulator-efficiency-summary">
                       <div
                         class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
-                        :class="{
-                          'simulator-efficiency-summary-line--drone-pre':
-                            maaDroneOrderForFacility(row, planIndex) === 'pre',
-                          'simulator-efficiency-summary-line--drone-post':
-                            maaDroneOrderForFacility(row, planIndex) === 'post',
-                        }"
                       >
                         <img
                           v-if="
@@ -8219,7 +8213,7 @@ defineExpose({ prepareScheduleReferenceImage });
                           "
                           alt=""
                           aria-hidden="true"
-                          class="simulator-efficiency-summary-drone-icon"
+                          class="simulator-efficiency-summary-drone-icon simulator-efficiency-summary-drone-icon--pre"
                           :src="LABOR_ICON_URL"
                         />
                         <strong
@@ -8250,7 +8244,7 @@ defineExpose({ prepareScheduleReferenceImage });
                           "
                           alt=""
                           aria-hidden="true"
-                          class="simulator-efficiency-summary-drone-icon"
+                          class="simulator-efficiency-summary-drone-icon simulator-efficiency-summary-drone-icon--post"
                           :src="LABOR_ICON_URL"
                         />
                       </div>

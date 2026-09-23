@@ -2618,22 +2618,25 @@ a {
 }
 
 .simulator-efficiency-summary-line--total {
+  position: relative;
   justify-content: center;
 }
 
-.simulator-efficiency-summary-line--drone-pre {
-  justify-content: flex-start;
-}
-
-.simulator-efficiency-summary-line--drone-post {
-  justify-content: flex-end;
-}
-
 .simulator-efficiency-summary-drone-icon {
-  flex: 0 0 auto;
+  position: absolute;
+  inset-block-start: 50%;
   width: 16px;
   height: 16px;
   object-fit: contain;
+  transform: translateY(-50%);
+}
+
+.simulator-efficiency-summary-drone-icon--pre {
+  inset-inline-start: 0;
+}
+
+.simulator-efficiency-summary-drone-icon--post {
+  inset-inline-end: 0;
 }
 
 .simulator-efficiency-summary-line--total strong {
