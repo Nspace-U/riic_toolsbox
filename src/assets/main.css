@@ -1388,7 +1388,7 @@ a {
 
 .simulator-layout {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: start;
   gap: 12px;
 }
@@ -1410,6 +1410,7 @@ a {
   inset-block-start: 92px;
   display: flex;
   flex-direction: column;
+  width: max-content;
   max-block-size: var(--simulator-document-sidebar-max-height);
   overflow: hidden;
   background: #ffffff;
@@ -1458,7 +1459,9 @@ a {
   flex: 1 1 auto;
   min-block-size: 0;
   max-block-size: none;
-  overflow-y: auto;
+  width: max-content;
+  min-width: 100%;
+  overflow: auto;
   padding: 8px;
   gap: 4px;
 }
@@ -1468,7 +1471,8 @@ a {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   padding: 11px 10px;
   gap: 4px;
   color: #526164;
@@ -1510,8 +1514,7 @@ a {
 }
 
 .simulator-document-item-main {
-  overflow: hidden;
-  min-width: 0;
+  width: max-content;
 }
 
 .simulator-document-item--active {
@@ -1521,10 +1524,8 @@ a {
 
 .simulator-document-item-title {
   display: block;
-  overflow: hidden;
   font-size: 13px;
   font-weight: 650;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -3726,10 +3727,13 @@ a {
 
   .simulator-document-sidebar {
     position: static;
+    width: 100%;
     --simulator-document-sidebar-max-height: calc(100vh - 140px);
   }
 
   .simulator-document-list {
+    width: 100%;
+    min-width: 0;
     max-block-size: none;
   }
 
