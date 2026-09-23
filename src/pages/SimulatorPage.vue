@@ -43,9 +43,7 @@ import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPan
 import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
 import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
 import ScheduleOperatorSlotContent from "@/components/ScheduleOperatorSlotContent.vue";
-import SimulatorCalculationStepContent, {
-  type SimulatorCalculationStepView,
-} from "@/components/SimulatorCalculationStepContent.vue";
+import SimulatorCalculationStepContent from "@/components/SimulatorCalculationStepContent.vue";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
@@ -55,21 +53,22 @@ import {
 } from "@/adapters/riicEfficiencyData";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
-  BasePointDetail,
-  BasePointSource,
-} from "@arknights/riic-efficiency";
-import type {
   EfficiencyCatalog,
   EfficiencyNotice,
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
-  DroneAccelerationDetail,
-  MoodSnapshot,
   OperatorProgressionNode,
   ResolvedOperatorProgression,
   DroneAccelerationResult,
-  DroneAccelerationScenario,
+  BasePointQueueDetail,
+  DailyOutputCard,
+  DailyOutputQueueDetail,
+  DroneScenarioDisplay,
+  EfficiencyCalculationStepGroup,
+  EfficiencyCalculationStepView,
+  BasePointSource,
+  MaaDroneQueueDetail,
 } from "@arknights/riic-efficiency";
 import type {
   LayoutEntry,
@@ -84,8 +83,16 @@ import type {
   PlanDrones,
 } from "@/types/schedule";
 import {
-  EPSILON,
+  baseAmountsWithoutMaaDrones,
   calculateDroneAcceleration,
+  buildBasePointQueueDetails,
+  buildCalculationStepGroups,
+  buildCalculationSteps,
+  buildDailyOutputCards,
+  buildDailyOutputQueueDetails,
+  buildDailySanityAmounts,
+  buildDroneScenarioDisplays,
+  buildMaaDroneQueueDetails,
   calculateEfficiency,
   analyzeSchedulePeriods,
   schedulePeriodForRange,
@@ -95,6 +102,10 @@ import {
   nodesForOperator,
   progressionNodesForFacility,
   resolveOperatorProgression,
+  formatBasePointLabel,
+  formatBasePointSource,
+  formatFacilityResultLabel,
+  formatInheritedSourceLabel,
 } from "@arknights/riic-efficiency";
 import {
   DEFAULT_SOURCE_MATERIAL,
@@ -133,10 +144,7 @@ import {
 } from "@/utils/operatorAvatarLayout";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
 import {
-  addProductionFlow,
-  BATTLE_RECORD_EXPERIENCE,
   calculateSanityResult,
-  PURE_GOLD_POINTS,
   type SanityResourceAmounts,
   type SanityResult,
 } from "@/utils/sanity";
@@ -194,152 +202,7 @@ interface FacilitySlotRef {
   slotIndex: number;
 }
 
-type SimulatorCalculationStep = SimulatorCalculationStepView;
-
-interface SimulatorCalculationStepGroupColumn {
-  plan: EfficiencyPlanResult;
-  planIndex: number;
-  step?: SimulatorCalculationStep;
-}
-
-interface SimulatorCalculationStepGroup {
-  key: string;
-  label: string;
-  activeColumnCount: number;
-  columns: SimulatorCalculationStepGroupColumn[];
-}
-
-interface DailyOutputOrderDetail {
-  name: string;
-  probability: number;
-  baseRate: number;
-  totalRate: number;
-  ignoreEfficiency?: boolean;
-}
-
-interface DailyOutputMaterialDetail {
-  material: string;
-  baseAmountPerHour: number;
-  dailyAmount: number;
-  queueTotal: number;
-}
-
-interface DailyOutputFacilityDetail {
-  label: string;
-  baseEfficiency: number;
-  totalEfficiency: number;
-  baseOutputPerHour: number;
-  totalOutputPerHour: number;
-  selectedOutputPerHour: number;
-  materials: DailyOutputMaterialDetail[];
-  orders: DailyOutputOrderDetail[];
-}
-
-interface DailyOutputProductDetail {
-  product: string;
-  baseEfficiency: number;
-  totalEfficiency: number;
-  baseOutputPerHour: number;
-  totalOutputPerHour: number;
-  selectedOutputPerHour: number;
-  dailyContribution: number;
-  queueTotal: number;
-  materials: DailyOutputMaterialDetail[];
-  facilities: DailyOutputFacilityDetail[];
-}
-
-interface DailyOutputQueueDetail {
-  plan: EfficiencyPlanResult;
-  planIndex: number;
-  products: DailyOutputProductDetail[];
-  sanity: SanityResult;
-}
-
-interface BasePointQueueDetail {
-  plan: EfficiencyPlanResult;
-  planIndex: number;
-  points: BasePointDetail[];
-}
-
-interface MaaDroneQueueDetail {
-  plan: EfficiencyPlanResult;
-  planIndex: number;
-  details: DroneAccelerationDetail[];
-}
-
-interface DailyOutputCard {
-  product: string;
-  sourceFacility?: RoomKey;
-  grossAmount?: number;
-  grossPoints?: number;
-  grossPointsLabel?: string;
-  netAmount: number;
-  netResourceAmount: number;
-  netUnit: string;
-  netContribution?: number;
-  showNet: boolean;
-}
-
-interface DroneScenarioView {
-  key: "extra" | "accelerated";
-  label: string;
-  cards: DailyOutputCard[];
-}
-
-interface DroneScenarioDisplay {
-  scenario: DroneAccelerationScenario;
-  views: DroneScenarioView[];
-}
-
-function dailyOutputPointInfo(
-  product: string,
-): { factor: number; label: string } | undefined {
-  if (product === "赤金") {
-    return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
-  }
-  if (product === "中级作战记录") {
-    return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
-  }
-  return undefined;
-}
-
-function createDailyOutputCard(
-  product: string,
-  amounts: SanityResourceAmounts,
-  sanity: SanityResult | undefined,
-  grossAmount?: number,
-  sourceFacility?: RoomKey,
-): DailyOutputCard {
-  const pointInfo = dailyOutputPointInfo(product);
-  const sanityItem = sanity?.items.find((item) => item.resource === product);
-  const rawNetAmount =
-    (amounts as Record<string, number | undefined>)[product] ??
-    grossAmount ??
-    0;
-  const netUnit =
-    pointInfo?.label ?? sanityItem?.amountUnit ?? resourceLabel(product);
-  const netAmount = rawNetAmount * (pointInfo?.factor ?? 1);
-  const netContribution =
-    sanityItem?.contribution ?? (sanity?.complete ? 0 : undefined);
-  const grossPoints =
-    grossAmount === undefined || !pointInfo
-      ? undefined
-      : grossAmount * pointInfo.factor;
-  return {
-    product,
-    ...(sourceFacility === undefined ? {} : { sourceFacility }),
-    ...(grossAmount === undefined ? {} : { grossAmount }),
-    ...(grossPoints === undefined ? {} : { grossPoints }),
-    ...(pointInfo ? { grossPointsLabel: pointInfo.label } : {}),
-    netAmount,
-    netResourceAmount: rawNetAmount,
-    netUnit,
-    ...(netContribution === undefined ? {} : { netContribution }),
-    showNet:
-      grossAmount === undefined ||
-      Math.abs(rawNetAmount - grossAmount) > 0.000001,
-  };
-}
+type SimulatorCalculationStep = EfficiencyCalculationStepView;
 
 interface ExtraRoom {
   planIndex: number;
@@ -1226,210 +1089,33 @@ const currentEfficiencySettings = computed(() => {
 });
 
 const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
-  const plans = efficiencyResult.value?.plans ?? [];
-  return plans.flatMap((plan, planIndex) => {
-    const facilitySteps = plan.facilities
-      .filter(
-        (facility) =>
-          facility.production !== undefined ||
-          facility.capacity !== undefined ||
-          facility.details.length > 0,
-      )
-      .map((facility) => ({
-        plan,
-        planIndex,
-        facility,
-        moods: moodSnapshotsForFacility(plan, facility),
-        droneAccelerations: plan.droneAccelerations.filter(
-          (detail) => detail.facilityId === facility.facility.id,
-        ),
-      }));
-    const controlMoods = plan.moods.filter(
-      (mood) => mood.facility === "control" && mood.working,
-    );
-    return controlMoods.length > 0
-      ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
-      : facilitySteps;
-  });
+  const result = efficiencyResult.value;
+  return result ? buildCalculationSteps(result) : [];
 });
 
-const calculationStepGroups = computed<SimulatorCalculationStepGroup[]>(() => {
-  const plans = efficiencyResult.value?.plans ?? [];
-  const groups = new Map<string, SimulatorCalculationStepGroup>();
-  calculationSteps.value.forEach((step) => {
-    const key = step.facility?.facility.id ?? "control";
-    const label = step.facility
-      ? facilityResultLabel(step.facility)
-      : ROOM_LABELS.control;
-    let group = groups.get(key);
-    if (!group) {
-      group = {
-        key,
-        label,
-        activeColumnCount: 0,
-        columns: plans.map((plan, planIndex) => ({ plan, planIndex })),
-      };
-      groups.set(key, group);
-    }
-    const column = group.columns[step.planIndex];
-    if (!column) {
-      return;
-    }
-    if (!column.step) {
-      group.activeColumnCount += 1;
-    }
-    column.step = step;
-  });
-  return [...groups.values()];
+const calculationStepGroups = computed<EfficiencyCalculationStepGroup[]>(() => {
+  const result = efficiencyResult.value;
+  return result
+    ? buildCalculationStepGroups(result, calculationSteps.value, {
+        facilityLabel: (facility) => facilityResultLabel(facility),
+      })
+    : [];
 });
 
 const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
   const result = efficiencyResult.value;
-  if (!result || result.dailyHours <= 0) {
-    return [];
-  }
-
-  return result.plans
-    .map((plan, planIndex) => {
-      const products = new Map<string, DailyOutputProductDetail>();
-      const queueAmounts: SanityResourceAmounts = {};
-      plan.facilities.forEach((facility) => {
-        const production = facility.production;
-        if (!production) {
-          return;
-        }
-        addProductionFlow(queueAmounts, production, plan.durationHours);
-        const baseRate = production.baseAmountPerHour;
-        const totalOutputPerHour = production.amountPerHour;
-        const selectedOutputPerHour =
-          production.effectiveAmountPerHour ?? totalOutputPerHour;
-        const baseMaterials =
-          production.baseMaterialPerHour ?? production.materialPerHour ?? {};
-        const selectedMaterials =
-          production.effectiveMaterialPerHour ??
-          production.materialPerHour ??
-          {};
-        const materials = [
-          ...new Set([
-            ...Object.keys(baseMaterials),
-            ...Object.keys(selectedMaterials),
-          ]),
-        ]
-          .map((material) => ({
-            material,
-            baseAmountPerHour: baseMaterials[material] ?? 0,
-            amount: selectedMaterials[material] ?? 0,
-          }))
-          .filter(
-            ({ baseAmountPerHour, amount }) =>
-              baseAmountPerHour < -EPSILON || amount < -EPSILON,
-          )
-          .map(({ material, baseAmountPerHour, amount }) => ({
-            material,
-            baseAmountPerHour,
-            dailyAmount: (amount * plan.durationHours * 24) / result.dailyHours,
-            queueTotal: amount * plan.durationHours,
-          }));
-        const current = products.get(production.product) ?? {
-          product: production.product,
-          baseEfficiency: 0,
-          totalEfficiency: 0,
-          baseOutputPerHour: 0,
-          totalOutputPerHour: 0,
-          selectedOutputPerHour: 0,
-          dailyContribution: 0,
-          queueTotal: 0,
-          materials: [],
-          facilities: [],
-        };
-        materials.forEach((material) => {
-          const total = current.materials.find(
-            (candidate) => candidate.material === material.material,
-          );
-          if (total) {
-            total.baseAmountPerHour += material.baseAmountPerHour;
-            total.dailyAmount += material.dailyAmount;
-            total.queueTotal += material.queueTotal;
-          } else {
-            current.materials.push({ ...material });
-          }
-        });
-        current.baseEfficiency += facility.baseEfficiency;
-        current.totalEfficiency += facility.efficiency;
-        current.baseOutputPerHour += baseRate;
-        current.totalOutputPerHour += totalOutputPerHour;
-        current.selectedOutputPerHour += selectedOutputPerHour;
-        current.queueTotal += selectedOutputPerHour * plan.durationHours;
-        current.facilities.push({
-          label: facilityResultLabel(facility),
-          baseEfficiency: facility.baseEfficiency,
-          totalEfficiency: facility.efficiency,
-          baseOutputPerHour: baseRate,
-          totalOutputPerHour,
-          selectedOutputPerHour,
-          materials,
-          orders: (production.orders ?? []).map((order) => {
-            const baseOrderRate =
-              order.time > 0 ? order.quantity / order.time : 0;
-            const orderMultiplier = order.ignoreEfficiency
-              ? 1
-              : facility.efficiency / 100;
-            return {
-              name: order.name,
-              probability: order.probability,
-              baseRate: baseOrderRate,
-              totalRate: baseOrderRate * orderMultiplier,
-              ...(order.ignoreEfficiency ? { ignoreEfficiency: true } : {}),
-            };
-          }),
-        });
-        products.set(production.product, current);
-      });
-      return {
-        plan,
-        planIndex,
-        products: Array.from(products.values()).map((product) => ({
-          ...product,
-          dailyContribution:
-            (product.selectedOutputPerHour * plan.durationHours * 24) /
-            result.dailyHours,
-        })),
-        sanity: calculateSanityResult(
-          Object.fromEntries(
-            Object.entries(queueAmounts).map(([resource, amount]) => [
-              resource,
-              (amount * 24) / result.dailyHours,
-            ]),
-          ) as SanityResourceAmounts,
-          sanityValues.value,
-        ),
-      };
-    })
-    .filter((queue) => queue.products.length > 0);
+  return result
+    ? buildDailyOutputQueueDetails(result, sanityValues.value, {
+        facilityLabel: (facility) => facilityResultLabel(facility),
+      })
+    : [];
 });
 
 const dailySanityAmounts = computed<SanityResourceAmounts | undefined>(() => {
   const result = efficiencyResult.value;
-  if (!result || result.dailyHours <= 0) {
-    return undefined;
-  }
-  const amounts: SanityResourceAmounts = {};
-  result.dailyProductions.forEach((production) => {
-    if (
-      result.maaDroneAcceleration?.enabled &&
-      production.product === "无人机"
-    ) {
-      return;
-    }
-    addProductionFlow(amounts, production, 24);
-  });
-  const dailyCredit = result.dailyOutputs.find(
-    (output) => output.product === "信用",
-  );
-  if (dailyCredit) {
-    amounts.信用 = dailyCredit.amountPerDay;
-  }
-  return amounts;
+  return result && result.dailyHours > 0
+    ? buildDailySanityAmounts(result)
+    : undefined;
 });
 
 const dailySanityResult = computed<SanityResult | undefined>(() => {
@@ -1481,39 +1167,9 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
   if (!result || !amounts || !sanity) {
     return [];
   }
-
-  const productionOutputs = result.dailyOutputs.filter(
-    (output) => output.kind === "production",
-  );
-  const productionProducts = new Set(
-    productionOutputs.map((output) => output.product),
-  );
-
-  return [
-    ...productionOutputs.map((output) => {
-      return createDailyOutputCard(
-        output.product,
-        amounts,
-        sanity,
-        output.amountPerDay,
-        dailyOutputSourceFacility(output.product),
-      );
-    }),
-    ...result.dailyOutputs
-      .filter(
-        (output) =>
-          output.kind === "net" && !productionProducts.has(output.product),
-      )
-      .map((output) =>
-        createDailyOutputCard(
-          output.product,
-          amounts,
-          sanity,
-          undefined,
-          dailyOutputSourceFacility(output.product),
-        ),
-      ),
-  ];
+  return buildDailyOutputCards(result, amounts, sanity, {
+    sourceFacilityForProduct: dailyOutputSourceFacility,
+  });
 });
 
 const lmdDroneFacilityExists = computed(() => {
@@ -1538,87 +1194,6 @@ const lmdDroneFacilityExists = computed(() => {
     );
   });
 });
-
-function amountFromFlow(
-  amounts: SanityResourceAmounts,
-  resource: string,
-): number {
-  return (amounts as Record<string, number | undefined>)[resource] ?? 0;
-}
-
-function addResourceFlow(
-  target: SanityResourceAmounts,
-  source: SanityResourceAmounts,
-): void {
-  Object.entries(source).forEach(([resource, amount]) => {
-    if (amount !== undefined) {
-      const values = target as Record<string, number | undefined>;
-      values[resource] = (values[resource] ?? 0) + amount;
-    }
-  });
-}
-
-function baseAmountsWithoutMaaDrones(
-  result: EfficiencyResult,
-  amounts: SanityResourceAmounts,
-): SanityResourceAmounts {
-  const base = { ...amounts };
-  const maa = result.maaDroneAcceleration;
-  if (!maa?.enabled || result.dailyHours <= 0) {
-    return base;
-  }
-  maa.details.forEach((detail) => {
-    addResourceFlow(base, {
-      [detail.product]: (-detail.extraAmount * 24) / result.dailyHours,
-      ...Object.fromEntries(
-        Object.entries(detail.extraMaterial).map(([resource, amount]) => [
-          resource,
-          (-amount * 24) / result.dailyHours,
-        ]),
-      ),
-    });
-  });
-  return base;
-}
-
-function scenarioResources(
-  product: string,
-  ...flows: SanityResourceAmounts[]
-): string[] {
-  const resources = new Set<string>([product]);
-  flows.forEach((flow) => {
-    Object.entries(flow).forEach(([resource, amount]) => {
-      if (amount !== undefined && Math.abs(amount) > 0.000001) {
-        resources.add(resource);
-      }
-    });
-  });
-  return [...resources];
-}
-
-function scenarioCards(
-  product: string,
-  amounts: SanityResourceAmounts,
-  grossAmount: number,
-  resources: string[],
-): DailyOutputCard[] {
-  return resources
-    .filter(
-      (resource) =>
-        resource !== "无人机" &&
-        (resource === product ||
-          Math.abs(amountFromFlow(amounts, resource)) > 0.000001),
-    )
-    .map((resource) =>
-      createDailyOutputCard(
-        resource,
-        amounts,
-        undefined,
-        resource === product ? grossAmount : undefined,
-        dailyOutputSourceFacility(resource),
-      ),
-    );
-}
 
 const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
   const document = currentDocument.value;
@@ -1654,93 +1229,36 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
     return [];
   }
 
-  return acceleration.scenarios.map((scenario) => {
-    const production = result.dailyProductions.find(
-      (candidate) => candidate.product === scenario.product,
-    );
-    const baseGrossAmount = production
-      ? (production.effectiveAmountPerDay ?? production.amountPerDay) -
-        (result.maaDroneAcceleration?.details
-          .filter((detail) => detail.product === scenario.product)
-          .reduce(
-            (total, detail) =>
-              total + (detail.extraAmount * 24) / result.dailyHours,
-            0,
-          ) ?? 0)
-      : 0;
-    const acceleratedAmounts: SanityResourceAmounts = {
-      ...baseAmountsWithoutMaaDrones(result, dailySanityAmounts.value ?? {}),
-    };
-    addResourceFlow(acceleratedAmounts, scenario.extraFlow);
-    const extraResources = scenarioResources(
-      scenario.product,
-      scenario.extraFlow,
-    );
-    const acceleratedResources = extraResources;
-    const extraGrossAmount = amountFromFlow(
-      scenario.extraFlow,
-      scenario.product,
-    );
-    return {
-      scenario,
-      views: [
-        {
-          key: "extra",
-          label: "无人机额外产出与消耗",
-          cards: scenarioCards(
-            scenario.product,
-            scenario.extraFlow,
-            extraGrossAmount,
-            extraResources,
-          ),
-        },
-        {
-          key: "accelerated",
-          label: "全部无人机加速后",
-          cards: scenarioCards(
-            scenario.product,
-            acceleratedAmounts,
-            baseGrossAmount + extraGrossAmount,
-            acceleratedResources,
-          ),
-        },
-      ],
-    };
-  });
+  return buildDroneScenarioDisplays(
+    result,
+    acceleration,
+    dailySanityAmounts.value ?? {},
+    { sourceFacilityForProduct: dailyOutputSourceFacility },
+  );
 });
 
 const droneAccelerationVisible = computed(
   () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
 );
 
-function displayedBasePointDetails(
-  plan: EfficiencyPlanResult,
-): BasePointDetail[] {
-  return plan.basePointDetails.filter((point) =>
-    isBasePointVisible(point.term),
-  );
-}
-
 const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
-  const plans = efficiencyResult.value?.plans ?? [];
-  if (!plans.some((plan) => displayedBasePointDetails(plan).length > 0)) {
+  const result = efficiencyResult.value;
+  if (!result) {
     return [];
   }
-  return plans.map((plan, planIndex) => ({
-    plan,
-    planIndex,
-    points: displayedBasePointDetails(plan),
-  }));
+  const visibleTerms = new Set(
+    result.plans.flatMap((plan) =>
+      plan.basePointDetails
+        .filter((point) => isBasePointVisible(point.term))
+        .map((point) => point.term),
+    ),
+  );
+  return buildBasePointQueueDetails(result, visibleTerms);
 });
 
 const maaDroneQueueDetails = computed<MaaDroneQueueDetail[]>(() => {
   const result = efficiencyResult.value;
-  const details = result?.maaDroneAcceleration?.details ?? [];
-  return (result?.plans ?? []).map((plan, planIndex) => ({
-    plan,
-    planIndex,
-    details: details.filter((detail) => detail.planIndex === planIndex),
-  }));
+  return result ? buildMaaDroneQueueDetails(result) : [];
 });
 
 const operatorPickerRoom = computed(() => {
@@ -5284,18 +4802,6 @@ function planFacilityResult(
   return plan.facilities.find((result) => result.facility.id === facilityId);
 }
 
-function moodSnapshotsForFacility(
-  plan: EfficiencyPlanResult,
-  result: FacilityEfficiencyResult,
-): MoodSnapshot[] {
-  return plan.moods.filter(
-    (mood) =>
-      mood.working &&
-      (mood.facilityId === result.facility.id ||
-        (result.facility.type === "power" && mood.facility === "power")),
-  );
-}
-
 function operatorMoodRemaining(
   planIndex: number,
   type: RoomKey,
@@ -5316,36 +4822,22 @@ function operatorMoodRemaining(
 }
 
 function facilityResultLabel(result: FacilityEfficiencyResult): string {
-  const { facility } = result;
-  if (facility.type === "power") {
-    return ROOM_LABELS[facility.type];
-  }
-  const count =
-    currentDocument.value?.layout.filter(
-      (entry) => entry.type === facility.type,
-    ).length ?? 0;
-  return `${ROOM_LABELS[facility.type]}${count > 1 ? ` ${facility.index + 1}` : ""}`;
+  return formatFacilityResultLabel(result, currentDocument.value?.layout ?? []);
 }
 
 function basePointLabel(term: string): string {
-  return getRiicEfficiencyCatalog().terms[term]?.name ?? term;
+  return formatBasePointLabel(term, getRiicEfficiencyCatalog().terms);
 }
 
 function basePointSourceText(source: BasePointSource): string {
-  const operator = [source.operator, source.skill].filter(Boolean).join(" · ");
-  const facility = ROOM_LABELS[source.facility] ?? source.facility;
-  if (source.kind === "convert" && source.from) {
-    return `${operator}（${facility}，由${basePointLabel(source.from)} × ${formatNumber(source.rate ?? 0)}派生）`;
-  }
-  return `${operator}（${facility}）`;
+  return formatBasePointSource(source, getRiicEfficiencyCatalog().terms);
 }
 
 function inheritedSourceLabel(result: FacilityEfficiencyResult): string {
-  if (!result.inherited || result.inheritedFromPlanIndex === undefined) {
-    return "";
-  }
-  const source = efficiencyResult.value?.plans[result.inheritedFromPlanIndex];
-  return `继承自 ${source?.name || `队列${result.inheritedFromPlanIndex + 1}`}`;
+  return formatInheritedSourceLabel(
+    result,
+    efficiencyResult.value?.plans ?? [],
+  );
 }
 
 function refreshEfficiencyCatalog(): void {

@@ -80,6 +80,54 @@ export {
   termKeysForSpecialOperator,
 } from "./utils/specialOperators";
 export { DRONE_ACCELERATION_MINUTES } from "./utils/sanity";
+export {
+  BATTLE_RECORD_EXPERIENCE,
+  DEFAULT_SANITY_SETTINGS,
+  PURE_GOLD_POINTS,
+  addProductionFlow,
+  calculateSanityResult,
+  calculateSanityValues,
+  sanityItemDefinitions,
+} from "./utils/sanity";
+export {
+  buildBasePointQueueDetails,
+  baseAmountsWithoutMaaDrones,
+  buildCalculationStepGroups,
+  buildCalculationSteps,
+  buildDailyOutputCards,
+  buildDailyOutputQueueDetails,
+  buildDailySanityAmounts,
+  buildDroneScenarioDisplays,
+  buildMaaDroneQueueDetails,
+  buildResultPresentation,
+  formatBasePointLabel,
+  formatBasePointSource,
+  formatFacilityResultLabel,
+  formatInheritedSourceLabel,
+  moodSnapshotsForFacility,
+  resultPresentationSourceFacility,
+} from "./utils/resultPresentation";
+export {
+  cluePreferenceText,
+  convertedProductionAmount,
+  efficiencyStatLabel,
+  efficiencyStatUnit,
+  efficiencyStatValue,
+  facilityOverflowLabel,
+  formatDurationHours,
+  formatEfficiencyNumber,
+  formatNumber,
+  formatProduction,
+  moodRateDetailLabel,
+  moodRateFormula,
+  operatorCalculationLines,
+  operatorCalculationRows,
+  planDurationHoursValue,
+  productionLabel,
+  productionMaterialsForDisplay,
+  resourceLabel,
+  signedNumber,
+} from "./utils/presentation";
 export type {
   ComparisonOperator,
   CurveCalculationStep,
@@ -168,3 +216,27 @@ export type {
   TradeOrder,
 } from "./utils/efficiency/baseRules";
 export type { SanityFlowResource, SanityResourceAmounts } from "./utils/sanity";
+export type {
+  SanityResult,
+  SanityResultItem,
+  SanitySettings,
+  SanityValues,
+} from "./utils/sanity";
+export type {
+  BasePointQueueDetail,
+  DailyOutputCard,
+  DailyOutputFacilityDetail,
+  DailyOutputMaterialDetail,
+  DailyOutputOrderDetail,
+  DailyOutputProductDetail,
+  DailyOutputQueueDetail,
+  DroneScenarioDisplay,
+  DroneScenarioView,
+  EfficiencyCalculationStepGroup,
+  EfficiencyCalculationStepGroupColumn,
+  EfficiencyCalculationStepView,
+  MaaDroneQueueDetail,
+  ResultPresentationData,
+  ResultPresentationOptions,
+} from "./types/resultPresentation";
+export type { OperatorCalculationRow } from "./utils/presentation";

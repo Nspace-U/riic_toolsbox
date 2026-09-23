@@ -130,7 +130,7 @@ const facilityResultLabelBlock = template.slice(
 );
 assert.match(
   facilityResultLabelBlock,
-  /if \(facility\.type === "power"\) \{\s*return ROOM_LABELS\[facility\.type\];\s*\}/,
+  /formatFacilityResultLabel\(result, currentDocument\.value\?\.layout \?\? \[\]\)/,
 );
 assert.doesNotMatch(stylesheet, /simulator-step-formula/);
 assert.match(stylesheet, /\.simulator-step-detail-grid strong small/);
