@@ -45,7 +45,7 @@
               "scope": "room",
               "moodBelow": 20,
               "stack": "max",
-              "maxGroup": "dormRec-room"
+              "maxGroup": "dormRec-mood-below"
             }
           ]
         }

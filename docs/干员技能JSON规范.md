@@ -303,6 +303,7 @@ npm run generate:operator-skills
 | `facilities`      | 作用设施集合。通常与 `target: any` 搭配                       |
 | `exclude`         | 从基建计数中排除的设施 key                                    |
 | `subjects`        | 宿舍效果的 `single` 单体或 `spread` 均摊                      |
+| `moodBelow`       | 目标对象当前计算心情低于该值时生效；严格小于，不包含阈值本身  |
 | `other`           | 受众/计数是否排除自身                                         |
 | `stack`           | `max` 表示同组取最高；缺省表示累加                            |
 | `maxGroup`        | `stack: max` 的显式分组名                                     |
@@ -312,6 +313,8 @@ npm run generate:operator-skills
 | `recipe`          | 制造站配方类别，例如 `贵金属`                                 |
 
 `stack: "max"` 的含义是：先按每个目标设施、条件和 `per` 计算候选值，再在相同 `maxGroup` 中取满足条件的最大值；不能把标记为 `max` 的效果与普通效果混为一组。玛恩纳、重岳、维什戴尔针对 `部分设施/其他设施` 的心情恢复使用 `maxGroup: "otherFacRec"`，由每个设施分别取最高。
+
+宿舍“该宿舍内心情 N 以下的干员恢复效果额外 +X”使用 `moodBelow: N` 和独立的 `maxGroup` 表示。计算时按每个目标干员的当前计算心情判断 `mood < N`，再与宿舍群体恢复效果分别取最高，最后叠加两类结果。
 
 控制中枢直接提供目标设施效率的效果，如果描述包含“同种效果取最高”，使用 `stack: "max"`。计算器据此将 `tradeSpd`、`manuProd`、`droneCharge`、`clueSpeed` 和 `hireSpd` 的效果归入设施效率，而不是干员个人贡献。琴柳“感染力”先按办公室完整效率判断是否低于 130%，触发后作为普通干员效率叠加，不使用 `stack: "max"`。
 

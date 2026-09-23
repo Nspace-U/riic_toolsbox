@@ -1246,6 +1246,11 @@ function effectAppliesToSubject(
   if (effect.scope === "room" && subject.facility.id !== owner.facility.id)
     return false;
   if (
+    effect.moodBelow !== undefined &&
+    !(subject.moodStart < Number(effect.moodBelow))
+  )
+    return false;
+  if (
     effect.scopeGroup &&
     !groupIncludesOperator(catalog, effect.scopeGroup, subject.name)
   )

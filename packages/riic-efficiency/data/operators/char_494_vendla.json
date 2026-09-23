@@ -39,7 +39,7 @@
               "scope": "room",
               "moodBelow": 18,
               "stack": "max",
-              "maxGroup": "dormRec-room"
+              "maxGroup": "dormRec-mood-below"
             },
             {
               "target": "dormitory",

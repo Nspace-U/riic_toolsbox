@@ -83,6 +83,25 @@ const cases = [
   ["char_206_gnosis", "幕后指挥", "cc.g.karlan"],
 ];
 
+const vendla = JSON.parse(
+  await readFile(path.join(skillRoot, "char_494_vendla.json"), "utf8"),
+);
+const vendlaStage = vendla.chains
+  .find((chain) => chain.room === "dormitory")
+  ?.stages.find((stage) => stage.name === "芬芳疗养·β");
+assert.deepEqual(
+  vendlaStage?.effects.find((effect) => effect.moodBelow !== undefined),
+  {
+    target: "dormitory",
+    stat: "moodRecover",
+    value: 0.1,
+    scope: "room",
+    moodBelow: 18,
+    stack: "max",
+    maxGroup: "dormRec-mood-below",
+  },
+);
+
 for (const [id, skillName, group] of cases) {
   const file = JSON.parse(
     await readFile(path.join(skillRoot, `${id}.json`), "utf8"),

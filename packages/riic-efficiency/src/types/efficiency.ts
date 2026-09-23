@@ -139,6 +139,7 @@ export interface EfficiencyEffect {
   op?: string;
   scopeGroup?: string;
   subjects?: "single" | "spread" | string;
+  moodBelow?: number;
   other?: boolean;
   stack?: "max" | string;
   maxGroup?: string;

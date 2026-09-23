@@ -899,7 +899,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
       scope: "room",
       moodBelow: Number(m[1]),
       stack: "max",
-      maxGroup: "dormRec-room",
+      maxGroup: "dormRec-mood-below",
     });
     text = del(
       /该宿舍内心情[+-]?\d+以下的干员恢复效果额外[+-]?\d+(?:\.\d+)?/,
