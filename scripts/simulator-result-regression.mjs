@@ -86,6 +86,7 @@ assert.doesNotMatch(
   /card\.droneExtraAmount|card\.droneBeforeAmount|card\.droneExtraMaterials/,
 );
 assert.doesNotMatch(template, /<span>编辑产物<\/span>/);
+assert.doesNotMatch(template, /所有队列无人机加速/);
 assert.match(template, /scope: "operator"/);
 assert.match(template, /menu\.scope !== "operator"/);
 assert.match(calculationStepContent, /<span>干员心情效率<\/span>/);

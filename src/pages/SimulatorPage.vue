@@ -5685,9 +5685,7 @@ function facilityCardContextMenuItems(
       items.push({
         key: `facility-drone-${position}-${order}`,
         label:
-          order === "pre"
-            ? "所有队列无人机加速（换班前）"
-            : "所有队列无人机加速（换班后）",
+          order === "pre" ? "无人机加速（换班前）" : "无人机加速（换班后）",
         check: document.plans.every((plan) =>
           maaDroneMatches(plan, type, position, order),
         ),
