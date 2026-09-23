@@ -18,8 +18,10 @@ import type {
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
+  DroneAccelerationDetail,
   MoodRateDetail,
   MoodSnapshot,
+  MaaDroneAccelerationResult,
   OperatorEfficiencyDetail,
   OperatorSkillFile,
   ProductionValue,
@@ -91,6 +93,7 @@ import {
   aggregateDailyOutputs,
   aggregateDailyProductions,
 } from "./aggregate";
+import { DRONE_ACCELERATION_MINUTES } from "../sanity";
 
 function rulesetOf(catalog: EfficiencyCatalog): EfficiencyRuleset {
   return catalog.ruleset ?? DEFAULT_RULESET;
@@ -3950,7 +3953,247 @@ function calculatePlan(
     basePoints: context.basePoints,
     basePointDetails: context.basePointDetails,
     warnings: context.warnings,
+    droneAccelerations: [],
   };
+}
+
+interface MaaDroneTarget {
+  planIndex: number;
+  facility: EfficiencyFacility;
+  order: "pre" | "post";
+  sourcePlanIndex: number;
+}
+
+function maaDroneTargets(
+  document: ScheduleDocument,
+  plans: EfficiencyPlanResult[],
+  facilities: EfficiencyFacility[],
+): { targets: MaaDroneTarget[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const targets: MaaDroneTarget[] = [];
+  document.plans.forEach((plan, planIndex) => {
+    const drones = plan.drones;
+    if (!drones || drones.enable === false) {
+      return;
+    }
+    const room = drones.room;
+    const index = drones.index;
+    const facility =
+      room !== undefined && index !== undefined
+        ? facilities.find(
+            (candidate) => candidate.type === room && candidate.index === index,
+          )
+        : undefined;
+    if (!facility || !plans[planIndex]) {
+      warnings.push(
+        `${plan.name || `队列${planIndex + 1}`}：无人机目标设施无效，未参与无人机计算`,
+      );
+      return;
+    }
+    const sourcePlanIndex =
+      drones.order === "post"
+        ? planIndex
+        : (planIndex - 1 + document.plans.length) % document.plans.length;
+    if (
+      !plans[sourcePlanIndex]?.facilities.some(
+        (candidate) =>
+          candidate.facility.id === facility.id && candidate.production,
+      )
+    ) {
+      warnings.push(
+        `${plan.name || `队列${planIndex + 1}`}：无人机目标设施没有有效产出，未参与无人机计算`,
+      );
+      return;
+    }
+    targets.push({
+      planIndex,
+      facility,
+      order: drones.order === "post" ? "post" : "pre",
+      sourcePlanIndex,
+    });
+  });
+  return { targets, warnings };
+}
+
+function generatedDronesForPlans(
+  plans: EfficiencyPlanResult[],
+  powerFacility: EfficiencyFacility | undefined,
+): number[] {
+  return plans.map((plan) => {
+    const production = plan.facilities.find(
+      (facility) =>
+        facility.facility.id === powerFacility?.id && facility.production,
+    )?.production;
+    return Math.max(
+      0,
+      (production?.effectiveAmountPerHour ?? production?.amountPerHour ?? 0) *
+        plan.durationHours,
+    );
+  });
+}
+
+function calculateMaaDroneAcceleration(
+  document: ScheduleDocument,
+  plans: EfficiencyPlanResult[],
+  facilities: EfficiencyFacility[],
+  ruleset: EfficiencyRuleset,
+): MaaDroneAccelerationResult | undefined {
+  const { targets, warnings } = maaDroneTargets(document, plans, facilities);
+  if (targets.length === 0) {
+    return warnings.length > 0
+      ? {
+          enabled: false,
+          details: [],
+          warnings,
+          generatedDrones: 0,
+          usedDrones: 0,
+        }
+      : undefined;
+  }
+  const powerFacility = facilities.find(
+    (facility) => facility.type === "power",
+  );
+  const generated = generatedDronesForPlans(plans, powerFacility);
+  const orderedTargets = [...targets].sort(
+    (left, right) => left.planIndex - right.planIndex,
+  );
+  const usedByPlan = new Map<number, number>();
+  const overflowByPlan = new Map<number, number>();
+  orderedTargets.forEach((target, targetIndex) => {
+    const previous =
+      orderedTargets[
+        (targetIndex - 1 + orderedTargets.length) % orderedTargets.length
+      ]!;
+    let inventory = 0;
+    let planIndex = previous.planIndex;
+    const singleTarget = orderedTargets.length === 1;
+    let iterations = 0;
+    do {
+      inventory += generated[planIndex] ?? 0;
+      if (inventory > ruleset.droneLimit) {
+        const overflow = inventory - ruleset.droneLimit;
+        overflowByPlan.set(
+          planIndex,
+          Math.max(overflowByPlan.get(planIndex) ?? 0, overflow),
+        );
+        warnings.push(
+          `${plans[planIndex]?.name || `队列${planIndex + 1}`}：无人机库存 ${inventory.toFixed(2)} 架，超过 ${ruleset.droneLimit} 架上限`,
+        );
+        if (document.settings?.droneOverflowMode === "zero") {
+          inventory = ruleset.droneLimit;
+        }
+      }
+      planIndex = (planIndex + 1) % plans.length;
+      iterations += 1;
+    } while (
+      singleTarget ? iterations < plans.length : planIndex !== target.planIndex
+    );
+    usedByPlan.set(target.planIndex, inventory);
+  });
+  const details: DroneAccelerationDetail[] = [];
+  targets.forEach((target) => {
+    if (
+      target.facility.type !== "trading" &&
+      target.facility.type !== "manufacture"
+    ) {
+      return;
+    }
+    const sourcePlan = plans[target.sourcePlanIndex];
+    if (!sourcePlan) {
+      return;
+    }
+    const source = sourcePlan?.facilities.find(
+      (candidate) => candidate.facility.id === target.facility.id,
+    );
+    const production = source?.production;
+    if (!production) {
+      return;
+    }
+    const droneAmount = usedByPlan.get(target.planIndex) ?? 0;
+    const acceleratedHours = (droneAmount * DRONE_ACCELERATION_MINUTES) / 60;
+    const extraAmount = production.baseAmountPerHour * acceleratedHours;
+    const extraMaterial = Object.fromEntries(
+      Object.entries(
+        production.baseMaterialPerHour ?? production.materialPerHour ?? {},
+      ).map(([material, amount]) => [material, amount * acceleratedHours]),
+    );
+    const detail: DroneAccelerationDetail = {
+      planIndex: target.planIndex,
+      facilityId: target.facility.id,
+      room: target.facility.type,
+      facilityIndex: target.facility.index,
+      order: target.order,
+      sourcePlanIndex: target.sourcePlanIndex,
+      sourceDurationHours: sourcePlan.durationHours,
+      product: production.product,
+      droneAmount,
+      acceleratedHours,
+      baseAmountPerHour: production.baseAmountPerHour,
+      baseMaterialPerHour:
+        production.baseMaterialPerHour ?? production.materialPerHour ?? {},
+      extraAmount,
+      extraMaterial,
+      overflowed: (overflowByPlan.get(target.planIndex) ?? 0) > 0,
+      overflowAmount: overflowByPlan.get(target.planIndex) ?? 0,
+    };
+    plans[target.planIndex]?.droneAccelerations.push(detail);
+    details.push(detail);
+  });
+  return {
+    enabled: true,
+    details,
+    warnings,
+    generatedDrones: generated.reduce((total, amount) => total + amount, 0),
+    usedDrones: details.reduce(
+      (total, detail) => total + detail.droneAmount,
+      0,
+    ),
+  };
+}
+
+function applyMaaDroneFlows(
+  productions: ProductionValue[],
+  details: DroneAccelerationDetail[],
+  totalHours: number,
+): void {
+  if (totalHours <= EPSILON) {
+    return;
+  }
+  details.forEach((detail) => {
+    const production = productions.find(
+      (candidate) => candidate.product === detail.product,
+    );
+    if (!production) {
+      return;
+    }
+    const amountPerHour = detail.extraAmount / totalHours;
+    production.amountPerHour += amountPerHour;
+    production.amountPerDay = production.amountPerHour * 24;
+    if (production.effectiveAmountPerHour !== undefined) {
+      production.effectiveAmountPerHour += amountPerHour;
+      production.effectiveAmountPerDay = production.effectiveAmountPerHour * 24;
+    }
+    const addFlow = (
+      current: Record<string, number> | undefined,
+      source: Record<string, number>,
+    ): Record<string, number> => {
+      const next = { ...(current ?? {}) };
+      Object.entries(source).forEach(([resource, amount]) => {
+        next[resource] = (next[resource] ?? 0) + amount / totalHours;
+      });
+      return next;
+    };
+    production.materialPerHour = addFlow(
+      production.materialPerHour,
+      detail.extraMaterial,
+    );
+    if (production.effectiveMaterialPerHour) {
+      production.effectiveMaterialPerHour = addFlow(
+        production.effectiveMaterialPerHour,
+        detail.extraMaterial,
+      );
+    }
+  });
 }
 
 function calculateEfficiencyInternal(
@@ -3967,25 +4210,58 @@ function calculateEfficiencyInternal(
   );
   const fiammetta = resolveMoods(contexts, catalog);
   const plans = contexts.map((context) => calculatePlan(context, catalog));
+  const facilities = buildFacilities(document.layout);
+  const maaDroneAcceleration = calculateMaaDroneAcceleration(
+    document,
+    plans,
+    facilities,
+    catalog.ruleset ?? DEFAULT_RULESET,
+  );
   const totalHours = plans.reduce(
     (total, plan) => total + plan.durationHours,
     0,
   );
   const dailyProductions = aggregateDailyProductions(plans, totalHours);
+  if (maaDroneAcceleration?.enabled) {
+    applyMaaDroneFlows(
+      dailyProductions,
+      maaDroneAcceleration.details,
+      totalHours,
+    );
+  }
+  const dailyOutputs = aggregateDailyOutputs(
+    document,
+    dailyProductions,
+    catalog.ruleset ?? DEFAULT_RULESET,
+  );
+  if (maaDroneAcceleration) {
+    const droneOutput = dailyOutputs.filter(
+      (output) => output.product !== "无人机",
+    );
+    return {
+      document,
+      plans,
+      dailyHours: totalHours,
+      dailyFacilities: aggregateDaily(plans, totalHours),
+      dailyProductions,
+      dailyOutputs: droneOutput,
+      ...(fiammetta ? { fiammetta } : {}),
+      fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
+      warnings: plans.flatMap((plan) => plan.warnings),
+      maaDroneAcceleration,
+    };
+  }
   return {
     document,
     plans,
     dailyHours: totalHours,
     dailyFacilities: aggregateDaily(plans, totalHours),
     dailyProductions,
-    dailyOutputs: aggregateDailyOutputs(
-      document,
-      dailyProductions,
-      catalog.ruleset ?? DEFAULT_RULESET,
-    ),
+    dailyOutputs,
     ...(fiammetta ? { fiammetta } : {}),
     fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
     warnings: plans.flatMap((plan) => plan.warnings),
+    ...(maaDroneAcceleration ? { maaDroneAcceleration } : {}),
   };
 }
 

@@ -80,6 +80,7 @@ import type {
   FiammettaMode,
   ScheduleDocument,
   StoredDocument,
+  PlanDrones,
 } from "@/types/schedule";
 import {
   EPSILON,
@@ -267,6 +268,10 @@ interface DailyOutputCard {
   netUnit: string;
   netContribution?: number;
   showNet: boolean;
+  droneBeforeAmount?: number;
+  droneExtraAmount?: number;
+  droneAmount?: number;
+  droneExtraMaterials?: DailyOutputMaterialDetail[];
 }
 
 interface DroneScenarioView {
@@ -534,7 +539,8 @@ const {
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
 const { sanityValues } = useSanitySettings();
-const { lmdDroneStrategies } = useDroneStrategySettings();
+const { lmdDroneStrategies, droneOverflowTruncationEnabled } =
+  useDroneStrategySettings();
 
 const simulatorSlotSize = computed(
   () => avatarDisplaySizes.value.simulatorSlot,
@@ -984,6 +990,9 @@ function efficiencySchedule(document: ScheduleDocument): ScheduleDocument {
       treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
       dormitoryDefaultIncludesMoodRecovery:
         dormitoryDefaultIncludesMoodRecovery.value,
+      droneOverflowMode: droneOverflowTruncationEnabled.value
+        ? "zero"
+        : "continue",
     },
   };
 }
@@ -1024,6 +1033,14 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   const result = efficiencyResult.value;
   if (!result) {
     return notices;
+  }
+  if (result.maaDroneAcceleration?.warnings.length) {
+    notices.push({
+      code: "maa-drone-overflow",
+      level: "warning",
+      message: "发现无人机爆仓风险",
+      details: result.maaDroneAcceleration.warnings,
+    });
   }
   const tradeGapFallbacks = result.plans.flatMap((plan, planIndex) =>
     plan.facilities.flatMap((facility) =>
@@ -1154,6 +1171,9 @@ const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
         planIndex,
         facility,
         moods: moodSnapshotsForFacility(plan, facility),
+        droneAccelerations: plan.droneAccelerations.filter(
+          (detail) => detail.facilityId === facility.facility.id,
+        ),
       }));
     const controlMoods = plan.moods.filter(
       (mood) => mood.facility === "control" && mood.working,
@@ -1326,6 +1346,12 @@ const dailySanityAmounts = computed<SanityResourceAmounts | undefined>(() => {
   }
   const amounts: SanityResourceAmounts = {};
   result.dailyProductions.forEach((production) => {
+    if (
+      result.maaDroneAcceleration?.enabled &&
+      production.product === "无人机"
+    ) {
+      return;
+    }
     addProductionFlow(amounts, production, 24);
   });
   const dailyCredit = result.dailyOutputs.find(
@@ -1395,15 +1421,51 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
   );
 
   return [
-    ...productionOutputs.map((output) =>
-      createDailyOutputCard(
+    ...productionOutputs.map((output) => {
+      const card = createDailyOutputCard(
         output.product,
         amounts,
         sanity,
         output.amountPerDay,
         dailyOutputSourceFacility(output.product),
-      ),
-    ),
+      );
+      const droneDetails =
+        result.maaDroneAcceleration?.details.filter(
+          (detail) => detail.product === output.product,
+        ) ?? [];
+      if (droneDetails.length === 0) {
+        return card;
+      }
+      const extraAmount = droneDetails.reduce(
+        (total, detail) => total + detail.extraAmount,
+        0,
+      );
+      const extraMaterials = new Map<string, DailyOutputMaterialDetail>();
+      droneDetails.forEach((detail) => {
+        Object.entries(detail.extraMaterial).forEach(([material, amount]) => {
+          const current = extraMaterials.get(material) ?? {
+            material,
+            baseAmountPerHour: 0,
+            dailyAmount: 0,
+            queueTotal: 0,
+          };
+          current.dailyAmount += (amount * 24) / result.dailyHours;
+          current.queueTotal += amount;
+          extraMaterials.set(material, current);
+        });
+      });
+      return {
+        ...card,
+        droneBeforeAmount:
+          output.amountPerDay - (extraAmount * 24) / result.dailyHours,
+        droneExtraAmount: (extraAmount * 24) / result.dailyHours,
+        droneAmount: droneDetails.reduce(
+          (total, detail) => total + detail.droneAmount,
+          0,
+        ),
+        droneExtraMaterials: [...extraMaterials.values()],
+      };
+    }),
     ...result.dailyOutputs
       .filter(
         (output) =>
@@ -1463,6 +1525,29 @@ function addResourceFlow(
   });
 }
 
+function baseAmountsWithoutMaaDrones(
+  result: EfficiencyResult,
+  amounts: SanityResourceAmounts,
+): SanityResourceAmounts {
+  const base = { ...amounts };
+  const maa = result.maaDroneAcceleration;
+  if (!maa?.enabled || result.dailyHours <= 0) {
+    return base;
+  }
+  maa.details.forEach((detail) => {
+    addResourceFlow(base, {
+      [detail.product]: (-detail.extraAmount * 24) / result.dailyHours,
+      ...Object.fromEntries(
+        Object.entries(detail.extraMaterial).map(([resource, amount]) => [
+          resource,
+          (-amount * 24) / result.dailyHours,
+        ]),
+      ),
+    });
+  });
+  return base;
+}
+
 function scenarioResources(
   product: string,
   ...flows: SanityResourceAmounts[]
@@ -1510,10 +1595,17 @@ const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
   if (!document || !catalog || !result || !amounts) {
     return undefined;
   }
+  const droneProduction = result.dailyProductions.find(
+    (production) => production.product === "无人机",
+  );
+  const scenarioAmounts = {
+    ...baseAmountsWithoutMaaDrones(result, amounts),
+    ...(droneProduction ? { 无人机: droneProduction.amountPerDay } : {}),
+  };
   return calculateDroneAcceleration(
     efficiencySchedule(document),
     catalog,
-    amounts,
+    scenarioAmounts,
     {
       efficiencyResult: result,
       lmdDroneStrategies: lmdDroneStrategies.value,
@@ -1534,10 +1626,17 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
       (candidate) => candidate.product === scenario.product,
     );
     const baseGrossAmount = production
-      ? (production.effectiveAmountPerDay ?? production.amountPerDay)
+      ? (production.effectiveAmountPerDay ?? production.amountPerDay) -
+        (result.maaDroneAcceleration?.details
+          .filter((detail) => detail.product === scenario.product)
+          .reduce(
+            (total, detail) =>
+              total + (detail.extraAmount * 24) / result.dailyHours,
+            0,
+          ) ?? 0)
       : 0;
     const acceleratedAmounts: SanityResourceAmounts = {
-      ...(dailySanityAmounts.value ?? {}),
+      ...baseAmountsWithoutMaaDrones(result, dailySanityAmounts.value ?? {}),
     };
     addResourceFlow(acceleratedAmounts, scenario.extraFlow);
     const extraResources = scenarioResources(
@@ -1578,7 +1677,10 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
 });
 
 const droneAccelerationVisible = computed(
-  () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
+  () =>
+    lmdDroneFacilityExists.value ||
+    droneScenarioDisplays.value.length > 0 ||
+    efficiencyResult.value?.maaDroneAcceleration?.enabled === true,
 );
 
 function displayedBasePointDetails(
@@ -2489,6 +2591,74 @@ function updateAllPlanRooms(
       }
       update(room);
       plan.rooms[type] = rooms;
+    });
+  });
+}
+
+function maaDroneForPlan(plan: Plan): PlanDrones | undefined {
+  return plan.drones?.enable === false ? undefined : plan.drones;
+}
+
+function maaDroneMatches(
+  plan: Plan,
+  type: RoomKey,
+  position: number,
+  order: "pre" | "post",
+): boolean {
+  const drones = maaDroneForPlan(plan);
+  return (
+    drones?.room === type &&
+    drones.index === position &&
+    (drones.order ?? "pre") === order
+  );
+}
+
+function setMaaDrone(
+  planIndex: number,
+  type: RoomKey,
+  position: number,
+  order: "pre" | "post",
+): void {
+  updateCurrent((document) => {
+    const plan = document.plans[planIndex];
+    if (!plan) {
+      return;
+    }
+    if (maaDroneMatches(plan, type, position, order)) {
+      delete plan.drones;
+      return;
+    }
+    plan.drones = {
+      enable: true,
+      room: type as "trading" | "manufacture",
+      index: position,
+      rule: "all",
+      order,
+    };
+  });
+}
+
+function setAllMaaDrones(
+  type: RoomKey,
+  position: number,
+  order: "pre" | "post",
+): void {
+  updateCurrent((document) => {
+    const allMatch = document.plans.every((plan) =>
+      maaDroneMatches(plan, type, position, order),
+    );
+    document.plans.forEach((plan) => {
+      if (allMatch) {
+        delete plan.drones;
+      } else {
+        plan.drones = {
+          enable: true,
+          room: type as "trading" | "manufacture",
+          index: position,
+          rule: "all",
+          order,
+        };
+      }
     });
   });
 }
@@ -5385,7 +5555,9 @@ function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
   if (
     position === undefined ||
     !roomHasProduct(row.type) ||
-    !currentSimulatorEditSettings.value.product
+    (!currentSimulatorEditSettings.value.product &&
+      row.type !== "trading" &&
+      row.type !== "manufacture")
   ) {
     return;
   }
@@ -5425,28 +5597,50 @@ function roomContextMenuItems(
     },
   ];
 
-  if (!roomHasProduct(type) || !currentSimulatorEditSettings.value.product) {
+  if (!roomHasProduct(type)) {
     return items;
   }
 
-  items.push({ key: `product-divider-${position}`, label: "", divider: true });
-  const availableProducts = productOptions(type, room?.product).filter(
-    (option) => option.value !== "",
-  );
-  availableProducts.forEach((option) => {
+  if (currentSimulatorEditSettings.value.product) {
     items.push({
-      key: `product-${position}-${option.value}`,
-      label: option.label,
-      check: (room?.product ?? "") === option.value,
-      disabled: option.disabled,
-      action: () => {
-        updateRoomProduct(planIndex, type, position, option.value);
-        closeContextMenu();
-      },
+      key: `product-divider-${position}`,
+      label: "",
+      divider: true,
     });
-  });
+    const availableProducts = productOptions(type, room?.product).filter(
+      (option) => option.value !== "",
+    );
+    availableProducts.forEach((option) => {
+      items.push({
+        key: `product-${position}-${option.value}`,
+        label: option.label,
+        check: (room?.product ?? "") === option.value,
+        disabled: option.disabled,
+        action: () => {
+          updateRoomProduct(planIndex, type, position, option.value);
+          closeContextMenu();
+        },
+      });
+    });
+  }
 
-  if (!sourceVisible(room)) {
+  if (type === "trading" || type === "manufacture") {
+    items.push({ key: `drone-divider-${position}`, label: "", divider: true });
+    (["pre", "post"] as const).forEach((order) => {
+      items.push({
+        key: `drone-${position}-${order}`,
+        label:
+          order === "pre" ? "无人机加速（换班前）" : "无人机加速（换班后）",
+        check: plan ? maaDroneMatches(plan, type, position, order) : false,
+        action: () => {
+          setMaaDrone(planIndex, type, position, order);
+          closeContextMenu();
+        },
+      });
+    });
+  }
+
+  if (!currentSimulatorEditSettings.value.product || !sourceVisible(room)) {
     return items;
   }
 
@@ -5483,30 +5677,36 @@ function facilityCardContextMenuItems(
     : undefined;
   const items: FacilityContextMenuItem[] = [];
 
-  productOptions(type, currentProduct)
-    .filter((option) => option.value !== "")
-    .forEach((option) => {
-      items.push({
-        key: `facility-product-${position}-${option.value}`,
-        label: option.label,
-        check: rooms.every((room) => (room?.product ?? "") === option.value),
-        disabled: option.disabled,
-        action: () => {
-          updateAllPlanRooms(type, position, (room) => {
-            if (option.value === "源石碎片") {
-              room.product = option.value;
-              room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
-            } else {
-              room.product = option.value;
-              delete room.sourceMaterial;
-            }
-          });
-          closeContextMenu();
-        },
+  if (currentSimulatorEditSettings.value.product) {
+    productOptions(type, currentProduct)
+      .filter((option) => option.value !== "")
+      .forEach((option) => {
+        items.push({
+          key: `facility-product-${position}-${option.value}`,
+          label: option.label,
+          check: rooms.every((room) => (room?.product ?? "") === option.value),
+          disabled: option.disabled,
+          action: () => {
+            updateAllPlanRooms(type, position, (room) => {
+              if (option.value === "源石碎片") {
+                room.product = option.value;
+                room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
+              } else {
+                room.product = option.value;
+                delete room.sourceMaterial;
+              }
+            });
+            closeContextMenu();
+          },
+        });
       });
-    });
+  }
 
-  if (!rooms.length || !rooms.every((room) => room?.product === "源石碎片")) {
+  if (
+    !currentSimulatorEditSettings.value.product ||
+    !rooms.length ||
+    !rooms.every((room) => room?.product === "源石碎片")
+  ) {
     return items;
   }
 
@@ -5528,6 +5728,30 @@ function facilityCardContextMenuItems(
       },
     });
   });
+
+  if (type === "trading" || type === "manufacture") {
+    items.push({
+      key: `facility-drone-divider-${position}`,
+      label: "",
+      divider: true,
+    });
+    (["pre", "post"] as const).forEach((order) => {
+      items.push({
+        key: `facility-drone-${position}-${order}`,
+        label:
+          order === "pre"
+            ? "所有队列无人机加速（换班前）"
+            : "所有队列无人机加速（换班后）",
+        check: document.plans.every((plan) =>
+          maaDroneMatches(plan, type, position, order),
+        ),
+        action: () => {
+          setAllMaaDrones(type, position, order);
+          closeContextMenu();
+        },
+      });
+    });
+  }
 
   return items;
 }
@@ -8273,6 +8497,45 @@ defineExpose({ prepareScheduleReferenceImage });
                         />
                         {{ card.netUnit }}
                       </span>
+                      <template v-if="card.droneExtraAmount !== undefined">
+                        <span class="simulator-daily-output-net">
+                          消耗无人机
+                          <SimulatorNumericValue
+                            :value="card.droneAmount ?? 0"
+                            unit="架"
+                          />架
+                        </span>
+                        <span class="simulator-daily-output-net">
+                          无人机前
+                          <SimulatorNumericValue
+                            mode="production"
+                            :value="card.droneBeforeAmount ?? 0"
+                            :unit="card.netUnit"
+                          />
+                          {{ card.netUnit }}
+                        </span>
+                        <span class="simulator-daily-output-net">
+                          无人机额外
+                          <SimulatorNumericValue
+                            mode="production"
+                            :value="card.droneExtraAmount"
+                            :unit="card.netUnit"
+                          />
+                          {{ card.netUnit }}
+                        </span>
+                        <span
+                          v-for="material in card.droneExtraMaterials"
+                          :key="`drone-material-${card.product}-${material.material}`"
+                          class="simulator-daily-output-net"
+                        >
+                          无人机额外消耗 {{ resourceLabel(material.material) }}
+                          <SimulatorNumericValue
+                            mode="signed"
+                            :value="material.dailyAmount"
+                            :unit="resourceLabel(material.material)"
+                          />
+                        </span>
+                      </template>
                       <strong
                         v-if="card.netContribution !== undefined"
                         class="simulator-daily-output-sanity"
@@ -8363,6 +8626,89 @@ defineExpose({ prepareScheduleReferenceImage });
                 show-icon
                 type="error"
               />
+              <div
+                v-if="efficiencyResult.maaDroneAcceleration?.enabled"
+                class="simulator-drone-scenarios"
+              >
+                <div class="simulator-drone-scenario">
+                  <div class="simulator-drone-scenario-heading">
+                    <strong>MAA 换班式无人机加速</strong>
+                    <span>
+                      消耗
+                      <SimulatorNumericValue
+                        :value="
+                          efficiencyResult.maaDroneAcceleration.usedDrones
+                        "
+                        unit="架"
+                      />架
+                    </span>
+                  </div>
+                  <div class="simulator-step-detail-grid">
+                    <template
+                      v-for="detail in efficiencyResult.maaDroneAcceleration
+                        .details"
+                      :key="`${detail.planIndex}-${detail.facilityId}-${detail.order}`"
+                    >
+                      <span>
+                        {{
+                          currentDocument.plans[detail.planIndex]?.name ||
+                          `队列${detail.planIndex + 1}`
+                        }}
+                        · {{ ROOM_LABELS[detail.room]
+                        }}{{ detail.facilityIndex + 1 }}
+                      </span>
+                      <strong>
+                        {{ detail.order === "pre" ? "换班前" : "换班后" }} ·
+                        {{ resourceLabel(detail.product) }}
+                      </strong>
+                      <span>无人机</span>
+                      <strong>
+                        <SimulatorNumericValue
+                          :value="detail.droneAmount"
+                          unit="架"
+                        />架 ·
+                        <SimulatorNumericValue
+                          :value="detail.acceleratedHours"
+                          unit="小时"
+                        />小时
+                      </strong>
+                      <span>无人机前基础产出</span>
+                      <strong>
+                        <SimulatorNumericValue
+                          mode="production"
+                          :value="
+                            detail.baseAmountPerHour *
+                            detail.sourceDurationHours
+                          "
+                          :unit="resourceLabel(detail.product)"
+                        />
+                      </strong>
+                      <span>无人机额外产出</span>
+                      <strong>
+                        <SimulatorNumericValue
+                          mode="production"
+                          :value="detail.extraAmount"
+                          :unit="resourceLabel(detail.product)"
+                        />
+                      </strong>
+                      <template
+                        v-for="(amount, material) in detail.extraMaterial"
+                        :key="`${detail.planIndex}-${detail.facilityId}-module-${material}`"
+                      >
+                        <span>无人机额外材料</span>
+                        <strong>
+                          {{ resourceLabel(material) }}
+                          <SimulatorNumericValue
+                            mode="signed"
+                            :value="amount"
+                            :unit="resourceLabel(material)"
+                          />
+                        </strong>
+                      </template>
+                    </template>
+                  </div>
+                </div>
+              </div>
               <div
                 v-if="droneScenarioDisplays.length"
                 class="simulator-drone-scenarios"

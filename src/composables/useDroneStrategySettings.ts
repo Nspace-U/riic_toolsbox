@@ -10,6 +10,7 @@ export const DRONE_STRATEGY_SETTINGS_STORAGE_KEY =
   "riic-tools:drone-strategy-settings:v1";
 
 const lmdDroneStrategies = ref<LmdDroneStrategies>(readLmdDroneStrategies());
+const droneOverflowTruncationEnabled = ref(readDroneOverflowTruncation());
 
 function readLmdDroneStrategies(): LmdDroneStrategies {
   if (typeof window === "undefined") {
@@ -51,6 +52,30 @@ function readLmdDroneStrategies(): LmdDroneStrategies {
   }
 }
 
+function readDroneOverflowTruncation(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  try {
+    const raw = window.localStorage.getItem(
+      DRONE_STRATEGY_SETTINGS_STORAGE_KEY,
+    );
+    if (!raw) {
+      return false;
+    }
+    const parsed: unknown = JSON.parse(raw);
+    return (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      (parsed as Record<string, unknown>).droneOverflowTruncationEnabled ===
+        true
+    );
+  } catch {
+    return false;
+  }
+}
+
 function persistLmdDroneStrategies(): void {
   if (typeof window === "undefined") {
     return;
@@ -59,7 +84,10 @@ function persistLmdDroneStrategies(): void {
   try {
     window.localStorage.setItem(
       DRONE_STRATEGY_SETTINGS_STORAGE_KEY,
-      JSON.stringify(lmdDroneStrategies.value),
+      JSON.stringify({
+        ...lmdDroneStrategies.value,
+        droneOverflowTruncationEnabled: droneOverflowTruncationEnabled.value,
+      }),
     );
   } catch {}
 }
@@ -80,10 +108,17 @@ function resetLmdDroneStrategy(level: LmdDroneStrategyLevel): void {
   persistLmdDroneStrategies();
 }
 
+function setDroneOverflowTruncationEnabled(value: boolean): void {
+  droneOverflowTruncationEnabled.value = value;
+  persistLmdDroneStrategies();
+}
+
 export function useDroneStrategySettings() {
   return {
     lmdDroneStrategies,
+    droneOverflowTruncationEnabled,
     setLmdDroneStrategy,
     resetLmdDroneStrategy,
+    setDroneOverflowTruncationEnabled,
   };
 }

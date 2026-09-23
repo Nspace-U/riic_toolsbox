@@ -221,6 +221,36 @@ EXP 0
     maaParsed.document.plans[0].rooms.trading[0].description,
     undefined,
   );
+  assert.equal(maaParsed.document.plans[0].drones, undefined);
+  const maaDroneRoundTrip = maaModule.parseMaaScheduleText(
+    JSON.stringify({
+      layout: [
+        { type: "trading", level: 3 },
+        { type: "manufacture", level: 3 },
+      ],
+      plans: [
+        {
+          drones: {
+            enable: true,
+            room: "trading",
+            index: 1,
+            rule: "all",
+            order: "post",
+          },
+          rooms: {
+            trading: [{ product: "LMD" }],
+            manufacture: [{ product: "Pure Gold" }],
+          },
+        },
+      ],
+    }),
+  ).document;
+  assert.equal(maaDroneRoundTrip.plans[0].drones?.index, 0);
+  const maaDroneSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(maaDroneRoundTrip),
+  );
+  assert.equal(maaDroneSerialized.plans[0].drones.index, 1);
+  assert.equal(maaDroneSerialized.plans[0].drones.order, "post");
   const maaDescriptionSerialized = JSON.parse(
     maaModule.serializeMaaSchedule({
       layout: [

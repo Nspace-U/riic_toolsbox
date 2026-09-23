@@ -116,8 +116,13 @@ const {
 } = useOperatorProgression();
 const { sanitySettings, sanityValues, setSanitySetting, resetSanitySetting } =
   useSanitySettings();
-const { lmdDroneStrategies, setLmdDroneStrategy, resetLmdDroneStrategy } =
-  useDroneStrategySettings();
+const {
+  lmdDroneStrategies,
+  droneOverflowTruncationEnabled,
+  setLmdDroneStrategy,
+  resetLmdDroneStrategy,
+  setDroneOverflowTruncationEnabled,
+} = useDroneStrategySettings();
 
 const facilityColorEntries = ROOM_ORDER.map(
   (type) => [type, facilityLabels[type]] as [RoomKey, string],
@@ -960,6 +965,18 @@ watch(
             </div>
           </a-form-item>
         </a-form>
+        <a-checkbox
+          :checked="droneOverflowTruncationEnabled"
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setDroneOverflowTruncationEnabled(event.target.checked)
+          "
+        >
+          模拟 MAA 无人机爆仓时截断至 235 架
+        </a-checkbox>
+        <p class="settings-panel-description">
+          无论是否截断，发生无人机爆仓时都会显示警告；此设置不影响其他设施产物的爆仓模拟。
+        </p>
       </section>
 
       <section class="settings-simulator-section settings-sanity-section">

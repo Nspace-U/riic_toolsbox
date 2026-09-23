@@ -135,6 +135,16 @@ function applyDocumentDefaults(document: ScheduleDocument): void {
   });
 }
 
+function mapMaaDrones(document: ScheduleDocument, importing: boolean): void {
+  document.plans.forEach((plan) => {
+    const drones = plan.drones;
+    if (!isRecord(drones) || typeof drones.index !== "number") {
+      return;
+    }
+    drones.index += importing ? -1 : 1;
+  });
+}
+
 function parseRoot(
   value: unknown,
 ): Record<string, unknown> & { plans: unknown[] } {
@@ -173,6 +183,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   };
   removeRoomDescriptions(document);
   mapMaaProducts(document, MAA_PRODUCT_TO_INTERNAL);
+  mapMaaDrones(document, true);
   importFiammetta(document);
   applyDocumentDefaults(document);
   validateSchedule(document);
@@ -329,6 +340,7 @@ export function serializeMaaSchedule(
     }
   });
   applyDocumentDefaults(normalized);
+  mapMaaDrones(normalized, false);
   mapMaaProducts(normalized, INTERNAL_PRODUCT_TO_MAA);
   validateSchedule(normalized);
   return JSON.stringify(normalized, null, 2);

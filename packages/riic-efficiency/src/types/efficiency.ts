@@ -1,4 +1,9 @@
-import type { FiammettaMode, RoomKey, ScheduleDocument } from "./schedule";
+import type {
+  DroneOrder,
+  FiammettaMode,
+  RoomKey,
+  ScheduleDocument,
+} from "./schedule";
 import type { EliteLevel } from "./baseData";
 import type { OperatorProgressionProfile } from "./operatorProgression";
 import type { EfficiencyRuleset } from "../utils/efficiency/baseRules";
@@ -290,6 +295,33 @@ export interface ProductionValue {
   effectiveMaterialPerHour?: Record<string, number>;
 }
 
+export interface DroneAccelerationDetail {
+  planIndex: number;
+  facilityId: string;
+  room: "trading" | "manufacture";
+  facilityIndex: number;
+  order: DroneOrder;
+  sourcePlanIndex: number;
+  sourceDurationHours: number;
+  product: string;
+  droneAmount: number;
+  acceleratedHours: number;
+  baseAmountPerHour: number;
+  baseMaterialPerHour: Record<string, number>;
+  extraAmount: number;
+  extraMaterial: Record<string, number>;
+  overflowed: boolean;
+  overflowAmount: number;
+}
+
+export interface MaaDroneAccelerationResult {
+  enabled: boolean;
+  details: DroneAccelerationDetail[];
+  warnings: string[];
+  generatedDrones: number;
+  usedDrones: number;
+}
+
 export type DailyOutputKind = "production" | "net";
 
 export interface DailyOutput {
@@ -449,6 +481,7 @@ export interface EfficiencyPlanResult {
   basePoints: Record<string, number>;
   basePointDetails: BasePointDetail[];
   warnings: string[];
+  droneAccelerations: DroneAccelerationDetail[];
 }
 
 export interface EfficiencyResult {
@@ -461,6 +494,7 @@ export interface EfficiencyResult {
   fiammetta?: FiammettaCalculation;
   fiammettaWarnings: string[];
   warnings: string[];
+  maaDroneAcceleration?: MaaDroneAccelerationResult;
 }
 
 export interface FiammettaPlanResult {

@@ -93,6 +93,7 @@ export type {
   BasePointSourceKind,
   CluePreference,
   DailyOutput,
+  DroneAccelerationDetail,
   EfficiencyFacility,
   EfficiencyNotice,
   EfficiencyNoticeLevel,
@@ -110,6 +111,7 @@ export type {
   MoodRateDetail,
   MoodRateDetailKind,
   MoodSnapshot,
+  MaaDroneAccelerationResult,
   ProductionValue,
   TradeOrderSummary,
   OperatorEfficiencyCalculation,
@@ -140,10 +142,12 @@ export type {
   ResolvedOperatorProgression,
 } from "./types/operatorProgression";
 export type {
+  DroneOrder,
   FiammettaMode,
   LayoutEntry,
   OperatorState,
   Plan,
+  PlanDrones,
   RoomAssignment,
   RoomKey,
   Rooms,

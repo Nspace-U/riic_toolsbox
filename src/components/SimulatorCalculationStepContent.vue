@@ -4,6 +4,7 @@ import { computed } from "vue";
 import type {
   EfficiencyPlanResult,
   FacilityEfficiencyResult,
+  DroneAccelerationDetail,
   MoodSnapshot,
 } from "@arknights/riic-efficiency";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
@@ -27,6 +28,7 @@ export interface SimulatorCalculationStepView {
   planIndex: number;
   facility?: FacilityEfficiencyResult;
   moods: MoodSnapshot[];
+  droneAccelerations?: DroneAccelerationDetail[];
 }
 
 const props = defineProps<{
@@ -351,8 +353,78 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
           </div>
         </div>
       </div>
+      <section
+        v-if="step.droneAccelerations?.length"
+        class="simulator-step-section"
+      >
+        <span class="simulator-step-subheading">无人机加速</span>
+        <div class="simulator-step-detail-grid">
+          <template
+            v-for="detail in step.droneAccelerations"
+            :key="`${detail.planIndex}-${detail.facilityId}-${detail.order}`"
+          >
+            <span>加速时机</span>
+            <strong>{{ detail.order === "pre" ? "换班前" : "换班后" }}</strong>
+            <span>加速产物</span>
+            <strong>{{ resourceLabel(detail.product) }}</strong>
+            <span>无人机前产出</span>
+            <strong>
+              <SimulatorNumericValue
+                mode="production"
+                :value="detail.baseAmountPerHour * detail.sourceDurationHours"
+                :unit="resourceLabel(detail.product)"
+              />
+            </strong>
+            <span>消耗无人机</span>
+            <strong>
+              <SimulatorNumericValue :value="detail.droneAmount" unit="架" />架
+            </strong>
+            <span>加速时长</span>
+            <strong>
+              <SimulatorNumericValue
+                :value="detail.acceleratedHours"
+                unit="小时"
+              />小时
+            </strong>
+            <span>无人机额外产出</span>
+            <strong>
+              <SimulatorNumericValue
+                mode="production"
+                :value="detail.extraAmount"
+                :unit="resourceLabel(detail.product)"
+              />
+            </strong>
+            <template
+              v-for="(amount, material) in detail.extraMaterial"
+              :key="`${detail.planIndex}-${detail.facilityId}-${material}`"
+            >
+              <span>无人机额外材料</span>
+              <strong>
+                {{ resourceLabel(material) }}
+                <SimulatorNumericValue
+                  mode="signed"
+                  :value="amount"
+                  :unit="resourceLabel(material)"
+                />
+              </strong>
+            </template>
+            <span v-if="detail.overflowed">无人机爆仓</span>
+            <strong v-if="detail.overflowed">
+              超出
+              <SimulatorNumericValue
+                :value="detail.overflowAmount"
+                unit="架"
+              />架
+            </strong>
+          </template>
+        </div>
+      </section>
       <a-empty
-        v-if="!step.facility.details.length && !step.moods.length"
+        v-if="
+          !step.facility.details.length &&
+          !step.moods.length &&
+          !step.droneAccelerations?.length
+        "
         :image="undefined"
         class="simulator-step-empty"
         description="当前设施没有可展开的技能明细"

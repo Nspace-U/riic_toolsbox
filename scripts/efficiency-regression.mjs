@@ -455,6 +455,83 @@ function runTests(runtime) {
     parseMaaScheduleText,
     serializeMaaSchedule,
   } = runtime;
+
+  const maaDroneDocument = {
+    layout: [
+      { type: "power", level: 3 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+    ],
+    plans: [
+      {
+        duration: 720,
+        drones: {
+          enable: true,
+          room: "trading",
+          index: 0,
+          rule: "all",
+          order: "pre",
+        },
+        rooms: {
+          power: [{ operators: ["Lancet-2"] }],
+          trading: [{ operators: ["但书"], product: "龙门币" }],
+          manufacture: [{ operators: ["温蒂"], product: "赤金" }],
+        },
+      },
+      {
+        duration: 720,
+        rooms: {
+          power: [{ operators: ["Lancet-2"] }],
+          trading: [{ operators: ["但书"], product: "合成玉" }],
+          manufacture: [{ operators: ["温蒂"], product: "赤金" }],
+        },
+      },
+      {
+        duration: 720,
+        drones: {
+          enable: true,
+          room: "manufacture",
+          index: 0,
+          rule: "all",
+          order: "post",
+        },
+        rooms: {
+          power: [{ operators: ["Lancet-2"] }],
+          trading: [{ operators: ["但书"], product: "龙门币" }],
+          manufacture: [{ operators: ["温蒂"], product: "中级作战记录" }],
+        },
+      },
+    ],
+    settings: { droneOverflowMode: "zero" },
+  };
+  const maaDroneResult = calculateEfficiency(maaDroneDocument, catalog);
+  assert.equal(maaDroneResult.maaDroneAcceleration?.enabled, true);
+  assert.equal(maaDroneResult.maaDroneAcceleration?.details.length, 2);
+  assert.equal(
+    maaDroneResult.maaDroneAcceleration?.details[0]?.sourcePlanIndex,
+    2,
+  );
+  assert.equal(
+    maaDroneResult.maaDroneAcceleration?.details[1]?.sourcePlanIndex,
+    2,
+  );
+  assert.equal(
+    maaDroneResult.dailyOutputs.some(({ product }) => product === "无人机"),
+    false,
+  );
+  assert.ok(maaDroneResult.maaDroneAcceleration?.warnings.length);
+
+  const overflowResult = calculateEfficiency(
+    {
+      ...maaDroneDocument,
+      plans: maaDroneDocument.plans.map((plan) => ({
+        ...plan,
+        duration: 1440,
+      })),
+    },
+    catalog,
+  );
+  assert.ok(overflowResult.maaDroneAcceleration?.warnings.length);
   const parsedDroneStrategy = parseLmdDroneStrategy(
     "3 巫恋 龙舌兰2 但书0",
     catalog,

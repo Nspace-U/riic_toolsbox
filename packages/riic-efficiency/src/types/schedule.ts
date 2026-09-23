@@ -39,6 +39,17 @@ export interface RoomAssignment {
   [key: string]: unknown;
 }
 
+export type DroneOrder = "pre" | "post";
+
+export interface PlanDrones {
+  enable?: boolean;
+  room?: "trading" | "manufacture";
+  index?: number;
+  rule?: string;
+  order?: DroneOrder;
+  [key: string]: unknown;
+}
+
 export interface Rooms {
   [roomKey: string]: RoomAssignment[] | unknown;
 }
@@ -49,6 +60,7 @@ export interface Plan {
   description_post?: string;
   period?: string[][];
   duration?: number;
+  drones?: PlanDrones;
   rooms: Rooms;
   [key: string]: unknown;
 }
@@ -70,6 +82,7 @@ export interface ScheduleSettings {
   lmdDroneStrategy?: string;
   tradeOrderCount?: Record<string, number>;
   overflowMode?: OverflowMode;
+  droneOverflowMode?: OverflowMode;
   firstItemProgress?: number | Record<string, number>;
   progressionProfile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;

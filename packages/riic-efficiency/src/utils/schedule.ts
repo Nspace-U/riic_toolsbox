@@ -620,6 +620,13 @@ function validateSettings(settings: unknown): ScheduleSettings {
     fail("settings.overflowMode", "必须是 continue 或 zero");
   }
   if (
+    hasOwn(settings, "droneOverflowMode") &&
+    settings.droneOverflowMode !== "continue" &&
+    settings.droneOverflowMode !== "zero"
+  ) {
+    fail("settings.droneOverflowMode", "必须是 continue 或 zero");
+  }
+  if (
     hasOwn(settings, "fiammettaMode") &&
     settings.fiammettaMode !== "queue" &&
     settings.fiammettaMode !== "direct"
@@ -714,6 +721,40 @@ function validatePlan(
   }
   if (!isRecord(plan.rooms)) {
     fail(`${path}.rooms`, "必须是对象");
+  }
+  if (hasOwn(plan, "drones")) {
+    if (!isRecord(plan.drones)) {
+      fail(`${path}.drones`, "必须是对象");
+    }
+    const drones = plan.drones;
+    if (hasOwn(drones, "enable") && typeof drones.enable !== "boolean") {
+      fail(`${path}.drones.enable`, "必须是布尔值");
+    }
+    if (
+      hasOwn(drones, "room") &&
+      drones.room !== "trading" &&
+      drones.room !== "manufacture"
+    ) {
+      fail(`${path}.drones.room`, "必须是 trading 或 manufacture");
+    }
+    if (
+      hasOwn(drones, "index") &&
+      (typeof drones.index !== "number" ||
+        !Number.isInteger(drones.index) ||
+        drones.index < 0)
+    ) {
+      fail(`${path}.drones.index`, "必须是非负整数");
+    }
+    if (hasOwn(drones, "rule") && typeof drones.rule !== "string") {
+      fail(`${path}.drones.rule`, "必须是字符串");
+    }
+    if (
+      hasOwn(drones, "order") &&
+      drones.order !== "pre" &&
+      drones.order !== "post"
+    ) {
+      fail(`${path}.drones.order`, "必须是 pre 或 post");
+    }
   }
 
   const rooms = plan.rooms;
