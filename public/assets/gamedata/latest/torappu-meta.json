@@ -426,6 +426,20 @@
     "itemTable": "gamedata/latest/excel/item_table.json",
     "avatars": "raw/char_avatar",
     "skillIcons": "raw/build_skill_icon",
-    "itemIcons": "raw/item_icon"
+    "itemIcons": "raw/item_icon",
+    "avatarMetadataIcons": {
+      "elite": {
+        "sourcePath": "assets/elite_icon",
+        "localPath": "raw/elite_icon"
+      },
+      "rarity": {
+        "sourcePath": "assets/rarity_icon",
+        "localPath": "raw/rarity_icon"
+      },
+      "profession": {
+        "sourcePath": "assets/profession_large_icon",
+        "localPath": "raw/profession_large_icon"
+      }
+    }
   }
 }

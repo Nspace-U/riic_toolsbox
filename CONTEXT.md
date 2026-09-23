@@ -129,7 +129,7 @@
 - 尚未实现完整库存过程和 `orderProgress` 动态订单状态；精 0 孑逐单订单衰减、积分平均和固定订单回退已实现。当前仍按容量速率计算爆仓时间、读取首件进度和 `overflowMode` 有效产出截断。宿舍自动休整仍未实现。
 - 新 Torappu 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。
-- 网页运行时统一读取 `public/assets/gamedata/latest/` 下的本地 Torappu 快照和本地资源；PRTS 实装顺序只由同步脚本写入快照，不提供数据源切换或旧 CSV 读取分支。计算结果直接区分干员效率与干员技能效率，小卡片首项单独使用不含心情的 `skillEfficiency`，每日产出按产物分别汇总。
+- 网页运行时统一读取 `public/assets/gamedata/latest/` 下的本地 Torappu 快照和本地资源；头像徽标沿用 Torappu `raw/elite_icon`、`raw/rarity_icon` 和 `raw/profession_large_icon` 源目录下载到本地，网页不直接请求徽标外链；PRTS 实装顺序只由同步脚本写入快照，不提供数据源切换或旧 CSV 读取分支。计算结果直接区分干员效率与干员技能效率，小卡片首项单独使用不含心情的 `skillEfficiency`，每日产出按产物分别汇总。
 - 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
 - 后续新增房间生成入口应继续调用 `createDefaultRoomAssignment`，避免默认产物规则分散。
 - 仓库仍没有专用模拟器或头像测试；效率计算已有 `npm run test:efficiency` 的 SSR 回归入口。涉及浏览器交互、布局和性能的变更仍需要结合静态检查与实际页面回放验证，未验证的结果不得记录为已完成。

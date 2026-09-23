@@ -67,6 +67,13 @@ export interface BaseDataMetadata {
     avatars?: string;
     skillIcons?: string;
     itemIcons?: string;
+    avatarMetadataIcons?: Record<
+      string,
+      {
+        sourcePath: string;
+        localPath: string;
+      }
+    >;
   };
 }
 

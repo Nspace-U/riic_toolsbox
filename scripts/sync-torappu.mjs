@@ -43,6 +43,39 @@ const ITEM_TABLE_PATH = "gamedata/latest/excel/item_table.json";
 const ITEM_ICON_SOURCE_PATH = "assets/item_icon";
 const ITEM_ICON_LOCAL_PATH = "raw/item_icon";
 const SANITY_ICON_FILE = "AP_GAMEPLAY.png";
+const AVATAR_METADATA_ICON_GROUPS = {
+  elite: {
+    sourceDirectory: "elite_icon",
+    localDirectory: "elite_icon",
+    fileNames: ["elite_0_large.png", "elite_1_large.png", "elite_2_large.png"],
+  },
+  rarity: {
+    sourceDirectory: "rarity_icon",
+    localDirectory: "rarity_icon",
+    fileNames: [
+      "rarity_yellow_0.png",
+      "rarity_yellow_1.png",
+      "rarity_yellow_2.png",
+      "rarity_yellow_3.png",
+      "rarity_yellow_4.png",
+      "rarity_yellow_5.png",
+    ],
+  },
+  profession: {
+    sourceDirectory: "profession_large_icon",
+    localDirectory: "profession_large_icon",
+    fileNames: [
+      "icon_profession_caster_large.png",
+      "icon_profession_medic_large.png",
+      "icon_profession_pioneer_large.png",
+      "icon_profession_sniper_large.png",
+      "icon_profession_special_large.png",
+      "icon_profession_support_large.png",
+      "icon_profession_tank_large.png",
+      "icon_profession_warrior_large.png",
+    ],
+  },
+};
 
 async function fetchResponse(url, label) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -323,14 +356,25 @@ async function main() {
   const supplementalItemIconTasks = [
     { directory: "item_icon", fileName: SANITY_ICON_FILE },
   ];
+  const avatarMetadataIconTasks = Object.values(
+    AVATAR_METADATA_ICON_GROUPS,
+  ).flatMap(({ sourceDirectory, localDirectory, fileNames }) =>
+    fileNames.map((fileName) => ({
+      directory: sourceDirectory,
+      localDirectory,
+      fileName,
+    })),
+  );
   const missingAvatars = [];
   const missingItemIcons = [];
+  const missingAvatarMetadataIcons = [];
   let completed = 0;
   const imageTasks = [
     ...avatarTasks,
     ...iconTasks,
     ...itemIconTasks,
     ...supplementalItemIconTasks,
+    ...avatarMetadataIconTasks,
   ];
   await runPool(imageTasks, 12, async (task) => {
     const downloaded = await downloadAsset(task.directory, task.fileName);
@@ -340,6 +384,11 @@ async function main() {
     if (!downloaded && task.directory === "item_icon") {
       missingItemIcons.push(task.fileName);
     }
+    if (!downloaded && task.localDirectory) {
+      missingAvatarMetadataIcons.push(
+        `${task.localDirectory}/${task.fileName}`,
+      );
+    }
     completed += 1;
     if (completed % 100 === 0 || completed === imageTasks.length) {
       console.log(`资源同步进度：${completed}/${imageTasks.length}`);
@@ -347,6 +396,12 @@ async function main() {
   });
   missingAvatars.sort();
   missingItemIcons.sort();
+  missingAvatarMetadataIcons.sort();
+  if (missingAvatarMetadataIcons.length > 0) {
+    throw new Error(
+      `Torappu 头像元数据图标缺失：${missingAvatarMetadataIcons.join(", ")}`,
+    );
+  }
 
   await writeJson("gamedata/latest/torappu-meta.json", {
     source: "Torappu",
@@ -365,6 +420,17 @@ async function main() {
       avatars: "raw/char_avatar",
       skillIcons: "raw/build_skill_icon",
       itemIcons: ITEM_ICON_LOCAL_PATH,
+      avatarMetadataIcons: Object.fromEntries(
+        Object.entries(AVATAR_METADATA_ICON_GROUPS).map(
+          ([key, { sourceDirectory, localDirectory }]) => [
+            key,
+            {
+              sourcePath: `assets/${sourceDirectory}`,
+              localPath: `raw/${localDirectory}`,
+            },
+          ],
+        ),
+      ),
     },
   });
 
