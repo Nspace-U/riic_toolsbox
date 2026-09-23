@@ -433,6 +433,69 @@ EXP 0
   assert.equal(powerResult?.operatorSkillEfficiency, 20);
   assert.equal(powerResult?.efficiency, 125);
 
+  const timedSource = {
+    layout: [{ type: "trading", level: 3 }],
+    plans: [
+      {
+        name: "早班",
+        duration: 1,
+        period: [["00:00", "05:59"]],
+        rooms: { trading: [{ product: "LMD", operators: [] }] },
+      },
+      {
+        name: "晚班",
+        duration: 1,
+        period: [["06:00", "23:59"]],
+        rooms: { trading: [{ product: "LMD", operators: [] }] },
+      },
+    ],
+  };
+  const timedParsed = maaModule.parseMaaScheduleText(
+    JSON.stringify(timedSource),
+  ).document;
+  assert.deepEqual(
+    timedParsed.plans.map((plan) => plan.duration),
+    [360, 1080],
+  );
+  const timedSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(timedParsed, { catalog }),
+  );
+  assert.deepEqual(timedSerialized.plans[0].period, [["00:00", "05:59"]]);
+
+  const disabledSource = {
+    ...timedSource,
+    plans: timedSource.plans.map(({ period, ...plan }) => ({
+      ...plan,
+      settings: { period },
+    })),
+  };
+  const disabledParsed = maaModule.parseMaaScheduleText(
+    JSON.stringify(disabledSource),
+  ).document;
+  assert.equal(disabledParsed.plans[0].period, undefined);
+  assert.deepEqual(disabledParsed.plans[0].settings?.period, [
+    ["00:00", "05:59"],
+  ]);
+  const disabledSerialized = JSON.parse(
+    maaModule.serializeMaaSchedule(disabledParsed, { catalog }),
+  );
+  assert.equal(disabledSerialized.plans[0].period, undefined);
+  assert.deepEqual(disabledSerialized.plans[0].settings.period, [
+    ["00:00", "05:59"],
+  ]);
+
+  const duplicatePeriodSource = {
+    ...timedSource,
+    plans: timedSource.plans.map((plan) => ({
+      ...plan,
+      settings: { period: [["23:00", "23:59"]] },
+    })),
+  };
+  const duplicateParsed = maaModule.parseMaaScheduleText(
+    JSON.stringify(duplicatePeriodSource),
+  ).document;
+  assert.equal(duplicateParsed.plans[0].settings, undefined);
+
   const rollingPercentageDocument = {
     layout: [
       { type: "manufacture", level: 3 },

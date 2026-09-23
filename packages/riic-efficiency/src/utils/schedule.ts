@@ -12,6 +12,218 @@ import {
 import type { BaseSkillTerms } from "../types/baseData";
 import { isKnownSpecialOperator } from "./specialOperators";
 
+export interface SchedulePeriodAnalysis {
+  enabled: boolean;
+  durations: Array<number | undefined>;
+  errors: string[];
+  warnings: string[];
+}
+
+export class SchedulePeriodError extends Error {
+  constructor(messages: readonly string[]) {
+    super(messages.join("；"));
+    this.name = "SchedulePeriodError";
+  }
+}
+
+interface PeriodInterval {
+  end: number;
+  planIndex: number;
+  start: number;
+}
+
+export function schedulePeriodMinute(value: unknown): number | undefined {
+  if (typeof value !== "string" || !/^\d{2}:\d{2}$/.test(value)) {
+    return undefined;
+  }
+  const [hourText, minuteText] = value.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  return hour <= 23 && minute <= 59 ? hour * 60 + minute : undefined;
+}
+
+export function schedulePeriodForRange(
+  start: string,
+  end: string,
+): string[][] | undefined {
+  const startMinute = schedulePeriodMinute(start);
+  const endMinute = schedulePeriodMinute(end);
+  if (startMinute === undefined || endMinute === undefined) {
+    return undefined;
+  }
+  if (startMinute <= endMinute) {
+    return [[start, end]];
+  }
+  return [
+    [start, "23:59"],
+    ["00:00", end],
+  ];
+}
+
+function formatSchedulePeriodMinute(value: number): string {
+  const normalized = Math.max(0, Math.min(1439, value));
+  return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+}
+
+function periodIntervals(
+  period: unknown,
+  planIndex: number,
+): { intervals: PeriodInterval[]; start?: number; error?: string } {
+  if (!Array.isArray(period) || period.length === 0 || period.length > 2) {
+    return {
+      intervals: [],
+      error: `队列 ${planIndex + 1} 的 period 必须包含一个时间段，或包含规范的跨午夜两个时间段`,
+    };
+  }
+  const intervals: PeriodInterval[] = [];
+  let start: number | undefined;
+  for (const [intervalIndex, rawInterval] of period.entries()) {
+    if (!Array.isArray(rawInterval) || rawInterval.length !== 2) {
+      return {
+        intervals: [],
+        error: `队列 ${planIndex + 1} 的 period[${intervalIndex}] 必须是开始和结束时间`,
+      };
+    }
+    const intervalStart = schedulePeriodMinute(rawInterval[0]);
+    const intervalEnd = schedulePeriodMinute(rawInterval[1]);
+    if (intervalStart === undefined || intervalEnd === undefined) {
+      return {
+        intervals: [],
+        error: `队列 ${planIndex + 1} 的 period 时间必须是 HH:mm 格式且在 00:00 到 23:59 之间`,
+      };
+    }
+    start ??= intervalStart;
+    const addInterval = (
+      intervalStartValue: number,
+      intervalEndValue: number,
+    ) =>
+      intervals.push({
+        end: intervalEndValue + 1,
+        planIndex,
+        start: intervalStartValue,
+      });
+    if (intervalStart === intervalEnd) {
+      addInterval(intervalStart, intervalEnd);
+    } else if (intervalStart < intervalEnd) {
+      addInterval(intervalStart, intervalEnd);
+    } else {
+      addInterval(intervalStart, 1439);
+      addInterval(0, intervalEnd);
+    }
+  }
+  if (period.length === 2) {
+    const first = period[0];
+    const second = period[1];
+    const firstStart = schedulePeriodMinute(first?.[0]);
+    const firstEnd = schedulePeriodMinute(first?.[1]);
+    const secondStart = schedulePeriodMinute(second?.[0]);
+    const secondEnd = schedulePeriodMinute(second?.[1]);
+    if (
+      firstStart === undefined ||
+      firstEnd !== 1439 ||
+      secondStart !== 0 ||
+      secondEnd === undefined ||
+      firstStart <= secondEnd
+    ) {
+      return {
+        intervals: [],
+        error: `队列 ${planIndex + 1} 的多个 period 只能表示一个规范的跨午夜时间段`,
+      };
+    }
+  }
+  return { intervals, start };
+}
+
+export function analyzeSchedulePeriods(
+  document: ScheduleDocument,
+): SchedulePeriodAnalysis {
+  const enabled = document.plans.some((plan) => plan.period !== undefined);
+  if (!enabled) {
+    return {
+      durations: document.plans.map(() => undefined),
+      enabled: false,
+      errors: [],
+      warnings: [],
+    };
+  }
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const durations = document.plans.map(() => undefined as number | undefined);
+  const intervals: PeriodInterval[] = [];
+  const starts: number[] = [];
+
+  document.plans.forEach((plan, planIndex) => {
+    if (plan.period === undefined) {
+      errors.push(`队列 ${planIndex + 1} 缺少 period 时间设置`);
+      return;
+    }
+    const parsed = periodIntervals(plan.period, planIndex);
+    if (parsed.error || parsed.start === undefined) {
+      errors.push(parsed.error ?? `队列 ${planIndex + 1} 的 period 无效`);
+      return;
+    }
+    if (
+      document.plans.length === 1 &&
+      parsed.intervals.length === 1 &&
+      parsed.intervals[0]?.start === 0 &&
+      parsed.intervals[0]?.end === 1440
+    ) {
+      errors.push("单队列不能使用 00:00 到 23:59 表示全天");
+    }
+    starts.push(parsed.start);
+    intervals.push(...parsed.intervals);
+  });
+
+  const orderedIntervals = [...intervals].sort(
+    (left, right) => left.start - right.start || left.end - right.end,
+  );
+  let coveredUntil = 0;
+  orderedIntervals.forEach((interval, index) => {
+    if (interval.start < coveredUntil) {
+      errors.push(
+        `队列 ${interval.planIndex + 1} 的 period 与其他队列时间重叠`,
+      );
+      coveredUntil = Math.max(coveredUntil, interval.end);
+      return;
+    }
+    if (index > 0 && interval.start > coveredUntil) {
+      warnings.push(
+        `定时换班存在 ${formatSchedulePeriodMinute(coveredUntil)} 到 ${formatSchedulePeriodMinute(interval.start - 1)} 的时间空档`,
+      );
+    }
+    coveredUntil = interval.end;
+  });
+  const firstInterval = orderedIntervals[0];
+  if (firstInterval && firstInterval.start > 0) {
+    warnings.unshift(
+      `定时换班存在 00:00 到 ${formatSchedulePeriodMinute(firstInterval.start - 1)} 的时间空档`,
+    );
+  }
+  if (coveredUntil < 1440) {
+    warnings.push(
+      `定时换班存在 ${formatSchedulePeriodMinute(coveredUntil)} 到 23:59 的时间空档`,
+    );
+  }
+
+  if (errors.length === 0 && starts.length === document.plans.length) {
+    durations.forEach((_, index) => {
+      const start = starts[index];
+      const nextStart = starts[(index + 1) % starts.length];
+      if (start === undefined || nextStart === undefined) {
+        return;
+      }
+      durations[index] =
+        starts.length === 1
+          ? start === schedulePeriodMinute(document.plans[0]?.period?.[0]?.[1])
+            ? 1
+            : 1440
+          : (nextStart - start + 1440) % 1440;
+    });
+  }
+  return { durations, enabled: true, errors, warnings };
+}
+
 export const ROOM_LABELS: Record<RoomKey, string> = {
   control: "控制中枢",
   trading: "贸易站",

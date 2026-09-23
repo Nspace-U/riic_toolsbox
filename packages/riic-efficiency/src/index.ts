@@ -46,6 +46,13 @@ export {
   stateOf,
 } from "./utils/efficiency/model";
 export {
+  analyzeSchedulePeriods,
+  SchedulePeriodError,
+  schedulePeriodForRange,
+  schedulePeriodMinute,
+} from "./utils/schedule";
+export type { SchedulePeriodAnalysis } from "./utils/schedule";
+export {
   cloneProgressionEntries,
   entryHasNode,
   entryUnlocksFacility,
@@ -148,6 +155,7 @@ export type {
   OperatorState,
   Plan,
   PlanDrones,
+  PlanSettings,
   RoomAssignment,
   RoomKey,
   Rooms,

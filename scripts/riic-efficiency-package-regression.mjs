@@ -135,4 +135,63 @@ const droneResult = packageModule.calculateDroneAcceleration(
 
 assert.equal(droneResult.scenarios[0].product, "赤金");
 assert.equal(droneResult.scenarios[0].baseAmountPerHour, 2);
+
+const timedDocument = {
+  layout: [{ type: "trading", level: 3 }],
+  plans: [
+    {
+      period: [["00:00", "05:59"]],
+      duration: 1,
+      rooms: { trading: [{ product: "龙门币", operators: [] }] },
+    },
+    {
+      period: [["06:00", "11:59"]],
+      duration: 1,
+      rooms: { trading: [{ product: "龙门币", operators: [] }] },
+    },
+    {
+      period: [["12:00", "23:59"]],
+      duration: 1,
+      rooms: { trading: [{ product: "龙门币", operators: [] }] },
+    },
+  ],
+};
+const timedAnalysis = packageModule.analyzeSchedulePeriods(timedDocument);
+assert.deepEqual(timedAnalysis.durations, [360, 360, 720]);
+assert.deepEqual(timedAnalysis.errors, []);
+assert.deepEqual(timedAnalysis.warnings, []);
+
+const gapAnalysis = packageModule.analyzeSchedulePeriods({
+  ...timedDocument,
+  plans: [timedDocument.plans[0], timedDocument.plans[2]],
+});
+assert.equal(gapAnalysis.errors.length, 0);
+assert.ok(gapAnalysis.warnings.length > 0);
+
+const overlapDocument = {
+  ...timedDocument,
+  plans: [
+    timedDocument.plans[0],
+    {
+      ...timedDocument.plans[1],
+      period: [["05:00", "11:59"]],
+    },
+  ],
+};
+const overlapAnalysis = packageModule.analyzeSchedulePeriods(overlapDocument);
+assert.ok(overlapAnalysis.errors.length > 0);
+assert.throws(() =>
+  packageModule.calculateEfficiency(overlapDocument, { catalog }),
+);
+
+const oneMinuteAnalysis = packageModule.analyzeSchedulePeriods({
+  ...timedDocument,
+  plans: [
+    {
+      ...timedDocument.plans[0],
+      period: [["06:00", "06:00"]],
+    },
+  ],
+});
+assert.deepEqual(oneMinuteAnalysis.durations, [1]);
 console.log("riic efficiency package regression: passed");

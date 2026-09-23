@@ -50,6 +50,11 @@ export interface PlanDrones {
   [key: string]: unknown;
 }
 
+export interface PlanSettings {
+  period?: string[][];
+  [key: string]: unknown;
+}
+
 export interface Rooms {
   [roomKey: string]: RoomAssignment[] | unknown;
 }
@@ -60,6 +65,7 @@ export interface Plan {
   description_post?: string;
   period?: string[][];
   duration?: number;
+  settings?: PlanSettings;
   drones?: PlanDrones;
   rooms: Rooms;
   [key: string]: unknown;

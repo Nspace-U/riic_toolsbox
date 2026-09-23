@@ -49,6 +49,8 @@ import { DEFAULT_RULESET, type EfficiencyRuleset } from "./baseRules";
 import { catalogOperator } from "./catalog";
 import {
   canonicalResourceKey,
+  analyzeSchedulePeriods,
+  SchedulePeriodError,
   resolveRoomAssignment,
   roomSlotCount,
 } from "../schedule";
@@ -177,10 +179,15 @@ function createContexts(
 ): PlanContext[] {
   const facilities = buildFacilities(document.layout);
   const ruleset = catalog.ruleset ?? DEFAULT_RULESET;
+  const periodAnalysis = analyzeSchedulePeriods(document);
   return document.plans.map((plan, index) => {
     const durationHours = Math.max(
       0,
-      Number(plan.duration ?? ruleset.defaultDurationMinutes) / 60,
+      Number(
+        periodAnalysis.durations[index] ??
+          plan.duration ??
+          ruleset.defaultDurationMinutes,
+      ) / 60,
     );
     const placements: Placement[] = [];
     const warnings: string[] = [];
@@ -4274,6 +4281,10 @@ export function calculateEfficiency(
     ...input.catalog,
     ruleset: input.ruleset ?? input.catalog.ruleset ?? DEFAULT_RULESET,
   };
+  const periodAnalysis = analyzeSchedulePeriods(document);
+  if (periodAnalysis.errors.length > 0) {
+    throw new SchedulePeriodError(periodAnalysis.errors);
+  }
   return calculateEfficiencyInternal(document, catalog, {
     progressionProfile: settings.progressionProfile,
     treatSkillsAsUnlocked: settings.treatSkillsAsUnlocked,

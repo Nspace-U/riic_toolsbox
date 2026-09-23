@@ -87,6 +87,9 @@ import {
   EPSILON,
   calculateDroneAcceleration,
   calculateEfficiency,
+  analyzeSchedulePeriods,
+  schedulePeriodForRange,
+  schedulePeriodMinute,
   createSpecialOperatorAvatarLabelResolver,
   facilityId,
   nodesForOperator,
@@ -429,6 +432,11 @@ interface SimulatorEditSettings {
   queue: boolean;
 }
 
+interface TimedQueueDraft {
+  start: string;
+  end: string;
+}
+
 interface UpdateCurrentOptions {
   markLayoutExplicit?: boolean;
   recordHistory?: boolean;
@@ -684,6 +692,7 @@ const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
 const warnedFacilityOperatorOverrideIds = new Set<string>();
 const layoutText = ref("");
 const simulatorEditSettings = ref(readSimulatorEditSettings());
+const timedQueueDrafts = ref<Record<string, TimedQueueDraft>>({});
 const showScheduleSidebar = ref(true);
 const scheduleSearchQuery = ref("");
 const scheduleTagInput = ref("");
@@ -834,6 +843,31 @@ const currentSimulatorEditSettings = computed<SimulatorEditSettings>(() => {
         DEFAULT_SIMULATOR_EDIT_SETTINGS)
     : DEFAULT_SIMULATOR_EDIT_SETTINGS;
 });
+
+const currentTimedQueueEnabled = computed(() =>
+  Boolean(
+    currentDocument.value?.plans.some((plan) => plan.period !== undefined),
+  ),
+);
+
+function timedQueueDraftKey(planIndex: number): string {
+  return `${activeDocumentId.value}:${planIndex}`;
+}
+
+function timedQueueDraftFor(plan: Plan, planIndex: number): TimedQueueDraft {
+  const draft = timedQueueDrafts.value[timedQueueDraftKey(planIndex)];
+  if (draft) {
+    return draft;
+  }
+  const period = plan.period;
+  if (!period?.length) {
+    return { start: "", end: "" };
+  }
+  return {
+    start: period[0]?.[0] ?? "",
+    end: period.length > 1 ? (period[1]?.[1] ?? "") : (period[0]?.[1] ?? ""),
+  };
+}
 
 const powerSummary = computed<PowerSummary>(() => {
   const document = currentDocument.value;
@@ -995,10 +1029,17 @@ function efficiencySchedule(document: ScheduleDocument): ScheduleDocument {
   };
 }
 
+const schedulePeriodAnalysis = computed(() => {
+  const document = currentDocument.value;
+  return document
+    ? analyzeSchedulePeriods(document)
+    : { enabled: false, durations: [], errors: [], warnings: [] };
+});
+
 const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   const document = currentDocument.value;
   const catalog = efficiencyCatalog.value;
-  if (!document || !catalog) {
+  if (!document || !catalog || schedulePeriodAnalysis.value.errors.length > 0) {
     return undefined;
   }
   return calculateEfficiency(efficiencySchedule(document), {
@@ -1027,6 +1068,23 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
       details: [efficiencyError.value],
     });
     return notices;
+  }
+  if (schedulePeriodAnalysis.value.errors.length > 0) {
+    notices.push({
+      code: "schedule-period-error",
+      level: "error",
+      message: "定时换班时间无效",
+      details: schedulePeriodAnalysis.value.errors,
+    });
+    return notices;
+  }
+  if (schedulePeriodAnalysis.value.warnings.length > 0) {
+    notices.push({
+      code: "schedule-period-gap",
+      level: "warning",
+      message: "定时换班存在时间空档",
+      details: schedulePeriodAnalysis.value.warnings,
+    });
   }
   const result = efficiencyResult.value;
   if (!result) {
@@ -2103,6 +2161,28 @@ function updateSimulatorEditSetting(
   persistSimulatorEditSettings(simulatorEditSettings.value);
 }
 
+function updateTimedQueueSetting(enabled: boolean): void {
+  updateCurrent((document) => {
+    document.plans.forEach((plan) => {
+      if (enabled) {
+        const period = plan.period ?? plan.settings?.period;
+        plan.period = period ?? [["", ""]];
+        if (plan.settings) {
+          delete plan.settings.period;
+          if (Object.keys(plan.settings).length === 0) {
+            delete plan.settings;
+          }
+        }
+        return;
+      }
+      if (plan.period !== undefined) {
+        plan.settings = { ...(plan.settings ?? {}), period: plan.period };
+        delete plan.period;
+      }
+    });
+  });
+}
+
 function toggleScheduleSidebar() {
   showScheduleSidebar.value = !showScheduleSidebar.value;
 }
@@ -2204,6 +2284,48 @@ function updatePlanDurationHours(
       }
     }
   });
+}
+
+function updateTimedQueueDraft(
+  planIndex: number,
+  key: keyof TimedQueueDraft,
+  value: string,
+): void {
+  const plan = currentDocument.value?.plans[planIndex];
+  if (!plan) {
+    return;
+  }
+  const draft = {
+    ...timedQueueDraftFor(plan, planIndex),
+    [key]: value,
+  };
+  timedQueueDrafts.value = {
+    ...timedQueueDrafts.value,
+    [timedQueueDraftKey(planIndex)]: draft,
+  };
+  if (
+    schedulePeriodMinute(draft.start) === undefined ||
+    schedulePeriodMinute(draft.end) === undefined
+  ) {
+    return;
+  }
+  updateCurrent((document) => {
+    const target = document.plans[planIndex];
+    if (!target) {
+      return;
+    }
+    target.period = schedulePeriodForRange(draft.start, draft.end);
+    const analysis = analyzeSchedulePeriods(document);
+    const duration = analysis.durations[planIndex];
+    if (duration !== undefined && analysis.errors.length === 0) {
+      target.duration = duration;
+    }
+  });
+}
+
+function displayedPlanDurationHours(plan: Plan, planIndex: number): number {
+  const duration = schedulePeriodAnalysis.value.durations[planIndex];
+  return duration === undefined ? planDurationHoursValue(plan) : duration / 60;
 }
 
 function updateEfficiencyBooleanSetting(
@@ -7525,6 +7647,16 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               编辑队列
             </a-checkbox>
+            <a-checkbox
+              :checked="currentTimedQueueEnabled"
+              :disabled="!currentSimulatorEditSettings.queue"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateTimedQueueSetting(event.target.checked)
+              "
+            >
+              定时换班
+            </a-checkbox>
             <a-button
               size="small"
               title="恢复该排班表中所有干员的默认练度"
@@ -7617,7 +7749,36 @@ defineExpose({ prepareScheduleReferenceImage });
                             updatePlanMeta(planIndex, 'name', value)
                         "
                       />
+                      <div
+                        v-if="currentTimedQueueEnabled"
+                        class="simulator-queue-period-inputs"
+                      >
+                        <a-input
+                          :maxlength="5"
+                          :value="timedQueueDraftFor(plan, planIndex).start"
+                          class="simulator-queue-period-input"
+                          placeholder="开始 HH:mm"
+                          size="small"
+                          @update:value="
+                            (value: string) =>
+                              updateTimedQueueDraft(planIndex, 'start', value)
+                          "
+                        />
+                        <span>至</span>
+                        <a-input
+                          :maxlength="5"
+                          :value="timedQueueDraftFor(plan, planIndex).end"
+                          class="simulator-queue-period-input"
+                          placeholder="结束 HH:mm"
+                          size="small"
+                          @update:value="
+                            (value: string) =>
+                              updateTimedQueueDraft(planIndex, 'end', value)
+                          "
+                        />
+                      </div>
                       <a-input-number
+                        v-else
                         :max="24"
                         :min="1"
                         :value="planDurationHoursValue(plan)"
@@ -7645,7 +7806,11 @@ defineExpose({ prepareScheduleReferenceImage });
                         {{ plan.name?.trim() || "未命名队列" }}
                       </div>
                       <div class="simulator-queue-duration">
-                        {{ formatDurationHours(planDurationHoursValue(plan)) }}
+                        {{
+                          formatDurationHours(
+                            displayedPlanDurationHours(plan, planIndex),
+                          )
+                        }}
                       </div>
                       <div
                         v-if="plan.description?.trim()"

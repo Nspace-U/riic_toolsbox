@@ -23,6 +23,7 @@ import {
 } from "@/utils/importLayout";
 import { percentageMappingFor } from "@/utils/percentageOperatorMappings";
 import {
+  analyzeSchedulePeriods,
   isPercentageOperator,
   isTermOperator,
   specialOperatorTermMembers,
@@ -135,6 +136,31 @@ function applyDocumentDefaults(document: ScheduleDocument): void {
   });
 }
 
+function normalizePlanPeriods(document: ScheduleDocument): void {
+  document.plans.forEach((plan) => {
+    if (plan.period === undefined || !plan.settings) {
+      return;
+    }
+    delete plan.settings.period;
+    if (Object.keys(plan.settings).length === 0) {
+      delete plan.settings;
+    }
+  });
+}
+
+function syncPeriodDurations(document: ScheduleDocument): void {
+  const analysis = analyzeSchedulePeriods(document);
+  if (!analysis.enabled || analysis.errors.length > 0) {
+    return;
+  }
+  document.plans.forEach((plan, index) => {
+    const duration = analysis.durations[index];
+    if (duration !== undefined) {
+      plan.duration = duration;
+    }
+  });
+}
+
 function mapMaaDrones(document: ScheduleDocument, importing: boolean): void {
   document.plans.forEach((plan) => {
     const drones = plan.drones;
@@ -186,6 +212,8 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   mapMaaDrones(document, true);
   importFiammetta(document);
   applyDocumentDefaults(document);
+  normalizePlanPeriods(document);
+  syncPeriodDurations(document);
   validateSchedule(document);
   return { document, inferredLayout: !hasLayout };
 }
@@ -309,6 +337,12 @@ export function serializeMaaSchedule(
   delete normalized.fiammetta;
   const directTargets = fiammetta?.direct?.operators?.filter(Boolean) ?? [];
   normalized.plans.forEach((plan, planIndex) => {
+    if (plan.period !== undefined && plan.settings) {
+      delete plan.settings.period;
+      if (Object.keys(plan.settings).length === 0) {
+        delete plan.settings;
+      }
+    }
     delete plan.Fiammetta;
     ROOM_KEYS.forEach((type) => {
       const rooms = plan.rooms[type];
