@@ -57,7 +57,7 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
       <section class="simulator-step-section">
         <span class="simulator-step-subheading">效率汇总</span>
         <div class="simulator-step-detail-grid">
-          <span>基础效率</span>
+          <span>设施效率</span>
           <strong
             ><SimulatorNumericValue
               :value="step.facility.baseEfficiency"
@@ -367,13 +367,13 @@ const inheritedLabel = computed(() => props.inheritedSourceLabel ?? "");
             <strong>{{ detail.order === "pre" ? "换班前" : "换班后" }}</strong>
             <span>加速产物</span>
             <strong>{{ resourceLabel(detail.product) }}</strong>
-            <span>无人机前产出</span>
+            <span>基础速率</span>
             <strong>
               <SimulatorNumericValue
                 mode="production"
-                :value="detail.baseAmountPerHour * detail.sourceDurationHours"
-                :unit="resourceLabel(detail.product)"
-              />
+                :value="detail.baseAmountPerHour"
+                unit="/小时"
+              />/小时
             </strong>
             <span>消耗无人机</span>
             <strong>

@@ -34,7 +34,20 @@ const calculationStepContent = await readFile(
   "utf8",
 );
 
-assert.match(calculationBlock, /<a-collapse ghost>/);
+assert.match(
+  calculationBlock,
+  /<a-collapse\s+v-model:active-key="calculationStepActiveKeys"\s+ghost>/,
+);
+const maaDroneIndex = calculationBlock.indexOf('key="maa-drone-acceleration"');
+assert.ok(maaDroneIndex > 0 && maaDroneIndex < queueIndex - calculationIndex);
+const maaDroneBlock = calculationBlock.slice(
+  0,
+  calculationBlock.indexOf('key="daily-output-breakdown"'),
+);
+assert.match(maaDroneBlock, /v-for="queue in maaDroneQueueDetails"/);
+assert.match(maaDroneBlock, /当前队列未设置无人机加速/);
+assert.match(maaDroneBlock, /<span>基础速率<\/span>/);
+assert.match(maaDroneBlock, /detail\.baseAmountPerHour/);
 assert.match(queueBlock, /v-for="queue in dailyOutputQueueDetails"/);
 assert.match(queueBlock, /class="simulator-calculation-step-columns"/);
 assert.match(queueBlock, /class="simulator-calculation-step-column"/);
@@ -68,6 +81,13 @@ assert.doesNotMatch(basePointBlock, /simulator-base-point-source-title/);
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
 assert.doesNotMatch(template, /class="simulator-base-point-results"/);
 assert.doesNotMatch(template, /combinationEfficiency/);
+assert.doesNotMatch(
+  template,
+  /card\.droneExtraAmount|card\.droneBeforeAmount|card\.droneExtraMaterials/,
+);
+assert.doesNotMatch(template, /<span>编辑产物<\/span>/);
+assert.match(template, /scope: "operator"/);
+assert.match(template, /menu\.scope !== "operator"/);
 assert.match(calculationStepContent, /<span>干员心情效率<\/span>/);
 assert.doesNotMatch(calculationStepContent, /<span>计算公式<\/span>/);
 const inheritedIndex = calculationStepContent.indexOf(">继承说明<");

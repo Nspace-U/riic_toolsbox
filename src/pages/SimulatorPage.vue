@@ -64,6 +64,7 @@ import type {
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  DroneAccelerationDetail,
   MoodSnapshot,
   OperatorProgressionNode,
   ResolvedOperatorProgression,
@@ -257,6 +258,12 @@ interface BasePointQueueDetail {
   points: BasePointDetail[];
 }
 
+interface MaaDroneQueueDetail {
+  plan: EfficiencyPlanResult;
+  planIndex: number;
+  details: DroneAccelerationDetail[];
+}
+
 interface DailyOutputCard {
   product: string;
   sourceFacility?: RoomKey;
@@ -268,10 +275,6 @@ interface DailyOutputCard {
   netUnit: string;
   netContribution?: number;
   showNet: boolean;
-  droneBeforeAmount?: number;
-  droneExtraAmount?: number;
-  droneAmount?: number;
-  droneExtraMaterials?: DailyOutputMaterialDetail[];
 }
 
 interface DroneScenarioView {
@@ -357,7 +360,7 @@ interface FacilityTitleTagPreset {
 }
 
 interface FacilityContextMenuState extends OperatorSlotAddress {
-  scope: "queue" | "facility";
+  scope: "operator" | "queue" | "facility";
   positions: number[];
   x: number;
   y: number;
@@ -419,12 +422,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-type SimulatorEditSetting = "layout" | "queue" | "product";
+type SimulatorEditSetting = "layout" | "queue";
 
 interface SimulatorEditSettings {
   layout: boolean;
   queue: boolean;
-  product: boolean;
 }
 
 interface UpdateCurrentOptions {
@@ -495,7 +497,6 @@ const SIMULATOR_EDIT_SETTINGS_STORAGE_KEY =
 const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   layout: true,
   queue: true,
-  product: true,
 };
 
 const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
@@ -591,10 +592,6 @@ function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
       typeof candidate.queue === "boolean"
         ? candidate.queue
         : DEFAULT_SIMULATOR_EDIT_SETTINGS.queue,
-    product:
-      typeof candidate.product === "boolean"
-        ? candidate.product
-        : DEFAULT_SIMULATOR_EDIT_SETTINGS.product,
   };
 }
 
@@ -980,6 +977,9 @@ const importLossWarnings = computed(() =>
 );
 
 function efficiencySchedule(document: ScheduleDocument): ScheduleDocument {
+  const droneOverflowMode =
+    document.settings?.droneOverflowMode ??
+    (droneOverflowTruncationEnabled.value ? "zero" : "continue");
   return {
     ...document,
     settings: {
@@ -990,9 +990,7 @@ function efficiencySchedule(document: ScheduleDocument): ScheduleDocument {
       treatSkillsAsUnlocked: treatSkillsAsUnlocked.value,
       dormitoryDefaultIncludesMoodRecovery:
         dormitoryDefaultIncludesMoodRecovery.value,
-      droneOverflowMode: droneOverflowTruncationEnabled.value
-        ? "zero"
-        : "continue",
+      droneOverflowMode,
     },
   };
 }
@@ -1136,6 +1134,7 @@ const simulatorNotices = computed<EfficiencyNotice[]>(() => {
 });
 
 const efficiencySettingsModalOpen = ref(false);
+const calculationStepActiveKeys = ref<string[]>([]);
 const currentEfficiencySettings = computed(() => {
   const settings = currentDocument.value?.settings;
   const firstItemProgress = settings?.firstItemProgress;
@@ -1143,6 +1142,10 @@ const currentEfficiencySettings = computed(() => {
     clueExchanging: settings?.clueExchanging !== false,
     dormFullTreat: settings?.dormFullTreat !== false,
     simulateOverflow: settings?.overflowMode === "zero",
+    simulateDroneOverflow:
+      (settings?.droneOverflowMode ??
+        (droneOverflowTruncationEnabled.value ? "zero" : "continue")) ===
+      "zero",
     fiammettaMode: settings?.fiammettaMode ?? "direct",
     fiammettaDirectCount: Math.max(
       0,
@@ -1422,49 +1425,13 @@ const dailyOutputCards = computed<DailyOutputCard[]>(() => {
 
   return [
     ...productionOutputs.map((output) => {
-      const card = createDailyOutputCard(
+      return createDailyOutputCard(
         output.product,
         amounts,
         sanity,
         output.amountPerDay,
         dailyOutputSourceFacility(output.product),
       );
-      const droneDetails =
-        result.maaDroneAcceleration?.details.filter(
-          (detail) => detail.product === output.product,
-        ) ?? [];
-      if (droneDetails.length === 0) {
-        return card;
-      }
-      const extraAmount = droneDetails.reduce(
-        (total, detail) => total + detail.extraAmount,
-        0,
-      );
-      const extraMaterials = new Map<string, DailyOutputMaterialDetail>();
-      droneDetails.forEach((detail) => {
-        Object.entries(detail.extraMaterial).forEach(([material, amount]) => {
-          const current = extraMaterials.get(material) ?? {
-            material,
-            baseAmountPerHour: 0,
-            dailyAmount: 0,
-            queueTotal: 0,
-          };
-          current.dailyAmount += (amount * 24) / result.dailyHours;
-          current.queueTotal += amount;
-          extraMaterials.set(material, current);
-        });
-      });
-      return {
-        ...card,
-        droneBeforeAmount:
-          output.amountPerDay - (extraAmount * 24) / result.dailyHours,
-        droneExtraAmount: (extraAmount * 24) / result.dailyHours,
-        droneAmount: droneDetails.reduce(
-          (total, detail) => total + detail.droneAmount,
-          0,
-        ),
-        droneExtraMaterials: [...extraMaterials.values()],
-      };
     }),
     ...result.dailyOutputs
       .filter(
@@ -1677,10 +1644,7 @@ const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
 });
 
 const droneAccelerationVisible = computed(
-  () =>
-    lmdDroneFacilityExists.value ||
-    droneScenarioDisplays.value.length > 0 ||
-    efficiencyResult.value?.maaDroneAcceleration?.enabled === true,
+  () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
 );
 
 function displayedBasePointDetails(
@@ -1700,6 +1664,16 @@ const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
     plan,
     planIndex,
     points: displayedBasePointDetails(plan),
+  }));
+});
+
+const maaDroneQueueDetails = computed<MaaDroneQueueDetail[]>(() => {
+  const result = efficiencyResult.value;
+  const details = result?.maaDroneAcceleration?.details ?? [];
+  return (result?.plans ?? []).map((plan, planIndex) => ({
+    plan,
+    planIndex,
+    details: details.filter((detail) => detail.planIndex === planIndex),
   }));
 });
 
@@ -2246,6 +2220,15 @@ function updateEfficiencyOverflowSetting(value: boolean): void {
     document.settings = {
       ...(document.settings ?? {}),
       overflowMode: value ? "zero" : "continue",
+    };
+  });
+}
+
+function updateEfficiencyDroneOverflowSetting(value: boolean): void {
+  updateCurrent((document) => {
+    document.settings = {
+      ...(document.settings ?? {}),
+      droneOverflowMode: value ? "zero" : "continue",
     };
   });
 }
@@ -5406,7 +5389,7 @@ const operatorContextMenuDetails = computed<
 >(() => {
   const menu = contextMenu.value;
   const document = currentDocument.value;
-  if (!menu || menu.scope !== "queue" || !document) {
+  if (!menu || menu.scope !== "operator" || !document) {
     return undefined;
   }
   const plan = document.plans[menu.planIndex];
@@ -5519,7 +5502,7 @@ function openOperatorContextMenu(
   operatorSelectionAnchor.value = address;
   contextMenu.value = {
     ...address,
-    scope: "queue",
+    scope: "operator",
     positions: [position],
     ...contextMenuPosition(event),
   };
@@ -5552,13 +5535,7 @@ function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
     return;
   }
   const position = row.entries[0]?.position;
-  if (
-    position === undefined ||
-    !roomHasProduct(row.type) ||
-    (!currentSimulatorEditSettings.value.product &&
-      row.type !== "trading" &&
-      row.type !== "manufacture")
-  ) {
+  if (position === undefined || !roomHasProduct(row.type)) {
     return;
   }
   if (!commitPendingOperatorNameEdit()) {
@@ -5601,28 +5578,26 @@ function roomContextMenuItems(
     return items;
   }
 
-  if (currentSimulatorEditSettings.value.product) {
+  items.push({
+    key: `product-divider-${position}`,
+    label: "",
+    divider: true,
+  });
+  const availableProducts = productOptions(type, room?.product).filter(
+    (option) => option.value !== "",
+  );
+  availableProducts.forEach((option) => {
     items.push({
-      key: `product-divider-${position}`,
-      label: "",
-      divider: true,
+      key: `product-${position}-${option.value}`,
+      label: option.label,
+      check: (room?.product ?? "") === option.value,
+      disabled: option.disabled,
+      action: () => {
+        updateRoomProduct(planIndex, type, position, option.value);
+        closeContextMenu();
+      },
     });
-    const availableProducts = productOptions(type, room?.product).filter(
-      (option) => option.value !== "",
-    );
-    availableProducts.forEach((option) => {
-      items.push({
-        key: `product-${position}-${option.value}`,
-        label: option.label,
-        check: (room?.product ?? "") === option.value,
-        disabled: option.disabled,
-        action: () => {
-          updateRoomProduct(planIndex, type, position, option.value);
-          closeContextMenu();
-        },
-      });
-    });
-  }
+  });
 
   if (type === "trading" || type === "manufacture") {
     items.push({ key: `drone-divider-${position}`, label: "", divider: true });
@@ -5640,7 +5615,7 @@ function roomContextMenuItems(
     });
   }
 
-  if (!currentSimulatorEditSettings.value.product || !sourceVisible(room)) {
+  if (!sourceVisible(room)) {
     return items;
   }
 
@@ -5677,57 +5652,28 @@ function facilityCardContextMenuItems(
     : undefined;
   const items: FacilityContextMenuItem[] = [];
 
-  if (currentSimulatorEditSettings.value.product) {
-    productOptions(type, currentProduct)
-      .filter((option) => option.value !== "")
-      .forEach((option) => {
-        items.push({
-          key: `facility-product-${position}-${option.value}`,
-          label: option.label,
-          check: rooms.every((room) => (room?.product ?? "") === option.value),
-          disabled: option.disabled,
-          action: () => {
-            updateAllPlanRooms(type, position, (room) => {
-              if (option.value === "源石碎片") {
-                room.product = option.value;
-                room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
-              } else {
-                room.product = option.value;
-                delete room.sourceMaterial;
-              }
-            });
-            closeContextMenu();
-          },
-        });
+  productOptions(type, currentProduct)
+    .filter((option) => option.value !== "")
+    .forEach((option) => {
+      items.push({
+        key: `facility-product-${position}-${option.value}`,
+        label: option.label,
+        check: rooms.every((room) => (room?.product ?? "") === option.value),
+        disabled: option.disabled,
+        action: () => {
+          updateAllPlanRooms(type, position, (room) => {
+            if (option.value === "源石碎片") {
+              room.product = option.value;
+              room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
+            } else {
+              room.product = option.value;
+              delete room.sourceMaterial;
+            }
+          });
+          closeContextMenu();
+        },
       });
-  }
-
-  if (
-    !currentSimulatorEditSettings.value.product ||
-    !rooms.length ||
-    !rooms.every((room) => room?.product === "源石碎片")
-  ) {
-    return items;
-  }
-
-  items.push({
-    key: `facility-source-divider-${position}`,
-    label: "",
-    divider: true,
-  });
-  SOURCE_MATERIAL_OPTIONS.forEach((option) => {
-    items.push({
-      key: `facility-source-${position}-${option.value}`,
-      label: option.label,
-      check: rooms.every((room) => sourceValue(room) === option.value),
-      action: () => {
-        updateAllPlanRooms(type, position, (room) => {
-          room.sourceMaterial = option.value;
-        });
-        closeContextMenu();
-      },
     });
-  });
 
   if (type === "trading" || type === "manufacture") {
     items.push({
@@ -5752,6 +5698,29 @@ function facilityCardContextMenuItems(
       });
     });
   }
+
+  if (!rooms.length || !rooms.every((room) => room?.product === "源石碎片")) {
+    return items;
+  }
+
+  items.push({
+    key: `facility-source-divider-${position}`,
+    label: "",
+    divider: true,
+  });
+  SOURCE_MATERIAL_OPTIONS.forEach((option) => {
+    items.push({
+      key: `facility-source-${position}-${option.value}`,
+      label: option.label,
+      check: rooms.every((room) => sourceValue(room) === option.value),
+      action: () => {
+        updateAllPlanRooms(type, position, (room) => {
+          room.sourceMaterial = option.value;
+        });
+        closeContextMenu();
+      },
+    });
+  });
 
   return items;
 }
@@ -6402,7 +6371,6 @@ function disableImportedEditSettings(documentId: string): void {
     [documentId]: {
       layout: false,
       queue: false,
-      product: false,
     },
   };
   simulatorEditSettings.value = nextSettings;
@@ -7559,15 +7527,6 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               编辑队列
             </a-checkbox>
-            <a-checkbox
-              :checked="currentSimulatorEditSettings.product"
-              @change="
-                (event: { target: { checked: boolean } }) =>
-                  updateSimulatorEditSetting('product', event.target.checked)
-              "
-            >
-              编辑产物
-            </a-checkbox>
             <a-button
               size="small"
               title="恢复该排班表中所有干员的默认练度"
@@ -8337,6 +8296,17 @@ defineExpose({ prepareScheduleReferenceImage });
                 模拟爆仓
               </a-checkbox>
             </a-form-item>
+            <a-form-item label="无人机库存">
+              <a-checkbox
+                :checked="currentEfficiencySettings.simulateDroneOverflow"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    updateEfficiencyDroneOverflowSetting(event.target.checked)
+                "
+              >
+                模拟无人机爆仓时截断至 235 架
+              </a-checkbox>
+            </a-form-item>
             <a-form-item label="精0孑效率">
               <a-checkbox
                 :checked="currentEfficiencySettings.preferMaxJieEfficiency"
@@ -8497,45 +8467,6 @@ defineExpose({ prepareScheduleReferenceImage });
                         />
                         {{ card.netUnit }}
                       </span>
-                      <template v-if="card.droneExtraAmount !== undefined">
-                        <span class="simulator-daily-output-net">
-                          消耗无人机
-                          <SimulatorNumericValue
-                            :value="card.droneAmount ?? 0"
-                            unit="架"
-                          />架
-                        </span>
-                        <span class="simulator-daily-output-net">
-                          无人机前
-                          <SimulatorNumericValue
-                            mode="production"
-                            :value="card.droneBeforeAmount ?? 0"
-                            :unit="card.netUnit"
-                          />
-                          {{ card.netUnit }}
-                        </span>
-                        <span class="simulator-daily-output-net">
-                          无人机额外
-                          <SimulatorNumericValue
-                            mode="production"
-                            :value="card.droneExtraAmount"
-                            :unit="card.netUnit"
-                          />
-                          {{ card.netUnit }}
-                        </span>
-                        <span
-                          v-for="material in card.droneExtraMaterials"
-                          :key="`drone-material-${card.product}-${material.material}`"
-                          class="simulator-daily-output-net"
-                        >
-                          无人机额外消耗 {{ resourceLabel(material.material) }}
-                          <SimulatorNumericValue
-                            mode="signed"
-                            :value="material.dailyAmount"
-                            :unit="resourceLabel(material.material)"
-                          />
-                        </span>
-                      </template>
                       <strong
                         v-if="card.netContribution !== undefined"
                         class="simulator-daily-output-sanity"
@@ -8626,89 +8557,6 @@ defineExpose({ prepareScheduleReferenceImage });
                 show-icon
                 type="error"
               />
-              <div
-                v-if="efficiencyResult.maaDroneAcceleration?.enabled"
-                class="simulator-drone-scenarios"
-              >
-                <div class="simulator-drone-scenario">
-                  <div class="simulator-drone-scenario-heading">
-                    <strong>MAA 换班式无人机加速</strong>
-                    <span>
-                      消耗
-                      <SimulatorNumericValue
-                        :value="
-                          efficiencyResult.maaDroneAcceleration.usedDrones
-                        "
-                        unit="架"
-                      />架
-                    </span>
-                  </div>
-                  <div class="simulator-step-detail-grid">
-                    <template
-                      v-for="detail in efficiencyResult.maaDroneAcceleration
-                        .details"
-                      :key="`${detail.planIndex}-${detail.facilityId}-${detail.order}`"
-                    >
-                      <span>
-                        {{
-                          currentDocument.plans[detail.planIndex]?.name ||
-                          `队列${detail.planIndex + 1}`
-                        }}
-                        · {{ ROOM_LABELS[detail.room]
-                        }}{{ detail.facilityIndex + 1 }}
-                      </span>
-                      <strong>
-                        {{ detail.order === "pre" ? "换班前" : "换班后" }} ·
-                        {{ resourceLabel(detail.product) }}
-                      </strong>
-                      <span>无人机</span>
-                      <strong>
-                        <SimulatorNumericValue
-                          :value="detail.droneAmount"
-                          unit="架"
-                        />架 ·
-                        <SimulatorNumericValue
-                          :value="detail.acceleratedHours"
-                          unit="小时"
-                        />小时
-                      </strong>
-                      <span>无人机前基础产出</span>
-                      <strong>
-                        <SimulatorNumericValue
-                          mode="production"
-                          :value="
-                            detail.baseAmountPerHour *
-                            detail.sourceDurationHours
-                          "
-                          :unit="resourceLabel(detail.product)"
-                        />
-                      </strong>
-                      <span>无人机额外产出</span>
-                      <strong>
-                        <SimulatorNumericValue
-                          mode="production"
-                          :value="detail.extraAmount"
-                          :unit="resourceLabel(detail.product)"
-                        />
-                      </strong>
-                      <template
-                        v-for="(amount, material) in detail.extraMaterial"
-                        :key="`${detail.planIndex}-${detail.facilityId}-module-${material}`"
-                      >
-                        <span>无人机额外材料</span>
-                        <strong>
-                          {{ resourceLabel(material) }}
-                          <SimulatorNumericValue
-                            mode="signed"
-                            :value="amount"
-                            :unit="resourceLabel(material)"
-                          />
-                        </strong>
-                      </template>
-                    </template>
-                  </div>
-                </div>
-              </div>
               <div
                 v-if="droneScenarioDisplays.length"
                 class="simulator-drone-scenarios"
@@ -8856,7 +8704,135 @@ defineExpose({ prepareScheduleReferenceImage });
                   >展开分区查看详细计算过程</span
                 >
               </div>
-              <a-collapse ghost>
+              <a-collapse v-model:active-key="calculationStepActiveKeys" ghost>
+                <a-collapse-panel
+                  v-if="efficiencyResult.maaDroneAcceleration?.enabled"
+                  key="maa-drone-acceleration"
+                >
+                  <template #header>
+                    <div class="simulator-step-header">
+                      <span>MAA 换班式无人机加速</span>
+                      <span class="simulator-result-hint">
+                        消耗
+                        <SimulatorNumericValue
+                          :value="
+                            efficiencyResult.maaDroneAcceleration.usedDrones
+                          "
+                          unit="架"
+                        />架
+                      </span>
+                    </div>
+                  </template>
+                  <div class="simulator-calculation-step-columns">
+                    <div
+                      v-for="queue in maaDroneQueueDetails"
+                      :key="`maa-drone-${queue.planIndex}`"
+                      class="simulator-calculation-step-column"
+                    >
+                      <div class="simulator-calculation-step-column-header">
+                        <span>
+                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
+                          <small
+                            >·
+                            <SimulatorNumericValue
+                              :value="queue.plan.durationHours"
+                              unit="小时"
+                            />
+                            小时</small
+                          >
+                        </span>
+                        <strong v-if="queue.details.length"
+                          >{{ queue.details.length }} 项</strong
+                        >
+                      </div>
+                      <div
+                        v-if="queue.details.length"
+                        class="simulator-step-content"
+                      >
+                        <div class="simulator-step-detail-grid">
+                          <template
+                            v-for="detail in queue.details"
+                            :key="`${detail.planIndex}-${detail.facilityId}-${detail.order}`"
+                          >
+                            <span>设施</span>
+                            <strong>
+                              {{ ROOM_LABELS[detail.room]
+                              }}{{ detail.facilityIndex + 1 }}
+                            </strong>
+                            <span>加速时机</span>
+                            <strong>
+                              {{ detail.order === "pre" ? "换班前" : "换班后" }}
+                            </strong>
+                            <span>来源队列</span>
+                            <strong>
+                              {{
+                                currentDocument.plans[detail.sourcePlanIndex]
+                                  ?.name || `队列${detail.sourcePlanIndex + 1}`
+                              }}
+                            </strong>
+                            <span>产物</span>
+                            <strong>{{ resourceLabel(detail.product) }}</strong>
+                            <span>消耗无人机</span>
+                            <strong>
+                              <SimulatorNumericValue
+                                :value="detail.droneAmount"
+                                unit="架"
+                              />架
+                            </strong>
+                            <span>加速时长</span>
+                            <strong>
+                              <SimulatorNumericValue
+                                :value="detail.acceleratedHours"
+                                unit="小时"
+                              />小时
+                            </strong>
+                            <span>基础速率</span>
+                            <strong>
+                              <SimulatorNumericValue
+                                mode="production"
+                                :value="detail.baseAmountPerHour"
+                                unit="/小时"
+                              />/小时
+                            </strong>
+                            <span>无人机额外产出</span>
+                            <strong>
+                              <SimulatorNumericValue
+                                mode="production"
+                                :value="detail.extraAmount"
+                                :unit="resourceLabel(detail.product)"
+                              />
+                            </strong>
+                            <template
+                              v-for="(amount, material) in detail.extraMaterial"
+                              :key="`${detail.planIndex}-${detail.facilityId}-${material}`"
+                            >
+                              <span>无人机额外材料</span>
+                              <strong>
+                                {{ resourceLabel(material) }}
+                                <SimulatorNumericValue
+                                  mode="signed"
+                                  :value="amount"
+                                  :unit="resourceLabel(material)"
+                                />
+                              </strong>
+                            </template>
+                            <span v-if="detail.overflowed">无人机爆仓</span>
+                            <strong v-if="detail.overflowed">
+                              超出
+                              <SimulatorNumericValue
+                                :value="detail.overflowAmount"
+                                unit="架"
+                              />架
+                            </strong>
+                          </template>
+                        </div>
+                      </div>
+                      <div v-else class="simulator-step-column-empty">
+                        当前队列未设置无人机加速
+                      </div>
+                    </div>
+                  </div>
+                </a-collapse-panel>
                 <a-collapse-panel
                   v-if="dailyOutputQueueDetails.length"
                   key="daily-output-breakdown"
