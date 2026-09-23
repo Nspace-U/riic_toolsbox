@@ -1464,14 +1464,12 @@ a {
 }
 
 .simulator-document-item {
-  --simulator-document-actions-width: 84px;
   position: relative;
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
   width: 100%;
   padding: 11px 10px;
-  padding-inline-end: calc(10px + var(--simulator-document-actions-width));
   gap: 4px;
   color: #526164;
   text-align: start;
@@ -1538,25 +1536,6 @@ a {
 
 .simulator-tag-list .ant-tag {
   margin-inline-end: 0;
-}
-
-.simulator-document-item-actions {
-  position: absolute;
-  z-index: 1;
-  inset-block-start: 50%;
-  inset-inline-end: 10px;
-  display: flex;
-  gap: 2px;
-  transform: translateY(-50%);
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 120ms ease;
-}
-
-.simulator-document-item:hover .simulator-document-item-actions,
-.simulator-document-item:focus-within .simulator-document-item-actions {
-  opacity: 1;
-  visibility: visible;
 }
 
 .simulator-document-search {

@@ -369,6 +369,12 @@ interface FacilityContextMenuState extends OperatorSlotAddress {
   y: number;
 }
 
+interface ScheduleDocumentContextMenuState {
+  documentId: string;
+  x: number;
+  y: number;
+}
+
 interface FacilityContextMenuItem {
   key: string;
   label: string;
@@ -684,6 +690,8 @@ const documentSidebar = ref<HTMLElement>();
 const editingOperatorSlot = ref<OperatorSlotAddress>();
 const contextMenu = ref<FacilityContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
+const scheduleDocumentContextMenu = ref<ScheduleDocumentContextMenuState>();
+const scheduleDocumentContextMenuElement = ref<HTMLElement>();
 const operatorPicker = ref<OperatorPickerState>();
 const operatorPickerElement = ref<{ panelElement?: HTMLElement }>();
 const operatorDragPreviewElement = ref<HTMLElement>();
@@ -2009,6 +2017,7 @@ function closeSimulatorNotice(notice: EfficiencyNotice): void {
 }
 
 function selectDocument(documentId: string): void {
+  closeContextMenu();
   if (documentId !== activeDocumentId.value) {
     clearImportedScheduleNotice();
   }
@@ -5590,6 +5599,17 @@ function contextMenuStyle(): Record<string, string> {
   };
 }
 
+function scheduleDocumentContextMenuStyle(): Record<string, string> {
+  const menu = scheduleDocumentContextMenu.value;
+  if (!menu) {
+    return {};
+  }
+  return {
+    insetInlineStart: `${menu.x}px`,
+    insetBlockStart: `${menu.y}px`,
+  };
+}
+
 function commitPendingOperatorNameEdit(): boolean {
   const currentEditing = editingOperatorSlot.value;
   if (!currentEditing) {
@@ -5624,6 +5644,34 @@ async function clampContextMenuPosition(): Promise<void> {
   }
 }
 
+async function clampScheduleDocumentContextMenuPosition(): Promise<void> {
+  await nextTick();
+  const menu = scheduleDocumentContextMenu.value;
+  const element = scheduleDocumentContextMenuElement.value;
+  if (!menu || !element) {
+    return;
+  }
+  const maxTop = Math.max(8, window.innerHeight - element.offsetHeight - 8);
+  const maxLeft = Math.max(8, window.innerWidth - element.offsetWidth - 8);
+  const y = Math.min(Math.max(8, menu.y), maxTop);
+  const x = Math.min(Math.max(8, menu.x), maxLeft);
+  if (menu.x !== x || menu.y !== y) {
+    scheduleDocumentContextMenu.value = { ...menu, x, y };
+  }
+}
+
+function openScheduleDocumentContextMenu(
+  event: MouseEvent,
+  documentId: string,
+): void {
+  contextMenu.value = undefined;
+  scheduleDocumentContextMenu.value = {
+    documentId,
+    ...contextMenuPosition(event),
+  };
+  void clampScheduleDocumentContextMenuPosition();
+}
+
 function openOperatorContextMenu(
   event: MouseEvent,
   planIndex: number,
@@ -5631,6 +5679,7 @@ function openOperatorContextMenu(
   position: number,
   slotIndex: number,
 ): void {
+  scheduleDocumentContextMenu.value = undefined;
   if (!commitPendingOperatorNameEdit()) {
     return;
   }
@@ -5652,6 +5701,7 @@ function openFacilityContextMenu(
   type: RoomKey,
   positions: number[],
 ): void {
+  scheduleDocumentContextMenu.value = undefined;
   if (!commitPendingOperatorNameEdit()) {
     return;
   }
@@ -5665,6 +5715,7 @@ function openFacilityContextMenu(
 }
 
 function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
+  scheduleDocumentContextMenu.value = undefined;
   if (
     event.target instanceof Element &&
     event.target.closest(".simulator-facility-queue")
@@ -5690,6 +5741,7 @@ function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
 
 function closeContextMenu(): void {
   contextMenu.value = undefined;
+  scheduleDocumentContextMenu.value = undefined;
 }
 
 function roomContextMenuItems(
@@ -6031,7 +6083,12 @@ function closeRestoreOperatorProgressionModal(): void {
 
 function handleWindowPointerDown(event: PointerEvent): void {
   const target = event.target;
-  if (target instanceof Element && target.closest(".simulator-context-menu")) {
+  if (
+    target instanceof Element &&
+    target.closest(
+      ".simulator-context-menu, .simulator-schedule-document-context-menu",
+    )
+  ) {
     return;
   }
   closeContextMenu();
@@ -6039,7 +6096,12 @@ function handleWindowPointerDown(event: PointerEvent): void {
 
 function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
-  if (target instanceof Element && target.closest(".simulator-context-menu")) {
+  if (
+    target instanceof Element &&
+    target.closest(
+      ".simulator-context-menu, .simulator-schedule-document-context-menu",
+    )
+  ) {
     return;
   }
   if (
@@ -6879,17 +6941,6 @@ async function handleExportImage(documentId?: string): Promise<void> {
   await prepareImageExport();
 }
 
-function handleExportMenuClick(
-  documentId: string,
-  event: { key: string | number },
-): void {
-  if (String(event.key) === "image") {
-    void handleExportImage(documentId);
-    return;
-  }
-  handleExport(documentId);
-}
-
 function updateImageExportResolution(event: {
   target: { value: string | number };
 }): void {
@@ -7502,6 +7553,9 @@ defineExpose({ prepareScheduleReferenceImage });
             role="button"
             tabindex="0"
             @click="selectDocument(document.id)"
+            @contextmenu.stop.prevent="
+              openScheduleDocumentContextMenu($event, document.id)
+            "
             @keydown.enter="selectDocument(document.id)"
             @keydown.space.prevent="selectDocument(document.id)"
           >
@@ -7519,44 +7573,6 @@ defineExpose({ prepareScheduleReferenceImage });
               <span class="simulator-document-item-title">{{
                 document.document.title || "未命名排班表"
               }}</span>
-            </div>
-            <div class="simulator-document-item-actions">
-              <a-button
-                aria-label="复制排班表"
-                size="small"
-                title="复制排班表"
-                type="text"
-                @click.stop="handleDuplicate(document.id)"
-              >
-                <template #icon><CopyOutlined /></template>
-              </a-button>
-              <a-button
-                aria-label="删除排班表"
-                danger
-                size="small"
-                title="删除排班表"
-                type="text"
-                @click.stop="handleDelete(document.id)"
-              >
-                <template #icon><DeleteOutlined /></template>
-              </a-button>
-              <a-dropdown :trigger="['click']">
-                <a-button
-                  aria-label="导出排班表"
-                  size="small"
-                  title="选择导出格式"
-                  type="text"
-                  @click.stop
-                >
-                  <template #icon><DownloadOutlined /></template>
-                </a-button>
-                <template #overlay>
-                  <a-menu @click="handleExportMenuClick(document.id, $event)">
-                    <a-menu-item key="maa">导出 Maa JSON</a-menu-item>
-                    <a-menu-item key="image">图片预览</a-menu-item>
-                  </a-menu>
-                </template>
-              </a-dropdown>
             </div>
           </div>
           <a-empty
@@ -8437,6 +8453,41 @@ defineExpose({ prepareScheduleReferenceImage });
                 </a-menu-item>
               </template>
             </a-menu-item-group>
+          </a-menu>
+        </div>
+
+        <div
+          v-if="scheduleDocumentContextMenu"
+          ref="scheduleDocumentContextMenuElement"
+          class="simulator-context-menu simulator-schedule-document-context-menu"
+          :style="scheduleDocumentContextMenuStyle()"
+          @click="closeContextMenu"
+        >
+          <a-menu :selectable="false">
+            <a-menu-item
+              @click="handleDuplicate(scheduleDocumentContextMenu?.documentId)"
+            >
+              复制排班表
+            </a-menu-item>
+            <a-menu-item
+              danger
+              @click="handleDelete(scheduleDocumentContextMenu?.documentId)"
+            >
+              删除排班表
+            </a-menu-item>
+            <a-menu-divider />
+            <a-menu-item
+              @click="handleExport(scheduleDocumentContextMenu?.documentId)"
+            >
+              导出 Maa JSON
+            </a-menu-item>
+            <a-menu-item
+              @click="
+                void handleExportImage(scheduleDocumentContextMenu?.documentId)
+              "
+            >
+              导出预览
+            </a-menu-item>
           </a-menu>
         </div>
 
