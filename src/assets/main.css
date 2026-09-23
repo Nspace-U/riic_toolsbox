@@ -2621,6 +2621,21 @@ a {
   justify-content: center;
 }
 
+.simulator-efficiency-summary-line--drone-pre {
+  justify-content: flex-start;
+}
+
+.simulator-efficiency-summary-line--drone-post {
+  justify-content: flex-end;
+}
+
+.simulator-efficiency-summary-drone-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
 .simulator-efficiency-summary-line--total strong {
   min-width: 0;
   max-width: 100%;

@@ -3380,6 +3380,7 @@ const FACILITY_TITLE_TAG_PRESETS: [
 const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
+const LABOR_ICON_URL = `${import.meta.env.BASE_URL}assets/icons/icon_labor.png`;
 const EFFICIENCY_SUMMARY_MAX_FONT_SIZE = 16;
 const EFFICIENCY_SUMMARY_TEXT_SAFETY_RATIO = 0.9;
 
@@ -5221,6 +5222,24 @@ function efficiencySummaryText(row: FacilityRow, planIndex: number): string {
     return "";
   }
   return `${formatEfficiencyNumber(result.operatorSkillEfficiency)}% / ${formatEfficiencyNumber(result.efficiency)}%`;
+}
+
+function maaDroneOrderForFacility(
+  row: FacilityRow,
+  planIndex: number,
+): "pre" | "post" | undefined {
+  const plan = currentDocument.value?.plans[planIndex];
+  const position = row.entries[0]?.position;
+  if (!plan || position === undefined) {
+    return undefined;
+  }
+  if (maaDroneMatches(plan, row.type, position, "pre")) {
+    return "pre";
+  }
+  if (maaDroneMatches(plan, row.type, position, "post")) {
+    return "post";
+  }
+  return undefined;
 }
 
 function efficiencySummaryStyle(
@@ -8187,7 +8206,22 @@ defineExpose({ prepareScheduleReferenceImage });
                     <div class="simulator-efficiency-summary">
                       <div
                         class="simulator-efficiency-summary-line simulator-efficiency-summary-line--total"
+                        :class="{
+                          'simulator-efficiency-summary-line--drone-pre':
+                            maaDroneOrderForFacility(row, planIndex) === 'pre',
+                          'simulator-efficiency-summary-line--drone-post':
+                            maaDroneOrderForFacility(row, planIndex) === 'post',
+                        }"
                       >
+                        <img
+                          v-if="
+                            maaDroneOrderForFacility(row, planIndex) === 'pre'
+                          "
+                          alt=""
+                          aria-hidden="true"
+                          class="simulator-efficiency-summary-drone-icon"
+                          :src="LABOR_ICON_URL"
+                        />
                         <strong
                           v-if="planFacilityResult(row, planIndex)"
                           :style="efficiencySummaryStyle(row, planIndex)"
@@ -8210,6 +8244,15 @@ defineExpose({ prepareScheduleReferenceImage });
                             unit="%"
                           />%
                         </strong>
+                        <img
+                          v-if="
+                            maaDroneOrderForFacility(row, planIndex) === 'post'
+                          "
+                          alt=""
+                          aria-hidden="true"
+                          class="simulator-efficiency-summary-drone-icon"
+                          :src="LABOR_ICON_URL"
+                        />
                       </div>
                     </div>
                   </div>

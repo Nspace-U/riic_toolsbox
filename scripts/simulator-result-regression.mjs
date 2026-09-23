@@ -87,6 +87,14 @@ assert.doesNotMatch(
 );
 assert.doesNotMatch(template, /<span>编辑产物<\/span>/);
 assert.doesNotMatch(template, /所有队列无人机加速/);
+assert.match(template, /function maaDroneOrderForFacility\(/);
+assert.match(template, /class="simulator-efficiency-summary-drone-icon"/);
+assert.match(template, /LABOR_ICON_URL/);
+assert.match(template, /simulator-efficiency-summary-line--drone-pre/);
+assert.match(template, /simulator-efficiency-summary-line--drone-post/);
+assert.match(stylesheet, /\.simulator-efficiency-summary-drone-icon/);
+assert.match(stylesheet, /\.simulator-efficiency-summary-line--drone-pre/);
+assert.match(stylesheet, /\.simulator-efficiency-summary-line--drone-post/);
 assert.match(template, /scope: "operator"/);
 assert.match(template, /menu\.scope !== "operator"/);
 assert.match(calculationStepContent, /<span>干员心情效率<\/span>/);
