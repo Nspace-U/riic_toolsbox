@@ -1013,19 +1013,36 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
         warning.facilityIndex === undefined
           ? ""
           : ` · 宿舍 ${warning.facilityIndex + 1}`;
-      const outcome =
+      const detail =
         warning.reason === "no-space"
-          ? "宿舍槽位不足，无法自动休整"
-          : `休整后心情 ${formatNumber(warning.endMood)}，低于下次工作预期 ${formatNumber(warning.expectedMood)}`;
-      return `${plan.name || `队列${planIndex + 1}`} · ${warning.operator}${dormitory}：${outcome}（休整前 ${formatNumber(warning.startMood)}）`;
+          ? `休整前心情 ${formatNumber(warning.startMood)}`
+          : `休整后心情 ${formatNumber(warning.endMood)}，低于下次工作预期 ${formatNumber(warning.expectedMood)}（休整前 ${formatNumber(warning.startMood)}）`;
+      return {
+        detail: `${plan.name || `队列${planIndex + 1}`} · ${warning.operator}${dormitory}：${detail}`,
+        reason: warning.reason,
+      };
     }),
   );
-  if (autoRestDetails.length > 0) {
+  const noSpaceAutoRestDetails = autoRestDetails
+    .filter((warning) => warning.reason === "no-space")
+    .map((warning) => warning.detail);
+  if (noSpaceAutoRestDetails.length > 0) {
     notices.push({
-      code: "mood-auto-rest",
+      code: "mood-auto-rest-no-space",
       level: "info",
-      message: "自动休整未达到预期",
-      details: autoRestDetails,
+      message: "宿舍槽位不足，无法自动休整",
+      details: noSpaceAutoRestDetails,
+    });
+  }
+  const notRecoveredAutoRestDetails = autoRestDetails
+    .filter((warning) => warning.reason === "not-recovered")
+    .map((warning) => warning.detail);
+  if (notRecoveredAutoRestDetails.length > 0) {
+    notices.push({
+      code: "mood-auto-rest-not-recovered",
+      level: "info",
+      message: "自动休整后心情未达到预期",
+      details: notRecoveredAutoRestDetails,
     });
   }
   if (result.fiammettaWarnings.length > 0) {
