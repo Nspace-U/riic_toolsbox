@@ -1016,6 +1016,43 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
       details: moodDetails,
     });
   }
+  const workZeroDetails = result.plans.flatMap((plan, planIndex) =>
+    plan.moods
+      .filter((mood) => mood.working && mood.start > 0 && mood.end === 0)
+      .map(
+        (mood) =>
+          `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[mood.facility]} ${mood.facilityIndex + 1} · ${mood.operator}：工作后心情从 ${formatNumber(mood.start)} 降至 0`,
+      ),
+  );
+  if (workZeroDetails.length > 0) {
+    notices.push({
+      code: "mood-work-zero",
+      level: "warning",
+      message: "有干员在工作后心情降至 0",
+      details: workZeroDetails,
+    });
+  }
+  const autoRestDetails = result.plans.flatMap((plan, planIndex) =>
+    plan.autoRestWarnings.map((warning) => {
+      const dormitory =
+        warning.facilityIndex === undefined
+          ? ""
+          : ` · 宿舍 ${warning.facilityIndex + 1}`;
+      const outcome =
+        warning.reason === "no-space"
+          ? "宿舍槽位不足，无法自动休整"
+          : `休整后心情 ${formatNumber(warning.endMood)}，低于下次工作预期 ${formatNumber(warning.expectedMood)}`;
+      return `${plan.name || `队列${planIndex + 1}`} · ${warning.operator}${dormitory}：${outcome}（休整前 ${formatNumber(warning.startMood)}）`;
+    }),
+  );
+  if (autoRestDetails.length > 0) {
+    notices.push({
+      code: "mood-auto-rest",
+      level: "warning",
+      message: "自动休整未达到预期",
+      details: autoRestDetails,
+    });
+  }
   if (result.fiammettaWarnings.length > 0) {
     const directMode = result.fiammetta?.mode === "direct";
     notices.push({

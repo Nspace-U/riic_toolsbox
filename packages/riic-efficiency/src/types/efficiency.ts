@@ -140,6 +140,7 @@ export interface EfficiencyEffect {
   scopeGroup?: string;
   subjects?: "single" | "spread" | string;
   moodBelow?: number;
+  blockOtherRecovery?: boolean;
   other?: boolean;
   stack?: "max" | string;
   maxGroup?: string;
@@ -433,6 +434,7 @@ export interface MoodSnapshot {
   operator: string;
   facility: RoomKey;
   facilityId: string;
+  facilityIndex: number;
   slotIndex: number;
   start: number;
   end: number;
@@ -449,6 +451,16 @@ export interface MoodWarning {
   slotIndex: number;
   previousEnd: number;
   configuredStart: number;
+}
+
+export interface AutoRestWarning {
+  operator: string;
+  reason: "no-space" | "not-recovered";
+  startMood: number;
+  endMood: number;
+  expectedMood: number;
+  facilityId?: string;
+  facilityIndex?: number;
 }
 
 export type BasePointSourceKind = "gain" | "convert";
@@ -477,6 +489,7 @@ export interface EfficiencyPlanResult {
   facilities: FacilityEfficiencyResult[];
   moods: MoodSnapshot[];
   moodWarnings: MoodWarning[];
+  autoRestWarnings: AutoRestWarning[];
   fiammetta?: FiammettaPlanResult;
   fiammettaWarnings: string[];
   basePoints: Record<string, number>;

@@ -1,4 +1,5 @@
 import type {
+  AutoRestWarning,
   BasePointDetail,
   CurveCalculationStep,
   EfficiencyEffect,
@@ -121,6 +122,7 @@ export interface PlanContext {
   basePointDetails: BasePointDetail[];
   statValues: Map<string, number>;
   moodWarnings: MoodWarning[];
+  autoRestWarnings: AutoRestWarning[];
   fiammetta?: FiammettaPlanResult;
   fiammettaWarnings: string[];
   warnings: string[];
