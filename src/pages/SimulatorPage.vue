@@ -55,7 +55,6 @@ import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
   EfficiencyCatalog,
   EfficiencyNotice,
-  EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
   OperatorProgressionNode,
@@ -95,6 +94,8 @@ import {
   buildMaaDroneQueueDetails,
   calculateEfficiency,
   analyzeSchedulePeriods,
+  buildEfficiencyNotices,
+  buildImportedExtraRoomsNotice,
   schedulePeriodForRange,
   schedulePeriodMinute,
   createSpecialOperatorAvatarLabelResolver,
@@ -165,7 +166,6 @@ import {
 import {
   formatDurationHours,
   formatEfficiencyNumber,
-  formatNumber,
   planDurationHoursValue,
   resourceLabel,
 } from "@/utils/simulator/presentation";
@@ -203,14 +203,6 @@ interface FacilitySlotRef {
 }
 
 type SimulatorCalculationStep = EfficiencyCalculationStepView;
-
-interface ExtraRoom {
-  planIndex: number;
-  planName: string;
-  type: RoomKey;
-  index: number;
-  room: RoomAssignment;
-}
 
 interface OperatorSlotAddress {
   planIndex: number;
@@ -919,169 +911,13 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   });
 });
 
-const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
-  const notices: EfficiencyNotice[] = [];
-  if (powerSummary.value.net < 0) {
-    notices.push({
-      code: "negative-power",
-      level: "warning",
-      message: "电力不足",
-      details: [
-        `当前布局提供 ${powerSummary.value.provided} 点电力，消耗 ${powerSummary.value.used} 点电力，净电力 ${powerSummary.value.net} 点`,
-      ],
-    });
-  }
-  if (efficiencyError.value) {
-    notices.push({
-      code: "efficiency-data-error",
-      level: "error",
-      message: "效率数据读取失败",
-      details: [efficiencyError.value],
-    });
-    return notices;
-  }
-  if (schedulePeriodAnalysis.value.errors.length > 0) {
-    notices.push({
-      code: "schedule-period-error",
-      level: "error",
-      message: "定时换班时间无效",
-      details: schedulePeriodAnalysis.value.errors,
-    });
-    return notices;
-  }
-  if (schedulePeriodAnalysis.value.warnings.length > 0) {
-    notices.push({
-      code: "schedule-period-gap",
-      level: "info",
-      message: "定时换班存在时间空档",
-      details: schedulePeriodAnalysis.value.warnings,
-    });
-  }
-  const result = efficiencyResult.value;
-  if (!result) {
-    return notices;
-  }
-  if (result.maaDroneAcceleration?.warnings.length) {
-    notices.push({
-      code: "maa-drone-overflow",
-      level: "info",
-      message: "发现无人机爆仓风险",
-      details: result.maaDroneAcceleration.warnings,
-    });
-  }
-  if (result.warnings.length > 0) {
-    notices.push({
-      code: "missing-skill-data",
-      level: "error",
-      message: "找不到干员技能数据",
-      details: result.warnings,
-    });
-  }
-  const moodDetails = result.plans.flatMap((plan, planIndex) =>
-    plan.moodWarnings.map(
-      (warning) =>
-        `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[warning.facility]} ${warning.facilityIndex + 1} · ${warning.operator}：上一队列结束心情 ${formatNumber(warning.previousEnd)}，当前手动设置为 ${formatNumber(warning.configuredStart)}`,
-    ),
-  );
-  if (moodDetails.length > 0) {
-    notices.push({
-      code: "mood-inheritance",
-      level: "warning",
-      message: "发现心情继承异常",
-      details: moodDetails,
-    });
-  }
-  const workZeroDetails = result.plans.flatMap((plan, planIndex) =>
-    plan.moods
-      .filter((mood) => mood.working && mood.start > 0 && mood.end === 0)
-      .map(
-        (mood) =>
-          `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[mood.facility]} ${mood.facilityIndex + 1} · ${mood.operator}：工作后心情从 ${formatNumber(mood.start)} 降至 0`,
-      ),
-  );
-  if (workZeroDetails.length > 0) {
-    notices.push({
-      code: "mood-work-zero",
-      level: "warning",
-      message: "有干员在工作后心情降至 0",
-      details: workZeroDetails,
-    });
-  }
-  const autoRestDetails = result.plans.flatMap((plan, planIndex) =>
-    plan.autoRestWarnings.map((warning) => {
-      const dormitory =
-        warning.facilityIndex === undefined
-          ? ""
-          : ` · 宿舍 ${warning.facilityIndex + 1}`;
-      const detail =
-        warning.reason === "no-space"
-          ? `休整前心情 ${formatNumber(warning.startMood)}`
-          : `休整后心情 ${formatNumber(warning.endMood)}，低于下次工作预期 ${formatNumber(warning.expectedMood)}（休整前 ${formatNumber(warning.startMood)}）`;
-      return {
-        detail: `${plan.name || `队列${planIndex + 1}`} · ${warning.operator}${dormitory}：${detail}`,
-        reason: warning.reason,
-      };
-    }),
-  );
-  const noSpaceAutoRestDetails = autoRestDetails
-    .filter((warning) => warning.reason === "no-space")
-    .map((warning) => warning.detail);
-  if (noSpaceAutoRestDetails.length > 0) {
-    notices.push({
-      code: "mood-auto-rest-no-space",
-      level: "info",
-      message: "宿舍槽位不足，无法自动休整",
-      details: noSpaceAutoRestDetails,
-    });
-  }
-  const notRecoveredAutoRestDetails = autoRestDetails
-    .filter((warning) => warning.reason === "not-recovered")
-    .map((warning) => warning.detail);
-  if (notRecoveredAutoRestDetails.length > 0) {
-    notices.push({
-      code: "mood-auto-rest-not-recovered",
-      level: "info",
-      message: "自动休整后心情未达到预期",
-      details: notRecoveredAutoRestDetails,
-    });
-  }
-  if (result.fiammettaWarnings.length > 0) {
-    const directMode = result.fiammetta?.mode === "direct";
-    notices.push({
-      code: "fiammetta-mood",
-      level: "warning",
-      message: directMode
-        ? "菲亚梅塔无法完全恢复这些干员心情"
-        : "发现菲亚梅塔心情恢复异常",
-      details: directMode ? [] : result.fiammettaWarnings,
-    });
-  }
-  const overflowDetails = result.plans.flatMap((plan, planIndex) =>
-    plan.facilities.flatMap((facility) => {
-      const production = facility.production;
-      if (!production?.overflowed || production.breachTime === undefined) {
-        return [];
-      }
-      const operators = operatorsForFacilityResult(plan, facility);
-      const timing =
-        production.breachTime <= 0
-          ? "将立即爆仓"
-          : `将在工作 ${formatDurationHours(production.breachTime)}后爆仓`;
-      return [
-        `${plan.name || `队列${planIndex + 1}`} · ${facilityResultLabel(facility)} · ${operators.join("、") || "无干员"}：${timing}`,
-      ];
-    }),
-  );
-  if (overflowDetails.length > 0) {
-    notices.push({
-      code: "overflow-risk",
-      level: "info",
-      message: "发现爆仓风险",
-      details: overflowDetails,
-    });
-  }
-  return notices;
-});
+const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
+  buildEfficiencyNotices({
+    document: currentDocument.value,
+    result: efficiencyResult.value,
+    efficiencyError: efficiencyError.value,
+  }),
+);
 
 const simulatorNotices = computed<EfficiencyNotice[]>(() => {
   const notices = [...efficiencyNotices.value];
@@ -1509,49 +1345,6 @@ const facilityRows = computed<FacilityRow[]>(() => {
   }
   return rows;
 });
-
-function extraRoomsForDocument(document: ScheduleDocument): ExtraRoom[] {
-  return document.plans.flatMap((plan, planIndex) =>
-    ROOM_ORDER.flatMap((type) => {
-      const rooms = plan.rooms[type];
-      if (!Array.isArray(rooms)) {
-        return [];
-      }
-      const expected = document.layout.filter(
-        (entry) => entry.type === type,
-      ).length;
-      return rooms.slice(expected).map((room, offset) => ({
-        planIndex,
-        planName: plan.name || `队列${planIndex + 1}`,
-        type,
-        index: expected + offset,
-        room: room as RoomAssignment,
-      }));
-    }),
-  );
-}
-
-function extraRoomNoticeDetail(item: ExtraRoom): string {
-  const operators = item.room.operators?.filter((name): name is string =>
-    Boolean(name),
-  );
-  const operatorDetail = operators?.length ? `：${operators.join("、")}` : "";
-  return `${item.planName} · ${ROOM_LABELS[item.type]} ${item.index + 1}${operatorDetail}`;
-}
-
-function operatorsForFacilityResult(
-  plan: EfficiencyPlanResult,
-  result: FacilityEfficiencyResult,
-): string[] {
-  if (result.facility.type === "power") {
-    return plan.moods
-      .filter((mood) => mood.facility === "power")
-      .map((mood) => mood.operator);
-  }
-  return plan.moods
-    .filter((mood) => mood.facilityId === result.facility.id)
-    .map((mood) => mood.operator);
-}
 
 function clearImportedScheduleNotice(): void {
   importedScheduleNotice.value = undefined;
@@ -6116,16 +5909,9 @@ function confirmImport(): void {
     disableImportedEditSettings(stored.id);
     importDraft.value = undefined;
     clearImportedScheduleNotice();
-    const extraRooms = extraRoomsForDocument(stored.document);
-    if (extraRooms.length > 0) {
-      importedScheduleNotice.value = {
-        code: "import-extra-rooms",
-        level: "error",
-        message: "导入排班表包含未登记设施实例",
-        details: extraRooms.map(extraRoomNoticeDetail),
-        closable: true,
-      };
-    }
+    importedScheduleNotice.value = buildImportedExtraRoomsNotice(
+      stored.document,
+    );
     successMessage.value = "已导入排班表。";
   } catch (error: unknown) {
     setError(error);

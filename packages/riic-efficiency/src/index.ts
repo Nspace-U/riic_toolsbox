@@ -53,6 +53,11 @@ export {
 } from "./utils/schedule";
 export type { SchedulePeriodAnalysis } from "./utils/schedule";
 export {
+  buildEfficiencyNotices,
+  buildImportedExtraRoomsNotice,
+} from "./utils/notices";
+export type { EfficiencyNoticeInput } from "./utils/notices";
+export {
   cloneProgressionEntries,
   entryHasNode,
   entryUnlocksFacility,

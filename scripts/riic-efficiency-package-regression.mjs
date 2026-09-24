@@ -194,4 +194,225 @@ const oneMinuteAnalysis = packageModule.analyzeSchedulePeriods({
   ],
 });
 assert.deepEqual(oneMinuteAnalysis.durations, [1]);
+
+const noticeDocument = {
+  layout: [{ type: "trading", level: 1 }],
+  plans: [{ rooms: {} }],
+};
+const noticeResult = {
+  maaDroneAcceleration: { warnings: ["无人机库存将超过上限"] },
+  warnings: ["缺少陈的技能数据"],
+  plans: [
+    {
+      moodWarnings: [
+        {
+          facility: "trading",
+          facilityIndex: 0,
+          operator: "陈",
+          previousEnd: 12.345,
+          configuredStart: 13.25,
+        },
+      ],
+      moods: [
+        {
+          facility: "trading",
+          facilityId: "trading-0",
+          facilityIndex: 0,
+          operator: "陈",
+          working: true,
+          start: 3,
+          end: 0,
+        },
+      ],
+      autoRestWarnings: [
+        { operator: "阿米娅", reason: "no-space", startMood: 2 },
+        {
+          operator: "能天使",
+          reason: "not-recovered",
+          startMood: 17,
+          endMood: 19,
+          expectedMood: 20,
+          facilityIndex: 0,
+        },
+      ],
+      facilities: [
+        {
+          facility: { id: "trading-0", type: "trading", index: 0 },
+          production: { overflowed: true, breachTime: 0.5 },
+        },
+      ],
+    },
+  ],
+  fiammetta: { mode: "direct" },
+  fiammettaWarnings: ["菲亚梅塔无法完全恢复"],
+};
+assert.deepEqual(
+  packageModule.buildEfficiencyNotices({
+    document: noticeDocument,
+    result: noticeResult,
+  }),
+  [
+    {
+      code: "negative-power",
+      level: "warning",
+      message: "电力不足",
+      details: ["当前布局提供 0 点电力，消耗 10 点电力，净电力 -10 点"],
+    },
+    {
+      code: "maa-drone-overflow",
+      level: "info",
+      message: "发现无人机爆仓风险",
+      details: ["无人机库存将超过上限"],
+    },
+    {
+      code: "missing-skill-data",
+      level: "error",
+      message: "找不到干员技能数据",
+      details: ["缺少陈的技能数据"],
+    },
+    {
+      code: "mood-inheritance",
+      level: "warning",
+      message: "发现心情继承异常",
+      details: [
+        "队列1 · 贸易站 1 · 陈：上一队列结束心情 12.35，当前手动设置为 13.25",
+      ],
+    },
+    {
+      code: "mood-work-zero",
+      level: "warning",
+      message: "有干员在工作后心情降至 0",
+      details: ["队列1 · 贸易站 1 · 陈：工作后心情从 3 降至 0"],
+    },
+    {
+      code: "mood-auto-rest-no-space",
+      level: "info",
+      message: "宿舍槽位不足，无法自动休整",
+      details: ["队列1 · 阿米娅：休整前心情 2"],
+    },
+    {
+      code: "mood-auto-rest-not-recovered",
+      level: "info",
+      message: "自动休整后心情未达到预期",
+      details: [
+        "队列1 · 能天使 · 宿舍 1：休整后心情 19，低于下次工作预期 20（休整前 17）",
+      ],
+    },
+    {
+      code: "fiammetta-mood",
+      level: "warning",
+      message: "菲亚梅塔无法完全恢复这些干员心情",
+      details: [],
+    },
+    {
+      code: "overflow-risk",
+      level: "info",
+      message: "发现爆仓风险",
+      details: ["队列1 · 贸易站 · 陈：将在工作 0.5 小时后爆仓"],
+    },
+  ],
+);
+const queueWarningResult = {
+  ...noticeResult,
+  fiammetta: { mode: "queue" },
+  fiammettaWarnings: ["队列模式下无法恢复"],
+  plans: noticeResult.plans.map((plan) => ({
+    ...plan,
+    facilities: plan.facilities.map((facility) => ({
+      ...facility,
+      production: { ...facility.production, breachTime: 0 },
+    })),
+  })),
+};
+assert.deepEqual(
+  packageModule
+    .buildEfficiencyNotices({
+      document: noticeDocument,
+      result: queueWarningResult,
+    })
+    .slice(-2),
+  [
+    {
+      code: "fiammetta-mood",
+      level: "warning",
+      message: "发现菲亚梅塔心情恢复异常",
+      details: ["队列模式下无法恢复"],
+    },
+    {
+      code: "overflow-risk",
+      level: "info",
+      message: "发现爆仓风险",
+      details: ["队列1 · 贸易站 · 陈：将立即爆仓"],
+    },
+  ],
+);
+
+const gapDocument = {
+  layout: [{ type: "trading", level: 1 }],
+  plans: [{ period: [["06:00", "11:59"]], rooms: {} }],
+};
+assert.deepEqual(
+  packageModule.buildEfficiencyNotices({ document: gapDocument }),
+  [
+    {
+      code: "negative-power",
+      level: "warning",
+      message: "电力不足",
+      details: ["当前布局提供 0 点电力，消耗 10 点电力，净电力 -10 点"],
+    },
+    {
+      code: "schedule-period-gap",
+      level: "info",
+      message: "定时换班存在时间空档",
+      details: packageModule.analyzeSchedulePeriods(gapDocument).warnings,
+    },
+  ],
+);
+assert.deepEqual(
+  packageModule
+    .buildEfficiencyNotices({
+      document: noticeDocument,
+      efficiencyError: "无法读取效率数据",
+      result: noticeResult,
+    })
+    .map(({ code }) => code),
+  ["negative-power", "efficiency-data-error"],
+);
+const invalidPeriodDocument = {
+  layout: [{ type: "trading", level: 1 }],
+  plans: [{ period: [["25:00", "26:00"]], rooms: {} }],
+};
+assert.deepEqual(
+  packageModule
+    .buildEfficiencyNotices({
+      document: invalidPeriodDocument,
+      result: noticeResult,
+    })
+    .map(({ code }) => code),
+  ["negative-power", "schedule-period-error"],
+);
+
+assert.deepEqual(
+  packageModule.buildImportedExtraRoomsNotice({
+    layout: [{ type: "trading", level: 1 }],
+    plans: [
+      {
+        rooms: {
+          trading: [{}, { operators: ["陈", "阿米娅"] }],
+        },
+      },
+    ],
+  }),
+  {
+    code: "import-extra-rooms",
+    level: "error",
+    message: "导入排班表包含未登记设施实例",
+    details: ["队列1 · 贸易站 2：陈、阿米娅"],
+    closable: true,
+  },
+);
+assert.equal(
+  packageModule.buildImportedExtraRoomsNotice(noticeDocument),
+  undefined,
+);
 console.log("riic efficiency package regression: passed");
