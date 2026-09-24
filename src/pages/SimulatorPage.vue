@@ -952,7 +952,7 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   if (schedulePeriodAnalysis.value.warnings.length > 0) {
     notices.push({
       code: "schedule-period-gap",
-      level: "warning",
+      level: "info",
       message: "定时换班存在时间空档",
       details: schedulePeriodAnalysis.value.warnings,
     });
@@ -964,7 +964,7 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   if (result.maaDroneAcceleration?.warnings.length) {
     notices.push({
       code: "maa-drone-overflow",
-      level: "warning",
+      level: "info",
       message: "发现无人机爆仓风险",
       details: result.maaDroneAcceleration.warnings,
     });
@@ -1023,7 +1023,7 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   if (autoRestDetails.length > 0) {
     notices.push({
       code: "mood-auto-rest",
-      level: "warning",
+      level: "info",
       message: "自动休整未达到预期",
       details: autoRestDetails,
     });
@@ -1058,7 +1058,7 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
   if (overflowDetails.length > 0) {
     notices.push({
       code: "overflow-risk",
-      level: "warning",
+      level: "info",
       message: "发现爆仓风险",
       details: overflowDetails,
     });
