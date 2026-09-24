@@ -969,31 +969,6 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() => {
       details: result.maaDroneAcceleration.warnings,
     });
   }
-  const tradeGapFallbacks = result.plans.flatMap((plan, planIndex) =>
-    plan.facilities.flatMap((facility) =>
-      facility.details.flatMap((detail) => {
-        const calculation = detail.calculation;
-        if (calculation?.type !== "tradeGap" || !calculation.fallbackReason) {
-          return [];
-        }
-        const reason =
-          calculation.fallbackReason === "fixedOrder"
-            ? "固定订单不参与逐单衰减"
-            : "没有可用的订单分布";
-        return [
-          `${plan.name || `队列${planIndex + 1}`} · ${facilityResultLabel(facility)} · ${detail.operator}：${reason}`,
-        ];
-      }),
-    ),
-  );
-  if (tradeGapFallbacks.length > 0) {
-    notices.push({
-      code: "jie-trade-gap-fallback",
-      level: "info",
-      message: "精 0 孑积分平均已回退为最大效率",
-      details: tradeGapFallbacks,
-    });
-  }
   if (result.warnings.length > 0) {
     notices.push({
       code: "missing-skill-data",
