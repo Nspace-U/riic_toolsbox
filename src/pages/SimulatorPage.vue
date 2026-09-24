@@ -8033,7 +8033,7 @@ defineExpose({ prepareScheduleReferenceImage });
           title="计算设置"
         >
           <a-form layout="vertical">
-            <a-form-item label="会客室">
+            <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.clueExchanging"
                 @change="
@@ -8044,10 +8044,10 @@ defineExpose({ prepareScheduleReferenceImage });
                     )
                 "
               >
-                线索交流
+                处于线索交流（影响“跃跃”等干员技能）
               </a-checkbox>
             </a-form-item>
-            <a-form-item label="宿舍">
+            <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.dormFullTreat"
                 @change="
@@ -8058,10 +8058,10 @@ defineExpose({ prepareScheduleReferenceImage });
                     )
                 "
               >
-                按满员计算
+                宿舍按满员计算（影响“迷迭香”、“塑心”等干员技能）
               </a-checkbox>
             </a-form-item>
-            <a-form-item label="容量">
+            <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.simulateOverflow"
                 @change="
@@ -8069,10 +8069,10 @@ defineExpose({ prepareScheduleReferenceImage });
                     updateEfficiencyOverflowSetting(event.target.checked)
                 "
               >
-                模拟爆仓
+                爆仓后截断计算（不包含使用 MAA 换班方式的爆仓模拟）
               </a-checkbox>
             </a-form-item>
-            <a-form-item label="无人机库存">
+            <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.simulateDroneOverflow"
                 @change="
@@ -8080,10 +8080,10 @@ defineExpose({ prepareScheduleReferenceImage });
                     updateEfficiencyDroneOverflowSetting(event.target.checked)
                 "
               >
-                模拟无人机爆仓时截断至 235 架
+                MAA 换班方式无人机爆仓后截断计算
               </a-checkbox>
             </a-form-item>
-            <a-form-item label="精0孑效率">
+            <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.preferMaxJieEfficiency"
                 @change="
@@ -8091,10 +8091,10 @@ defineExpose({ prepareScheduleReferenceImage });
                     updateEfficiencyJieMode(event.target.checked)
                 "
               >
-                按最高效率计算
+                精0孑按最高效率计算
               </a-checkbox>
             </a-form-item>
-            <a-form-item label="首件进度">
+            <a-form-item label="首件进度（影响爆仓时间以及精0孑平均效率）">
               <a-input-number
                 :max="100"
                 :min="0"
@@ -8113,7 +8113,7 @@ defineExpose({ prepareScheduleReferenceImage });
                 "
               >
                 <a-radio value="direct">直接互换心情</a-radio>
-                <a-radio value="queue">按照队列互换心情</a-radio>
+                <a-radio value="queue">队列互换心情</a-radio>
               </a-radio-group>
             </a-form-item>
             <a-form-item
