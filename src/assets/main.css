@@ -1337,7 +1337,6 @@ a {
 }
 
 .schedule-reference-renderer .simulator-page--preview-source .page-heading,
-.schedule-reference-renderer .simulator-page--preview-source .simulator-alert,
 .schedule-reference-renderer
   .simulator-page--preview-source
   .simulator-document-sidebar,
@@ -1376,10 +1375,6 @@ a {
   inset-block-start: 110px;
   inset-inline-start: var(--app-main-layout-offset, 0px);
   color: #38504e !important;
-}
-
-.simulator-alert {
-  margin-block-end: 14px;
 }
 
 .simulator-layout {

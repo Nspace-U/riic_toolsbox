@@ -503,9 +503,6 @@ function persistSimulatorEditSettings(
 }
 
 const fileInput = ref<HTMLInputElement>();
-const errorMessage = ref("");
-const successMessage = ref("");
-const warningMessage = ref("");
 const importDraft = ref<ImportDraftState>();
 const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
@@ -1519,16 +1516,8 @@ function clearDocumentDrag(): void {
   suppressNextDocumentClick = false;
 }
 
-function clearMessages(): void {
-  errorMessage.value = "";
-  successMessage.value = "";
-  warningMessage.value = "";
-}
-
 function setError(error: unknown): void {
-  errorMessage.value = error instanceof Error ? error.message : "操作失败";
-  successMessage.value = "";
-  warningMessage.value = "";
+  message.error(error instanceof Error ? error.message : "操作失败");
 }
 
 function updateSimulatorEditSetting(
@@ -1822,7 +1811,6 @@ function addLayoutEntry(type: RoomKey): void {
 }
 
 function applyLayoutText(text: string = layoutText.value): void {
-  clearMessages();
   try {
     const requestedLayout = parseLayoutText(text);
     const nextLayout = validateAddedLayout(
@@ -1839,7 +1827,7 @@ function applyLayoutText(text: string = layoutText.value): void {
     );
     if (updated) {
       layoutText.value = layoutTextFor(nextLayout);
-      successMessage.value = "已按输入内容更新设施布局。";
+      message.success("已按输入内容更新设施布局。");
     }
   } catch (error: unknown) {
     setError(error);
@@ -3065,9 +3053,8 @@ function selectOperatorPickerCandidate(candidate: Operator): void {
   );
 }
 
-function showOperatorMessage(message: string): void {
-  errorMessage.value = "";
-  successMessage.value = message;
+function showOperatorMessage(content: string): void {
+  message.success(content);
 }
 
 function cloneOperatorState(state: OperatorState): OperatorState {
@@ -5681,10 +5668,9 @@ function handleWindowKeydown(event: KeyboardEvent): void {
 }
 
 function handleCreate(): void {
-  clearMessages();
   clearImportedScheduleNotice();
   createDocument();
-  successMessage.value = "已新建排班表。";
+  message.success("已新建排班表。");
 }
 
 function updateImportedLayout(nextLayout: LayoutEntry[]): void {
@@ -5894,7 +5880,6 @@ function confirmImport(): void {
   if (!draft) {
     return;
   }
-  clearMessages();
   try {
     const document = cloneSchedule(draft.parsed.document);
     document.layout = draft.layout.map((entry) => ({ ...entry }));
@@ -5913,7 +5898,7 @@ function confirmImport(): void {
     importedScheduleNotice.value = buildImportedExtraRoomsNotice(
       stored.document,
     );
-    successMessage.value = "已导入排班表。";
+    message.success("已导入排班表。");
   } catch (error: unknown) {
     setError(error);
   }
@@ -5939,7 +5924,6 @@ async function handleFileChange(event: Event): Promise<void> {
     return;
   }
 
-  clearMessages();
   clearImportedScheduleNotice();
   try {
     const text = await file.text();
@@ -5956,7 +5940,6 @@ async function handleFileChange(event: Event): Promise<void> {
 }
 
 function handleDuplicate(documentId?: string): void {
-  clearMessages();
   clearImportedScheduleNotice();
   const id = documentId ?? activeDocumentId.value;
   const stored = documents.value.find((document) => document.id === id);
@@ -5964,7 +5947,7 @@ function handleDuplicate(documentId?: string): void {
     return;
   }
   duplicateDocument(stored.id);
-  successMessage.value = "已复制排班表。";
+  message.success("已复制排班表。");
 }
 
 function openDeleteScheduleModal(documentId?: string): void {
@@ -6000,7 +5983,7 @@ function confirmDeleteSchedule(): void {
   delete nextSettings[target.id];
   simulatorEditSettings.value = nextSettings;
   persistSimulatorEditSettings(nextSettings);
-  successMessage.value = "已删除排班表。";
+  message.success("已删除排班表。");
 }
 
 function handleExport(documentId?: string): void {
@@ -6011,7 +5994,6 @@ function handleExport(documentId?: string): void {
     return;
   }
 
-  clearMessages();
   try {
     const json = serializeMaaSchedule(document, {
       catalog: efficiencyCatalog.value,
@@ -6027,9 +6009,9 @@ function handleExport(documentId?: string): void {
     link.download = `${(document.title?.trim() || "排班模拟器").replace(/[\\/:*?"<>|]/g, "_")}.${DEFAULT_SCHEDULE_ADAPTER.fileExtension}`;
     link.click();
     URL.revokeObjectURL(url);
-    successMessage.value = "已导出严格 JSON 文件。";
+    message.success("已导出严格 JSON 文件。");
     if (duplicateWarning) {
-      warningMessage.value = `导出文件中存在重复干员配置：${duplicateWarning}`;
+      message.warning(`导出文件中存在重复干员配置：${duplicateWarning}`);
     }
   } catch (error: unknown) {
     setError(error);
@@ -6255,7 +6237,6 @@ async function handleExportImage(documentId?: string): Promise<void> {
   if (!documents.value.some((document) => document.id === id)) {
     return;
   }
-  clearMessages();
   if (id !== activeDocumentId.value) {
     selectDocument(id);
     await nextTick();
@@ -6530,34 +6511,6 @@ defineExpose({ prepareScheduleReferenceImage });
         <template #icon><MenuUnfoldOutlined /></template>
       </a-button>
     </div>
-
-    <a-alert
-      v-if="errorMessage"
-      :message="errorMessage"
-      class="simulator-alert"
-      closable
-      show-icon
-      type="error"
-      @close="errorMessage = ''"
-    />
-    <a-alert
-      v-if="successMessage"
-      :message="successMessage"
-      class="simulator-alert"
-      closable
-      show-icon
-      type="success"
-      @close="successMessage = ''"
-    />
-    <a-alert
-      v-if="warningMessage"
-      :message="warningMessage"
-      class="simulator-alert"
-      closable
-      show-icon
-      type="warning"
-      @close="warningMessage = ''"
-    />
 
     <a-modal
       :cancel-text="'取消'"
