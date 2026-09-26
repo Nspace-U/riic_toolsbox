@@ -1879,6 +1879,13 @@ a {
   text-align: center;
 }
 
+.simulator-queue-duration-editor {
+  padding-inline: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
 .simulator-queue-period-inputs {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

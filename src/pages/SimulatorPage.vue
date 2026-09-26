@@ -7117,7 +7117,7 @@ defineExpose({ prepareScheduleReferenceImage });
                         :min="1"
                         :value="planDurationHoursValue(plan)"
                         addon-after="小时"
-                        class="simulator-queue-duration"
+                        class="simulator-queue-duration simulator-queue-duration-editor"
                         size="small"
                         @update:value="
                           (value: number | null) =>
