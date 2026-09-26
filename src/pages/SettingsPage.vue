@@ -11,7 +11,6 @@ import { computed, ref, watch } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
-import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
@@ -72,12 +71,6 @@ const {
   setNumericTooltipEnabled,
   resetNumericTooltipSettings,
 } = useNumericTooltipSettings();
-const {
-  avatarDisplaySizes,
-  avatarDisplaySizeOptions,
-  setAvatarDisplaySize,
-  resetAvatarDisplaySize,
-} = useAvatarDisplaySizes();
 const {
   operatorPickerColumns,
   setOperatorPickerColumns,
@@ -445,12 +438,6 @@ function handleClearLocalData(): void {
     clearLocalDataError.value =
       "清除本地数据失败，请检查浏览器存储权限后重试。";
   }
-}
-
-function handleAvatarDisplaySizeChange(value: number | null): void {
-  setAvatarDisplaySize(
-    value ?? avatarDisplaySizeOptions.simulatorSlot.defaultSize,
-  );
 }
 
 function handleOperatorPickerColumnsChange(value: number | null): void {
@@ -1432,37 +1419,6 @@ watch(
             </div>
           </div>
         </div>
-      </section>
-
-      <section class="settings-simulator-section settings-avatar-sizes-section">
-        <h3 class="settings-section-title">头像显示尺寸</h3>
-        <p class="settings-panel-description">
-          调整排班模拟器设施槽位头像的显示宽度，头像与徽标按等比缩放，修改后立即生效并保存在当前浏览器。
-        </p>
-        <a-form layout="vertical">
-          <a-form-item
-            :extra="`默认 ${avatarDisplaySizeOptions.simulatorSlot.defaultSize}px，可设置 ${avatarDisplaySizeOptions.simulatorSlot.minSize}–${avatarDisplaySizeOptions.simulatorSlot.maxSize}px`"
-            label="排班模拟器设施槽位"
-          >
-            <div class="settings-control-row">
-              <a-input-number
-                :max="avatarDisplaySizeOptions.simulatorSlot.maxSize"
-                :min="avatarDisplaySizeOptions.simulatorSlot.minSize"
-                :value="avatarDisplaySizes.simulatorSlot"
-                addon-after="px"
-                @update:value="handleAvatarDisplaySizeChange"
-              />
-              <a-button
-                aria-label="恢复排班模拟器头像尺寸默认值"
-                size="small"
-                title="恢复默认"
-                @click="resetAvatarDisplaySize"
-              >
-                <template #icon><ReloadOutlined /></template>
-              </a-button>
-            </div>
-          </a-form-item>
-        </a-form>
       </section>
 
       <section

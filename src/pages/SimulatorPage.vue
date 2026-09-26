@@ -25,7 +25,6 @@ import {
 
 import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
-import { useAvatarDisplaySizes } from "@/composables/useAvatarDisplaySizes";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
@@ -393,7 +392,6 @@ const specialOperatorAvatarLabelResolver = computed(() =>
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
 const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
-const { avatarDisplaySizes } = useAvatarDisplaySizes();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
 const { facilityColors, productColors, fiammettaColor } = useFacilityColors();
@@ -408,13 +406,11 @@ const { sanityValues } = useSanitySettings();
 const { lmdDroneStrategies, droneOverflowTruncationEnabled } =
   useDroneStrategySettings();
 
-const simulatorSlotSize = computed(
-  () => avatarDisplaySizes.value.simulatorSlot,
-);
+const simulatorSlotSize = 90;
 
-const slotGridStyle = computed(() => ({
-  "--simulator-slot-size": `${simulatorSlotSize.value}px`,
-}));
+const slotGridStyle = {
+  "--simulator-slot-size": `${simulatorSlotSize}px`,
+};
 
 const operatorPickerGridStyle = computed(() => ({
   "--simulator-operator-picker-columns": `${operatorPickerColumns.value}`,
@@ -424,23 +420,23 @@ const slotNameBandHeight = computed(
   () =>
     getOperatorAvatarNameMinBandMetrics(
       OPERATOR_AVATAR_SOURCE_WIDTH,
-      simulatorSlotSize.value,
+      simulatorSlotSize,
     ).height,
 );
 
 const slotNameBandStyle = computed(() => ({
   height: `${slotNameBandHeight.value}px`,
-  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize.value)}px`,
+  fontSize: `${getOperatorAvatarNameFontSize(simulatorSlotSize)}px`,
   lineHeight: `${slotNameBandHeight.value}px`,
 }));
 
 const emptySlotFrameStyle = computed(() => ({
-  width: `${simulatorSlotSize.value}px`,
-  height: `${simulatorSlotSize.value}px`,
+  width: `${simulatorSlotSize}px`,
+  height: `${simulatorSlotSize}px`,
 }));
 
 const skippedLabelStyle = computed(() => ({
-  fontSize: `${getOperatorAvatarSkippedLabelFontSize(simulatorSlotSize.value)}px`,
+  fontSize: `${getOperatorAvatarSkippedLabelFontSize(simulatorSlotSize)}px`,
 }));
 
 function normalizeSimulatorEditSettings(value: unknown): SimulatorEditSettings {
@@ -2756,7 +2752,7 @@ function slotRefCount(row: FacilityRow): number {
 
 function facilityCardWidthValue(row: FacilityRow): number {
   return (
-    slotRefCount(row) * avatarDisplaySizes.value.simulatorSlot +
+    slotRefCount(row) * simulatorSlotSize +
     FACILITY_CARD_HORIZONTAL_OVERHEAD
   );
 }
@@ -2771,7 +2767,7 @@ function facilityColumnStyle(row: FacilityRow): Record<string, string> {
 
 const facilityGridStyle = computed(() => ({
   "--simulator-queue-min-height": `${
-    simulatorSlotSize.value + slotNameBandHeight.value + QUEUE_MIN_HEIGHT_EXTRA
+    simulatorSlotSize + slotNameBandHeight.value + QUEUE_MIN_HEIGHT_EXTRA
   }px`,
 }));
 
@@ -2885,7 +2881,7 @@ function facilityIconClasses(): string[] {
 
 function facilityIconStyle(): Record<string, string> {
   const size = Math.round(
-    simulatorSlotSize.value *
+    simulatorSlotSize *
       facilityCardIconScale(facilityCardSettings.value.iconStyle),
   );
   return { "--simulator-facility-icon-size": `${size}px` };
@@ -4614,7 +4610,7 @@ function efficiencySummaryStyle(
   if (!text) {
     return {};
   }
-  const availableWidth = slotRefCount(row) * simulatorSlotSize.value;
+  const availableWidth = slotRefCount(row) * simulatorSlotSize;
   const fontSize = Math.min(
     EFFICIENCY_SUMMARY_MAX_FONT_SIZE,
     (availableWidth / estimateTextEm(text)) *

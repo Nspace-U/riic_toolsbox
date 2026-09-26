@@ -612,28 +612,24 @@ a {
   order: 2;
 }
 
-.settings-avatar-sizes-section {
+.settings-facility-card-section {
   order: 3;
 }
 
-.settings-facility-card-section {
+.settings-operator-picker-section {
   order: 4;
 }
 
-.settings-operator-picker-section {
+.settings-base-point-section {
   order: 5;
 }
 
-.settings-base-point-section {
+.settings-calculation-step-section {
   order: 6;
 }
 
-.settings-calculation-step-section {
-  order: 7;
-}
-
 .settings-colors-section {
-  order: 8;
+  order: 7;
 }
 
 .settings-progression-toolbar {
