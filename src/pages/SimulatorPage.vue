@@ -6896,6 +6896,14 @@ defineExpose({ prepareScheduleReferenceImage });
               <template #icon><PlusOutlined /></template>
             </a-button>
             <a-button
+              aria-label="导入排班表"
+              title="导入排班表"
+              type="text"
+              @click="openFilePicker"
+            >
+              <template #icon><UploadOutlined /></template>
+            </a-button>
+            <a-button
               aria-label="隐藏排班表"
               title="隐藏排班表"
               type="text"
@@ -6906,10 +6914,6 @@ defineExpose({ prepareScheduleReferenceImage });
           </div>
         </div>
         <div class="simulator-sidebar-actions">
-          <a-button block @click="openFilePicker">
-            <template #icon><UploadOutlined /></template>
-            导入排班表
-          </a-button>
           <input
             ref="fileInput"
             accept=".json,.txt,application/json,text/plain"
