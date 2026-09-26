@@ -518,7 +518,6 @@ const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
 const deleteScheduleModalOpen = ref(false);
 const pendingDeleteSchedule = ref<{ id: string; title: string }>();
-const restoreOperatorProgressionModalOpen = ref(false);
 const imageExportModalOpen = ref(false);
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
 const imageExportError = ref("");
@@ -5416,17 +5415,8 @@ function resetAllOperatorProgression(): void {
     { recordHistory: true },
   );
   if (updated) {
-    restoreOperatorProgressionModalOpen.value = false;
     showOperatorMessage("已恢复该排班表中所有干员的默认练度");
   }
-}
-
-function openRestoreOperatorProgressionModal(): void {
-  restoreOperatorProgressionModalOpen.value = true;
-}
-
-function closeRestoreOperatorProgressionModal(): void {
-  restoreOperatorProgressionModalOpen.value = false;
 }
 
 function handleWindowPointerDown(event: PointerEvent): void {
@@ -6762,17 +6752,6 @@ defineExpose({ prepareScheduleReferenceImage });
     </a-modal>
 
     <a-modal
-      v-model:open="restoreOperatorProgressionModalOpen"
-      cancel-text="取消"
-      ok-text="确认恢复"
-      title="确认恢复默认练度"
-      @cancel="closeRestoreOperatorProgressionModal"
-      @ok="resetAllOperatorProgression"
-    >
-      <p>确认将该排班表中所有干员恢复到默认练度？</p>
-    </a-modal>
-
-    <a-modal
       v-model:open="imageExportModalOpen"
       :footer="null"
       title="排班表图片预览"
@@ -7078,14 +7057,17 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               定时换班
             </a-checkbox>
-            <a-button
-              size="small"
-              title="恢复该排班表中所有干员的默认练度"
-              @click="openRestoreOperatorProgressionModal"
+            <a-popconfirm
+              cancel-text="取消"
+              ok-text="确认恢复"
+              title="确认将该排班表中所有干员恢复到默认练度？"
+              @confirm="resetAllOperatorProgression"
             >
-              <template #icon><ReloadOutlined /></template>
-              恢复默认练度
-            </a-button>
+              <a-button size="small" title="恢复该排班表中所有干员的默认练度">
+                <template #icon><ReloadOutlined /></template>
+                恢复默认练度
+              </a-button>
+            </a-popconfirm>
           </div>
         </a-card>
 
