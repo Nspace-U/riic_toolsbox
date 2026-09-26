@@ -2617,10 +2617,10 @@ a {
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
 }
 
-.simulator-efficiency-settings-entry {
+.simulator-efficiency-panel-title {
   display: flex;
-  justify-content: flex-end;
-  margin-block-start: 14px;
+  align-items: center;
+  gap: 12px;
 }
 
 .simulator-efficiency-panel > .ant-card-head {

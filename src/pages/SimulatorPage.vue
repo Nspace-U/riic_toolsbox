@@ -912,7 +912,10 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
 );
 
 const simulatorNotices = computed<EfficiencyNotice[]>(() => {
-  const notices = [...efficiencyNotices.value];
+  const notices = efficiencyNotices.value.filter(
+    (notice) =>
+      !efficiencyError.value || notice.code !== "efficiency-data-error",
+  );
   if (importedScheduleNotice.value) {
     notices.push(importedScheduleNotice.value);
   }
@@ -7793,13 +7796,6 @@ defineExpose({ prepareScheduleReferenceImage });
           </a-menu>
         </div>
 
-        <div class="simulator-efficiency-settings-entry">
-          <a-button @click="efficiencySettingsModalOpen = true">
-            <template #icon><SettingOutlined /></template>
-            计算设置
-          </a-button>
-        </div>
-
         <a-modal
           v-model:open="efficiencySettingsModalOpen"
           :footer="null"
@@ -7928,13 +7924,27 @@ defineExpose({ prepareScheduleReferenceImage });
         </div>
 
         <a-card
-          v-if="!efficiencyError"
           :bordered="false"
           class="simulator-efficiency-panel"
-          title="计算结果"
         >
+          <template #title>
+            <div class="simulator-efficiency-panel-title">
+              <span>计算结果</span>
+              <a-button @click="efficiencySettingsModalOpen = true">
+                <template #icon><SettingOutlined /></template>
+                计算设置
+              </a-button>
+            </div>
+          </template>
           <a-alert
-            v-if="efficiencyLoading"
+            v-if="efficiencyError"
+            :description="efficiencyError"
+            message="效率数据读取失败"
+            show-icon
+            type="error"
+          />
+          <a-alert
+            v-else-if="efficiencyLoading"
             message="正在读取干员技能数据并计算效率"
             show-icon
             type="info"
