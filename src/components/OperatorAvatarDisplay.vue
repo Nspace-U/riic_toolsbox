@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, ref, watch } from "vue";
 
 import type { EliteLevel, Operator } from "@/types/baseData";
 import { getOperatorAvatarLayerSources } from "@/utils/operatorAvatar";
@@ -116,9 +116,6 @@ function defaultNameFontSize(): number {
 
 const nameFontSize = ref(defaultNameFontSize());
 const nameMeasureRef = ref<HTMLSpanElement>();
-const badgeNaturalSizes = reactive<
-  Partial<Record<AvatarBadgeKind, NaturalImageSize>>
->({});
 const renderedName = computed(
   () => props.displayName ?? props.operator?.name ?? "",
 );
@@ -175,16 +172,6 @@ function handleBaseImageLoad(event: Event): void {
   }
 }
 
-function handleBadgeLoad(kind: AvatarBadgeKind, event: Event): void {
-  const image = event.currentTarget;
-  if (image instanceof HTMLImageElement) {
-    badgeNaturalSizes[kind] = {
-      width: image.naturalWidth,
-      height: image.naturalHeight,
-    };
-  }
-}
-
 function badgeLength(length: number, scale: number): string {
   return `${Math.round(length * scale * 100) / 100}px`;
 }
@@ -194,7 +181,6 @@ function badgeStyle(kind: AvatarBadgeKind): Record<string, string> {
     return {};
   }
 
-  const naturalSize = badgeNaturalSizes[kind];
   const layoutWidth = props.proportionalLayout ? sourceWidth.value : props.size;
   const scale = props.proportionalLayout ? avatarScale.value : 1;
   if (kind === "profession") {
@@ -211,23 +197,17 @@ function badgeStyle(kind: AvatarBadgeKind): Record<string, string> {
     const eliteWidth = Math.round(
       layoutWidth * OPERATOR_AVATAR_LAYOUT.eliteWidthRatio,
     );
-    const eliteHeight = naturalSize
-      ? Math.round((eliteWidth * naturalSize.height) / naturalSize.width)
-      : eliteWidth;
     return {
       width: badgeLength(eliteWidth, scale),
-      height: badgeLength(eliteHeight, scale),
+      height: "auto",
     };
   }
 
   const rarityHeight = Math.round(
     layoutWidth * OPERATOR_AVATAR_LAYOUT.rarityHeightRatio,
   );
-  const rarityWidth = naturalSize
-    ? Math.round((rarityHeight * naturalSize.width) / naturalSize.height)
-    : rarityHeight;
   return {
-    width: badgeLength(rarityWidth, scale),
+    width: "auto",
     height: badgeLength(rarityHeight, scale),
   };
 }
@@ -343,7 +323,6 @@ onMounted(updateNameFontSize);
         class="operator-avatar-badge operator-avatar-badge--profession"
         :src="sources.professionIconUrl"
         :style="badgeStyle('profession')"
-        @load="handleBadgeLoad('profession', $event)"
       />
       <img
         v-if="showEliteLevel && sources.eliteIconUrl"
@@ -351,7 +330,6 @@ onMounted(updateNameFontSize);
         class="operator-avatar-badge operator-avatar-badge--elite"
         :src="sources.eliteIconUrl"
         :style="badgeStyle('elite')"
-        @load="handleBadgeLoad('elite', $event)"
       />
       <img
         v-if="showRarity && sources.rarityIconUrl"
@@ -359,7 +337,6 @@ onMounted(updateNameFontSize);
         class="operator-avatar-badge operator-avatar-badge--rarity"
         :src="sources.rarityIconUrl"
         :style="badgeStyle('rarity')"
-        @load="handleBadgeLoad('rarity', $event)"
       />
       <span
         v-if="moodRemainingLabel"
