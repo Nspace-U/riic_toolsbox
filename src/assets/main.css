@@ -2301,8 +2301,10 @@ a {
 
 .simulator-operator-drag-preview-count {
   position: absolute;
-  inset-block-start: -6px;
-  inset-inline-end: -8px;
+  inset-block-start: var(--simulator-operator-drag-preview-avatar-center);
+  inset-inline-start: calc(
+    var(--simulator-operator-drag-preview-avatar-size) + 8px
+  );
   display: grid;
   min-width: 24px;
   height: 24px;
@@ -2315,6 +2317,7 @@ a {
   font-weight: 700;
   line-height: 20px;
   place-items: center;
+  transform: translateY(-50%);
 }
 
 .simulator-slot--paste-highlight {

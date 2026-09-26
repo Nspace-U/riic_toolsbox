@@ -7034,6 +7034,10 @@ defineExpose({ prepareScheduleReferenceImage });
           />
           <span
             v-if="operatorDragPreview.count > 1"
+            :style="{
+              '--simulator-operator-drag-preview-avatar-center': `${simulatorSlotSize / 2}px`,
+              '--simulator-operator-drag-preview-avatar-size': `${simulatorSlotSize}px`,
+            }"
             class="simulator-operator-drag-preview-count"
             >×{{ operatorDragPreview.count }}</span
           >
