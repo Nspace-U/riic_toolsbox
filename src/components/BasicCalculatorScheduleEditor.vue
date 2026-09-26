@@ -7,6 +7,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { message } from "ant-design-vue";
 
 import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
 import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
@@ -14,6 +15,11 @@ import ScheduleOperatorSlot from "@/components/ScheduleOperatorSlot.vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type { OperatorProgressionNode } from "@arknights/riic-efficiency";
+import {
+  scheduleOperatorPickerPlacement,
+  useScheduleOperatorInteraction,
+  type ScheduleOperatorNavigation,
+} from "@/composables/useScheduleOperatorInteraction";
 import type {
   LayoutEntry,
   OperatorState,
@@ -69,17 +75,6 @@ interface OperatorProgressionInfo {
   current: { elite: number; level: number };
   hasManualProgression: boolean;
 }
-interface PointerInteraction {
-  mode: "press" | "box" | "move";
-  pointerId: number;
-  startX: number;
-  startY: number;
-  currentX: number;
-  currentY: number;
-  startAddress?: SlotAddress;
-  sourceAddresses: SlotAddress[];
-  additive: boolean;
-}
 interface ClipboardEntry {
   name: string;
   state?: OperatorState;
@@ -111,6 +106,7 @@ interface ContextMenuItem {
 const props = withDefaults(
   defineProps<{
     modelValue: ScheduleDocument;
+    sessionKey?: string;
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     facilityColors?: Partial<Record<RoomKey, string>>;
@@ -124,6 +120,7 @@ const props = withDefaults(
     ) => OperatorProgressionInfo | undefined;
   }>(),
   {
+    sessionKey: "",
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
     facilityColors: () => ({}),
@@ -140,24 +137,17 @@ const layoutError = ref("");
 const pickerAddress = ref<SlotAddress>();
 const pickerStyle = ref<Record<string, string>>({});
 const selectedProfession = ref("");
-const selectedAddresses = ref<Set<string>>(new Set());
-const selectionAnchor = ref<SlotAddress>();
-const hoveredAddress = ref<SlotAddress>();
+const pickerShowAll = ref(false);
 const editingAddress = ref<SlotAddress>();
 const draftName = ref("");
-const pointerInteraction = ref<PointerInteraction>();
-const dragTargetKey = ref("");
 const clipboard = ref<ClipboardState>();
-const pasteHighlightKeys = ref<Set<string>>(new Set());
 const contextMenu = ref<ContextMenuState>();
 const contextMenuElement = ref<HTMLElement>();
-const selectAllStage = ref<0 | 1 | 2>(0);
 const undoHistory = ref<HistoryEntry[]>([]);
 const redoHistory = ref<HistoryEntry[]>([]);
-const selectionMarquee = ref({ left: 0, top: 0, width: 0, height: 0 });
-const suppressNextClick = ref(false);
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
-let pasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingCalculatorSelection:
+  { key: string; wasEditing: boolean } | undefined;
 
 const fixedRoomTypeSet = computed(() => new Set(props.fixedRoomTypes));
 const facilityRows = computed<FacilityRow[]>(() => {
@@ -196,10 +186,17 @@ const pickerCandidates = computed(() => {
     .operatorCandidates(address.type)
     .filter(
       (candidate) =>
-        !selectedProfession.value ||
-        candidate.operator.profession === selectedProfession.value,
+        (!pickerQuery.value ||
+          candidate.operator.name
+            .toLocaleLowerCase()
+            .includes(pickerQuery.value)) &&
+        (!selectedProfession.value ||
+          candidate.operator.profession === selectedProfession.value),
     );
 });
+const pickerQuery = computed(() =>
+  pickerShowAll.value ? "" : draftName.value.trim().toLocaleLowerCase(),
+);
 const pickerTitle = computed(() =>
   pickerAddress.value
     ? ROOM_LABELS[pickerAddress.value.type] + " · 选择干员"
@@ -248,6 +245,111 @@ const operatorContextMenuDetails = computed(() => {
 });
 
 watch(
+  () => props.sessionKey,
+  (next, previous) => {
+    if (previous !== undefined && next !== previous) clearInteractionState();
+  },
+);
+
+const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
+  root: editorElement,
+  slotSelector: ".basic-calculator-schedule-slot[data-key]",
+  slotSurfaceSelector: ".simulator-slot",
+  getAddresses: allSlotAddresses,
+  getAddressFromTarget: slotFromTarget,
+  getAddressByKey(key) {
+    return allSlotAddresses().find((address) => address.key === key);
+  },
+  getAddressAtPoint: addressesAtPoint,
+  getName: slotName,
+  getSelectionRange(anchor, target) {
+    if (selectionScope(anchor) !== selectionScope(target)) return undefined;
+    const scope = addressesInScope(target);
+    const start = scope.findIndex((address) => address.key === anchor.key);
+    const end = scope.findIndex((address) => address.key === target.key);
+    if (start < 0 || end < 0) return undefined;
+    return scope.slice(Math.min(start, end), Math.max(start, end) + 1);
+  },
+  getSelectAllAddresses(stage, anchor) {
+    if (stage === 0) return addressesInScope(anchor);
+    return allSlotAddresses().filter((address) => address.type === anchor.type);
+  },
+  maxSelectAllStage: 1,
+  commitEdit() {
+    commitSlotEdit();
+    return true;
+  },
+  onSelect(_event, address) {
+    const context = pendingCalculatorSelection;
+    pendingCalculatorSelection = undefined;
+    if (context?.key === address.key && !context.wasEditing)
+      void focusSlotNameInput();
+  },
+  onDrop(sources, target) {
+    const pairs = transferPairs(sources, target);
+    const destinations = swapAddressPairs(pairs);
+    if (destinations.length)
+      message.success(
+        destinations.length < sources.length
+          ? `已交换 ${destinations.length} 个槽位，超出目标槽位的内容已截断`
+          : `已交换 ${destinations.length} 个槽位`,
+      );
+  },
+  onCopy: copyOperators,
+  onCut: cutOperators,
+  onPaste: pasteOperators,
+  canPaste() {
+    return Boolean(clipboard.value?.entries.length);
+  },
+  onDelete: deleteOperators,
+  canDelete: canDeleteOperators,
+  onUndo() {
+    restoreHistory("undo");
+  },
+  onRedo() {
+    restoreHistory("redo");
+  },
+  onNavigate: navigateSlot,
+  onEscape() {
+    clearEditing();
+    clipboard.value = undefined;
+    closePicker();
+    closeContextMenu();
+    operatorInteraction.clearPasteHighlight();
+  },
+  onStartCharacter(address, character) {
+    editingAddress.value = address;
+    draftName.value = character;
+    void focusSlotNameInput(false);
+  },
+  pickerIsOpen() {
+    return Boolean(pickerAddress.value);
+  },
+  keyboardRequiresRoot: false,
+  selectStartRequiresRoot: true,
+});
+
+const {
+  clearSelection,
+  currentTarget,
+  dragTargetKey,
+  handleKeydown: handleWindowKeydown,
+  handlePointerCancel,
+  handlePointerDown,
+  handlePointerMove,
+  handlePointerUp,
+  handleSelectStart: handleWindowSelectStart,
+  pasteHighlightKeys,
+  pointerInteraction,
+  selectAddress,
+  selectedKeys: selectedAddresses,
+  selectionMarquee,
+  setHoveredAddress,
+  showPasteHighlight,
+  suppressNextClick,
+} = operatorInteraction;
+
+watch(
   () => props.modelValue.layout,
   (layout) => {
     layoutText.value = layoutTextFor(layout);
@@ -264,7 +366,6 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   if (layoutApplyTimer !== undefined) clearTimeout(layoutApplyTimer);
-  if (pasteHighlightTimer !== undefined) clearTimeout(pasteHighlightTimer);
   window.removeEventListener("resize", updatePickerPosition);
   window.removeEventListener("scroll", updatePickerPosition, true);
   window.removeEventListener("click", handleWindowClick);
@@ -284,7 +385,7 @@ function updateDocument(update: (document: ScheduleDocument) => void): boolean {
   update(after);
   if (JSON.stringify(before) === JSON.stringify(after)) return false;
   undoHistory.value = [
-    ...undoHistory.value.slice(-49),
+    ...undoHistory.value.slice(-99),
     { before, after: clone(after) },
   ];
   redoHistory.value = [];
@@ -295,14 +396,34 @@ function restoreHistory(action: "undo" | "redo"): void {
   const source = action === "undo" ? undoHistory.value : redoHistory.value;
   const destination = action === "undo" ? redoHistory.value : undoHistory.value;
   const entry = source.at(-1);
-  if (!entry) return;
+  if (!entry) {
+    message.success(
+      action === "undo" ? "没有可撤销的排班表修改" : "没有可还原的排班表修改",
+    );
+    return;
+  }
   source.pop();
   destination.push(entry);
   emit(
     "update:modelValue",
     clone(action === "undo" ? entry.before : entry.after),
   );
+  operatorInteraction.resetSelectAllCycle();
   clearEditing();
+  message.success(action === "undo" ? "已撤销排班表修改" : "已还原排班表修改");
+}
+function clearInteractionState(): void {
+  operatorInteraction.reset();
+  editingAddress.value = undefined;
+  draftName.value = "";
+  clipboard.value = undefined;
+  undoHistory.value = [];
+  redoHistory.value = [];
+  closePicker();
+  closeContextMenu();
+}
+function canDeleteOperators(): boolean {
+  return operatorDeletionTargets().length > 0;
 }
 function facilityStyle(type: RoomKey): Record<string, string> {
   return {
@@ -579,6 +700,7 @@ function commitSlotEdit(): void {
   const value = draftName.value.trim();
   if (value !== slotName(address)) setSlotName(address, value);
   clearEditing();
+  operatorInteraction.resetSelectAllCycle();
 }
 function handleSlotInput(event: Event, address: SlotAddress): void {
   const value =
@@ -588,76 +710,84 @@ function handleSlotInput(event: Event, address: SlotAddress): void {
     draftName.value = slotName(address);
   }
   draftName.value = value;
+  pickerShowAll.value = false;
 }
 function handleSlotInputClick(address: SlotAddress): void {
   if (!slotIsEditing(address)) selectSlot(undefined, address);
 }
+async function focusSlotNameInput(selectText = true): Promise<void> {
+  await nextTick();
+  const address =
+    editingAddress.value ?? operatorInteraction.selectedAddresses()[0];
+  const input = address
+    ? editorElement.value?.querySelector<HTMLInputElement>(
+        `.simulator-slot-name-input[data-slot-key="${address.key}"]`,
+      )
+    : undefined;
+  if (!(input instanceof HTMLInputElement)) return;
+  input.focus();
+  if (selectText) {
+    input.select();
+    updatePickerSelection(input);
+  } else {
+    input.setSelectionRange(input.value.length, input.value.length);
+    pickerShowAll.value = false;
+  }
+}
 function openPicker(address: SlotAddress): void {
   pickerAddress.value = address;
   selectedProfession.value = "";
+  pickerShowAll.value = false;
   void nextTick(updatePickerPosition);
 }
 function closePicker(): void {
   pickerAddress.value = undefined;
   pickerStyle.value = {};
   selectedProfession.value = "";
+  pickerShowAll.value = false;
 }
 function handleSlotDoubleClick(address: SlotAddress): void {
   selectSlot(undefined, address);
   editingAddress.value = address;
   draftName.value = slotName(address);
   openPicker(address);
+  void focusSlotNameInput();
+}
+function updatePickerSelection(input: HTMLInputElement): void {
+  pickerShowAll.value = Boolean(
+    pickerAddress.value &&
+    pickerAddress.value.key === editingAddress.value?.key &&
+    input.value.length > 0 &&
+    input.selectionStart === 0 &&
+    input.selectionEnd === input.value.length,
+  );
+}
+function handlePickerSelection(event: Event): void {
+  if (event.target instanceof HTMLInputElement)
+    updatePickerSelection(event.target);
 }
 function selectOperator(operator: Operator): void {
   const address = pickerAddress.value;
   if (!address) return;
   clearEditing();
   setSlotName(address, operator.name);
-  selectedAddresses.value = new Set([address.key]);
-  selectionAnchor.value = address;
+  operatorInteraction.setSelection([address]);
+  operatorInteraction.resetSelectAllCycle();
   closePicker();
 }
 function selectionScope(address: SlotAddress): string {
-  return address.type === "power"
-    ? address.type
-    : address.type + "-" + address.position;
+  return address.type + "-" + address.position;
 }
 function addressesInScope(address: SlotAddress): SlotAddress[] {
   const scope = selectionScope(address);
   return allSlotAddresses().filter((item) => selectionScope(item) === scope);
 }
 function selectSlot(event: MouseEvent | undefined, address: SlotAddress): void {
-  if (suppressNextClick.value) {
-    suppressNextClick.value = false;
-    return;
-  }
-  commitSlotEdit();
-  const next = new Set(selectedAddresses.value);
-  const anchor = selectionAnchor.value;
-  if (
-    event?.shiftKey &&
-    anchor &&
-    selectionScope(anchor) === selectionScope(address)
-  ) {
-    const scope = addressesInScope(address);
-    const start = scope.findIndex((item) => item.key === anchor.key);
-    const end = scope.findIndex((item) => item.key === address.key);
-    if (start >= 0 && end >= 0) {
-      const from = Math.min(start, end);
-      const to = Math.max(start, end);
-      for (let index = from; index <= to; index += 1)
-        if (scope[index]) next.add(scope[index]!.key);
-    }
-  } else if (event?.ctrlKey || event?.metaKey) {
-    if (next.has(address.key)) next.delete(address.key);
-    else next.add(address.key);
-  } else {
-    next.clear();
-    next.add(address.key);
-  }
-  selectedAddresses.value = next;
-  selectionAnchor.value = address;
-  selectAllStage.value = 0;
+  pendingCalculatorSelection = {
+    key: address.key,
+    wasEditing: editingAddress.value?.key === address.key,
+  };
+  selectAddress(event, address);
 }
 function slotFromTarget(target: EventTarget | null): SlotAddress | undefined {
   if (!(target instanceof Element)) return undefined;
@@ -671,17 +801,6 @@ function slotFromTarget(target: EventTarget | null): SlotAddress | undefined {
   return type && Number.isInteger(position) && Number.isInteger(slotIndex)
     ? { type, position, slotIndex, key: slot.dataset.key ?? "" }
     : undefined;
-}
-function selectedSlotAddresses(): SlotAddress[] {
-  return allSlotAddresses().filter((address) =>
-    selectedAddresses.value.has(address.key),
-  );
-}
-function currentTarget(): SlotAddress | undefined {
-  return selectedSlotAddresses()[0] ?? hoveredAddress.value;
-}
-function setHoveredAddress(address: SlotAddress | undefined): void {
-  hoveredAddress.value = address;
 }
 function addressesAtPoint(x: number, y: number): SlotAddress | undefined {
   for (const element of document.elementsFromPoint(x, y)) {
@@ -726,8 +845,10 @@ function transferPairs(
         return destination ? [[source, destination] as const] : [];
       });
 }
-function swapAddressPairs(pairs: Array<[SlotAddress, SlotAddress]>): void {
-  if (!pairs.length) return;
+function swapAddressPairs(
+  pairs: Array<[SlotAddress, SlotAddress]>,
+): SlotAddress[] {
+  if (!pairs.length) return [];
   const document = cloneDocument();
   const snapshots = new Map<string, ClipboardEntry>();
   pairs.forEach(([source, destination]) => {
@@ -771,139 +892,12 @@ function swapAddressPairs(pairs: Array<[SlotAddress, SlotAddress]>): void {
     ({ address, entry }) =>
       JSON.stringify(snapshots.get(address.key)) !== JSON.stringify(entry),
   );
-  if (!changed) return;
+  if (!changed) return [];
   updateDocument((candidate) => applySnapshots(candidate, assignments));
-  const destinations = pairs.map(([, destination]) => destination);
-  selectedAddresses.value = new Set(destinations.map((address) => address.key));
-  selectionAnchor.value = destinations[0];
-}
-function handlePointerDown(event: PointerEvent): void {
-  if (
-    event.button !== 0 ||
-    !editorElement.value?.contains(event.target as Node)
-  )
-    return;
-  const target = event.target instanceof Element ? event.target : undefined;
-  if (target?.closest("input, textarea, select, button")) return;
-  const address = slotFromTarget(event.target);
-  const sources =
-    address && slotName(address)
-      ? event.shiftKey && selectedAddresses.value.has(address.key)
-        ? selectedSlotAddresses()
-        : [address]
-      : [];
-  pointerInteraction.value = {
-    mode: address ? "press" : "box",
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    currentX: event.clientX,
-    currentY: event.clientY,
-    startAddress: address,
-    sourceAddresses: sources,
-    additive: event.ctrlKey || event.metaKey,
-  };
-  if (!address) event.preventDefault();
-}
-function updateSelectionMarquee(interaction: PointerInteraction): void {
-  selectionMarquee.value = {
-    left: Math.min(interaction.startX, interaction.currentX),
-    top: Math.min(interaction.startY, interaction.currentY),
-    width: Math.abs(interaction.currentX - interaction.startX),
-    height: Math.abs(interaction.currentY - interaction.startY),
-  };
-}
-function selectSlotsInBox(interaction: PointerInteraction): void {
-  const left = Math.min(interaction.startX, interaction.currentX);
-  const right = Math.max(interaction.startX, interaction.currentX);
-  const top = Math.min(interaction.startY, interaction.currentY);
-  const bottom = Math.max(interaction.startY, interaction.currentY);
-  const selected = interaction.additive
-    ? new Set(selectedAddresses.value)
-    : new Set<string>();
-  editorElement.value
-    ?.querySelectorAll<HTMLElement>(".basic-calculator-schedule-slot[data-key]")
-    .forEach((slot) => {
-      const rect = slot.getBoundingClientRect();
-      if (
-        rect.right >= left &&
-        rect.left <= right &&
-        rect.bottom >= top &&
-        rect.top <= bottom
-      ) {
-        if (slot.dataset.key) selected.add(slot.dataset.key);
-      }
-    });
-  selectedAddresses.value = selected;
-  selectionAnchor.value = selectedSlotAddresses()[0];
-  selectionMarquee.value = { left: 0, top: 0, width: 0, height: 0 };
-}
-function handlePointerMove(event: PointerEvent): void {
-  const interaction = pointerInteraction.value;
-  if (!interaction || interaction.pointerId !== event.pointerId) return;
-  const moved =
-    Math.abs(event.clientX - interaction.startX) > 4 ||
-    Math.abs(event.clientY - interaction.startY) > 4;
-  if (interaction.mode === "press" && moved)
-    interaction.mode = interaction.sourceAddresses.length ? "move" : "box";
-  interaction.currentX = event.clientX;
-  interaction.currentY = event.clientY;
-  if (interaction.mode === "box") {
-    event.preventDefault();
-    updateSelectionMarquee(interaction);
-  } else if (interaction.mode === "move") {
-    event.preventDefault();
-    dragTargetKey.value =
-      addressesAtPoint(event.clientX, event.clientY)?.key ?? "";
-  }
-}
-function handlePointerUp(event: PointerEvent): void {
-  const interaction = pointerInteraction.value;
-  if (!interaction || interaction.pointerId !== event.pointerId) return;
-  interaction.currentX = event.clientX;
-  interaction.currentY = event.clientY;
-  if (interaction.mode === "box") {
-    selectSlotsInBox(interaction);
-    suppressNextClick.value = true;
-  } else if (interaction.mode === "move") {
-    const target = addressesAtPoint(event.clientX, event.clientY);
-    if (target)
-      swapAddressPairs(transferPairs(interaction.sourceAddresses, target));
-    suppressNextClick.value = true;
-  }
-  pointerInteraction.value = undefined;
-  dragTargetKey.value = "";
-}
-function handlePointerCancel(): void {
-  pointerInteraction.value = undefined;
-  dragTargetKey.value = "";
-  selectionMarquee.value = { left: 0, top: 0, width: 0, height: 0 };
-  suppressNextClick.value = true;
-}
-function handleWindowSelectStart(event: Event): void {
-  const target = event.target;
-  if (!(target instanceof Element) || !editorElement.value?.contains(target))
-    return;
-  if (
-    pointerInteraction.value?.mode === "box" ||
-    pointerInteraction.value?.mode === "move" ||
-    target.closest(".simulator-slot")
-  ) {
-    if (!target.closest("input, textarea, select")) event.preventDefault();
-  }
-}
-function clearPasteHighlight(): void {
-  pasteHighlightKeys.value = new Set();
-  if (pasteHighlightTimer !== undefined) clearTimeout(pasteHighlightTimer);
-  pasteHighlightTimer = undefined;
-}
-function showPasteHighlight(addresses: SlotAddress[]): void {
-  clearPasteHighlight();
-  pasteHighlightKeys.value = new Set(addresses.map((address) => address.key));
-  pasteHighlightTimer = setTimeout(clearPasteHighlight, 700);
+  return pairs.map(([, destination]) => destination);
 }
 function clipboardSource(): SlotAddress[] {
-  const selected = selectedSlotAddresses();
+  const selected = operatorInteraction.selectedAddresses();
   if (selected.length) return selected;
   const target = currentTarget();
   return target ? [target] : [];
@@ -917,7 +911,15 @@ function copyOperators(): boolean {
     entries: addresses.map((address) => snapshotAt(props.modelValue, address)),
     sourceAddresses: addresses,
   };
+  const operatorCount = clipboard.value.entries.filter(
+    (entry) => entry.name,
+  ).length;
   clearSelection();
+  message.success(
+    operatorCount > 0
+      ? `已复制 ${operatorCount} 名干员`
+      : `已复制 ${clipboard.value.entries.length} 个空槽位`,
+  );
   return true;
 }
 function cutOperators(): boolean {
@@ -929,6 +931,9 @@ function cutOperators(): boolean {
     entries: addresses.map((address) => snapshotAt(props.modelValue, address)),
     sourceAddresses: addresses,
   };
+  const operatorCount = clipboard.value.entries.filter(
+    (entry) => entry.name,
+  ).length;
   const assignments = new Map<
     string,
     { address: SlotAddress; entry: ClipboardEntry }
@@ -938,6 +943,11 @@ function cutOperators(): boolean {
   );
   updateDocument((candidate) => applySnapshots(candidate, assignments));
   clearSelection();
+  message.success(
+    operatorCount > 0
+      ? `已剪切 ${operatorCount} 名干员`
+      : `已剪切 ${clipboard.value.entries.length} 个空槽位`,
+  );
   return true;
 }
 function pasteOperators(): boolean {
@@ -945,7 +955,7 @@ function pasteOperators(): boolean {
   const target = currentTarget();
   if (!state?.entries.length || !target) return false;
   commitSlotEdit();
-  const selected = selectedSlotAddresses();
+  const selected = operatorInteraction.selectedAddresses();
   const fallback = transferPairs(state.sourceAddresses, target).flatMap(
     ([, address], index) =>
       state.entries[index] ? [{ address, entry: state.entries[index]! }] : [],
@@ -969,14 +979,27 @@ function pasteOperators(): boolean {
   });
   if (!changed) return false;
   if (state.mode === "cut") clipboard.value = undefined;
-  selectedAddresses.value = new Set(destinations.map((address) => address.key));
-  selectionAnchor.value = destinations[0];
+  operatorInteraction.resetSelectAllCycle();
+  operatorInteraction.setSelection(destinations);
   showPasteHighlight(destinations);
+  const operatorCount = assignments.filter(({ entry }) => entry.name).length;
+  const isBroadcastPaste = state.entries.length === 1 && selected.length > 1;
+  const truncated = assignments.length < state.entries.length;
+  message.success(
+    isBroadcastPaste && state.entries[0]?.name
+      ? `已粘贴 1 名干员到 ${destinations.length} 个槽位`
+      : isBroadcastPaste
+        ? `已清空 ${destinations.length} 个槽位`
+        : truncated
+          ? `已粘贴 ${operatorCount} 名干员，超出目标槽位的内容已截断`
+          : `已粘贴 ${operatorCount} 名干员`,
+  );
   return true;
 }
 function deleteOperators(): boolean {
-  const addresses = clipboardSource().filter((address) => slotName(address));
+  const addresses = operatorDeletionTargets();
   if (!addresses.length) return false;
+  const count = addresses.filter((address) => slotName(address)).length;
   const assignments = new Map<
     string,
     { address: SlotAddress; entry: ClipboardEntry }
@@ -984,30 +1007,22 @@ function deleteOperators(): boolean {
   addresses.forEach((address) =>
     assignments.set(address.key, { address, entry: { name: "" } }),
   );
-  return updateDocument((candidate) => applySnapshots(candidate, assignments));
+  const updated = updateDocument((candidate) =>
+    applySnapshots(candidate, assignments),
+  );
+  if (updated) {
+    operatorInteraction.resetSelectAllCycle();
+    message.success(`已删除 ${count} 名干员`);
+  }
+  return updated;
 }
-function clearSelection(): void {
-  selectedAddresses.value = new Set();
-  selectionAnchor.value = undefined;
-  selectAllStage.value = 0;
+function operatorDeletionTargets(): SlotAddress[] {
+  const selected = operatorInteraction.selectedAddresses();
+  if (selected.length) return selected;
+  const hovered = operatorInteraction.hoveredAddress.value;
+  return hovered && slotName(hovered) ? [hovered] : [];
 }
-function selectAllOperators(): boolean {
-  const target = currentTarget();
-  if (!target) return false;
-  const addresses =
-    selectAllStage.value === 0
-      ? addressesInScope(target)
-      : selectAllStage.value === 1
-        ? allSlotAddresses().filter((address) => address.type === target.type)
-        : allSlotAddresses();
-  selectedAddresses.value = new Set(addresses.map((address) => address.key));
-  selectionAnchor.value = target;
-  selectAllStage.value = Math.min(2, selectAllStage.value + 1) as 0 | 1 | 2;
-  return addresses.length > 0;
-}
-function navigateSlot(
-  action: "tab" | "enter" | "left" | "right" | "up" | "down",
-): boolean {
+function navigateSlot(action: ScheduleOperatorNavigation): boolean {
   const current = editingAddress.value ?? currentTarget();
   if (!current) return false;
   if (editingAddress.value) commitSlotEdit();
@@ -1026,12 +1041,7 @@ function navigateSlot(
   } else if (action === "enter") {
     const scope = addressesInScope(current);
     const empty = scope.find((address) => !slotName(address));
-    target =
-      empty ??
-      scope[
-        (scope.findIndex((address) => address.key === current.key) + 1) %
-          Math.max(1, scope.length)
-      ];
+    target = empty ?? scope.find((address) => address.key === current.key);
   } else {
     const index = facilityRows.value.findIndex((row) =>
       row.entries.some(
@@ -1046,106 +1056,36 @@ function navigateSlot(
       if (slot) target = slotAddress(slot, row.type);
     }
   }
-  if (!target || target.key === current.key) return false;
-  selectedAddresses.value = new Set([target.key]);
-  selectionAnchor.value = target;
+  if (!target) return false;
+  if (target.key === current.key) return action === "tab" || action === "enter";
+  operatorInteraction.setSelection([target]);
+  operatorInteraction.resetSelectAllCycle();
+  void focusSlotNameInput();
   return true;
-}
-function keyboardShortcutKey(event: KeyboardEvent): string {
-  const keys: Record<string, string> = {
-    KeyA: "a",
-    KeyC: "c",
-    KeyX: "x",
-    KeyV: "v",
-    KeyZ: "z",
-    KeyY: "y",
-  };
-  return keys[event.code] ?? event.key.toLowerCase();
-}
-function handleWindowKeydown(event: KeyboardEvent): void {
-  const target = event.target;
-  if (!(target instanceof Node) || !editorElement.value?.contains(target))
-    return;
-  const input =
-    target instanceof Element
-      ? target.closest("input, textarea, select")
-      : undefined;
-  const pendingInput =
-    input instanceof HTMLInputElement &&
-    input.classList.contains("simulator-slot-name-input--pending");
-  if (input && !editingAddress.value && !pendingInput) return;
-  const key = keyboardShortcutKey(event);
-  if (event.key === "Escape") {
-    event.preventDefault();
-    clearEditing();
-    closePicker();
-    closeContextMenu();
-    clearPasteHighlight();
-    return;
-  }
-  if (pendingInput && event.key === "Backspace") {
-    event.preventDefault();
-    return;
-  }
-  const primary =
-    (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
-  if (primary && key === "z") {
-    event.preventDefault();
-    restoreHistory("undo");
-    return;
-  }
-  if (primary && key === "y") {
-    event.preventDefault();
-    restoreHistory("redo");
-    return;
-  }
-  if (primary && key === "a") {
-    if (selectAllOperators()) event.preventDefault();
-    return;
-  }
-  if (primary && key === "c") {
-    if (copyOperators()) event.preventDefault();
-    return;
-  }
-  if (primary && key === "x") {
-    if (cutOperators()) event.preventDefault();
-    return;
-  }
-  if (primary && key === "v") {
-    if (pasteOperators()) event.preventDefault();
-    return;
-  }
-  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-  const navigation: Record<
-    string,
-    "tab" | "enter" | "left" | "right" | "up" | "down"
-  > = {
-    Tab: "tab",
-    Enter: "enter",
-    ArrowLeft: "left",
-    ArrowRight: "right",
-    ArrowUp: "up",
-    ArrowDown: "down",
-  };
-  const action = navigation[event.key];
-  if (action && navigateSlot(action)) event.preventDefault();
-  if (event.key === "Delete" && deleteOperators()) event.preventDefault();
 }
 function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
-  if (!(target instanceof Node) || !editorElement.value?.contains(target))
-    return;
   if (
     target instanceof Element &&
     target.closest(".simulator-context-menu, .simulator-operator-picker")
   )
     return;
-  if (target instanceof Element && target.closest(".simulator-slot[data-key]"))
+  const slotElement =
+    target instanceof Element
+      ? target.closest<HTMLElement>(".simulator-slot[data-key]")
+      : undefined;
+  if (slotElement?.dataset.key === pickerAddress.value?.key) return;
+  if (suppressNextClick.value) {
+    suppressNextClick.value = false;
+    closeContextMenu();
     return;
-  commitSlotEdit();
-  closePicker();
+  }
+  if (!slotElement) clearSelection();
+  if (pickerAddress.value) {
+    commitSlotEdit();
+    closePicker();
+  }
   closeContextMenu();
-  clearSelection();
 }
 async function updatePickerPosition(): Promise<void> {
   const address = pickerAddress.value;
@@ -1159,18 +1099,16 @@ async function updatePickerPosition(): Promise<void> {
   );
   if (!slot || !panel || pickerAddress.value?.key !== address.key) return;
   const rect = slot.getBoundingClientRect();
-  const padding = 8;
-  const maxTop = Math.max(
-    padding,
-    window.innerHeight - panel.offsetHeight - padding,
-  );
-  const left = Math.min(
-    Math.max(padding, rect.right + padding),
-    Math.max(padding, window.innerWidth - panel.offsetWidth - padding),
+  const placement = scheduleOperatorPickerPlacement(
+    rect,
+    panel.offsetWidth,
+    panel.offsetHeight,
+    window.innerWidth,
+    window.innerHeight,
   );
   pickerStyle.value = {
-    insetInlineStart: left + "px",
-    insetBlockStart: Math.min(Math.max(padding, rect.top), maxTop) + "px",
+    insetInlineStart: placement.left + "px",
+    insetBlockStart: placement.top + "px",
   };
 }
 function contextMenuPosition(event: MouseEvent): { x: number; y: number } {
@@ -1194,8 +1132,7 @@ function openSlotContextMenu(event: MouseEvent, address: SlotAddress): void {
   event.preventDefault();
   commitSlotEdit();
   if (!slotName(address) && !roomHasProduct(address.type)) return;
-  selectedAddresses.value = new Set([address.key]);
-  selectionAnchor.value = address;
+  operatorInteraction.setSelection([address]);
   contextMenu.value = {
     ...address,
     scope: slotName(address) ? "operator" : "room",
@@ -1367,6 +1304,7 @@ function updateOperatorProgression(node: OperatorProgressionNode): void {
       state.elite = node.value;
       state.level = 1;
     } else {
+      if ((props.operatorFor(name)?.rarity ?? Infinity) <= 2) state.elite = 0;
       state.level = node.value;
     }
     states[name] = state;
@@ -1405,6 +1343,7 @@ function slotStyle(): Record<string, string> {
 function layoutTextHint(): string {
   return "数字顺序与排班模拟器一致；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间；当前组合的控制中枢和核心工作设施会自动保留。";
 }
+defineExpose({ clearInteractionState });
 </script>
 
 <template>
@@ -1536,8 +1475,12 @@ function layoutTextHint(): string {
                     @input-click="
                       handleSlotInputClick(slotAddress(slot, row.type))
                     "
+                    @focus="handlePickerSelection"
+                    @keyup="handlePickerSelection"
                     @mouseenter="setHoveredAddress(slotAddress(slot, row.type))"
                     @mouseleave="setHoveredAddress(undefined)"
+                    @mouseup="handlePickerSelection"
+                    @select="handlePickerSelection"
                   />
                 </div>
               </div>

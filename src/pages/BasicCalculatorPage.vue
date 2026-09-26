@@ -112,6 +112,7 @@ const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
 const rowDraftSchedule = ref<ScheduleDocument>();
 const rowDraftGroupId = ref("");
+const rowEditor = ref<InstanceType<typeof BasicCalculatorScheduleEditor>>();
 const calculatorWorker = ref<Worker>();
 const rowCalculations = ref<Record<string, BasicCalculatorRowCalculation>>({});
 const calculationLoading = ref(false);
@@ -968,6 +969,11 @@ function saveRow(): void {
   rowModalOpen.value = false;
 }
 
+function cancelRowEditor(): void {
+  rowEditor.value?.clearInteractionState();
+  rowModalOpen.value = false;
+}
+
 function deleteRow(groupId: string, rowId: string): void {
   updateConfig((draft) => {
     const group = draft.groups.find((item) => item.id === groupId);
@@ -1515,7 +1521,7 @@ function toggleGroupColumn(
       ok-text="保存"
       title="组合行设置"
       width="1180px"
-      @cancel="rowModalOpen = false"
+      @cancel="cancelRowEditor"
       @ok="saveRow"
     >
       <div
@@ -1523,7 +1529,9 @@ function toggleGroupColumn(
         class="basic-calculator-row-editor"
       >
         <BasicCalculatorScheduleEditor
+          ref="rowEditor"
           v-model:model-value="rowDraftSchedule"
+          :session-key="rowDraftGroupId + ':' + rowDraft.id"
           :facility-colors="facilityColors"
           :fixed-room-levels="rowDraftFixedRoomLevels"
           :fixed-room-types="['control', rowDraftGroup.facility]"

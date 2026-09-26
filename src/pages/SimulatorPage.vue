@@ -165,6 +165,11 @@ import {
 } from "@/utils/simulator/presentation";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 import {
+  scheduleOperatorPickerPlacement,
+  useScheduleOperatorInteraction,
+  type ScheduleOperatorNavigation,
+} from "@/composables/useScheduleOperatorInteraction";
+import {
   prepareScheduleImage,
   renderPreparedScheduleImage,
   SCHEDULE_IMAGE_RESOLUTIONS,
@@ -318,24 +323,6 @@ interface OperatorClipboard {
 interface OperatorSlotSnapshot {
   name: string;
   state?: OperatorState;
-}
-
-interface OperatorPointerInteraction {
-  mode: "press" | "box" | "move";
-  pointerId: number;
-  startX: number;
-  startY: number;
-  currentX: number;
-  currentY: number;
-  startAddress?: OperatorSlotAddress;
-  sourceAddresses: OperatorSlotAddress[];
-  additive: boolean;
-}
-
-interface PendingOperatorPointerMove {
-  pointerId: number;
-  clientX: number;
-  clientY: number;
 }
 
 interface ScheduleHistoryEntry {
@@ -525,6 +512,7 @@ const scheduleDocumentContextMenuElement = ref<HTMLElement>();
 const operatorPicker = ref<OperatorPickerState>();
 const operatorPickerElement = ref<{ panelElement?: HTMLElement }>();
 const operatorDragPreviewElement = ref<HTMLElement>();
+const operatorGridElement = ref<HTMLElement>();
 const operatorPickerStyle = ref<Record<string, string>>({});
 const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
 const warnedFacilityOperatorOverrideIds = new Set<string>();
@@ -545,21 +533,20 @@ const pendingDocumentDrag = ref<{
 const dragOverDocumentId = ref<string>();
 const dragOverDocumentPosition = ref<"before" | "after">();
 let suppressNextDocumentClick = false;
-const selectedOperatorSlots = ref<Set<string>>(new Set());
-const operatorSelectionAnchor = ref<OperatorSlotAddress>();
-const hoveredOperatorSlot = ref<OperatorSlotAddress>();
-const operatorSelectAllStage = ref<0 | 1 | 2>(0);
-const operatorPointerInteraction = ref<OperatorPointerInteraction>();
 let operatorDragTarget: OperatorSlotAddress | undefined;
 let operatorDragHoveredSlotKey: string | undefined;
-const suppressNextOperatorClick = ref(false);
 const operatorClipboard = ref<OperatorClipboard>();
-const operatorPasteHighlightKeys = ref<Set<string>>(new Set());
 const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
   "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 4 位依次为会客室、加工站、办公室、训练室，宿舍与其用空格分隔，0 表示不建造";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
-let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingOperatorSelection:
+  | {
+      key: string;
+      wasEditing: boolean;
+      shouldSwitchPicker: boolean;
+    }
+  | undefined;
 let documentSidebarMeasureFrame: number | undefined;
 let documentSidebarResizeObserver: ResizeObserver | undefined;
 let imageExportPreviewResizeObserver: ResizeObserver | undefined;
@@ -569,8 +556,147 @@ const MAX_SCHEDULE_HISTORY = 100;
 
 const INITIAL_MOOD_OPTIONS = [0, 12, 24] as const;
 const FIAMMETTA_POSITION = -1;
-let pendingOperatorPointerMove: PendingOperatorPointerMove | undefined;
-let operatorPointerMoveFrame: number | undefined;
+
+const operatorInteraction = useScheduleOperatorInteraction<OperatorSlotAddress>(
+  {
+    root: operatorGridElement,
+    slotSelector: ".simulator-facility-grid .simulator-slot[data-key]",
+    slotSurfaceSelector: ".simulator-slot",
+    getAddresses: orderedOperatorSlotAddresses,
+    getAddressFromTarget: operatorAddressFromTarget,
+    getAddressByKey: operatorAddressByKey,
+    getAddressAtPoint: operatorAddressAtPoint,
+    getName(address) {
+      const document = currentDocument.value;
+      return document ? operatorNameAtAddress(document, address) : "";
+    },
+    getSelectionRange(anchor, target) {
+      const anchorIndex = operatorFacilitySlotIndex(anchor);
+      const targetIndex = operatorFacilitySlotIndex(target);
+      if (
+        operatorFacilityKeyForAddress(anchor) !==
+          operatorFacilityKeyForAddress(target) ||
+        anchorIndex === undefined ||
+        targetIndex === undefined
+      ) {
+        return undefined;
+      }
+      const startPlanIndex = Math.min(anchor.planIndex, target.planIndex);
+      const endPlanIndex = Math.max(anchor.planIndex, target.planIndex);
+      const startSlotIndex = Math.min(anchorIndex, targetIndex);
+      const endSlotIndex = Math.max(anchorIndex, targetIndex);
+      return operatorFacilitySlotAddresses(target.type, target.position).filter(
+        (address) => {
+          const slotIndex = operatorFacilitySlotIndex(address);
+          return (
+            slotIndex !== undefined &&
+            address.planIndex >= startPlanIndex &&
+            address.planIndex <= endPlanIndex &&
+            slotIndex >= startSlotIndex &&
+            slotIndex <= endSlotIndex
+          );
+        },
+      );
+    },
+    getSelectAllAddresses: operatorSelectAllAddresses,
+    maxSelectAllStage: 2,
+    boxSelectionUsesDocument: true,
+    commitEdit: commitPendingOperatorNameEdit,
+    shouldStartPointer(event) {
+      return Boolean(operatorGridPointerTarget(event.target));
+    },
+    beforePointerDown() {
+      return commitPendingOperatorNameEdit();
+    },
+    onSelect(_event, address) {
+      const context = pendingOperatorSelection;
+      pendingOperatorSelection = undefined;
+      if (!context || context.key !== address.key) return;
+      if (context.shouldSwitchPicker)
+        beginOperatorNameEdit(
+          address.planIndex,
+          address.type,
+          address.position,
+          address.slotIndex,
+          undefined,
+          true,
+        );
+      if (!context.wasEditing) focusSelectedOperatorNameInput();
+    },
+    onDrop: dropOperatorAddresses,
+    onDragTarget: setOperatorDragTarget,
+    onDragMove(x, y, started) {
+      if (started) {
+        const previousHoveredSlot = hoveredOperatorSlot.value;
+        hoveredOperatorSlot.value = undefined;
+        setOperatorDragHoveredSlot(previousHoveredSlot);
+        void nextTick(() => updateOperatorDragPreviewPosition(x, y));
+      }
+      updateOperatorDragPreviewPosition(x, y);
+    },
+    onDragEnd(cancelled) {
+      const finalHoveredSlot = operatorDragHoveredSlotKey
+        ? operatorAddressByKey(operatorDragHoveredSlotKey)
+        : undefined;
+      setOperatorDragHoveredSlot(undefined);
+      hoveredOperatorSlot.value = finalHoveredSlot;
+      if (cancelled) setOperatorDragTarget(undefined);
+    },
+    onCopy: copyOperators,
+    onCut: cutOperators,
+    onPaste: pasteOperators,
+    canPaste: operatorClipboardIsUsable,
+    onDelete: deleteOperators,
+    canDelete() {
+      return operatorDeletionTargets().length > 0;
+    },
+    onUndo() {
+      restoreScheduleHistory("undo");
+    },
+    onRedo() {
+      restoreScheduleHistory("redo");
+    },
+    onNavigate: navigateOperatorSlot,
+    onEscape(input) {
+      if (
+        input &&
+        !input.classList.contains("simulator-slot-name-input--pending")
+      ) {
+        cancelOperatorNameEdit();
+        closeContextMenu();
+        return;
+      }
+      clearOperatorClipboard();
+      closeOperatorPicker();
+      closeContextMenu();
+    },
+    onStartCharacter(address, character) {
+      beginOperatorNameEdit(
+        address.planIndex,
+        address.type,
+        address.position,
+        address.slotIndex,
+        character,
+      );
+    },
+    pickerIsOpen() {
+      return Boolean(operatorPicker.value);
+    },
+  },
+);
+
+const selectedOperatorSlots = operatorInteraction.selectedKeys;
+const operatorSelectionAnchor = operatorInteraction.selectionAnchor;
+const hoveredOperatorSlot = operatorInteraction.hoveredAddress;
+const operatorPointerInteraction = operatorInteraction.pointerInteraction;
+const suppressNextOperatorClick = operatorInteraction.suppressNextClick;
+const operatorPasteHighlightKeys = operatorInteraction.pasteHighlightKeys;
+const handleOperatorGridPointerDown = operatorInteraction.handlePointerDown;
+const handleOperatorGridPointerMove = operatorInteraction.handlePointerMove;
+const handleOperatorGridPointerUp = operatorInteraction.handlePointerUp;
+const handleOperatorGridPointerCancel = operatorInteraction.handlePointerCancel;
+const handleWindowSelectStart = operatorInteraction.handleSelectStart;
+const handleWindowKeydown = operatorInteraction.handleKeydown;
 
 const operatorSelectionMarqueeStyle = computed<Record<string, string>>(() => {
   const interaction = operatorPointerInteraction.value;
@@ -1368,10 +1494,7 @@ function beginDocumentDrag(event: PointerEvent, documentId: string): void {
   };
 }
 
-function handleDocumentItemClick(
-  event: MouseEvent,
-  documentId: string,
-): void {
+function handleDocumentItemClick(event: MouseEvent, documentId: string): void {
   if (suppressNextDocumentClick) {
     suppressNextDocumentClick = false;
     event.preventDefault();
@@ -1386,10 +1509,8 @@ function startDocumentDrag(event: PointerEvent): void {
     return;
   }
   if (
-    Math.hypot(
-      event.clientX - pending.startX,
-      event.clientY - pending.startY,
-    ) < 5
+    Math.hypot(event.clientX - pending.startX, event.clientY - pending.startY) <
+    5
   ) {
     return;
   }
@@ -2390,35 +2511,17 @@ async function updateOperatorPickerPosition(): Promise<void> {
     return;
   }
 
-  const slotRect = slot.getBoundingClientRect();
-  const panelWidth = currentElement.offsetWidth;
-  const panelHeight = currentElement.offsetHeight;
-  const padding = 8;
-  const maxTop = Math.max(padding, window.innerHeight - panelHeight - padding);
-  const rightLeft = slotRect.right + padding;
-  const leftLeft = slotRect.left - panelWidth - padding;
-  const rightSpace = window.innerWidth - slotRect.right - padding;
-  const leftSpace = slotRect.left - padding;
-  const rightFits = rightSpace >= panelWidth;
-  const leftFits = leftSpace >= panelWidth;
-  const side: OperatorPickerState["side"] = rightFits
-    ? "right"
-    : leftFits
-      ? "left"
-      : rightSpace >= leftSpace
-        ? "right"
-        : "left";
-  const maxLeft = Math.max(padding, window.innerWidth - panelWidth - padding);
-  const left = Math.min(
-    Math.max(padding, side === "right" ? rightLeft : leftLeft),
-    maxLeft,
+  const placement = scheduleOperatorPickerPlacement(
+    slot.getBoundingClientRect(),
+    currentElement.offsetWidth,
+    currentElement.offsetHeight,
+    window.innerWidth,
+    window.innerHeight,
   );
-  const top = Math.min(Math.max(padding, slotRect.top), maxTop);
-
-  operatorPicker.value = { ...currentPicker, side };
+  operatorPicker.value = { ...currentPicker, side: placement.side };
   operatorPickerStyle.value = {
-    insetInlineStart: `${left}px`,
-    insetBlockStart: `${top}px`,
+    insetInlineStart: `${placement.left}px`,
+    insetBlockStart: `${placement.top}px`,
   };
 }
 
@@ -2684,8 +2787,7 @@ function slotRefCount(row: FacilityRow): number {
 
 function facilityCardWidthValue(row: FacilityRow): number {
   return (
-    slotRefCount(row) * simulatorSlotSize +
-    FACILITY_CARD_HORIZONTAL_OVERHEAD
+    slotRefCount(row) * simulatorSlotSize + FACILITY_CARD_HORIZONTAL_OVERHEAD
   );
 }
 
@@ -3179,10 +3281,7 @@ function operatorNameAtAddress(
 }
 
 function selectedOperatorSlotAddresses(): OperatorSlotAddress[] {
-  const selected = selectedOperatorSlots.value;
-  return orderedOperatorSlotAddresses().filter((address) =>
-    selected.has(address.key),
-  );
+  return operatorInteraction.selectedAddresses();
 }
 
 function isOperatorSlotSelected(key: string): boolean {
@@ -3194,7 +3293,7 @@ function isOperatorSlotHovered(key: string): boolean {
 }
 
 function resetOperatorSelectAllCycle(): void {
-  operatorSelectAllStage.value = 0;
+  operatorInteraction.resetSelectAllCycle();
 }
 
 function operatorAddressByKey(key: string): OperatorSlotAddress | undefined {
@@ -3329,111 +3428,19 @@ function selectOperatorSlot(
   position: number,
   slotIndex: number,
 ): void {
-  if (suppressNextOperatorClick.value) {
-    suppressNextOperatorClick.value = false;
-    return;
-  }
   const address = operatorSlotAddress(planIndex, type, position, slotIndex);
-  const wasEditingSelectedSlot = editingOperatorSlot.value?.key === address.key;
-  const shouldSwitchPicker =
-    operatorPicker.value !== undefined &&
-    operatorPicker.value.key !== address.key;
-  if (!commitPendingOperatorNameEdit()) {
-    return;
-  }
-  const nextSelection = new Set(selectedOperatorSlots.value);
-  const anchor = operatorSelectionAnchor.value;
-  const addressFacilityKey = operatorFacilityKeyForAddress(address);
-  const anchorFacilityKey = anchor
-    ? operatorFacilityKeyForAddress(anchor)
-    : undefined;
-  const anchorFacilitySlotIndex = anchor
-    ? operatorFacilitySlotIndex(anchor)
-    : undefined;
-  const addressFacilitySlotIndex = operatorFacilitySlotIndex(address);
-  if (
-    event.shiftKey &&
-    anchor &&
-    anchorFacilityKey === addressFacilityKey &&
-    anchorFacilitySlotIndex !== undefined &&
-    addressFacilitySlotIndex !== undefined
-  ) {
-    const startPlanIndex = Math.min(anchor.planIndex, planIndex);
-    const endPlanIndex = Math.max(anchor.planIndex, planIndex);
-    const startSlotIndex = Math.min(
-      anchorFacilitySlotIndex,
-      addressFacilitySlotIndex,
-    );
-    const endSlotIndex = Math.max(
-      anchorFacilitySlotIndex,
-      addressFacilitySlotIndex,
-    );
-    operatorFacilitySlotAddresses(type, position).forEach((item) => {
-      const itemSlotIndex = operatorFacilitySlotIndex(item);
-      if (
-        itemSlotIndex !== undefined &&
-        item.planIndex >= startPlanIndex &&
-        item.planIndex <= endPlanIndex &&
-        itemSlotIndex >= startSlotIndex &&
-        itemSlotIndex <= endSlotIndex
-      ) {
-        nextSelection.add(item.key);
-      }
-    });
-  } else if (event.shiftKey) {
-    nextSelection.clear();
-    nextSelection.add(address.key);
-  } else if (event.ctrlKey || event.metaKey) {
-    if (nextSelection.has(address.key)) {
-      nextSelection.delete(address.key);
-    } else {
-      nextSelection.add(address.key);
-    }
-  } else {
-    nextSelection.clear();
-    nextSelection.add(address.key);
-  }
-  resetOperatorSelectAllCycle();
-  selectedOperatorSlots.value = nextSelection;
-  operatorSelectionAnchor.value = address;
-  if (shouldSwitchPicker) {
-    beginOperatorNameEdit(
-      planIndex,
-      type,
-      position,
-      slotIndex,
-      undefined,
-      true,
-    );
-  }
-  if (!wasEditingSelectedSlot) {
-    focusSelectedOperatorNameInput();
-  }
-}
-
-function operatorNameInputFromTarget(
-  target: EventTarget | null,
-): HTMLInputElement | undefined {
-  if (!(target instanceof Element)) {
-    return undefined;
-  }
-  const input = target.closest("input.simulator-slot-name-input");
-  return input instanceof HTMLInputElement ? input : undefined;
-}
-
-function keyboardShortcutKey(event: KeyboardEvent): string {
-  const codeKeys: Record<string, string> = {
-    KeyC: "c",
-    KeyX: "x",
-    KeyV: "v",
-    KeyZ: "z",
-    KeyY: "y",
+  pendingOperatorSelection = {
+    key: address.key,
+    wasEditing: editingOperatorSlot.value?.key === address.key,
+    shouldSwitchPicker:
+      operatorPicker.value !== undefined &&
+      operatorPicker.value.key !== address.key,
   };
-  return codeKeys[event.code] ?? event.key.toLowerCase();
+  operatorInteraction.selectAddress(event, address);
 }
 
 function currentOperatorTarget(): OperatorSlotAddress | undefined {
-  return selectedOperatorSlotAddresses()[0] ?? hoveredOperatorSlot.value;
+  return operatorInteraction.currentTarget();
 }
 
 function operatorShortcutSource(): OperatorSlotAddress[] {
@@ -3446,7 +3453,7 @@ function operatorShortcutSource(): OperatorSlotAddress[] {
 }
 
 function operatorSelectAllAddresses(
-  stage: 0 | 1 | 2,
+  stage: number,
   anchor: OperatorSlotAddress,
 ): OperatorSlotAddress[] {
   if (stage === 0) {
@@ -3464,36 +3471,8 @@ function operatorSelectAllAddresses(
   return orderedOperatorSlotAddresses();
 }
 
-function selectAllOperators(): boolean {
-  if (!commitPendingOperatorNameEdit()) {
-    return false;
-  }
-  const anchor = currentOperatorTarget();
-  if (!anchor) {
-    return false;
-  }
-  const addresses = operatorSelectAllAddresses(
-    operatorSelectAllStage.value,
-    anchor,
-  );
-  if (addresses.length === 0) {
-    return false;
-  }
-  selectedOperatorSlots.value = new Set(
-    addresses.map((address) => address.key),
-  );
-  operatorSelectionAnchor.value = anchor;
-  operatorSelectAllStage.value = Math.min(
-    2,
-    operatorSelectAllStage.value + 1,
-  ) as 0 | 1 | 2;
-  return true;
-}
-
 function clearOperatorSelection(): void {
-  selectedOperatorSlots.value = new Set();
-  operatorSelectionAnchor.value = undefined;
-  resetOperatorSelectAllCycle();
+  operatorInteraction.clearSelection();
 }
 
 function operatorSlotSnapshotAt(
@@ -3706,49 +3685,7 @@ function swapOperatorAddressPairs(
       (address, index, addresses) =>
         addresses.findIndex((item) => item.key === address.key) === index,
     );
-  resetOperatorSelectAllCycle();
-  selectedOperatorSlots.value = new Set(
-    destinationAddresses.map((address) => address.key),
-  );
-  operatorSelectionAnchor.value = destinationAddresses[0];
   return destinationAddresses;
-}
-
-function selectOperatorSlotsInBox(
-  interaction: OperatorPointerInteraction,
-): void {
-  const left = Math.min(interaction.startX, interaction.currentX);
-  const right = Math.max(interaction.startX, interaction.currentX);
-  const top = Math.min(interaction.startY, interaction.currentY);
-  const bottom = Math.max(interaction.startY, interaction.currentY);
-  const addresses = Array.from(
-    window.document.querySelectorAll<HTMLElement>(
-      ".simulator-facility-grid .simulator-slot[data-key]",
-    ),
-  )
-    .filter((slot) => {
-      const rect = slot.getBoundingClientRect();
-      return (
-        rect.right >= left &&
-        rect.left <= right &&
-        rect.bottom >= top &&
-        rect.top <= bottom
-      );
-    })
-    .map((slot) => operatorAddressByKey(slot.dataset.key ?? ""))
-    .filter((address): address is OperatorSlotAddress => Boolean(address));
-  const nextSelection = new Set(
-    interaction.additive
-      ? selectedOperatorSlots.value
-      : addresses.map((address) => address.key),
-  );
-  addresses.forEach((address) => nextSelection.add(address.key));
-  resetOperatorSelectAllCycle();
-  selectedOperatorSlots.value = nextSelection;
-  const anchor = addresses[0] ?? interaction.startAddress;
-  if (anchor) {
-    operatorSelectionAnchor.value = anchor;
-  }
 }
 
 function operatorGridPointerTarget(
@@ -3781,220 +3718,23 @@ function updateOperatorDragPreviewPosition(
   element.style.insetBlockStart = `${clientY}px`;
 }
 
-function applyOperatorGridPointerMove(
-  pointerId: number,
-  clientX: number,
-  clientY: number,
+function dropOperatorAddresses(
+  sources: OperatorSlotAddress[],
+  target: OperatorSlotAddress,
 ): void {
-  const interaction = operatorPointerInteraction.value;
-  if (!interaction || interaction.pointerId !== pointerId) {
-    return;
-  }
-  const previousMode = interaction.mode;
-  if (
-    interaction.mode === "press" &&
-    (interaction.startX !== clientX || interaction.startY !== clientY)
-  ) {
-    interaction.mode = interaction.sourceAddresses.length > 0 ? "move" : "box";
-  }
-  if (interaction.mode === "move") {
-    if (previousMode !== "move") {
-      const previousHoveredSlot = hoveredOperatorSlot.value;
-      hoveredOperatorSlot.value = undefined;
-      setOperatorDragHoveredSlot(previousHoveredSlot);
-      interaction.currentX = clientX;
-      interaction.currentY = clientY;
-    }
-    updateOperatorDragPreviewPosition(clientX, clientY);
-    if (previousMode !== "move") {
-      void nextTick(() => {
-        if (operatorPointerInteraction.value?.pointerId === pointerId) {
-          updateOperatorDragPreviewPosition(clientX, clientY);
-        }
-      });
-    }
-  } else {
-    interaction.currentX = clientX;
-    interaction.currentY = clientY;
-  }
-  if (interaction.mode !== "move") {
-    return;
-  }
-  const nextTarget = operatorAddressAtPoint(clientX, clientY);
-  setOperatorDragTarget(nextTarget);
-}
-
-function cancelOperatorPointerMoveFrame(): void {
-  pendingOperatorPointerMove = undefined;
-  if (operatorPointerMoveFrame !== undefined) {
-    cancelAnimationFrame(operatorPointerMoveFrame);
-    operatorPointerMoveFrame = undefined;
-  }
-}
-
-function flushOperatorPointerMove(): void {
-  const pending = pendingOperatorPointerMove;
-  cancelOperatorPointerMoveFrame();
-  if (pending) {
-    applyOperatorGridPointerMove(
-      pending.pointerId,
-      pending.clientX,
-      pending.clientY,
+  const pairs = operatorTransferPairs(sources, target);
+  const destinations = swapOperatorAddressPairs(pairs);
+  if (destinations.length > 0) {
+    showOperatorMessage(
+      destinations.length < sources.length
+        ? `已交换 ${destinations.length} 个槽位，超出目标槽位的内容已截断`
+        : `已交换 ${destinations.length} 个槽位`,
     );
   }
 }
 
-function handleOperatorGridPointerDown(event: PointerEvent): void {
-  if (event.button !== 0 || !operatorGridPointerTarget(event.target)) {
-    return;
-  }
-  if (!commitPendingOperatorNameEdit()) {
-    return;
-  }
-  const startAddress = operatorAddressFromTarget(event.target);
-  const hasOperator = startAddress
-    ? Boolean(
-        currentDocument.value &&
-        operatorNameAtAddress(currentDocument.value, startAddress),
-      )
-    : false;
-  const sourceAddresses =
-    startAddress && event.shiftKey && hasOperator
-      ? selectedOperatorSlots.value.has(startAddress.key)
-        ? selectedOperatorSlotAddresses()
-        : [startAddress]
-      : [];
-  const mode = startAddress ? "press" : "box";
-  operatorPointerInteraction.value = {
-    mode,
-    pointerId: event.pointerId,
-    startX: event.clientX,
-    startY: event.clientY,
-    currentX: event.clientX,
-    currentY: event.clientY,
-    startAddress,
-    sourceAddresses,
-    additive: event.ctrlKey || event.metaKey,
-  };
-  suppressNextOperatorClick.value = false;
-  if (mode !== "press") {
-    event.preventDefault();
-  }
-}
-
-function handleOperatorGridPointerMove(event: PointerEvent): void {
-  const interaction = operatorPointerInteraction.value;
-  if (!interaction || interaction.pointerId !== event.pointerId) {
-    return;
-  }
-  const startsPointerInteraction =
-    interaction.mode === "press" &&
-    (interaction.startX !== event.clientX ||
-      interaction.startY !== event.clientY);
-  if (interaction.mode !== "press" || startsPointerInteraction) {
-    event.preventDefault();
-  }
-  pendingOperatorPointerMove = {
-    pointerId: event.pointerId,
-    clientX: event.clientX,
-    clientY: event.clientY,
-  };
-  if (operatorPointerMoveFrame === undefined) {
-    operatorPointerMoveFrame = requestAnimationFrame(() => {
-      operatorPointerMoveFrame = undefined;
-      const pending = pendingOperatorPointerMove;
-      pendingOperatorPointerMove = undefined;
-      if (pending) {
-        applyOperatorGridPointerMove(
-          pending.pointerId,
-          pending.clientX,
-          pending.clientY,
-        );
-      }
-    });
-  }
-}
-
-function handleOperatorGridPointerUp(event: PointerEvent): void {
-  const interaction = operatorPointerInteraction.value;
-  if (!interaction || interaction.pointerId !== event.pointerId) {
-    return;
-  }
-  let finalHoveredSlot: OperatorSlotAddress | undefined;
-  flushOperatorPointerMove();
-  interaction.currentX = event.clientX;
-  interaction.currentY = event.clientY;
-  if (interaction.mode === "box") {
-    selectOperatorSlotsInBox(interaction);
-    suppressNextOperatorClick.value = true;
-  } else if (interaction.mode === "move") {
-    finalHoveredSlot = operatorDragHoveredSlotKey
-      ? operatorAddressByKey(operatorDragHoveredSlotKey)
-      : undefined;
-    const target =
-      operatorDragTarget ??
-      operatorAddressAtPoint(event.clientX, event.clientY);
-    if (target) {
-      const pairs = operatorTransferPairs(interaction.sourceAddresses, target);
-      const destinations = swapOperatorAddressPairs(pairs);
-      if (destinations.length > 0) {
-        showOperatorMessage(
-          destinations.length < interaction.sourceAddresses.length
-            ? `已交换 ${destinations.length} 个槽位，超出目标槽位的内容已截断`
-            : `已交换 ${destinations.length} 个槽位`,
-        );
-      }
-    }
-    suppressNextOperatorClick.value = true;
-  }
-  operatorPointerInteraction.value = undefined;
-  setOperatorDragTarget(undefined);
-  setOperatorDragHoveredSlot(undefined);
-  if (interaction.mode === "move") {
-    hoveredOperatorSlot.value = finalHoveredSlot;
-  }
-}
-
-function handleOperatorGridPointerCancel(event: PointerEvent): void {
-  const interaction = operatorPointerInteraction.value;
-  if (!interaction || interaction.pointerId !== event.pointerId) {
-    return;
-  }
-  cancelOperatorPointerMoveFrame();
-  operatorPointerInteraction.value = undefined;
-  setOperatorDragTarget(undefined);
-  if (interaction.mode === "move") {
-    const hoveredSlot = operatorDragHoveredSlotKey
-      ? operatorAddressByKey(operatorDragHoveredSlotKey)
-      : undefined;
-    setOperatorDragHoveredSlot(undefined);
-    hoveredOperatorSlot.value = hoveredSlot;
-  }
-  suppressNextOperatorClick.value = true;
-}
-
-function handleWindowSelectStart(event: Event): void {
-  const mode = operatorPointerInteraction.value?.mode;
-  const target = event.target;
-  const slot =
-    target instanceof Element
-      ? target.closest<HTMLElement>(".simulator-slot")
-      : undefined;
-  const editableTarget =
-    target instanceof Element
-      ? target.closest("input, textarea, select")
-      : undefined;
-  if ((mode === "box" || mode === "move" || slot) && !editableTarget) {
-    event.preventDefault();
-  }
-}
-
 function clearOperatorPasteHighlight(): void {
-  operatorPasteHighlightKeys.value = new Set();
-  if (operatorPasteHighlightTimer !== undefined) {
-    clearTimeout(operatorPasteHighlightTimer);
-    operatorPasteHighlightTimer = undefined;
-  }
+  operatorInteraction.clearPasteHighlight();
 }
 
 function clearOperatorClipboard(): void {
@@ -4021,16 +3761,7 @@ function setOperatorClipboard(
 }
 
 function showOperatorPasteHighlight(addresses: OperatorSlotAddress[]): void {
-  operatorPasteHighlightKeys.value = new Set(
-    addresses.map((address) => address.key),
-  );
-  if (operatorPasteHighlightTimer !== undefined) {
-    clearTimeout(operatorPasteHighlightTimer);
-  }
-  operatorPasteHighlightTimer = setTimeout(() => {
-    operatorPasteHighlightKeys.value = new Set();
-    operatorPasteHighlightTimer = undefined;
-  }, 700);
+  operatorInteraction.showPasteHighlight(addresses);
 }
 
 function operatorClipboardIsUsable(): boolean {
@@ -4410,9 +4141,7 @@ function selectOperatorAddress(address: OperatorSlotAddress): void {
   focusSelectedOperatorNameInput();
 }
 
-function navigateOperatorSlot(
-  action: "tab" | "enter" | "left" | "right" | "up" | "down",
-): boolean {
+function navigateOperatorSlot(action: ScheduleOperatorNavigation): boolean {
   const current =
     editingOperatorSlot.value ??
     selectedOperatorSlotAddresses()[0] ??
@@ -5461,156 +5190,6 @@ function handleWindowResize() {
   updateImageExportPreviewViewportWidth();
 }
 
-function handleWindowKeydown(event: KeyboardEvent): void {
-  const isImeEvent =
-    event.isComposing || event.key === "Process" || event.keyCode === 229;
-  const operatorInput = operatorNameInputFromTarget(event.target);
-  const pendingOperatorInput = operatorInput?.classList.contains(
-    "simulator-slot-name-input--pending",
-  );
-  if (operatorInput && !pendingOperatorInput) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      cancelOperatorNameEdit();
-      closeContextMenu();
-      return;
-    }
-    if (
-      isImeEvent ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.altKey ||
-      event.shiftKey
-    ) {
-      return;
-    }
-    if (event.key === "Enter" || event.key === "Tab") {
-      const navigation = event.key === "Enter" ? "enter" : "tab";
-      if (navigateOperatorSlot(navigation)) {
-        event.preventDefault();
-      }
-    }
-    return;
-  }
-
-  if (pendingOperatorInput && event.key === "Backspace") {
-    event.preventDefault();
-    return;
-  }
-
-  if (pendingOperatorInput && event.key === "Delete") {
-    event.preventDefault();
-    if (operatorDeletionTargets().length > 0) {
-      deleteOperators();
-    }
-    return;
-  }
-
-  if (event.key === "Escape") {
-    if (pendingOperatorInput) {
-      operatorInput?.blur();
-    }
-    clearOperatorClipboard();
-    resetOperatorSelectAllCycle();
-    closeOperatorPicker();
-    closeContextMenu();
-    return;
-  }
-
-  const target = event.target instanceof Element ? event.target : undefined;
-  const editableTarget = target?.closest("input, textarea, select");
-  if (editableTarget && !pendingOperatorInput) {
-    return;
-  }
-
-  const primaryModifier =
-    (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey;
-  if (primaryModifier) {
-    const key = keyboardShortcutKey(event);
-    if (!["a", "c", "x", "v", "z", "y"].includes(key)) {
-      return;
-    }
-    if (key === "a") {
-      if (selectAllOperators()) {
-        event.preventDefault();
-      }
-      return;
-    }
-    if (key === "z" || key === "y") {
-      event.preventDefault();
-      restoreScheduleHistory(key === "z" ? "undo" : "redo");
-      return;
-    }
-    if (key === "v" && !operatorClipboardIsUsable()) {
-      return;
-    }
-    if (!currentOperatorTarget()) {
-      return;
-    }
-    event.preventDefault();
-    if (key === "c") {
-      copyOperators();
-    } else if (key === "x") {
-      cutOperators();
-    } else if (key === "v") {
-      pasteOperators();
-    } else {
-      restoreScheduleHistory(key === "z" ? "undo" : "redo");
-    }
-    return;
-  }
-
-  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) {
-    return;
-  }
-
-  const navigationKeys: Record<
-    string,
-    "tab" | "enter" | "left" | "right" | "up" | "down"
-  > = {
-    Tab: "tab",
-    Enter: "enter",
-    ArrowLeft: "left",
-    ArrowRight: "right",
-    ArrowUp: "up",
-    ArrowDown: "down",
-  };
-  const navigation = navigationKeys[event.key];
-  if (navigation) {
-    if (navigateOperatorSlot(navigation)) {
-      event.preventDefault();
-    }
-    return;
-  }
-
-  if (pendingOperatorInput && !isImeEvent && event.key.length === 1) {
-    return;
-  }
-
-  if (!operatorPicker.value && !isImeEvent && event.key.length === 1) {
-    const selected = selectedOperatorSlotAddresses();
-    if (selected.length === 1) {
-      const target = selected[0];
-      if (target) {
-        event.preventDefault();
-        beginOperatorNameEdit(
-          target.planIndex,
-          target.type,
-          target.position,
-          target.slotIndex,
-          event.key,
-        );
-      }
-      return;
-    }
-  }
-
-  if (event.key === "Delete" && operatorDeletionTargets().length > 0) {
-    event.preventDefault();
-    deleteOperators();
-  }
-}
-
 function handleCreate(): void {
   clearImportedScheduleNotice();
   createDocument();
@@ -6326,7 +5905,6 @@ onBeforeUnmount(() => {
   cancelDocumentSidebarHeightUpdate();
   documentSidebarResizeObserver?.disconnect();
   documentSidebarResizeObserver = undefined;
-  cancelOperatorPointerMoveFrame();
   setOperatorDragTarget(undefined);
   setOperatorDragHoveredSlot(undefined);
   window.removeEventListener("pointerdown", handleWindowPointerDown, true);
@@ -6352,9 +5930,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", handleWindowResize);
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
-  }
-  if (operatorPasteHighlightTimer !== undefined) {
-    clearTimeout(operatorPasteHighlightTimer);
   }
   closeOperatorPicker();
 });
@@ -6820,6 +6395,7 @@ defineExpose({ prepareScheduleReferenceImage });
         </a-card>
 
         <a-row
+          ref="operatorGridElement"
           :gutter="[10, 10]"
           :style="facilityGridStyle"
           class="simulator-facility-grid"
@@ -7714,10 +7290,7 @@ defineExpose({ prepareScheduleReferenceImage });
           </a-alert>
         </div>
 
-        <a-card
-          :bordered="false"
-          class="simulator-efficiency-panel"
-        >
+        <a-card :bordered="false" class="simulator-efficiency-panel">
           <template #title>
             <div class="simulator-efficiency-panel-title">
               <span>计算结果</span>
