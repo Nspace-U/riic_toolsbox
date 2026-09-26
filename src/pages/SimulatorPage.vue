@@ -117,7 +117,6 @@ import {
   ROOM_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   SOURCE_MATERIAL_OPTIONS,
-  ScheduleError,
   canAddLayoutEntry,
   canonicalResourceKey,
   cloneSchedule,
@@ -371,8 +370,6 @@ const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
 const {
   documents,
   activeDocumentId,
-  layoutLevelNotice,
-  clearLayoutLevelNotice,
   createDocument,
   getActiveDocument,
   setActiveDocument,
@@ -532,11 +529,6 @@ const imageExportPreviewViewportWidth = ref(0);
 const imageExportPreviewContentSize = ref({ width: 1920, height: 1080 });
 const imageExportPreviewContentScale = ref(1);
 const importedScheduleNotice = ref<EfficiencyNotice>();
-const layoutLevelFixNotice = layoutLevelNotice.value;
-if (layoutLevelFixNotice) {
-  successMessage.value = layoutLevelFixNotice;
-  clearLayoutLevelNotice();
-}
 const efficiencyCatalog = ref<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
@@ -1814,18 +1806,12 @@ function addLayoutEntry(type: RoomKey): void {
   }
   const plan = layoutAdditionPlan(document.layout, type);
   if (!plan) {
-    const result = canAddLayoutEntry(document.layout, type);
-    setError(new ScheduleError(result.ok ? "设施无法添加" : result.reason));
     return;
   }
 
   updateCurrent(
     (candidate) => {
-      const candidatePlan = layoutAdditionPlan(candidate.layout, type);
-      if (!candidatePlan) {
-        throw new ScheduleError("设施无法添加");
-      }
-      candidatePlan.types.forEach((entryType) => {
+      plan.types.forEach((entryType) => {
         candidate.layout.push({
           type: entryType,
           level: layoutEntryLevelMax(entryType),
@@ -1909,7 +1895,6 @@ function removeLayoutEntry(index: number): void {
     return;
   }
   if (entry.type === "control") {
-    setError(new ScheduleError("控制中枢不可删除"));
     return;
   }
 
@@ -2000,7 +1985,6 @@ function duplicatePlan(planIndex: number): void {
 
 function removePlan(planIndex: number): void {
   if ((currentDocument.value?.plans.length ?? 0) <= 1) {
-    setError(new ScheduleError("队列数量最少为 1"));
     return;
   }
   updateCurrent((document) => {
@@ -4296,7 +4280,6 @@ function pasteOperators(): boolean {
   const target = currentOperatorTarget();
   const document = currentDocument.value;
   if (!target || !document) {
-    showOperatorMessage("请先选择要粘贴到的干员槽位");
     return false;
   }
   const sourceEntries = new Map<string, OperatorClipboardEntry>();
@@ -4423,7 +4406,6 @@ function operatorDeletionTargets(): OperatorSlotAddress[] {
 function deleteOperators(): boolean {
   const targets = operatorDeletionTargets();
   if (targets.length === 0) {
-    showOperatorMessage("当前没有可删除的干员");
     return false;
   }
   const count = targets.filter((address) => {
@@ -5757,8 +5739,6 @@ function addImportLayoutEntry(type: RoomKey): void {
   }
   const plan = layoutAdditionPlan(draft.layout, type);
   if (!plan) {
-    const result = canAddLayoutEntry(draft.layout, type);
-    setError(new ScheduleError(result.ok ? "设施无法添加" : result.reason));
     return;
   }
   const nextLayout = [...draft.layout];
@@ -5822,7 +5802,6 @@ function removeImportLayoutEntry(index: number): void {
     return;
   }
   if (entry.type === "control") {
-    setError(new ScheduleError("控制中枢不可删除"));
     return;
   }
   const cascadedTypes = new Set<RoomKey>(cascadeLayoutTypes(entry.type));

@@ -292,29 +292,6 @@ export function isFixedLevelRoom(type: RoomKey): boolean {
   return range ? range.min === range.max : false;
 }
 
-export interface NormalizedLayoutLevels {
-  changed: boolean;
-  layout: LayoutEntry[];
-}
-
-export function normalizeLayoutLevels(
-  layout: LayoutEntry[],
-): NormalizedLayoutLevels {
-  let changed = false;
-  const normalizedLayout = layout.map((entry) => {
-    if (!isFixedLevelRoom(entry.type)) {
-      return entry;
-    }
-    const fixedLevel = ROOM_LEVEL_LIMITS[entry.type].max;
-    if (entry.level === fixedLevel) {
-      return entry;
-    }
-    changed = true;
-    return { ...entry, level: fixedLevel };
-  });
-  return { changed, layout: normalizedLayout };
-}
-
 export function parseLayoutText(text: string): LayoutEntry[] {
   const normalizedText = text.replace(/\r\n?/g, "\n").trim();
   if (!normalizedText) {
@@ -377,7 +354,7 @@ export function parseLayoutText(text: string): LayoutEntry[] {
   );
 
   const functionalToken = rowTokens[1]?.[0] ?? "";
-  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 4) ?? [];
+  const functionalTypes = LAYOUT_INPUT_ROWS[1]!.slice(0, 4);
   if (!/^\d{4}$/.test(functionalToken)) {
     throw new ScheduleError(
       "第 2 行第 1 段必须按会客室、加工站、办公室、训练室填写 4 位数字",
@@ -387,10 +364,7 @@ export function parseLayoutText(text: string): LayoutEntry[] {
     if (character === "0") {
       return;
     }
-    const type = functionalTypes[typeIndex];
-    if (!type) {
-      throw new ScheduleError("第 2 行功能设施顺序无效");
-    }
+    const type = functionalTypes[typeIndex]!;
     const level = Number(character);
     const range = roomLevelRange(type);
     if (level < range.min || level > range.max) {
@@ -402,10 +376,7 @@ export function parseLayoutText(text: string): LayoutEntry[] {
   });
 
   const dormitoryToken = rowTokens[1]?.[1] ?? "";
-  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[4];
-  if (!dormitoryType) {
-    throw new ScheduleError("宿舍输入配置无效");
-  }
+  const dormitoryType = LAYOUT_INPUT_ROWS[1]![4]!;
   if (dormitoryToken !== "0") {
     if (!/^\d+$/.test(dormitoryToken)) {
       throw new ScheduleError(
