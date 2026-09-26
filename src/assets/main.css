@@ -4213,8 +4213,6 @@ a {
   min-height: 240px;
   max-height: calc(100vh - 220px);
   overflow: auto;
-  padding: 12px;
-  background: #f4f6f7;
   border: 1px solid #dce8e4;
 }
 
