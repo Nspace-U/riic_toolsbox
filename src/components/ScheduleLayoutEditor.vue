@@ -17,6 +17,7 @@ import {
   layoutAdditionPlan,
   layoutEntryLevelMax,
   layoutTextFor,
+  cascadeLayoutTypes,
 } from "@/utils/simulator/layout";
 
 const props = withDefaults(
@@ -161,6 +162,19 @@ function deleteTitle(entry: LayoutEntry): string {
   return "删除设施";
 }
 
+function deleteConfirmationTitle(entry: LayoutEntry): string | undefined {
+  const labels = Array.from(
+    new Set(
+      cascadeLayoutTypes(entry.type)
+        .filter((type) => props.layout.some((item) => item.type === type))
+        .map((type) => ROOM_LABELS[type]),
+    ),
+  );
+  return labels.length
+    ? `删除${ROOM_LABELS[entry.type]}后，将同时删除${labels.join("、")}，确定吗？`
+    : undefined;
+}
+
 function fixedLevelText(entry: LayoutEntry): string {
   return `Lv${entry.level}`;
 }
@@ -246,7 +260,25 @@ function fixedLevelText(entry: LayoutEntry): string {
                   emit('update-layout-level', item.index, value)
               "
             />
+            <a-popconfirm
+              v-if="deleteConfirmationTitle(item.entry)"
+              :title="deleteConfirmationTitle(item.entry)"
+              cancel-text="取消"
+              ok-text="删除"
+              @confirm="emit('remove-layout', item.index)"
+            >
+              <a-button
+                :disabled="layoutEntryIsDeleteDisabled(item.entry)"
+                aria-label="删除设施"
+                danger
+                :title="deleteTitle(item.entry)"
+                type="text"
+              >
+                <template #icon><DeleteOutlined /></template>
+              </a-button>
+            </a-popconfirm>
             <a-button
+              v-else
               :disabled="layoutEntryIsDeleteDisabled(item.entry)"
               aria-label="删除设施"
               danger

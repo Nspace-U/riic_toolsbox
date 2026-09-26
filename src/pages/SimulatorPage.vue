@@ -516,6 +516,8 @@ const warningMessage = ref("");
 const importDraft = ref<ImportDraftState>();
 const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
+const deleteScheduleModalOpen = ref(false);
+const pendingDeleteSchedule = ref<{ id: string; title: string }>();
 const restoreOperatorProgressionModalOpen = ref(false);
 const imageExportModalOpen = ref(false);
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
@@ -1910,24 +1912,6 @@ function removeLayoutEntry(index: number): void {
   if (entry.type === "control") {
     setError(new ScheduleError("控制中枢不可删除"));
     return;
-  }
-
-  const cascadedEntries = cascadeLayoutTypes(entry.type).flatMap((type) =>
-    document.layout.filter((layoutEntry) => layoutEntry.type === type),
-  );
-  if (cascadedEntries.length > 0) {
-    const cascadedLabels = Array.from(
-      new Set(
-        cascadedEntries.map((layoutEntry) => ROOM_LABELS[layoutEntry.type]),
-      ),
-    ).join("、");
-    if (
-      !window.confirm(
-        `删除${ROOM_LABELS[entry.type]}后，将同时删除${cascadedLabels}，确定吗？`,
-      )
-    ) {
-      return;
-    }
   }
 
   const removedTypes = new Set<RoomKey>([
@@ -5822,6 +5806,25 @@ function updateImportFacilityLevel(
   importLayoutText.value = layoutTextFor(draft.layout);
 }
 
+function importLayoutDeleteConfirmationTitle(
+  entry: LayoutEntry,
+): string | undefined {
+  const layout = importDraft.value?.layout;
+  if (!layout) {
+    return undefined;
+  }
+  const labels = Array.from(
+    new Set(
+      cascadeLayoutTypes(entry.type)
+        .filter((type) => layout.some((item) => item.type === type))
+        .map((type) => ROOM_LABELS[type]),
+    ),
+  );
+  return labels.length
+    ? `删除${ROOM_LABELS[entry.type]}后，将同时删除${labels.join("、")}，确定吗？`
+    : undefined;
+}
+
 function removeImportLayoutEntry(index: number): void {
   const draft = importDraft.value;
   const entry = draft?.layout[index];
@@ -5834,23 +5837,6 @@ function removeImportLayoutEntry(index: number): void {
   }
   const cascadedTypes = new Set<RoomKey>(cascadeLayoutTypes(entry.type));
   const removedTypes = new Set<RoomKey>([entry.type, ...cascadedTypes]);
-  const cascadedEntries = [...cascadedTypes].flatMap((type) =>
-    draft.layout.filter((layoutEntry) => layoutEntry.type === type),
-  );
-  if (cascadedEntries.length > 0) {
-    const cascadedLabels = Array.from(
-      new Set(
-        cascadedEntries.map((layoutEntry) => ROOM_LABELS[layoutEntry.type]),
-      ),
-    ).join("、");
-    if (
-      !window.confirm(
-        `删除${ROOM_LABELS[entry.type]}后，将同时删除${cascadedLabels}，确定吗？`,
-      )
-    ) {
-      return;
-    }
-  }
   const removedPositions = new Map<RoomKey, number[]>();
   draft.layout.forEach((layoutEntry, layoutIndex) => {
     if (!removedTypes.has(layoutEntry.type)) {
@@ -6016,21 +6002,37 @@ function handleDuplicate(documentId?: string): void {
   successMessage.value = "已复制排班表。";
 }
 
-function handleDelete(documentId?: string): void {
+function openDeleteScheduleModal(documentId?: string): void {
   const id = documentId ?? activeDocumentId.value;
   const stored = documents.value.find((document) => document.id === id);
   if (!stored) {
     return;
   }
+  pendingDeleteSchedule.value = {
+    id: stored.id,
+    title: stored.document.title || "未命名排班表",
+  };
+  deleteScheduleModalOpen.value = true;
+}
+
+function closeDeleteScheduleModal(): void {
+  deleteScheduleModalOpen.value = false;
+  pendingDeleteSchedule.value = undefined;
+}
+
+function confirmDeleteSchedule(): void {
+  const target = pendingDeleteSchedule.value;
+  closeDeleteScheduleModal();
   if (
-    !window.confirm(`确定删除“${stored.document.title || "未命名排班表"}”吗？`)
+    !target ||
+    !documents.value.some((document) => document.id === target.id)
   ) {
     return;
   }
   clearImportedScheduleNotice();
-  removeDocument(stored.id);
+  removeDocument(target.id);
   const nextSettings = { ...simulatorEditSettings.value };
-  delete nextSettings[stored.id];
+  delete nextSettings[target.id];
   simulatorEditSettings.value = nextSettings;
   persistSimulatorEditSettings(nextSettings);
   successMessage.value = "已删除排班表。";
@@ -6703,7 +6705,29 @@ defineExpose({ prepareScheduleReferenceImage });
                         )
                     "
                   />
+                  <a-popconfirm
+                    v-if="importLayoutDeleteConfirmationTitle(item.entry)"
+                    :title="importLayoutDeleteConfirmationTitle(item.entry)"
+                    cancel-text="取消"
+                    ok-text="删除"
+                    @confirm="removeImportLayoutEntry(item.index)"
+                  >
+                    <a-button
+                      :disabled="item.entry.type === 'control'"
+                      aria-label="删除设施"
+                      danger
+                      :title="
+                        item.entry.type === 'control'
+                          ? '控制中枢不可删除'
+                          : '删除设施'
+                      "
+                      type="text"
+                    >
+                      <template #icon><DeleteOutlined /></template>
+                    </a-button>
+                  </a-popconfirm>
                   <a-button
+                    v-else
                     :disabled="item.entry.type === 'control'"
                     aria-label="删除设施"
                     danger
@@ -6723,6 +6747,18 @@ defineExpose({ prepareScheduleReferenceImage });
           </div>
         </div>
       </template>
+    </a-modal>
+
+    <a-modal
+      v-model:open="deleteScheduleModalOpen"
+      cancel-text="取消"
+      ok-text="删除"
+      ok-type="danger"
+      title="确认删除排班表"
+      @cancel="closeDeleteScheduleModal"
+      @ok="confirmDeleteSchedule"
+    >
+      <p>确定删除“{{ pendingDeleteSchedule?.title ?? "未命名排班表" }}”吗？</p>
     </a-modal>
 
     <a-modal
@@ -7821,7 +7857,9 @@ defineExpose({ prepareScheduleReferenceImage });
             </a-menu-item>
             <a-menu-item
               danger
-              @click="handleDelete(scheduleDocumentContextMenu?.documentId)"
+              @click="
+                openDeleteScheduleModal(scheduleDocumentContextMenu?.documentId)
+              "
             >
               删除排班表
             </a-menu-item>

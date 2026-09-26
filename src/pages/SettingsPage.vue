@@ -135,6 +135,8 @@ const progressionFileInput = ref<HTMLInputElement>();
 const progressionError = ref("");
 const progressionSuccess = ref("");
 const progressionLoading = ref(false);
+const pendingResetProfileId = ref<string>();
+const pendingDeleteProfile = ref<{ id: string; name: string }>();
 const progressionSearch = ref("");
 const selectedProgressionFacility = ref<RoomKey | "">("");
 const selectedProgressionProfession = ref("");
@@ -146,6 +148,11 @@ const clearLocalDataModalOpen = ref(false);
 const clearLocalDataError = ref("");
 const basePointDisplayOptions = computed(() =>
   basePointTermOptions(getRiicEfficiencyCatalog().terms),
+);
+const deleteProfileConfirmationTitle = computed(() =>
+  pendingDeleteProfile.value
+    ? `确定删除“${pendingDeleteProfile.value.name}”吗？`
+    : "确定删除当前练度档案吗？",
 );
 
 const progressionFacilityOptions = ROOM_ORDER.map((value) => ({
@@ -290,12 +297,24 @@ function resetProgressionEntry(operator: Operator): void {
   }
 }
 
+function prepareResetAllProgressionEntries(profileId: string): void {
+  pendingResetProfileId.value = profileId;
+}
+
+function cancelResetAllProgressionEntries(): void {
+  pendingResetProfileId.value = undefined;
+}
+
 function resetAllProgressionEntries(): void {
-  const profile = activeProfile.value;
-  if (!profile || !window.confirm("确定将所有干员重置为导入时状态吗？")) {
+  const profileId = pendingResetProfileId.value;
+  pendingResetProfileId.value = undefined;
+  if (
+    !profileId ||
+    !profiles.value.some((profile) => profile.id === profileId)
+  ) {
     return;
   }
-  resetProfile(profile.id);
+  resetProfile(profileId);
   progressionSuccess.value = "已将所有干员重置为导入时状态。";
 }
 
@@ -370,14 +389,21 @@ function handleRenameProfile(): void {
   progressionSuccess.value = `已修改练度档案名称为“${profile.name}”。`;
 }
 
+function prepareRemoveProfile(profileId: string, profileName: string): void {
+  pendingDeleteProfile.value = { id: profileId, name: profileName };
+}
+
+function cancelRemoveProfile(): void {
+  pendingDeleteProfile.value = undefined;
+}
+
 function handleRemoveProfile(): void {
-  if (!activeProfile.value) {
+  const profile = pendingDeleteProfile.value;
+  pendingDeleteProfile.value = undefined;
+  if (!profile || !profiles.value.some((item) => item.id === profile.id)) {
     return;
   }
-  if (!window.confirm(`确定删除“${activeProfile.value.name}”吗？`)) {
-    return;
-  }
-  removeProfile(activeProfile.value.id);
+  removeProfile(profile.id);
   progressionSuccess.value = "已删除练度档案。";
 }
 
@@ -628,10 +654,21 @@ watch(
           @update:value="(value: string) => setActiveProfile(value)"
         />
         <a-space v-if="activeProfile" :size="6" wrap>
-          <a-button size="small" @click="resetAllProgressionEntries">
-            <template #icon><ReloadOutlined /></template>
-            全部重置
-          </a-button>
+          <a-popconfirm
+            cancel-text="取消"
+            ok-text="确认重置"
+            title="确定将所有干员重置为导入时状态吗？"
+            @cancel="cancelResetAllProgressionEntries"
+            @confirm="resetAllProgressionEntries"
+          >
+            <a-button
+              size="small"
+              @click="prepareResetAllProgressionEntries(activeProfile.id)"
+            >
+              <template #icon><ReloadOutlined /></template>
+              全部重置
+            </a-button>
+          </a-popconfirm>
           <a-button size="small" @click="handleDuplicateProfile">
             <template #icon><CopyOutlined /></template>
             复制
@@ -640,10 +677,24 @@ watch(
             <template #icon><EditOutlined /></template>
             改名
           </a-button>
-          <a-button danger size="small" @click="handleRemoveProfile">
-            <template #icon><DeleteOutlined /></template>
-            删除
-          </a-button>
+          <a-popconfirm
+            :title="deleteProfileConfirmationTitle"
+            cancel-text="取消"
+            ok-text="删除"
+            @cancel="cancelRemoveProfile"
+            @confirm="handleRemoveProfile"
+          >
+            <a-button
+              danger
+              size="small"
+              @click="
+                prepareRemoveProfile(activeProfile.id, activeProfile.name)
+              "
+            >
+              <template #icon><DeleteOutlined /></template>
+              删除
+            </a-button>
+          </a-popconfirm>
         </a-space>
       </div>
       <div class="settings-progression-options">

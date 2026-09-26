@@ -393,22 +393,6 @@ function removeLayoutEntry(index: number): void {
     return;
   }
   const cascadedTypes = new Set(cascadeLayoutTypes(entry.type));
-  const labels = [...cascadedTypes]
-    .filter((type) =>
-      props.modelValue.layout.some((item) => item.type === type),
-    )
-    .map((type) => ROOM_LABELS[type]);
-  if (
-    labels.length &&
-    !window.confirm(
-      "删除" +
-        ROOM_LABELS[entry.type] +
-        "后，将同时删除" +
-        labels.join("、") +
-        "，确定吗？",
-    )
-  )
-    return;
   updateDocument((document) => {
     document.layout = ensureFixedLayout(
       document.layout.filter(
