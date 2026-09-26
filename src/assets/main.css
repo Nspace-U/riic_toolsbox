@@ -2070,14 +2070,6 @@ a {
   border-block-end: 1px solid #edf1f0;
 }
 
-.simulator-import-layout-panel .simulator-layout-add-grid {
-  margin-block-end: 12px;
-}
-
-.simulator-import-layout-panel .simulator-layout-list {
-  margin-block-start: 12px;
-}
-
 .simulator-import-layout-panel + .ant-checkbox-wrapper {
   margin-block-start: 12px;
 }

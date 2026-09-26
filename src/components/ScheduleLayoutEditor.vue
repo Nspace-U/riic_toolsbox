@@ -182,6 +182,25 @@ function fixedLevelText(entry: LayoutEntry): string {
 
 <template>
   <div class="schedule-layout-editor">
+    <div class="simulator-layout-text-editor">
+      <div class="simulator-layout-add-heading">
+        <span class="simulator-summary-label">按数字批量设置</span>
+        <span class="simulator-layout-add-hint"
+          >每行按固定顺序填写设施等级</span
+        >
+      </div>
+      <a-textarea
+        v-model:value="layoutText"
+        :auto-size="{ minRows: 2, maxRows: 2 }"
+        class="simulator-layout-text-input"
+        placeholder="33 33222\n1313 2111"
+      />
+      <div v-if="layoutTextFooter" class="simulator-layout-text-footer">
+        <span>{{ layoutTextFooter }}</span>
+      </div>
+      <a-alert v-if="error" :message="error" show-icon type="error" />
+    </div>
+
     <div class="simulator-layout-add">
       <div class="simulator-layout-add-heading">
         <span class="simulator-summary-label">添加设施</span>
@@ -203,25 +222,6 @@ function fixedLevelText(entry: LayoutEntry): string {
           {{ option.label }}
         </a-button>
       </div>
-    </div>
-
-    <div class="simulator-layout-text-editor">
-      <div class="simulator-layout-add-heading">
-        <span class="simulator-summary-label">按数字批量设置</span>
-        <span class="simulator-layout-add-hint"
-          >每行按固定顺序填写设施等级</span
-        >
-      </div>
-      <a-textarea
-        v-model:value="layoutText"
-        :auto-size="{ minRows: 2, maxRows: 2 }"
-        class="simulator-layout-text-input"
-        placeholder="33 33222\n1313 2111"
-      />
-      <div v-if="layoutTextFooter" class="simulator-layout-text-footer">
-        <span>{{ layoutTextFooter }}</span>
-      </div>
-      <a-alert v-if="error" :message="error" show-icon type="error" />
     </div>
 
     <div class="simulator-layout-list">

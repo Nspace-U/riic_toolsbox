@@ -109,14 +109,12 @@ import {
 import {
   DEFAULT_SOURCE_MATERIAL,
   createDefaultRoomAssignment,
-  LAYOUT_TEXT_ROWS,
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   SOURCE_MATERIAL_OPTIONS,
-  canAddLayoutEntry,
   canonicalResourceKey,
   cloneSchedule,
   facilityPower,
@@ -124,7 +122,6 @@ import {
   formatDuplicateOperatorWarnings,
   automaticScheduleTags,
   isFixedLevelRoom,
-  orderedLayoutEntries,
   parseLayoutText,
   roomSlotCount,
   roomLevelRange,
@@ -262,11 +259,6 @@ interface OperatorPickerState extends OperatorSlotAddress {
   side: "left" | "right";
 }
 
-interface LayoutDisplayRow {
-  key: string;
-  entries: FacilityEntry[];
-}
-
 interface PowerSummary {
   used: number;
   provided: number;
@@ -365,7 +357,6 @@ const DEFAULT_SIMULATOR_EDIT_SETTINGS: SimulatorEditSettings = {
   queue: true,
 };
 
-const LAYOUT_DISPLAY_ROWS = LAYOUT_TEXT_ROWS;
 const {
   documents,
   activeDocumentId,
@@ -504,7 +495,6 @@ function persistSimulatorEditSettings(
 
 const fileInput = ref<HTMLInputElement>();
 const importDraft = ref<ImportDraftState>();
-const importLayoutText = ref("");
 const lmdDroneStrategyDraft = ref("");
 const deleteScheduleModalOpen = ref(false);
 const pendingDeleteSchedule = ref<{ id: string; title: string }>();
@@ -569,7 +559,6 @@ const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
   "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 4 位依次为会客室、加工站、办公室、训练室，宿舍与其用空格分隔，0 表示不建造";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
-let importLayoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let operatorPasteHighlightTimer: ReturnType<typeof setTimeout> | undefined;
 let documentSidebarMeasureFrame: number | undefined;
 let documentSidebarResizeObserver: ResizeObserver | undefined;
@@ -743,47 +732,6 @@ const powerSummary = computed<PowerSummary>(() => {
     },
     { used: 0, provided: 0, net: 0 },
   );
-});
-
-const importLayoutAddOptions = computed(() => {
-  const layout = importDraft.value?.layout;
-  return ROOM_ORDER.map((type) => {
-    const result = layout
-      ? canAddLayoutEntry(layout, type)
-      : { ok: false, reason: "暂无导入排班表" };
-    const plan = layout ? layoutAdditionPlan(layout, type) : undefined;
-    const extraTypes = plan?.types.filter((entryType) => entryType !== type);
-    return {
-      type,
-      label: ROOM_LABELS[type],
-      disabled: !plan,
-      reason: !plan
-        ? result.ok
-          ? "当前设施无法添加"
-          : result.reason
-        : extraTypes?.length
-          ? `点击添加，将自动补建：${extraTypes
-              .map((entryType) => ROOM_LABELS[entryType])
-              .join("、")}`
-          : "点击添加",
-    };
-  });
-});
-
-const importLayoutRows = computed<LayoutDisplayRow[]>(() => {
-  const layout = importDraft.value?.layout;
-  if (!layout) {
-    return [];
-  }
-  const indexedEntries = orderedLayoutEntries(layout);
-  return LAYOUT_DISPLAY_ROWS.map((types, rowIndex) => ({
-    key: `import-layout-row-${rowIndex}`,
-    entries: types.flatMap((type) =>
-      indexedEntries
-        .filter((item) => item.entry.type === type)
-        .map(({ entry, index }, position) => ({ entry, index, position })),
-    ),
-  }));
 });
 
 const importPowerPreview = computed<PowerSummary>(() =>
@@ -1778,13 +1726,6 @@ function updateEfficiencyFirstItemProgress(value: number | null): void {
     }
     document.settings = settings;
   });
-}
-
-function layoutFacilityStyle(type: RoomKey): Record<string, string> {
-  return {
-    "--simulator-facility-accent":
-      facilityColors.value[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
-  };
 }
 
 function addLayoutEntry(type: RoomKey): void {
@@ -5686,12 +5627,11 @@ function updateImportedLayout(nextLayout: LayoutEntry[]): void {
     draft.parsed.document.plans,
     draft.layout,
   );
-  importLayoutText.value = layoutTextFor(draft.layout);
 }
 
-function applyImportLayoutText(): void {
+function applyImportLayoutText(text: string): void {
   try {
-    const requestedLayout = parseLayoutText(importLayoutText.value);
+    const requestedLayout = parseLayoutText(text);
     const nextLayout = validateAddedLayout(
       layoutWithBuildChain(requestedLayout),
     );
@@ -5699,22 +5639,6 @@ function applyImportLayoutText(): void {
   } catch (error: unknown) {
     setError(error);
   }
-}
-
-function scheduleImportLayoutTextApply(text: string): void {
-  if (importLayoutApplyTimer !== undefined) {
-    clearTimeout(importLayoutApplyTimer);
-  }
-  if (!importDraft.value || text === layoutTextFor(importDraft.value.layout)) {
-    importLayoutApplyTimer = undefined;
-    return;
-  }
-  importLayoutApplyTimer = setTimeout(() => {
-    importLayoutApplyTimer = undefined;
-    if (importLayoutText.value === text) {
-      applyImportLayoutText();
-    }
-  }, 300);
 }
 
 function addImportLayoutEntry(type: RoomKey): void {
@@ -5733,51 +5657,22 @@ function addImportLayoutEntry(type: RoomKey): void {
   updateImportedLayout(nextLayout);
 }
 
-function updateImportFacilityLevel(
-  type: RoomKey,
-  position: number,
-  value: number | null,
-): void {
+function updateImportFacilityLevel(index: number, value: number | null): void {
   const draft = importDraft.value;
   if (!draft || value === null) {
     return;
   }
-  const index = draft.layout.findIndex(
-    (entry, entryIndex) =>
-      entry.type === type &&
-      draft.layout.slice(0, entryIndex).filter((item) => item.type === type)
-        .length === position,
-  );
   const entry = draft.layout[index];
   if (!entry) {
     return;
   }
-  const range = roomLevelRange(type);
-  entry.level = Math.max(range.min, Math.min(range.max, Math.round(value)));
-  draft.parsed.document.plans = resizeImportedRooms(
-    draft.parsed.document.plans,
-    draft.layout,
-  );
-  importLayoutText.value = layoutTextFor(draft.layout);
-}
-
-function importLayoutDeleteConfirmationTitle(
-  entry: LayoutEntry,
-): string | undefined {
-  const layout = importDraft.value?.layout;
-  if (!layout) {
-    return undefined;
-  }
-  const labels = Array.from(
-    new Set(
-      cascadeLayoutTypes(entry.type)
-        .filter((type) => layout.some((item) => item.type === type))
-        .map((type) => ROOM_LABELS[type]),
+  const range = roomLevelRange(entry.type);
+  const level = Math.max(range.min, Math.min(range.max, Math.round(value)));
+  updateImportedLayout(
+    draft.layout.map((layoutEntry, layoutIndex) =>
+      layoutIndex === index ? { ...layoutEntry, level } : layoutEntry,
     ),
   );
-  return labels.length
-    ? `删除${ROOM_LABELS[entry.type]}后，将同时删除${labels.join("、")}，确定吗？`
-    : undefined;
 }
 
 function removeImportLayoutEntry(index: number): void {
@@ -5908,10 +5803,6 @@ function confirmImport(): void {
 }
 
 function cancelImport(): void {
-  if (importLayoutApplyTimer !== undefined) {
-    clearTimeout(importLayoutApplyTimer);
-    importLayoutApplyTimer = undefined;
-  }
   importDraft.value = undefined;
 }
 
@@ -5936,7 +5827,6 @@ async function handleFileChange(event: Event): Promise<void> {
       fileName: file.name,
       layout: parsed.document.layout.map((entry) => ({ ...entry })),
     };
-    importLayoutText.value = layoutTextFor(parsed.document.layout);
   } catch (error: unknown) {
     setError(error);
   }
@@ -6364,10 +6254,6 @@ watch(layoutText, (text) => {
   scheduleLayoutTextApply(text);
 });
 
-watch(importLayoutText, (text) => {
-  scheduleImportLayoutTextApply(text);
-});
-
 watch(
   () => currentDocument.value?.layout,
   (layout) => {
@@ -6467,9 +6353,6 @@ onBeforeUnmount(() => {
   if (layoutApplyTimer !== undefined) {
     clearTimeout(layoutApplyTimer);
   }
-  if (importLayoutApplyTimer !== undefined) {
-    clearTimeout(importLayoutApplyTimer);
-  }
   if (operatorPasteHighlightTimer !== undefined) {
     clearTimeout(operatorPasteHighlightTimer);
   }
@@ -6563,109 +6446,17 @@ defineExpose({ prepareScheduleReferenceImage });
             <strong>设施布局</strong>
             <span class="simulator-layout-add-hint">与排班模拟器保持一致</span>
           </div>
-          <div class="simulator-layout-add-grid">
-            <a-button
-              v-for="option in importLayoutAddOptions"
-              :key="option.type"
-              :class="[
-                'simulator-layout-add-card',
-                { 'simulator-layout-add-card--disabled': option.disabled },
-              ]"
-              :disabled="option.disabled"
-              :style="layoutFacilityStyle(option.type)"
-              :title="option.reason"
-              @click="addImportLayoutEntry(option.type)"
-            >
-              {{ option.label }}
-            </a-button>
-          </div>
-          <a-textarea
-            :auto-size="{ minRows: 2, maxRows: 2 }"
-            class="simulator-layout-text-input"
-            :value="importLayoutText"
-            placeholder="33 33222\n1313 2111"
-            @update:value="(value: string) => (importLayoutText = value)"
+          <ScheduleLayoutEditor
+            :delete-disabled-room-types="['control']"
+            :facility-colors="facilityColors"
+            :layout="importDraft.layout"
+            :layout-text-footer="layoutTextHint"
+            :show-summary="false"
+            @add-layout="addImportLayoutEntry"
+            @apply-layout-text="applyImportLayoutText"
+            @remove-layout="removeImportLayoutEntry"
+            @update-layout-level="updateImportFacilityLevel"
           />
-          <div class="simulator-layout-text-footer">
-            <span>{{ layoutTextHint }}</span>
-          </div>
-          <div class="simulator-layout-list">
-            <div
-              v-for="row in importLayoutRows"
-              :key="row.key"
-              class="simulator-layout-row"
-            >
-              <div
-                v-for="item in row.entries"
-                :key="item.index"
-                class="simulator-layout-card"
-                :style="layoutFacilityStyle(item.entry.type)"
-              >
-                <span class="simulator-layout-card-name">
-                  {{ ROOM_LABELS[item.entry.type] }}
-                </span>
-                <div class="simulator-layout-card-actions">
-                  <span
-                    v-if="isFixedLevelRoom(item.entry.type)"
-                    class="simulator-layout-card-level-text"
-                    >Lv{{ item.entry.level }}</span
-                  >
-                  <a-input-number
-                    v-else
-                    :max="layoutEntryLevelMax(item.entry.type)"
-                    :min="roomLevelRange(item.entry.type).min"
-                    :value="item.entry.level"
-                    addon-after="级"
-                    class="simulator-layout-card-level"
-                    @update:value="
-                      (value: number | null) =>
-                        updateImportFacilityLevel(
-                          item.entry.type,
-                          item.position,
-                          value,
-                        )
-                    "
-                  />
-                  <a-popconfirm
-                    v-if="importLayoutDeleteConfirmationTitle(item.entry)"
-                    :title="importLayoutDeleteConfirmationTitle(item.entry)"
-                    cancel-text="取消"
-                    ok-text="删除"
-                    @confirm="removeImportLayoutEntry(item.index)"
-                  >
-                    <a-button
-                      :disabled="item.entry.type === 'control'"
-                      aria-label="删除设施"
-                      danger
-                      :title="
-                        item.entry.type === 'control'
-                          ? '控制中枢不可删除'
-                          : '删除设施'
-                      "
-                      type="text"
-                    >
-                      <template #icon><DeleteOutlined /></template>
-                    </a-button>
-                  </a-popconfirm>
-                  <a-button
-                    v-else
-                    :disabled="item.entry.type === 'control'"
-                    aria-label="删除设施"
-                    danger
-                    :title="
-                      item.entry.type === 'control'
-                        ? '控制中枢不可删除'
-                        : '删除设施'
-                    "
-                    type="text"
-                    @click="removeImportLayoutEntry(item.index)"
-                  >
-                    <template #icon><DeleteOutlined /></template>
-                  </a-button>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </template>
     </a-modal>
