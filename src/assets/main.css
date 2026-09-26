@@ -1556,6 +1556,10 @@ a {
   padding: 14px;
 }
 
+.simulator-meta-panel .simulator-panel-heading {
+  margin-block-end: 10px;
+}
+
 .simulator-meta-panel {
   margin-block-end: 14px;
 }
