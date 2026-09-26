@@ -341,17 +341,17 @@ export function parseLayoutText(text: string): LayoutEntry[] {
     9 -
     layout.filter((entry) => entry.type === "trading").length -
     layout.filter((entry) => entry.type === "manufacture").length;
-  if (powerCount < 0 || powerCount > ROOM_LIMITS.power) {
-    throw new ScheduleError(
-      "贸易站、制造站和发电站的总数必须为 9，且发电站最多 3 个",
+  if (powerCount < 0) {
+    throw new ScheduleError("贸易站和制造站的总数不能超过 9 个");
+  }
+  if (powerCount <= ROOM_LIMITS.power) {
+    layout.push(
+      ...Array.from({ length: powerCount }, () => ({
+        type: "power" as const,
+        level: 3,
+      })),
     );
   }
-  layout.push(
-    ...Array.from({ length: powerCount }, () => ({
-      type: "power" as const,
-      level: 3,
-    })),
-  );
 
   const functionalToken = rowTokens[1]?.[0] ?? "";
   const functionalTypes = LAYOUT_INPUT_ROWS[1]!.slice(0, 4);

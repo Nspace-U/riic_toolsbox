@@ -1403,7 +1403,7 @@ function slotStyle(): Record<string, string> {
   return { "--simulator-slot-size": "76px" };
 }
 function layoutTextHint(): string {
-  return "数字顺序与排班模拟器一致；当前组合的控制中枢和核心工作设施会自动保留。";
+  return "数字顺序与排班模拟器一致；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间；当前组合的控制中枢和核心工作设施会自动保留。";
 }
 </script>
 
