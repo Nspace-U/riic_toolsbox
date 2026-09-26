@@ -7930,10 +7930,16 @@ defineExpose({ prepareScheduleReferenceImage });
           <template #title>
             <div class="simulator-efficiency-panel-title">
               <span>计算结果</span>
-              <a-button @click="efficiencySettingsModalOpen = true">
-                <template #icon><SettingOutlined /></template>
-                计算设置
-              </a-button>
+              <a-tooltip title="计算设置">
+                <a-button
+                  aria-label="计算设置"
+                  size="small"
+                  type="text"
+                  @click="efficiencySettingsModalOpen = true"
+                >
+                  <SettingOutlined />
+                </a-button>
+              </a-tooltip>
             </div>
           </template>
           <a-alert
