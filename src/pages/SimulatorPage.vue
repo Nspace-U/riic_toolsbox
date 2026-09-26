@@ -21,6 +21,7 @@ import {
   onMounted,
   ref,
   watch,
+  type ComponentPublicInstance,
 } from "vue";
 
 import { useBaseData } from "@/composables/useBaseData";
@@ -512,7 +513,10 @@ const scheduleDocumentContextMenuElement = ref<HTMLElement>();
 const operatorPicker = ref<OperatorPickerState>();
 const operatorPickerElement = ref<{ panelElement?: HTMLElement }>();
 const operatorDragPreviewElement = ref<HTMLElement>();
-const operatorGridElement = ref<HTMLElement>();
+const operatorGridComponent = ref<ComponentPublicInstance>();
+const operatorGridElement = computed<HTMLElement | undefined>(
+  () => operatorGridComponent.value?.$el as HTMLElement | undefined,
+);
 const operatorPickerStyle = ref<Record<string, string>>({});
 const facilityOperatorOverrides = ref<Partial<Record<RoomKey, string[]>>>({});
 const warnedFacilityOperatorOverrideIds = new Set<string>();
@@ -6395,7 +6399,7 @@ defineExpose({ prepareScheduleReferenceImage });
         </a-card>
 
         <a-row
-          ref="operatorGridElement"
+          ref="operatorGridComponent"
           :gutter="[10, 10]"
           :style="facilityGridStyle"
           class="simulator-facility-grid"
