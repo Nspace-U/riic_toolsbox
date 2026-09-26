@@ -142,6 +142,12 @@ const clearLocalDataError = ref("");
 const basePointDisplayOptions = computed(() =>
   basePointTermOptions(getRiicEfficiencyCatalog().terms),
 );
+const visibleBasePointTermCount = computed(
+  () =>
+    basePointDisplayOptions.value.filter((option) =>
+      isBasePointVisible(option.key),
+    ).length,
+);
 const deleteProfileConfirmationTitle = computed(() =>
   pendingDeleteProfile.value
     ? `确定删除“${pendingDeleteProfile.value.name}”吗？`
@@ -1177,14 +1183,22 @@ watch(
         <p class="settings-panel-description">
           选择排班模拟器计算结果中需要显示的基地点数，设置仅影响显示，不改变计算结果。
         </p>
-        <a-space :size="6" wrap>
-          <a-button size="small" @click="setAllBasePointTermsVisible(true)">
-            全选显示
-          </a-button>
-          <a-button size="small" @click="setAllBasePointTermsVisible(false)">
-            全部隐藏
-          </a-button>
-        </a-space>
+        <a-checkbox
+          v-if="basePointDisplayOptions.length"
+          :checked="
+            visibleBasePointTermCount === basePointDisplayOptions.length
+          "
+          :indeterminate="
+            visibleBasePointTermCount > 0 &&
+            visibleBasePointTermCount < basePointDisplayOptions.length
+          "
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setAllBasePointTermsVisible(event.target.checked)
+          "
+        >
+          全部显示
+        </a-checkbox>
         <div
           v-if="basePointDisplayOptions.length"
           class="settings-base-point-options"
