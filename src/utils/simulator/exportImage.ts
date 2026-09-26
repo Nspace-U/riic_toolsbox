@@ -1,8 +1,10 @@
 import { toSvg } from "html-to-image";
+import { Avatar as AntdAvatar } from "ant-design-vue";
+import { createApp, nextTick } from "vue";
 
+import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type { RoomKey, ScheduleDocument } from "@/types/schedule";
-import { getOperatorAvatarLayerSources } from "@/utils/operatorAvatar";
 import {
   formatDurationHours,
   planDurationHoursValue,
@@ -341,26 +343,12 @@ function normalizedOperatorName(
   return normalizedOperators[sourceSlotIndex] ?? sourceName;
 }
 
-function createAvatarImage(
-  className: string,
-  source: string,
-  alt: string,
-): HTMLImageElement {
-  const image = window.document.createElement("img");
-  image.className = className;
-  image.src = source;
-  image.alt = alt;
-  image.decoding = "async";
-  image.crossOrigin = "anonymous";
-  return image;
-}
-
-function replaceMappedSpecialAvatar(
+async function replaceMappedSpecialAvatar(
   slot: HTMLElement,
   mappedName: string,
   context: ExportOperatorContext,
   options: ScheduleImagePreparationOptions,
-): void {
+): Promise<void> {
   const display = slot.querySelector<HTMLElement>(".operator-avatar-display");
   const frame = display?.querySelector<HTMLElement>(".operator-avatar-frame");
   const specialLabel = display?.querySelector<HTMLElement>(
@@ -374,51 +362,59 @@ function replaceMappedSpecialAvatar(
     throw new Error(`特殊干员映射失败：找不到“${mappedName}”`);
   }
 
-  const sources = getOperatorAvatarLayerSources(
+  const avatarHost = window.document.createElement("div");
+  avatarHost.style.position = "fixed";
+  avatarHost.style.insetBlockStart = "0";
+  avatarHost.style.insetInlineStart = "-10000px";
+  avatarHost.style.visibility = "hidden";
+  window.document.body.append(avatarHost);
+  const avatarApp = createApp(OperatorAvatarDisplay, {
+    displayName: mappedName,
+    eliteLevel: options.resolveEliteLevel(mappedName, context),
     operator,
-    options.resolveEliteLevel(mappedName, context),
-  );
-  frame.classList.remove("operator-avatar-frame--special");
-  frame.classList.add("operator-avatar-frame--plain");
-  frame.replaceChildren();
-  if (sources.avatarUrl) {
-    frame.append(
-      createAvatarImage(
-        "operator-avatar-base",
-        sources.avatarUrl,
-        `${mappedName}头像`,
-      ),
+    plain: true,
+    proportionalLayout: true,
+    showEliteLevel: true,
+    showName: false,
+    showProfession: true,
+    showRarity: true,
+    size:
+      Number.parseFloat(frame.style.width) ||
+      frame.getBoundingClientRect().width,
+  });
+  avatarApp.component("AAvatar", AntdAvatar);
+
+  try {
+    avatarApp.mount(avatarHost);
+    await waitForImages(avatarHost);
+    await nextTick();
+
+    const renderedFrame = avatarHost.querySelector<HTMLElement>(
+      ".operator-avatar-frame",
     );
-  } else {
-    throw new Error(`特殊干员映射失败：找不到“${mappedName}”头像`);
-  }
-  if (sources.professionIconUrl) {
-    frame.append(
-      createAvatarImage(
-        "operator-avatar-badge operator-avatar-badge--profession",
-        sources.professionIconUrl,
-        `${operator.profession}职业`,
-      ),
+    const avatar = renderedFrame?.querySelector<HTMLImageElement>(
+      ".operator-avatar-base",
     );
-  }
-  if (sources.eliteIconUrl) {
-    frame.append(
-      createAvatarImage(
-        "operator-avatar-badge operator-avatar-badge--elite",
-        sources.eliteIconUrl,
-        `精英${options.resolveEliteLevel(mappedName, context)}`,
+    if (!renderedFrame || !avatar) {
+      throw new Error(`特殊干员映射失败：找不到“${mappedName}”头像`);
+    }
+
+    const avatarClone = avatar.cloneNode(true) as HTMLImageElement;
+    const badgeClones = Array.from(
+      renderedFrame.querySelectorAll<HTMLImageElement>(
+        ".operator-avatar-badge",
       ),
-    );
+    ).map((badge) => badge.cloneNode(true) as HTMLImageElement);
+
+    frame.classList.remove("operator-avatar-frame--special");
+    frame.classList.add("operator-avatar-frame--plain");
+    specialLabel.replaceWith(avatarClone);
+    frame.append(...badgeClones);
+  } finally {
+    avatarApp.unmount();
+    avatarHost.remove();
   }
-  if (sources.rarityIconUrl) {
-    frame.append(
-      createAvatarImage(
-        "operator-avatar-badge operator-avatar-badge--rarity",
-        sources.rarityIconUrl,
-        `${operator.rarity}星`,
-      ),
-    );
-  }
+
   const name = display.querySelector<HTMLElement>(
     ".operator-avatar-display-name",
   );
@@ -433,14 +429,14 @@ function replaceMappedSpecialAvatar(
   }
 }
 
-function replaceMappedSpecialOperators(
+async function replaceMappedSpecialOperators(
   grid: HTMLElement,
   options: ScheduleImagePreparationOptions,
-): void {
-  grid.querySelectorAll<HTMLElement>(".simulator-slot").forEach((slot) => {
+): Promise<void> {
+  for (const slot of grid.querySelectorAll<HTMLElement>(".simulator-slot")) {
     const sourceName = slot.dataset.exportOriginalName?.trim() ?? "";
     if (!sourceName || !slot.querySelector(".operator-avatar-frame--special")) {
-      return;
+      continue;
     }
     const context: ExportOperatorContext = {
       planIndex: Number(slot.dataset.exportPlanIndex ?? -1),
@@ -450,9 +446,9 @@ function replaceMappedSpecialOperators(
     };
     const mappedName = normalizedOperatorName(options, sourceName, context);
     if (mappedName !== sourceName) {
-      replaceMappedSpecialAvatar(slot, mappedName, context, options);
+      await replaceMappedSpecialAvatar(slot, mappedName, context, options);
     }
-  });
+  }
 }
 
 function mergeDormitories(grid: HTMLElement): void {
@@ -844,32 +840,37 @@ function scaleFacilityContent(
   grid.style.transformOrigin = "top center";
 }
 
-function waitForImages(root: HTMLElement): Promise<void> {
+function waitForImages(
+  root: ParentNode,
+  selector: string = "img",
+): Promise<void> {
   return Promise.all(
-    Array.from(root.querySelectorAll("img")).map((image) => {
-      if (image.complete) {
-        return image.naturalWidth > 0
-          ? Promise.resolve()
-          : Promise.reject(
-              new Error(
-                `图片加载失败：${image.alt || image.getAttribute("src") || "未知图片"}`,
+    Array.from(root.querySelectorAll<HTMLImageElement>(selector)).map(
+      (image) => {
+        if (image.complete) {
+          return image.naturalWidth > 0
+            ? Promise.resolve()
+            : Promise.reject(
+                new Error(
+                  `图片加载失败：${image.alt || image.getAttribute("src") || "未知图片"}`,
+                ),
+              );
+        }
+        return new Promise<void>((resolve, reject) => {
+          image.addEventListener("load", () => resolve(), { once: true });
+          image.addEventListener(
+            "error",
+            () =>
+              reject(
+                new Error(
+                  `图片加载失败：${image.alt || image.getAttribute("src") || "未知图片"}`,
+                ),
               ),
-            );
-      }
-      return new Promise<void>((resolve, reject) => {
-        image.addEventListener("load", () => resolve(), { once: true });
-        image.addEventListener(
-          "error",
-          () =>
-            reject(
-              new Error(
-                `图片加载失败：${image.alt || image.getAttribute("src") || "未知图片"}`,
-              ),
-            ),
-          { once: true },
-        );
-      });
-    }),
+            { once: true },
+          );
+        });
+      },
+    ),
   ).then(() => undefined);
 }
 
@@ -910,14 +911,17 @@ export async function prepareScheduleImage(
   const host = window.document.createElement("div");
   host.className = "simulator-image-export-host";
   host.style.width = `${EXPORT_CANVAS_WIDTH}px`;
-  const parts = createExportRoot(options.source, options.schedule);
-  host.append(parts.root);
   window.document.body.append(host);
 
   try {
+    await waitForImages(options.source, ".operator-avatar-display img");
+    await nextTick();
+    const parts = createExportRoot(options.source, options.schedule);
+    host.append(parts.root);
+
     prepareQueueColumn(parts.grid, options.schedule);
     prepareFiammettaColumn(parts.grid, options.schedule);
-    replaceMappedSpecialOperators(parts.grid, options);
+    await replaceMappedSpecialOperators(parts.grid, options);
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
     removeExportControls(parts.root);
