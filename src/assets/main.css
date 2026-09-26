@@ -1881,9 +1881,17 @@ a {
 
 .simulator-queue-duration-editor {
   padding-inline: 0;
+}
+
+.simulator-queue-duration-editor .ant-input-number {
   background: transparent;
   border: 0;
-  border-radius: 0;
+  box-shadow: none;
+}
+
+.simulator-queue-duration-editor:hover,
+.simulator-queue-duration-editor:focus-within {
+  border-color: #8bb6ad;
 }
 
 .simulator-queue-period-inputs {
