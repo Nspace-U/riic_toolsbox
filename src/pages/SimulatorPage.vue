@@ -5,7 +5,6 @@ import {
   CopyOutlined,
   DeleteOutlined,
   DownloadOutlined,
-  HolderOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlusOutlined,
@@ -560,9 +559,16 @@ const showScheduleSidebar = ref(true);
 const scheduleSearchQuery = ref("");
 const scheduleTagInput = ref("");
 const draggedDocumentId = ref<string>();
-const documentDragPointerId = ref<number>();
+const pendingDocumentDrag = ref<{
+  documentId: string;
+  pointerId: number;
+  startX: number;
+  startY: number;
+  element: HTMLElement;
+}>();
 const dragOverDocumentId = ref<string>();
 const dragOverDocumentPosition = ref<"before" | "after">();
+let suppressNextDocumentClick = false;
 const selectedOperatorSlots = ref<Set<string>>(new Set());
 const operatorSelectionAnchor = ref<OperatorSlotAddress>();
 const hoveredOperatorSlot = ref<OperatorSlotAddress>();
@@ -1409,15 +1415,51 @@ function removeScheduleTag(label: string, automatic: boolean): void {
 }
 
 function beginDocumentDrag(event: PointerEvent, documentId: string): void {
-  event.preventDefault();
-  event.stopPropagation();
-  draggedDocumentId.value = documentId;
-  documentDragPointerId.value = event.pointerId;
+  if (
+    event.pointerType === "touch" ||
+    event.button !== 0 ||
+    !(event.currentTarget instanceof HTMLElement)
+  ) {
+    return;
+  }
+  pendingDocumentDrag.value = {
+    documentId,
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    element: event.currentTarget,
+  };
+}
+
+function handleDocumentItemClick(
+  event: MouseEvent,
+  documentId: string,
+): void {
+  if (suppressNextDocumentClick) {
+    suppressNextDocumentClick = false;
+    event.preventDefault();
+    return;
+  }
+  selectDocument(documentId);
+}
+
+function startDocumentDrag(event: PointerEvent): void {
+  const pending = pendingDocumentDrag.value;
+  if (!pending || draggedDocumentId.value) {
+    return;
+  }
+  if (
+    Math.hypot(
+      event.clientX - pending.startX,
+      event.clientY - pending.startY,
+    ) < 5
+  ) {
+    return;
+  }
+  draggedDocumentId.value = pending.documentId;
   dragOverDocumentId.value = undefined;
   dragOverDocumentPosition.value = undefined;
-  if (event.currentTarget instanceof HTMLElement) {
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
+  pending.element.setPointerCapture(event.pointerId);
 }
 
 function updateDocumentDragTarget(
@@ -1446,7 +1488,12 @@ function documentItemAtPoint(event: PointerEvent): HTMLElement | undefined {
 }
 
 function handleDocumentPointerMove(event: PointerEvent): void {
-  if (event.pointerId !== documentDragPointerId.value) {
+  const pending = pendingDocumentDrag.value;
+  if (!pending || event.pointerId !== pending.pointerId) {
+    return;
+  }
+  startDocumentDrag(event);
+  if (!draggedDocumentId.value) {
     return;
   }
   const target = documentItemAtPoint(event);
@@ -1457,13 +1504,14 @@ function handleDocumentPointerMove(event: PointerEvent): void {
 }
 
 function handleDocumentPointerUp(event: PointerEvent): void {
-  if (event.pointerId !== documentDragPointerId.value) {
+  if (event.pointerId !== pendingDocumentDrag.value?.pointerId) {
     return;
   }
   const sourceId = draggedDocumentId.value;
   const target = documentItemAtPoint(event);
   const documentId = target?.dataset.scheduleDocumentId;
   if (sourceId && documentId && sourceId !== documentId) {
+    updateDocumentDragTarget(event, documentId, target);
     reorderDocuments(
       sourceId,
       documentId,
@@ -1471,13 +1519,15 @@ function handleDocumentPointerUp(event: PointerEvent): void {
     );
   }
   clearDocumentDrag();
+  suppressNextDocumentClick = Boolean(sourceId);
 }
 
 function clearDocumentDrag(): void {
   draggedDocumentId.value = undefined;
-  documentDragPointerId.value = undefined;
+  pendingDocumentDrag.value = undefined;
   dragOverDocumentId.value = undefined;
   dragOverDocumentPosition.value = undefined;
+  suppressNextDocumentClick = false;
 }
 
 function clearMessages(): void {
@@ -6854,28 +6904,21 @@ defineExpose({ prepareScheduleReferenceImage });
                 'simulator-document-item--drag-over-after':
                   dragOverDocumentId === document.id &&
                   dragOverDocumentPosition === 'after',
+                'simulator-document-item--dragging':
+                  draggedDocumentId === document.id,
               },
             ]"
             :data-schedule-document-id="document.id"
             role="button"
             tabindex="0"
-            @click="selectDocument(document.id)"
+            @click="handleDocumentItemClick($event, document.id)"
             @contextmenu.stop.prevent="
               openScheduleDocumentContextMenu($event, document.id)
             "
             @keydown.enter="selectDocument(document.id)"
             @keydown.space.prevent="selectDocument(document.id)"
+            @pointerdown="beginDocumentDrag($event, document.id)"
           >
-            <button
-              aria-label="拖拽排序"
-              class="simulator-document-drag-handle"
-              title="拖拽排序"
-              type="button"
-              @click.stop
-              @pointerdown="beginDocumentDrag($event, document.id)"
-            >
-              <HolderOutlined />
-            </button>
             <div class="simulator-document-item-main">
               <span class="simulator-document-item-title">{{
                 document.document.title || "未命名排班表"
