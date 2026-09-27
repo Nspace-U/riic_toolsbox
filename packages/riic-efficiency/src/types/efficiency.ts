@@ -348,6 +348,12 @@ export interface CurveCalculationStep {
   value: number;
 }
 
+export interface StatCalculationStep {
+  startHours: number;
+  endHours: number;
+  value: number;
+}
+
 export type OperatorEfficiencyCalculation =
   | {
       type: "tradeGap";
@@ -385,6 +391,11 @@ export type OperatorEfficiencyCalculation =
       threshold: number;
       activeHours: number;
       baseValue: number;
+    }
+  | {
+      type: "stat";
+      durationHours: number;
+      steps: StatCalculationStep[];
     };
 
 export interface OperatorEfficiencyDetail {

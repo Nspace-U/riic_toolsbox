@@ -18,6 +18,7 @@ import type {
   FacilityEfficiencyResult,
   CluePreference,
   CurveCalculationStep,
+  StatCalculationStep,
   DroneAccelerationDetail,
   MoodRateDetail,
   MoodSnapshot,
@@ -1082,19 +1083,135 @@ function evaluationDataAtTime(
   time: number,
 ): EvaluationData {
   const segments = data.capacitySegments;
-  if (!segments || segments.length === 0) {
-    return data;
-  }
-  const segment =
-    segments.find(
+  const capacitySegment =
+    segments?.find(
       (candidate) =>
         time >= candidate.startHours - EPSILON &&
         time < candidate.endHours - EPSILON,
     ) ??
-    (time <= (segments.at(-1)?.endHours ?? 0) + EPSILON
-      ? segments.at(-1)
+    (time <= (segments?.at(-1)?.endHours ?? 0) + EPSILON
+      ? segments?.at(-1)
       : undefined);
-  return segment ? { ...data, capBoosts: segment.capBoosts } : data;
+  const bonusSegment =
+    data.bonusSegments?.find(
+      (candidate) =>
+        time >= candidate.startHours - EPSILON &&
+        time < candidate.endHours - EPSILON,
+    ) ??
+    (time <= (data.bonusSegments?.at(-1)?.endHours ?? 0) + EPSILON
+      ? data.bonusSegments?.at(-1)
+      : undefined);
+  if (!capacitySegment && !bonusSegment) {
+    return data;
+  }
+  return {
+    ...data,
+    ...(capacitySegment ? { capBoosts: capacitySegment.capBoosts } : {}),
+    ...(bonusSegment
+      ? {
+          bonusByFacility: bonusSegment.bonusByFacility,
+          sameFacilityBonusByFacility: bonusSegment.sameFacilityBonusByFacility,
+        }
+      : {}),
+  };
+}
+
+function statEffectEvaluation(
+  item: ActiveEffect,
+  target: EfficiencyFacility | undefined,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+): { value: number; steps: StatCalculationStep[] } {
+  const per = item.effect.per;
+  const segments = data.bonusSegments;
+  if (per?.source !== "stat") {
+    return { value: 0, steps: [] };
+  }
+  if (!segments) {
+    return {
+      value: perCount(
+        per,
+        item.owner,
+        target,
+        item.effect.target,
+        context,
+        catalog,
+        data,
+      ).value,
+      steps: [],
+    };
+  }
+  const steps = segments.flatMap((segment): StatCalculationStep[] => {
+    if (segment.endHours <= segment.startHours + EPSILON) {
+      return [];
+    }
+    const time = (segment.startHours + segment.endHours) / 2;
+    const timeData = evaluationDataAtTime(data, time);
+    const value = isMoodSensitiveEffect(item)
+      ? moodEffectValueAtTime(item, target, context, catalog, timeData, time)
+      : item.effect.condition?.type === "workHours" &&
+          item.owner.workHoursBefore + time <
+            Number(item.effect.condition.value ?? 0)
+        ? 0
+        : perCount(
+            per,
+            item.owner,
+            target,
+            item.effect.target,
+            context,
+            catalog,
+            timeData,
+          ).value;
+    return [
+      {
+        startHours: segment.startHours,
+        endHours: segment.endHours,
+        value,
+      },
+    ];
+  });
+  return {
+    value:
+      context.durationHours > EPSILON
+        ? steps.reduce(
+            (total, step) =>
+              total + step.value * (step.endHours - step.startHours),
+            0,
+          ) / context.durationHours
+        : 0,
+    steps,
+  };
+}
+
+function statEffectCalculation(
+  item: ActiveEffect,
+  target: EfficiencyFacility,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+): OperatorEfficiencyCalculation | undefined {
+  if (item.effect.per?.source !== "stat" || !data.bonusSegments) {
+    return undefined;
+  }
+  const { steps } = statEffectEvaluation(item, target, context, catalog, data);
+  const grouped: StatCalculationStep[] = [];
+  steps.forEach((step) => {
+    const previous = grouped[grouped.length - 1];
+    if (previous && Math.abs(previous.value - step.value) <= EPSILON) {
+      previous.endHours = step.endHours;
+    } else {
+      grouped.push({ ...step });
+    }
+  });
+  if (grouped.length < 2) {
+    return undefined;
+  }
+  return {
+    type: "stat",
+    durationHours: context.durationHours,
+    steps: grouped,
+  };
 }
 
 function capacityEffectAverage(
@@ -1156,6 +1273,9 @@ function effectValue(
   catalog: EfficiencyCatalog,
   data: EvaluationData,
 ): number {
+  if (item.effect.per?.source === "stat" && data.bonusSegments) {
+    return statEffectEvaluation(item, target, context, catalog, data).value;
+  }
   if (isMoodSensitiveEffect(item)) {
     return moodEffectAverage(item, target, context, catalog, data);
   }
@@ -1195,6 +1315,47 @@ function effectValue(
         : 0;
   }
   return value;
+}
+
+function effectValueAtTime(
+  item: ActiveEffect,
+  target: EfficiencyFacility,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  data: EvaluationData,
+  time: number,
+): number {
+  if (isMoodSensitiveEffect(item)) {
+    return moodEffectValueAtTime(item, target, context, catalog, data, time);
+  }
+  if (
+    item.effect.condition?.type === "workHours" &&
+    item.owner.workHoursBefore + time < Number(item.effect.condition.value ?? 0)
+  ) {
+    return 0;
+  }
+  const timeData = evaluationDataAtTime(data, time);
+  if (item.effect.curve) {
+    const hour = Math.max(1, Math.ceil(time));
+    return Math.min(
+      item.effect.curve.startValue +
+        (item.owner.workHoursBefore + hour - item.effect.curve.startHours) *
+          item.effect.curve.step,
+      item.effect.curve.cap,
+    );
+  }
+  if (item.effect.per) {
+    return perCount(
+      item.effect.per,
+      item.owner,
+      target,
+      item.effect.target,
+      context,
+      catalog,
+      timeData,
+    ).value;
+  }
+  return Number(item.effect.value ?? 0) + Number(item.effect.baseValue ?? 0);
 }
 
 function effectCalculation(
@@ -2828,8 +2989,31 @@ function aggregateEffectValues(
   stats: Set<string>,
   category: "all" | "base" | "combination" = "all",
   source: "regular" | "stat" = "regular",
-): { total: number; details: Array<{ item: ActiveEffect; value: number }> } {
+  evaluationTime?: number,
+): { total: number; details: EffectDetail[] } {
   const suppressedSkills = suppressedSkillsFor(context, facility);
+  const evaluate = (item: ActiveEffect): EffectDetail => {
+    const value =
+      evaluationTime === undefined
+        ? effectValue(item, facility, context, catalog, data)
+        : effectValueAtTime(
+            item,
+            facility,
+            context,
+            catalog,
+            data,
+            evaluationTime,
+          );
+    const calculation =
+      evaluationTime === undefined
+        ? statEffectCalculation(item, facility, context, catalog, data)
+        : undefined;
+    return {
+      item,
+      value,
+      ...(calculation ? { calculation } : {}),
+    };
+  };
   const matchesCategory = (item: ActiveEffect): boolean => {
     const base = isFacilityBaseEffect(item);
     return category === "all" || (category === "base" ? base : !base);
@@ -2839,7 +3023,7 @@ function aggregateEffectValues(
       ? item.effect.per?.source === "stat"
       : item.effect.per?.source !== "stat" &&
         item.effect.per?.source !== "orderCount";
-  const normal: Array<{ item: ActiveEffect; value: number }> = [];
+  const normal: EffectDetail[] = [];
   active
     .filter(
       (item) => item.target?.id === facility.id && stats.has(item.effect.stat),
@@ -2858,16 +3042,8 @@ function aggregateEffectValues(
     .filter((item) => item.effect.stack !== "max")
     .filter((item) => !suppressedSkills.has(item.skill))
     .filter((item) => shouldIncludeZeroedEffect(item, zeroed))
-    .forEach((item) =>
-      normal.push({
-        item,
-        value: effectValue(item, facility, context, catalog, data),
-      }),
-    );
-  const byGroup = new Map<
-    string,
-    Map<string, Array<{ item: ActiveEffect; value: number }>>
-  >();
+    .forEach((item) => normal.push(evaluate(item)));
+  const byGroup = new Map<string, Map<string, EffectDetail[]>>();
   active
     .filter(
       (item) => item.target?.id === facility.id && stats.has(item.effect.stat),
@@ -2889,14 +3065,9 @@ function aggregateEffectValues(
       const groupKey =
         item.effect.maxGroup ??
         `${item.effect.target}|${item.effect.stat}|${item.effect.recipe ?? ""}`;
-      const groups =
-        byGroup.get(groupKey) ??
-        new Map<string, Array<{ item: ActiveEffect; value: number }>>();
+      const groups = byGroup.get(groupKey) ?? new Map<string, EffectDetail[]>();
       const values = groups.get(item.owner.name) ?? [];
-      values.push({
-        item,
-        value: effectValue(item, facility, context, catalog, data),
-      });
+      values.push(evaluate(item));
       groups.set(item.owner.name, values);
       byGroup.set(groupKey, groups);
     });
@@ -2926,6 +3097,7 @@ function collectBonusByFacility(
   attributeStates: Map<string, AttributeState>,
   capacityCalculations: Map<string, CapacityCalculation>,
   scope: "sameFacility" | "targetFacility",
+  evaluationTime?: number,
 ): Record<string, Record<string, Record<string, number>>> {
   const result: Record<string, Record<string, Record<string, number>>> = {};
   context.facilities.forEach((facility) => {
@@ -2964,6 +3136,8 @@ function collectBonusByFacility(
       zeroed,
       stats,
       "combination",
+      "regular",
+      evaluationTime,
     );
     const byOperator: Record<string, Record<string, number>> = {};
     function addBonus(item: ActiveEffect, value: number): void {
@@ -2997,6 +3171,85 @@ function collectBonusByFacility(
     result[facility.id] = byOperator;
   });
   return result;
+}
+
+function bonusTimeBoundaries(
+  context: PlanContext,
+  capacityCalculations: Map<string, CapacityCalculation>,
+): number[] {
+  const duration = context.durationHours;
+  const boundaries = [0, duration];
+  context.active
+    .filter((item) => EFFICIENCY_STATS.has(item.effect.stat))
+    .forEach((item) => {
+      if (item.effect.curve) {
+        for (let hour = 1; hour < duration - EPSILON; hour += 1) {
+          boundaries.push(hour);
+        }
+      }
+      if (item.effect.condition?.type === "workHours") {
+        boundaries.push(
+          Number(item.effect.condition.value ?? 0) - item.owner.workHoursBefore,
+        );
+      }
+      if (isMoodSensitiveEffect(item)) {
+        boundaries.push(...moodEffectBoundaries(item, duration));
+      }
+    });
+  capacityCalculations.forEach(({ segments }) => {
+    segments.forEach(({ startHours, endHours }) => {
+      boundaries.push(startHours, endHours);
+    });
+  });
+  return Array.from(
+    new Set(
+      boundaries
+        .map((value) => Math.max(0, Math.min(duration, value)))
+        .sort((left, right) => left - right),
+    ),
+  );
+}
+
+function collectBonusSegments(
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  attributeStates: Map<string, AttributeState>,
+  capacityCalculations: Map<string, CapacityCalculation>,
+): NonNullable<EvaluationData["bonusSegments"]> | undefined {
+  if (!context.active.some((item) => item.effect.per?.source === "stat")) {
+    return undefined;
+  }
+  const boundaries = bonusTimeBoundaries(context, capacityCalculations);
+  const segments: NonNullable<EvaluationData["bonusSegments"]> = [];
+  for (let index = 1; index < boundaries.length; index += 1) {
+    const startHours = boundaries[index - 1] ?? 0;
+    const endHours = boundaries[index] ?? startHours;
+    if (endHours <= startHours + EPSILON) {
+      continue;
+    }
+    const time = (startHours + endHours) / 2;
+    segments.push({
+      startHours,
+      endHours,
+      bonusByFacility: collectBonusByFacility(
+        context,
+        catalog,
+        attributeStates,
+        capacityCalculations,
+        "targetFacility",
+        time,
+      ),
+      sameFacilityBonusByFacility: collectBonusByFacility(
+        context,
+        catalog,
+        attributeStates,
+        capacityCalculations,
+        "sameFacility",
+        time,
+      ),
+    });
+  }
+  return segments;
 }
 
 function calculateAttributes(
@@ -3275,6 +3528,7 @@ function calculateFacility(
     string,
     Record<string, Record<string, number>>
   >,
+  bonusSegments: EvaluationData["bonusSegments"],
   capacityCalculation: CapacityCalculation | undefined,
 ): FacilityEfficiencyResult {
   const resolvedAssignment = resolveRoomAssignment(
@@ -3287,6 +3541,7 @@ function calculateFacility(
     capBoosts: attributeState.capBoosts,
     bonusByFacility,
     sameFacilityBonusByFacility,
+    ...(bonusSegments ? { bonusSegments } : {}),
     ...(capacityCalculation
       ? { capacitySegments: capacityCalculation.segments }
       : {}),
@@ -4159,6 +4414,7 @@ function calculatePowerGroup(
     string,
     Record<string, Record<string, number>>
   >,
+  bonusSegments: EvaluationData["bonusSegments"],
 ): FacilityEfficiencyResult | undefined {
   const powerFacilities = context.facilities.filter(
     (facility) => facility.type === "power",
@@ -4182,6 +4438,7 @@ function calculatePowerGroup(
       capBoosts: attributeStates.get(facility.id)?.capBoosts ?? {},
       bonusByFacility,
       sameFacilityBonusByFacility,
+      ...(bonusSegments ? { bonusSegments } : {}),
     };
     const combination = aggregateEffectValues(
       context,
@@ -4323,6 +4580,12 @@ function calculatePlan(
     capacityCalculations,
     "sameFacility",
   );
+  const bonusSegments = collectBonusSegments(
+    context,
+    catalog,
+    attributes,
+    capacityCalculations,
+  );
   const facilities: FacilityEfficiencyResult[] = [];
   const powerResult = calculatePowerGroup(
     context,
@@ -4330,6 +4593,7 @@ function calculatePlan(
     attributes,
     bonusByFacility,
     sameFacilityBonusByFacility,
+    bonusSegments,
   );
   context.facilities.forEach((facility) => {
     if (
@@ -4359,6 +4623,7 @@ function calculatePlan(
         state,
         bonusByFacility,
         sameFacilityBonusByFacility,
+        bonusSegments,
         capacityCalculations.get(facility.id),
       ),
     );

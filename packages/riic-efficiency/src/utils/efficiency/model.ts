@@ -169,6 +169,15 @@ export interface EvaluationData {
     string,
     Record<string, Record<string, number>>
   >;
+  bonusSegments?: Array<{
+    startHours: number;
+    endHours: number;
+    bonusByFacility: Record<string, Record<string, Record<string, number>>>;
+    sameFacilityBonusByFacility: Record<
+      string,
+      Record<string, Record<string, number>>
+    >;
+  }>;
   capacitySegments?: CapacityEvaluationSegment[];
 }
 

@@ -70,6 +70,32 @@ export function operatorCalculationLines(
     }
     return lines;
   }
+  if (calculation.type === "stat") {
+    const weightedTerms = calculation.steps
+      .map(
+        (step) =>
+          `${formatEfficiencyNumber(step.value)} × ${formatNumber(
+            step.endHours - step.startHours,
+          )}`,
+      )
+      .join(" + ");
+    const segments = calculation.steps
+      .map(
+        (step) =>
+          `${formatNumber(step.startHours)}-${formatNumber(
+            step.endHours,
+          )} 小时：${formatEfficiencyNumber(step.value)}%`,
+      )
+      .join("；");
+    return [
+      `逐时段折算：${segments}`,
+      calculation.durationHours > 0
+        ? `加权平均：(${weightedTerms}) ÷ ${formatNumber(
+            calculation.durationHours,
+          )} = ${formatEfficiencyNumber(detail.value)}%`
+        : "加权平均：队列时长为 0，结果为 0%",
+    ];
+  }
   if (calculation.type === "workHours") {
     const efficiencyLine =
       calculation.durationHours > 0

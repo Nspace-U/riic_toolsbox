@@ -136,6 +136,7 @@ export {
 export type {
   ComparisonOperator,
   CurveCalculationStep,
+  StatCalculationStep,
   EfficiencyCalculationOptions,
   EfficiencyCondition,
   EfficiencyCurve,
