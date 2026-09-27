@@ -12,6 +12,7 @@ import { message } from "ant-design-vue";
 import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
 import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
 import ScheduleOperatorSlot from "@/components/ScheduleOperatorSlot.vue";
+import ScheduleOperatorSlotContent from "@/components/ScheduleOperatorSlotContent.vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type { OperatorProgressionNode } from "@arknights/riic-efficiency";
@@ -79,10 +80,14 @@ interface ClipboardEntry {
   name: string;
   state?: OperatorState;
 }
+interface ClipboardAddress extends SlotAddress {
+  facilityKey: string;
+  facilitySlotIndex?: number;
+}
 interface ClipboardState {
   mode: "copy" | "cut";
   entries: ClipboardEntry[];
-  sourceAddresses: SlotAddress[];
+  sourceAddresses: ClipboardAddress[];
 }
 interface HistoryEntry {
   before: ScheduleDocument;
@@ -263,10 +268,11 @@ const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
   getAddressAtPoint: addressesAtPoint,
   getName: slotName,
   getSelectionRange(anchor, target) {
-    if (selectionScope(anchor) !== selectionScope(target)) return undefined;
-    const scope = addressesInScope(target);
-    const start = scope.findIndex((address) => address.key === anchor.key);
-    const end = scope.findIndex((address) => address.key === target.key);
+    if (transferFacilityKey(anchor) !== transferFacilityKey(target))
+      return undefined;
+    const scope = transferFacilityAddresses(target);
+    const start = transferFacilitySlotIndex(anchor);
+    const end = transferFacilitySlotIndex(target);
     if (start < 0 || end < 0) return undefined;
     return scope.slice(Math.min(start, end), Math.max(start, end) + 1);
   },
@@ -278,6 +284,13 @@ const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
   commitEdit() {
     commitSlotEdit();
     return true;
+  },
+  beforePointerDown() {
+    commitSlotEdit();
+    return true;
+  },
+  shouldStartPointer(event) {
+    return Boolean(calculatorGridPointerTarget(event.target));
   },
   onSelect(_event, address) {
     const context = pendingCalculatorSelection;
@@ -294,6 +307,13 @@ const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
           ? `已交换 ${destinations.length} 个槽位，超出目标槽位的内容已截断`
           : `已交换 ${destinations.length} 个槽位`,
       );
+  },
+  onDragMove(x, y, started) {
+    if (started) void nextTick(() => updateOperatorDragPreviewPosition(x, y));
+    updateOperatorDragPreviewPosition(x, y);
+  },
+  onDragEnd(_cancelled, target) {
+    operatorInteraction.setHoveredAddress(target);
   },
   onCopy: copyOperators,
   onCut: cutOperators,
@@ -361,17 +381,54 @@ onMounted(() => {
   window.addEventListener("resize", updatePickerPosition);
   window.addEventListener("scroll", updatePickerPosition, true);
   window.addEventListener("click", handleWindowClick);
-  window.addEventListener("keydown", handleWindowKeydown);
-  window.addEventListener("selectstart", handleWindowSelectStart);
+  window.addEventListener("keydown", handleWindowKeydown, true);
+  window.addEventListener("pointermove", handlePointerMove, true);
+  window.addEventListener("pointerup", handlePointerUp, true);
+  window.addEventListener("pointercancel", handlePointerCancel, true);
+  window.addEventListener("selectstart", handleWindowSelectStart, true);
 });
 onBeforeUnmount(() => {
   if (layoutApplyTimer !== undefined) clearTimeout(layoutApplyTimer);
   window.removeEventListener("resize", updatePickerPosition);
   window.removeEventListener("scroll", updatePickerPosition, true);
   window.removeEventListener("click", handleWindowClick);
-  window.removeEventListener("keydown", handleWindowKeydown);
-  window.removeEventListener("selectstart", handleWindowSelectStart);
+  window.removeEventListener("keydown", handleWindowKeydown, true);
+  window.removeEventListener("pointermove", handlePointerMove, true);
+  window.removeEventListener("pointerup", handlePointerUp, true);
+  window.removeEventListener("pointercancel", handlePointerCancel, true);
+  window.removeEventListener("selectstart", handleWindowSelectStart, true);
 });
+
+const operatorDragPreview = computed(() => {
+  const interaction = pointerInteraction.value;
+  if (interaction?.mode !== "move") return undefined;
+  const entries = interaction.sourceAddresses.flatMap((address) => {
+    const name = slotName(address);
+    if (!name) return [];
+    return [
+      {
+        address,
+        name,
+        operator: props.operatorFor(name),
+        specialLabel: specialLabel(name),
+      },
+    ];
+  });
+  const first = entries[0];
+  return first ? { ...first, count: entries.length } : undefined;
+});
+
+const operatorDragPreviewElement = ref<HTMLElement>();
+
+function updateOperatorDragPreviewPosition(
+  clientX: number,
+  clientY: number,
+): void {
+  const element = operatorDragPreviewElement.value;
+  if (!element) return;
+  element.style.insetInlineStart = `${clientX}px`;
+  element.style.insetBlockStart = `${clientY}px`;
+}
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -567,6 +624,44 @@ function allSlotAddresses(): SlotAddress[] {
   return facilityRows.value.flatMap((row) =>
     slotRefs(row).map((slot) => slotAddress(slot, row.type)),
   );
+}
+function transferFacilityRow(address: SlotAddress): FacilityRow | undefined {
+  return facilityRows.value.find(
+    (row) =>
+      row.type === address.type &&
+      (row.type === "power" ||
+        row.entries.some((entry) => entry.position === address.position)),
+  );
+}
+function transferFacilityKey(address: SlotAddress): string {
+  return (
+    transferFacilityRow(address)?.key ?? address.type + "-" + address.position
+  );
+}
+function transferFacilityAddresses(address: SlotAddress): SlotAddress[] {
+  const row = transferFacilityRow(address);
+  return row
+    ? slotRefs(row).map((slot) => slotAddress(slot, row.type))
+    : addressesInScope(address);
+}
+function transferFacilitySlotIndex(address: SlotAddress): number {
+  return transferFacilityAddresses(address).findIndex(
+    (item) => item.key === address.key,
+  );
+}
+function transferAddressAtFacilitySlot(
+  address: SlotAddress,
+  slotIndex: number,
+): SlotAddress | undefined {
+  return transferFacilityAddresses(address)[slotIndex];
+}
+function clipboardAddress(address: SlotAddress): ClipboardAddress {
+  const facilitySlotIndex = transferFacilitySlotIndex(address);
+  return {
+    ...address,
+    facilityKey: transferFacilityKey(address),
+    ...(facilitySlotIndex >= 0 ? { facilitySlotIndex } : {}),
+  };
 }
 function slotName(address: SlotAddress): string {
   return (
@@ -809,32 +904,62 @@ function addressesAtPoint(x: number, y: number): SlotAddress | undefined {
   }
   return undefined;
 }
+function calculatorGridPointerTarget(
+  target: EventTarget | null,
+): Element | undefined {
+  if (!(target instanceof Element)) return undefined;
+  if (
+    target.closest(
+      ".ant-card-head, button, input, textarea, select, a, .simulator-context-menu",
+    )
+  ) {
+    return undefined;
+  }
+  return target.closest(
+    ".basic-calculator-facility-column .simulator-facility-queue",
+  )
+    ? target
+    : undefined;
+}
 function transferPairs(
   sources: SlotAddress[],
   target: SlotAddress,
+  sourceMetadata?: Map<string, ClipboardAddress>,
 ): Array<[SlotAddress, SlotAddress]> {
-  const valid = sources.filter((address) => slotName(address));
+  const valid = sources;
   if (!valid.length) return [];
   const firstSource = valid[0];
   if (!firstSource) return [];
-  const sameScope = valid.every(
-    (address) => selectionScope(address) === selectionScope(firstSource),
+  const sourceFacilityKey =
+    sourceMetadata?.get(firstSource.key)?.facilityKey ??
+    transferFacilityKey(firstSource);
+  const sourceCoordinates = valid.map((source) => ({
+    source,
+    slotIndex:
+      sourceMetadata?.get(source.key)?.facilitySlotIndex ??
+      transferFacilitySlotIndex(source),
+  }));
+  const sameFacility = valid.every(
+    (address) =>
+      (sourceMetadata?.get(address.key)?.facilityKey ??
+        transferFacilityKey(address)) === sourceFacilityKey,
   );
-  if (sameScope && selectionScope(target) === selectionScope(firstSource)) {
-    const scope = addressesInScope(target);
-    const first = scope.findIndex((address) => address.key === valid[0]?.key);
-    const targetIndex = scope.findIndex(
-      (address) => address.key === target.key,
+  const targetSlotIndex = transferFacilitySlotIndex(target);
+  if (
+    sameFacility &&
+    sourceCoordinates.every(({ slotIndex }) => slotIndex >= 0) &&
+    targetSlotIndex >= 0
+  ) {
+    const firstSlotIndex = Math.min(
+      ...sourceCoordinates.map(({ slotIndex }) => slotIndex),
     );
-    if (first >= 0 && targetIndex >= 0) {
-      return valid.flatMap((source) => {
-        const sourceIndex = scope.findIndex(
-          (address) => address.key === source.key,
-        );
-        const destination = scope[targetIndex + sourceIndex - first];
-        return destination ? [[source, destination] as const] : [];
-      });
-    }
+    return sourceCoordinates.flatMap(({ source, slotIndex }) => {
+      const destination = transferAddressAtFacilitySlot(
+        target,
+        targetSlotIndex + slotIndex - firstSlotIndex,
+      );
+      return destination ? [[source, destination] as const] : [];
+    });
   }
   const addresses = allSlotAddresses();
   const start = addresses.findIndex((address) => address.key === target.key);
@@ -909,7 +1034,7 @@ function copyOperators(): boolean {
   clipboard.value = {
     mode: "copy",
     entries: addresses.map((address) => snapshotAt(props.modelValue, address)),
-    sourceAddresses: addresses,
+    sourceAddresses: addresses.map(clipboardAddress),
   };
   const operatorCount = clipboard.value.entries.filter(
     (entry) => entry.name,
@@ -929,7 +1054,7 @@ function cutOperators(): boolean {
   clipboard.value = {
     mode: "cut",
     entries: addresses.map((address) => snapshotAt(props.modelValue, address)),
-    sourceAddresses: addresses,
+    sourceAddresses: addresses.map(clipboardAddress),
   };
   const operatorCount = clipboard.value.entries.filter(
     (entry) => entry.name,
@@ -956,9 +1081,12 @@ function pasteOperators(): boolean {
   if (!state?.entries.length || !target) return false;
   commitSlotEdit();
   const selected = operatorInteraction.selectedAddresses();
-  const fallback = transferPairs(state.sourceAddresses, target).flatMap(
-    ([, address], index) =>
-      state.entries[index] ? [{ address, entry: state.entries[index]! }] : [],
+  const fallback = transferPairs(
+    state.sourceAddresses,
+    target,
+    new Map(state.sourceAddresses.map((address) => [address.key, address])),
+  ).flatMap(([, address], index) =>
+    state.entries[index] ? [{ address, entry: state.entries[index]! }] : [],
   );
   const assignments = operatorPasteAssignments(
     state.entries,
@@ -1043,17 +1171,25 @@ function navigateSlot(action: ScheduleOperatorNavigation): boolean {
     const empty = scope.find((address) => !slotName(address));
     target = empty ?? scope.find((address) => address.key === current.key);
   } else {
-    const index = facilityRows.value.findIndex((row) =>
-      row.entries.some(
-        (entry) =>
-          row.type === current.type && entry.position === current.position,
-      ),
+    const rooms = facilityRows.value.flatMap((row) =>
+      row.entries.map((entry) => ({
+        type: row.type,
+        position: entry.position,
+        slotCount: roomSlotCount(row.type, entry.entry.level),
+      })),
     );
-    const row = facilityRows.value[index + (action === "up" ? -1 : 1)];
-    if (row) {
-      const slot =
-        slotRefs(row)[Math.min(current.slotIndex, slotRefs(row).length - 1)];
-      if (slot) target = slotAddress(slot, row.type);
+    const index = rooms.findIndex(
+      (room) =>
+        room.type === current.type && room.position === current.position,
+    );
+    const room = rooms[index + (action === "up" ? -1 : 1)];
+    if (room) {
+      target = allSlotAddresses().find(
+        (address) =>
+          address.type === room.type &&
+          address.position === room.position &&
+          address.slotIndex === Math.min(current.slotIndex, room.slotCount - 1),
+      );
     }
   }
   if (!target) return false;
@@ -1350,10 +1486,7 @@ defineExpose({ clearInteractionState });
   <div
     ref="editorElement"
     class="basic-calculator-schedule-editor"
-    @pointercancel="handlePointerCancel"
     @pointerdown="handlePointerDown"
-    @pointermove="handlePointerMove"
-    @pointerup="handlePointerUp"
   >
     <ScheduleLayoutEditor
       :error="layoutError"
@@ -1368,7 +1501,7 @@ defineExpose({ clearInteractionState });
       @remove-layout="removeLayoutEntry"
       @update-layout-level="updateLayoutLevel"
     />
-    <div class="basic-calculator-schedule-facilities">
+    <div class="basic-calculator-schedule-facilities" @dragstart.prevent>
       <div
         v-for="row in facilityRows"
         :key="row.key"
@@ -1493,6 +1626,38 @@ defineExpose({ clearInteractionState });
         :style="selectionMarqueeStyle"
         class="simulator-selection-marquee basic-calculator-selection-marquee"
       />
+    </div>
+    <div
+      v-if="operatorDragPreview"
+      ref="operatorDragPreviewElement"
+      class="simulator-operator-drag-preview"
+    >
+      <ScheduleOperatorSlotContent
+        :display-name="operatorDragPreview.name"
+        :elite-level="
+          operatorDragPreview.operator
+            ? operatorEliteLevel(
+                operatorDragPreview.name,
+                operatorDragPreview.address.type,
+              )
+            : 0
+        "
+        :operator="operatorDragPreview.operator"
+        :room-label="ROOM_LABELS[operatorDragPreview.address.type]"
+        :room-type="operatorDragPreview.address.type"
+        :size="76"
+        :slot-key="operatorDragPreview.address.key"
+        :special-label="operatorDragPreview.specialLabel"
+      />
+      <span
+        v-if="operatorDragPreview.count > 1"
+        :style="{
+          '--simulator-operator-drag-preview-avatar-center': '38px',
+          '--simulator-operator-drag-preview-avatar-size': '76px',
+        }"
+        class="simulator-operator-drag-preview-count"
+        >×{{ operatorDragPreview.count }}</span
+      >
     </div>
     <ScheduleOperatorPicker
       v-if="pickerAddress"
