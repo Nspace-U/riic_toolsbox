@@ -97,7 +97,7 @@ interface GroupDraft {
   rows: BasicCalculatorRow[];
 }
 
-const STORAGE_KEY = "riic-tools:basic-calculator:v3";
+const STORAGE_KEY = "riic-tools:basic-calculator:v4";
 const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
@@ -862,7 +862,7 @@ function addRow(group: BasicCalculatorGroup): void {
   const id = `${group.id}-row-${Date.now().toString(36)}`;
   const row: BasicCalculatorRow = {
     id,
-    schedule: createBasicCalculatorSchedule(group, id),
+    schedule: createBasicCalculatorSchedule(group),
     hiddenOperators: [group.coreOperator.name],
   };
   updateConfig((draft) => {

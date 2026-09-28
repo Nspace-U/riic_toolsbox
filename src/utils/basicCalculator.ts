@@ -168,7 +168,10 @@ function normalizeConfig(config: BasicCalculatorConfig): BasicCalculatorConfig {
   const normalized = clone(config);
   normalized.groups.forEach((group) => {
     group.rows.forEach((row) => {
-      row.schedule.plans.forEach((plan) => delete plan.duration);
+      row.schedule.plans.forEach((plan) => {
+        delete plan.name;
+        delete plan.duration;
+      });
     });
   });
   return normalized;
@@ -500,13 +503,11 @@ export function basicCalculatorOperatorFieldNames(
 
 export function createBasicCalculatorSchedule(
   group: BasicCalculatorGroup,
-  rowId: string,
 ): ScheduleDocument {
   return {
     layout: [{ type: group.facility, level: group.facilityLevel }],
     plans: [
       {
-        name: rowId,
         rooms: {
           [group.facility]: [{ operators: [group.coreOperator.name] }],
         },
@@ -673,7 +674,6 @@ function coreOnlySchedule(
   const targetEntry = document.layout.find(
     (entry) => entry.type === group.facility,
   );
-  const sourcePlan = document.plans[0];
   return {
     layout: [
       {
@@ -683,7 +683,6 @@ function coreOnlySchedule(
     ],
     plans: [
       {
-        ...(sourcePlan?.name ? { name: sourcePlan.name } : {}),
         duration: 1440,
         rooms: { [group.facility]: [assignment] },
       },
