@@ -9,6 +9,7 @@ import {
   formatDurationHours,
   planDurationHoursValue,
 } from "@/utils/simulator/presentation";
+import { facilityTitleStyle } from "@/utils/simulator/facilityTitle";
 
 export const SCHEDULE_IMAGE_RESOLUTIONS = [
   { key: "1080p", label: "1920 × 1080", width: 1920, height: 1080 },
@@ -635,6 +636,33 @@ function pruneEmptyFacilities(grid: HTMLElement): void {
   );
 }
 
+function fitFacilityTitles(grid: HTMLElement): void {
+  directChildrenWithClass(grid, "simulator-facility-column").forEach(
+    (column) => {
+      const title = column.querySelector<HTMLElement>(
+        ".simulator-facility-title",
+      );
+      const label = title?.querySelector<HTMLElement>(
+        ":scope > span:first-child",
+      );
+      if (!title || !label) {
+        return;
+      }
+
+      const cardWidth =
+        Number.parseFloat(
+          column.style.getPropertyValue("--simulator-column-width"),
+        ) || column.getBoundingClientRect().width;
+      const tagCount = title.querySelectorAll(".ant-tag").length;
+      Object.entries(
+        facilityTitleStyle(label.textContent ?? "", cardWidth, tagCount),
+      ).forEach(([property, value]) =>
+        title.style.setProperty(property, value),
+      );
+    },
+  );
+}
+
 function facilityColumnWidth(column: HTMLElement): number {
   return Math.max(1, Math.round(column.getBoundingClientRect().width));
 }
@@ -954,6 +982,7 @@ export async function prepareScheduleImage(
     await replaceMappedSpecialOperators(parts.grid, options);
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
+    fitFacilityTitles(parts.grid);
     removeExportControls(parts.root);
     const maxRowWidth = reflowFacilities(parts.grid);
     await waitForImages(parts.root);
