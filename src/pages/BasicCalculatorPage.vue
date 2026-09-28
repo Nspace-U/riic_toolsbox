@@ -354,6 +354,15 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   );
 }
 
+function isNumericColumn(column: BasicCalculatorColumn): boolean {
+  return (
+    column.kind === "storageDelta" ||
+    column.kind === "orderDelta" ||
+    column.kind === "efficiency" ||
+    column.kind === "operatorField"
+  );
+}
+
 function displayOperatorLabel(
   group: BasicCalculatorGroup,
   operator: BasicCalculatorOperator,
@@ -1148,6 +1157,9 @@ function toggleGroupColumn(
                   <th
                     v-for="column in groupColumns(group)"
                     :key="column.id"
+                    :class="{
+                      'basic-calculator-numeric-cell': isNumericColumn(column),
+                    }"
                     :aria-sort="
                       config.settings.sortColumnId === column.id
                         ? config.settings.sortDirection === 'asc'
@@ -1215,6 +1227,8 @@ function toggleGroupColumn(
                     :class="{
                       'basic-calculator-name-cell':
                         column.kind === 'operatorNames',
+                      'basic-calculator-note-cell': column.kind === 'note',
+                      'basic-calculator-numeric-cell': isNumericColumn(column),
                     }"
                   >
                     <div
@@ -1467,7 +1481,10 @@ function toggleGroupColumn(
         />
         <a-form layout="vertical">
           <a-form-item label="备注">
-            <a-input v-model:value="rowDraftNote" />
+            <a-textarea
+              v-model:value="rowDraftNote"
+              :auto-size="{ minRows: 2, maxRows: 8 }"
+            />
           </a-form-item>
           <a-form-item
             v-if="draftHiddenOperatorOptions.length"
@@ -1554,17 +1571,30 @@ function toggleGroupColumn(
 }
 .basic-calculator-table {
   border-collapse: collapse;
-  min-width: 980px;
   table-layout: auto;
-  width: 100%;
+  width: max-content;
 }
 .basic-calculator-table th,
 .basic-calculator-table td {
   border-block-end: 1px solid rgba(46, 65, 61, 0.12);
-  padding: 7px 10px;
+  padding: 5px 6px;
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
+}
+.basic-calculator-table th.basic-calculator-numeric-cell,
+.basic-calculator-table td.basic-calculator-numeric-cell {
+  text-align: end;
+}
+.basic-calculator-table
+  th.basic-calculator-numeric-cell
+  .basic-calculator-sort-button {
+  justify-content: flex-end;
+  width: 100%;
+}
+.basic-calculator-table td.basic-calculator-note-cell {
+  text-align: start;
+  white-space: pre;
 }
 .basic-calculator-table th {
   background: rgba(236, 242, 240, 0.9);
@@ -1590,25 +1620,17 @@ function toggleGroupColumn(
   outline: 2px solid #216a66;
   outline-offset: 2px;
 }
-.basic-calculator-table th:first-child,
-.basic-calculator-table td:first-child {
-  min-width: 64px;
-}
 .basic-calculator-name-cell {
-  min-width: 220px;
   text-align: start !important;
-  width: max-content;
 }
 .basic-calculator-avatars {
   align-items: flex-start;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
 }
 .basic-calculator-actions-column {
-  min-width: 64px;
   padding-inline: 4px !important;
-  width: 64px;
 }
 .basic-calculator-row-actions {
   display: flex;
