@@ -963,28 +963,3 @@ export function compareValues(
   }
   return String(first ?? "").localeCompare(String(second ?? ""), "zh-CN");
 }
-
-export function columnHours(column: BasicCalculatorColumn): number | undefined {
-  return column.kind === "efficiency" ? column.hours : undefined;
-}
-
-export function sortBasicCalculatorColumns(
-  columns: BasicCalculatorColumn[],
-): BasicCalculatorColumn[] {
-  const timeColumns = columns
-    .filter((column) => columnHours(column) !== undefined)
-    .sort(
-      (first, second) => (columnHours(first) ?? 0) - (columnHours(second) ?? 0),
-    );
-  if (timeColumns.length === 0) return columns;
-  const firstTimeIndex = columns.findIndex(
-    (column) => columnHours(column) !== undefined,
-  );
-  const before = columns
-    .slice(0, firstTimeIndex)
-    .filter((column) => columnHours(column) === undefined);
-  const after = columns
-    .slice(firstTimeIndex)
-    .filter((column) => columnHours(column) === undefined);
-  return [...before, ...timeColumns, ...after];
-}

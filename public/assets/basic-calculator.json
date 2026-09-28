@@ -157,7 +157,7 @@
               }
             ]
           },
-          "hiddenOperators": ["红云"]
+          "hiddenOperators": ["红云", "莱茵生命"]
         },
         {
           "id": "red-cloud-04",
@@ -242,19 +242,19 @@
               },
               {
                 "type": "dormitory",
-                "level": 3
+                "level": 5
               },
               {
                 "type": "dormitory",
-                "level": 3
+                "level": 5
               },
               {
                 "type": "dormitory",
-                "level": 3
+                "level": 5
               },
               {
                 "type": "dormitory",
-                "level": 3
+                "level": 5
               }
             ],
             "plans": [

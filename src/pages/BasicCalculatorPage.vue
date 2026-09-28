@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import {
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
   PlusOutlined,
@@ -8,7 +10,15 @@ import {
   SortDescendingOutlined,
   SettingOutlined,
 } from "@ant-design/icons-vue";
-import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  h,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 
 import BasicCalculatorScheduleEditor from "@/components/BasicCalculatorScheduleEditor.vue";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
@@ -43,7 +53,6 @@ import {
   createBasicCalculatorSchedule,
   operatorFieldOptions,
   operatorFieldValues,
-  sortBasicCalculatorColumns,
   synchronizeBasicCalculatorGroupSchedule,
 } from "@/utils/basicCalculator";
 import type {
@@ -106,11 +115,13 @@ const activeGroupIds = ref<string[]>([]);
 const columnModalOpen = ref(false);
 const groupModalOpen = ref(false);
 const rowModalOpen = ref(false);
-const columnDraftKind = ref<BasicCalculatorColumnKind>("efficiency");
-const columnDraftLabel = ref("");
-const columnDraftHours = ref(12);
-const columnDraftPath = ref("");
-const columnDraftAggregate = ref<BasicCalculatorAggregate>("list");
+const columnDraft = reactive({
+  kind: "efficiency" as BasicCalculatorColumnKind,
+  label: "",
+  hours: 12,
+  path: "",
+  aggregate: "list" as BasicCalculatorAggregate,
+});
 const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
 const rowDraftSchedule = ref<ScheduleDocument>();
@@ -334,13 +345,12 @@ function requestCalculations(): void {
 watch(calculationFingerprint, () => requestCalculations(), { immediate: true });
 
 function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
-  const columns = (config.value?.columns ?? []).filter(
+  return (config.value?.columns ?? []).filter(
     (column) =>
       group.columnIds.includes(column.id) &&
       (column.kind === "operatorNames" || column.visible !== false) &&
       (column.kind !== "operators" || config.value?.settings.avatar.showAvatar),
   );
-  return sortBasicCalculatorColumns(columns);
 }
 
 function displayOperatorLabel(
@@ -621,6 +631,20 @@ function updateColumnAggregate(
   });
 }
 
+function moveColumn(id: string, direction: -1 | 1): void {
+  updateConfig((draft) => {
+    const index = draft.columns.findIndex((column) => column.id === id);
+    const destination = index + direction;
+    if (index < 0 || destination < 0 || destination >= draft.columns.length)
+      return;
+    const column = draft.columns[index];
+    const adjacentColumn = draft.columns[destination];
+    if (!column || !adjacentColumn) return;
+    draft.columns[index] = adjacentColumn;
+    draft.columns[destination] = column;
+  });
+}
+
 function removeColumn(id: string): void {
   updateConfig((draft) => {
     draft.columns = draft.columns.filter((column) => column.id !== id);
@@ -634,12 +658,16 @@ function removeColumn(id: string): void {
   });
 }
 
+function resetColumnDraft(): void {
+  columnDraft.kind = "efficiency";
+  columnDraft.label = "";
+  columnDraft.hours = 12;
+  columnDraft.path = fieldOptions.value[0]?.value ?? "";
+  columnDraft.aggregate = "list";
+}
+
 function openColumnEditor(): void {
-  columnDraftKind.value = "efficiency";
-  columnDraftLabel.value = "";
-  columnDraftHours.value = 12;
-  columnDraftPath.value = fieldOptions.value[0]?.value ?? "";
-  columnDraftAggregate.value = "list";
+  resetColumnDraft();
   columnModalOpen.value = true;
 }
 
@@ -738,28 +766,28 @@ function editorOperatorProgression(
   };
 }
 
-function saveColumn(): void {
-  const id = `column-${Date.now().toString(36)}`;
+function addColumn(): void {
+  const id = `column-${crypto.randomUUID()}`;
   const column: BasicCalculatorColumn = {
     id,
     label:
-      columnDraftLabel.value.trim() ||
-      (columnDraftKind.value === "efficiency"
-        ? `${formatNumber(columnDraftHours.value)}小时效率`
+      columnDraft.label.trim() ||
+      (columnDraft.kind === "efficiency"
+        ? `${formatNumber(columnDraft.hours)}小时效率`
         : "自定义列"),
-    kind: columnDraftKind.value,
-    ...(columnDraftKind.value === "efficiency"
-      ? { hours: Math.max(0.01, columnDraftHours.value), unit: "%" }
+    kind: columnDraft.kind,
+    ...(columnDraft.kind === "efficiency"
+      ? { hours: Math.max(0.01, columnDraft.hours), unit: "%" }
       : {}),
-    ...(columnDraftKind.value === "operatorField"
-      ? { path: columnDraftPath.value, aggregate: columnDraftAggregate.value }
+    ...(columnDraft.kind === "operatorField"
+      ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
       : {}),
   };
   updateConfig((draft) => {
     draft.columns.push(column);
     draft.groups.forEach((group) => group.columnIds.push(id));
   });
-  columnModalOpen.value = false;
+  resetColumnDraft();
 }
 
 function openRowEditor(
@@ -1202,16 +1230,14 @@ function toggleGroupColumn(
 
     <a-modal
       :open="columnModalOpen"
-      cancel-text="取消"
-      ok-text="添加"
+      :footer="null"
       title="列设置"
       width="760px"
       @cancel="columnModalOpen = false"
-      @ok="saveColumn"
     >
       <div class="basic-calculator-column-list">
         <div
-          v-for="column in config?.columns ?? []"
+          v-for="(column, index) in config?.columns ?? []"
           :key="column.id"
           class="basic-calculator-column-row"
         >
@@ -1220,6 +1246,28 @@ function toggleGroupColumn(
             :checked="column.visible !== false"
             @change="toggleColumn(column.id, $event.target.checked)"
           />
+          <a-space :size="0">
+            <a-tooltip title="上移列">
+              <a-button
+                :disabled="index === 0"
+                :icon="h(ArrowUpOutlined)"
+                aria-label="上移列"
+                size="small"
+                type="text"
+                @click="moveColumn(column.id, -1)"
+              />
+            </a-tooltip>
+            <a-tooltip title="下移列">
+              <a-button
+                :disabled="index === (config?.columns.length ?? 0) - 1"
+                :icon="h(ArrowDownOutlined)"
+                aria-label="下移列"
+                size="small"
+                type="text"
+                @click="moveColumn(column.id, 1)"
+              />
+            </a-tooltip>
+          </a-space>
           <a-input
             :value="column.label"
             class="basic-calculator-column-label"
@@ -1266,9 +1314,9 @@ function toggleGroupColumn(
         </div>
       </div>
       <a-divider />
-      <a-form layout="vertical">
-        <a-form-item label="新列类型">
-          <a-select v-model:value="columnDraftKind">
+      <a-form :model="columnDraft" layout="vertical" @finish="addColumn">
+        <a-form-item label="新列类型" name="kind">
+          <a-select v-model:value="columnDraft.kind">
             <a-select-option value="efficiency">工作时间效率</a-select-option>
             <a-select-option value="operatorField"
               >干员 JSON 数值</a-select-option
@@ -1278,20 +1326,26 @@ function toggleGroupColumn(
             <a-select-option value="note">备注</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="列名称"
-          ><a-input v-model:value="columnDraftLabel"
-        /></a-form-item>
-        <a-form-item v-if="columnDraftKind === 'efficiency'" label="工作时间"
-          ><a-input-number
-            v-model:value="columnDraftHours"
+        <a-form-item label="列名称" name="label">
+          <a-input v-model:value="columnDraft.label" />
+        </a-form-item>
+        <a-form-item
+          v-if="columnDraft.kind === 'efficiency'"
+          label="工作时间"
+          name="hours"
+        >
+          <a-input-number
+            v-model:value="columnDraft.hours"
             :min="0.01"
             :step="0.01"
-        /></a-form-item>
+          />
+        </a-form-item>
         <a-form-item
-          v-if="columnDraftKind === 'operatorField'"
+          v-if="columnDraft.kind === 'operatorField'"
           label="JSON 数值字段"
+          name="path"
         >
-          <a-select v-model:value="columnDraftPath">
+          <a-select v-model:value="columnDraft.path">
             <a-select-option
               v-for="option in fieldOptions"
               :key="option.value"
@@ -1301,16 +1355,20 @@ function toggleGroupColumn(
           </a-select>
         </a-form-item>
         <a-form-item
-          v-if="columnDraftKind === 'operatorField'"
+          v-if="columnDraft.kind === 'operatorField'"
           label="多干员显示"
+          name="aggregate"
         >
-          <a-radio-group v-model:value="columnDraftAggregate">
+          <a-radio-group v-model:value="columnDraft.aggregate">
             <a-radio value="list">分别显示</a-radio
             ><a-radio value="sum">合计</a-radio
             ><a-radio value="max">最大值</a-radio
             ><a-radio value="min">最小值</a-radio>
           </a-radio-group>
         </a-form-item>
+        <div class="basic-calculator-column-submit">
+          <a-button html-type="submit" type="primary">添加</a-button>
+        </div>
       </a-form>
     </a-modal>
 
@@ -1553,10 +1611,17 @@ function toggleGroupColumn(
   flex: 1;
   min-width: 120px;
 }
+.basic-calculator-column-submit {
+  display: flex;
+  justify-content: flex-end;
+}
 @media (max-width: 720px) {
   .basic-calculator-header-content {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .basic-calculator-column-row {
+    flex-wrap: wrap;
   }
 }
 </style>
