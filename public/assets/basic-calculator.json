@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "columns": [
     {
       "id": "operators",
@@ -81,7 +81,6 @@
             "plans": [
               {
                 "name": "red-cloud-01",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -92,7 +91,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-02",
@@ -106,7 +106,6 @@
             "plans": [
               {
                 "name": "red-cloud-02",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -117,7 +116,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-03",
@@ -135,12 +135,16 @@
             "plans": [
               {
                 "name": "red-cloud-03",
-                "duration": 1440,
-                "description": "4名莱茵生命干员",
+                "description": "额外4名莱茵生命干员",
                 "rooms": {
                   "control": [
                     {
-                      "operators": ["白面鸮", "赫默", "多萝西"]
+                      "operators": [
+                        "莱茵生命",
+                        "莱茵生命",
+                        "莱茵生命",
+                        "莱茵生命"
+                      ]
                     }
                   ],
                   "manufacture": [
@@ -152,7 +156,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-04",
@@ -166,7 +171,6 @@
             "plans": [
               {
                 "name": "red-cloud-04",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -177,7 +181,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-05",
@@ -191,7 +196,6 @@
             "plans": [
               {
                 "name": "red-cloud-05",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -201,7 +205,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-06",
@@ -215,7 +220,6 @@
             "plans": [
               {
                 "name": "red-cloud-06",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -225,7 +229,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-07",
@@ -255,7 +260,6 @@
             "plans": [
               {
                 "name": "red-cloud-07",
-                "duration": 1440,
                 "description": "4间满级宿舍",
                 "rooms": {
                   "manufacture": [
@@ -281,7 +285,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-08",
@@ -295,7 +300,6 @@
             "plans": [
               {
                 "name": "red-cloud-08",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -306,7 +310,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-09",
@@ -320,7 +325,6 @@
             "plans": [
               {
                 "name": "red-cloud-09",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -330,7 +334,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-10",
@@ -344,7 +349,6 @@
             "plans": [
               {
                 "name": "red-cloud-10",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -354,7 +358,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-11",
@@ -368,7 +373,6 @@
             "plans": [
               {
                 "name": "red-cloud-11",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -378,7 +382,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-12",
@@ -392,7 +397,6 @@
             "plans": [
               {
                 "name": "red-cloud-12",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -402,7 +406,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-13",
@@ -416,7 +421,6 @@
             "plans": [
               {
                 "name": "red-cloud-13",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -426,7 +430,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-14",
@@ -444,7 +449,6 @@
             "plans": [
               {
                 "name": "red-cloud-14",
-                "duration": 1440,
                 "description": "怪物猎人干员进驻中枢",
                 "rooms": {
                   "control": [
@@ -460,7 +464,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-15",
@@ -474,7 +479,6 @@
             "plans": [
               {
                 "name": "red-cloud-15",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -484,7 +488,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-16",
@@ -498,7 +503,6 @@
             "plans": [
               {
                 "name": "red-cloud-16",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -508,7 +512,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-17",
@@ -522,7 +527,6 @@
             "plans": [
               {
                 "name": "red-cloud-17",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -533,7 +537,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-18",
@@ -547,7 +552,6 @@
             "plans": [
               {
                 "name": "red-cloud-18",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -557,7 +561,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-19",
@@ -571,7 +576,6 @@
             "plans": [
               {
                 "name": "red-cloud-19",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -581,7 +585,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         },
         {
           "id": "red-cloud-20",
@@ -595,7 +600,6 @@
             "plans": [
               {
                 "name": "red-cloud-20",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -605,7 +609,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["红云"]
         }
       ]
     },
@@ -639,7 +644,6 @@
             "plans": [
               {
                 "name": "bubble-01",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -649,7 +653,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-02",
@@ -663,7 +668,6 @@
             "plans": [
               {
                 "name": "bubble-02",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -674,7 +678,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-03",
@@ -692,7 +697,6 @@
             "plans": [
               {
                 "name": "bubble-03",
-                "duration": 1440,
                 "description": "4名莱茵生命干员",
                 "rooms": {
                   "control": [
@@ -709,7 +713,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-04",
@@ -723,7 +728,6 @@
             "plans": [
               {
                 "name": "bubble-04",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -734,7 +738,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-05",
@@ -748,7 +753,6 @@
             "plans": [
               {
                 "name": "bubble-05",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -758,7 +762,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-06",
@@ -772,7 +777,6 @@
             "plans": [
               {
                 "name": "bubble-06",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -783,7 +787,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-07",
@@ -797,7 +802,6 @@
             "plans": [
               {
                 "name": "bubble-07",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -808,7 +812,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-08",
@@ -822,7 +827,6 @@
             "plans": [
               {
                 "name": "bubble-08",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -832,7 +836,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-09",
@@ -846,7 +851,6 @@
             "plans": [
               {
                 "name": "bubble-09",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -856,7 +860,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-10",
@@ -870,7 +875,6 @@
             "plans": [
               {
                 "name": "bubble-10",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -880,7 +884,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-11",
@@ -910,7 +915,6 @@
             "plans": [
               {
                 "name": "bubble-11",
-                "duration": 1440,
                 "description": "4间满级宿舍",
                 "rooms": {
                   "manufacture": [
@@ -936,7 +940,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-12",
@@ -950,7 +955,6 @@
             "plans": [
               {
                 "name": "bubble-12",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -960,7 +964,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-13",
@@ -974,7 +979,6 @@
             "plans": [
               {
                 "name": "bubble-13",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -984,7 +988,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-14",
@@ -998,7 +1003,6 @@
             "plans": [
               {
                 "name": "bubble-14",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1008,7 +1012,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-15",
@@ -1022,7 +1027,6 @@
             "plans": [
               {
                 "name": "bubble-15",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1032,7 +1036,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-16",
@@ -1046,7 +1051,6 @@
             "plans": [
               {
                 "name": "bubble-16",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1056,7 +1060,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-17",
@@ -1070,7 +1075,6 @@
             "plans": [
               {
                 "name": "bubble-17",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1080,7 +1084,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-18",
@@ -1094,7 +1099,6 @@
             "plans": [
               {
                 "name": "bubble-18",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1104,7 +1108,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-19",
@@ -1118,7 +1123,6 @@
             "plans": [
               {
                 "name": "bubble-19",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1129,7 +1133,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         },
         {
           "id": "bubble-20",
@@ -1143,7 +1148,6 @@
             "plans": [
               {
                 "name": "bubble-20",
-                "duration": 1440,
                 "rooms": {
                   "manufacture": [
                     {
@@ -1153,7 +1157,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["泡泡"]
         }
       ]
     },
@@ -1187,7 +1192,6 @@
             "plans": [
               {
                 "name": "jie-0-01",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1197,7 +1201,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-02",
@@ -1215,7 +1220,6 @@
             "plans": [
               {
                 "name": "jie-0-02",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1231,7 +1235,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-03",
@@ -1245,7 +1250,6 @@
             "plans": [
               {
                 "name": "jie-0-03",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1255,7 +1259,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-04",
@@ -1269,7 +1274,6 @@
             "plans": [
               {
                 "name": "jie-0-04",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1279,7 +1283,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-05",
@@ -1293,7 +1298,6 @@
             "plans": [
               {
                 "name": "jie-0-05",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1303,7 +1307,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-06",
@@ -1317,7 +1322,6 @@
             "plans": [
               {
                 "name": "jie-0-06",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1327,7 +1331,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-07",
@@ -1341,7 +1346,6 @@
             "plans": [
               {
                 "name": "jie-0-07",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1351,7 +1355,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-08",
@@ -1365,7 +1370,6 @@
             "plans": [
               {
                 "name": "jie-0-08",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1375,7 +1379,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-09",
@@ -1389,7 +1394,6 @@
             "plans": [
               {
                 "name": "jie-0-09",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1399,7 +1403,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-10",
@@ -1413,7 +1418,6 @@
             "plans": [
               {
                 "name": "jie-0-10",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1423,7 +1427,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-11",
@@ -1437,7 +1442,6 @@
             "plans": [
               {
                 "name": "jie-0-11",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1447,7 +1451,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-12",
@@ -1461,7 +1466,6 @@
             "plans": [
               {
                 "name": "jie-0-12",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1471,7 +1475,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-13",
@@ -1489,7 +1494,6 @@
             "plans": [
               {
                 "name": "jie-0-13",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1505,7 +1509,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-14",
@@ -1523,7 +1528,6 @@
             "plans": [
               {
                 "name": "jie-0-14",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1539,7 +1543,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-15",
@@ -1557,7 +1562,6 @@
             "plans": [
               {
                 "name": "jie-0-15",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1573,7 +1577,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-16",
@@ -1587,7 +1592,6 @@
             "plans": [
               {
                 "name": "jie-0-16",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1597,7 +1601,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-17",
@@ -1615,7 +1620,6 @@
             "plans": [
               {
                 "name": "jie-0-17",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1631,7 +1635,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-18",
@@ -1645,7 +1650,6 @@
             "plans": [
               {
                 "name": "jie-0-18",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1655,7 +1659,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-0-19",
@@ -1669,7 +1674,6 @@
             "plans": [
               {
                 "name": "jie-0-19",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1679,7 +1683,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         }
       ]
     },
@@ -1713,7 +1718,6 @@
             "plans": [
               {
                 "name": "jie-1-01",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1723,7 +1727,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-02",
@@ -1737,7 +1742,6 @@
             "plans": [
               {
                 "name": "jie-1-02",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1747,7 +1751,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-03",
@@ -1761,7 +1766,6 @@
             "plans": [
               {
                 "name": "jie-1-03",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1771,7 +1775,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-04",
@@ -1789,7 +1794,6 @@
             "plans": [
               {
                 "name": "jie-1-04",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1805,7 +1809,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-05",
@@ -1823,7 +1828,6 @@
             "plans": [
               {
                 "name": "jie-1-05",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1839,7 +1843,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-06",
@@ -1857,7 +1862,6 @@
             "plans": [
               {
                 "name": "jie-1-06",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1873,7 +1877,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-07",
@@ -1891,7 +1896,6 @@
             "plans": [
               {
                 "name": "jie-1-07",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1907,7 +1911,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-08",
@@ -1925,7 +1930,6 @@
             "plans": [
               {
                 "name": "jie-1-08",
-                "duration": 1440,
                 "description": "中枢",
                 "rooms": {
                   "control": [
@@ -1941,7 +1945,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-09",
@@ -1955,7 +1960,6 @@
             "plans": [
               {
                 "name": "jie-1-09",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1965,7 +1969,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-10",
@@ -1979,7 +1984,6 @@
             "plans": [
               {
                 "name": "jie-1-10",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -1989,7 +1993,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         },
         {
           "id": "jie-1-11",
@@ -2003,7 +2008,6 @@
             "plans": [
               {
                 "name": "jie-1-11",
-                "duration": 1440,
                 "rooms": {
                   "trading": [
                     {
@@ -2013,7 +2017,8 @@
                 }
               }
             ]
-          }
+          },
+          "hiddenOperators": ["孑"]
         }
       ]
     }

@@ -44,7 +44,7 @@ export interface BasicCalculatorOperator {
 export interface BasicCalculatorRow {
   id: string;
   schedule: ScheduleDocument;
-  displayOperators?: BasicCalculatorOperator[];
+  hiddenOperators?: string[];
 }
 
 export interface BasicCalculatorGroup {
@@ -165,7 +165,13 @@ function clone<T>(value: T): T {
 }
 
 function normalizeConfig(config: BasicCalculatorConfig): BasicCalculatorConfig {
-  return clone(config);
+  const normalized = clone(config);
+  normalized.groups.forEach((group) => {
+    group.rows.forEach((row) => {
+      row.schedule.plans.forEach((plan) => delete plan.duration);
+    });
+  });
+  return normalized;
 }
 
 function sameValue(first: unknown, second: unknown): boolean {
@@ -197,7 +203,7 @@ function groupWithoutOrder(
 export function cloneBasicCalculatorConfig(
   config: BasicCalculatorConfig,
 ): BasicCalculatorConfig {
-  return clone(config);
+  return normalizeConfig(config);
 }
 
 export function createBasicCalculatorConfig(
@@ -291,9 +297,11 @@ export function applyBasicCalculatorPatch(
 }
 
 export function createBasicCalculatorPatch(
-  defaults: BasicCalculatorConfig,
-  current: BasicCalculatorConfig,
+  defaultConfig: BasicCalculatorConfig,
+  currentConfig: BasicCalculatorConfig,
 ): BasicCalculatorPatch {
+  const defaults = normalizeConfig(defaultConfig);
+  const current = normalizeConfig(currentConfig);
   const patch: BasicCalculatorPatch = { version: defaults.version };
   const defaultGroups = new Map(
     defaults.groups.map((group) => [group.id, group]),
@@ -471,13 +479,7 @@ export function basicCalculatorScheduleOperators(
       ...(assignment?.operatorStates?.[name] ?? {}),
     }));
   });
-  const seen = new Set<string>();
-  return operators.filter((operator) => {
-    const key = `${operator.name}:${operator.room ?? ""}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return uniqueOperators(operators);
 }
 
 export function basicCalculatorOperatorFieldNames(
@@ -505,7 +507,6 @@ export function createBasicCalculatorSchedule(
     plans: [
       {
         name: rowId,
-        duration: 1440,
         rooms: {
           [group.facility]: [{ operators: [group.coreOperator.name] }],
         },

@@ -88,7 +88,7 @@ interface GroupDraft {
   rows: BasicCalculatorRow[];
 }
 
-const STORAGE_KEY = "riic-tools:basic-calculator:v2";
+const STORAGE_KEY = "riic-tools:basic-calculator:v3";
 const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
@@ -161,39 +161,26 @@ const rowDraftFixedRoomTypes = computed<RoomKey[]>(() => {
   if (!group) return [];
   return [group.facility];
 });
-const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
-  () => {
-    const group = rowDraftGroup.value;
-    const row = rowDraft.value;
-    if (!group || !row) return [];
-    return displayOperatorsForSchedule(
-      group,
-      rowDraftSchedule.value ?? row.schedule,
-    ).map((operator) => ({
-      operator,
-      label: displayOperatorLabel(group, operator),
-    }));
-  },
-);
-const draftDisplayOperatorNames = computed(() => {
-  const row = rowDraft.value;
+const draftHiddenOperatorOptions = computed<DraftHiddenOperatorOption[]>(() => {
   const group = rowDraftGroup.value;
-  if (!row || !group) return new Set<string>();
-  const displayOperators = displayOperatorsForSchedule(
-    group,
+  const row = rowDraft.value;
+  if (!group || !row) return [];
+  return basicCalculatorScheduleOperators(
     rowDraftSchedule.value ?? row.schedule,
-  );
-  return new Set(
-    (row.displayOperators ?? displayOperators).map((operator) =>
-      displayOperatorKey(operator),
-    ),
-  );
+  ).map((operator) => ({
+    operator,
+    label: displayOperatorLabel(group, operator),
+  }));
+});
+const draftHiddenOperatorNames = computed(() => {
+  const row = rowDraft.value;
+  return new Set(row?.hiddenOperators ?? []);
 });
 const fieldOptions = computed(() =>
   catalog.value ? operatorFieldOptions(catalog.value) : [],
 );
 
-interface DraftDisplayOperatorOption {
+interface DraftHiddenOperatorOption {
   operator: BasicCalculatorOperator;
   label: string;
 }
@@ -231,7 +218,7 @@ function updateConfig(update: (draft: BasicCalculatorConfig) => void): void {
   if (!config.value) return;
   const draft = cloneBasicCalculatorConfig(config.value);
   update(draft);
-  config.value = draft;
+  config.value = cloneBasicCalculatorConfig(draft);
   persistConfig();
 }
 
@@ -356,35 +343,6 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   return sortBasicCalculatorColumns(columns);
 }
 
-function displayOperatorKey(operator: BasicCalculatorOperator): string {
-  return `${operator.name}:${operator.room ?? ""}`;
-}
-
-function defaultDisplayOperators(
-  group: BasicCalculatorGroup,
-  row: BasicCalculatorRow,
-): BasicCalculatorOperator[] {
-  return displayOperatorsForSchedule(group, row.schedule);
-}
-
-function displayOperatorsForSchedule(
-  group: BasicCalculatorGroup,
-  schedule: ScheduleDocument,
-): BasicCalculatorOperator[] {
-  const operators = basicCalculatorScheduleOperators(schedule).filter(
-    (operator) =>
-      operator.room !== group.facility &&
-      operator.name !== group.coreOperator.name,
-  );
-  const seen = new Set<string>();
-  return operators.filter((operator) => {
-    const key = displayOperatorKey(operator);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
 function displayOperatorLabel(
   group: BasicCalculatorGroup,
   operator: BasicCalculatorOperator,
@@ -394,36 +352,17 @@ function displayOperatorLabel(
     : operator.name;
 }
 
-function rowDisplayOperators(
-  group: BasicCalculatorGroup,
-  row: BasicCalculatorRow,
-): BasicCalculatorOperator[] {
-  return row.displayOperators ?? defaultDisplayOperators(group, row);
-}
-
 function rowVisibleOperators(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): BasicCalculatorOperator[] {
-  const assignment = basicCalculatorRoomAssignment(
-    row.schedule,
-    group.facility,
-  );
-  const workOperators = (assignment?.operators ?? [])
-    .filter((name) => name !== group.coreOperator.name)
-    .map((name) => ({ name }));
-  const workNames = new Set(workOperators.map((operator) => operator.name));
-  const availableDisplayOperators = new Set(
-    defaultDisplayOperators(group, row).map(displayOperatorKey),
+  const hiddenOperators = new Set(row.hiddenOperators ?? []);
+  const visible = basicCalculatorScheduleOperators(row.schedule).filter(
+    (operator) => !hiddenOperators.has(operator.name),
   );
   return [
-    ...workOperators,
-    ...rowDisplayOperators(group, row).filter(
-      (operator) =>
-        operator.name !== group.coreOperator.name &&
-        availableDisplayOperators.has(displayOperatorKey(operator)) &&
-        !workNames.has(operator.name),
-    ),
+    ...visible.filter((operator) => operator.room === group.facility),
+    ...visible.filter((operator) => operator.room !== group.facility),
   ];
 }
 
@@ -609,27 +548,16 @@ function updateAvatarSetting(
   });
 }
 
-function toggleDraftDisplayOperator(
+function toggleDraftHiddenOperator(
   operator: BasicCalculatorOperator,
   checked: boolean,
 ): void {
   const row = rowDraft.value;
-  const group = rowDraftGroup.value;
-  if (!row || !group) return;
-  const defaults = displayOperatorsForSchedule(
-    group,
-    rowDraftSchedule.value ?? row.schedule,
-  );
-  const selected = new Map(
-    (row.displayOperators ?? defaults).map((item) => [
-      displayOperatorKey(item),
-      item,
-    ]),
-  );
-  const key = displayOperatorKey(operator);
-  if (checked) selected.set(key, { ...operator });
-  else selected.delete(key);
-  row.displayOperators = [...selected.values()];
+  if (!row) return;
+  const hiddenOperators = new Set(row.hiddenOperators ?? []);
+  if (checked) hiddenOperators.add(operator.name);
+  else hiddenOperators.delete(operator.name);
+  row.hiddenOperators = [...hiddenOperators];
 }
 
 function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
@@ -855,26 +783,6 @@ function saveRow(): void {
   draft.schedule = JSON.parse(
     JSON.stringify(rowDraftSchedule.value),
   ) as ScheduleDocument;
-  const group = config.value?.groups.find(
-    (item) => item.id === rowDraftGroupId.value,
-  );
-  if (group) {
-    const defaultDisplay = defaultDisplayOperators(group, draft);
-    const available = new Set(defaultDisplay.map(displayOperatorKey));
-    const selectedDisplay = (draft.displayOperators ?? defaultDisplay).filter(
-      (operator) => available.has(displayOperatorKey(operator)),
-    );
-    if (
-      selectedDisplay.length === defaultDisplay.length &&
-      selectedDisplay.every((operator) =>
-        defaultDisplay.some(
-          (item) => displayOperatorKey(item) === displayOperatorKey(operator),
-        ),
-      )
-    ) {
-      delete draft.displayOperators;
-    } else draft.displayOperators = selectedDisplay;
-  }
   updateConfig((next) => {
     const group = next.groups.find((item) => item.id === rowDraftGroupId.value);
     const row = group?.rows.find((item) => item.id === draft.id);
@@ -900,6 +808,7 @@ function addRow(group: BasicCalculatorGroup): void {
   const row: BasicCalculatorRow = {
     id,
     schedule: createBasicCalculatorSchedule(group, id),
+    hiddenOperators: [group.coreOperator.name],
   };
   updateConfig((draft) => {
     draft.groups.find((item) => item.id === group.id)?.rows.push(row);
@@ -932,6 +841,15 @@ function saveGroup(): void {
       const previousGroup = next.groups[index]!;
       group.rows = previousGroup.rows.map((row) => ({
         ...row,
+        hiddenOperators:
+          previousGroup.coreOperator.name === group.coreOperator.name
+            ? row.hiddenOperators
+            : [
+                ...new Set([
+                  ...(row.hiddenOperators ?? []),
+                  group.coreOperator.name,
+                ]),
+              ],
         schedule: synchronizeBasicCalculatorGroupSchedule(
           row.schedule,
           previousGroup,
@@ -1253,7 +1171,7 @@ function toggleGroupColumn(
                           view.group,
                           view.row,
                         )"
-                        :key="`${view.row.id}-${displayOperatorKey(operator)}`"
+                        :key="`${view.row.id}-${operator.name}`"
                         :display-name="operator.name"
                         :elite-level="operatorEliteLevel(view.group, operator)"
                         :operator="operatorFor(operator.name)"
@@ -1467,21 +1385,17 @@ function toggleGroupColumn(
             <a-input v-model:value="rowDraftNote" />
           </a-form-item>
           <a-form-item
-            v-if="draftSpecialOperatorOptions.length"
+            v-if="draftHiddenOperatorOptions.length"
             class="basic-calculator-display-operator-form-item"
-            label="额外显示的设施干员"
+            label="隐藏干员"
           >
             <a-space wrap>
               <a-checkbox
-                v-for="option in draftSpecialOperatorOptions"
-                :key="displayOperatorKey(option.operator)"
-                :checked="
-                  draftDisplayOperatorNames.has(
-                    displayOperatorKey(option.operator),
-                  )
-                "
+                v-for="option in draftHiddenOperatorOptions"
+                :key="option.operator.name"
+                :checked="draftHiddenOperatorNames.has(option.operator.name)"
                 @change="
-                  toggleDraftDisplayOperator(
+                  toggleDraftHiddenOperator(
                     option.operator,
                     $event.target.checked,
                   )
