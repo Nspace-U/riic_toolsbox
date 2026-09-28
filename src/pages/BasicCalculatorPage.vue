@@ -4,6 +4,7 @@ import {
   ArrowUpOutlined,
   DeleteOutlined,
   EditOutlined,
+  MoreOutlined,
   PlusOutlined,
   ReloadOutlined,
   SortAscendingOutlined,
@@ -82,6 +83,7 @@ import {
 interface BasicCalculatorRowView {
   group: BasicCalculatorGroup;
   row: BasicCalculatorRow;
+  sourceRows: BasicCalculatorRow[];
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
   numeric: Record<string, number | undefined>;
   backgroundColor?: string;
@@ -142,6 +144,20 @@ const rowCalculations = ref<Record<string, BasicCalculatorRowCalculation>>({});
 const calculationLoading = ref(false);
 const calculationError = ref("");
 let calculationRequestId = 0;
+
+const calculationsReadyForMerge = computed(() => {
+  const current = config.value;
+  return Boolean(
+    current &&
+    !calculationLoading.value &&
+    !calculationError.value &&
+    current.groups.every((group) =>
+      group.rows.every(
+        (row) => rowCalculations.value[`${group.id}:${row.id}`] !== undefined,
+      ),
+    ),
+  );
+});
 
 const operatorByName = computed(
   () => new Map(operators.value.map((operator) => [operator.name, operator])),
@@ -460,6 +476,7 @@ function rowView(
   return {
     group,
     row,
+    sourceRows: [row],
     efficiency: calculation?.efficiency ?? {},
     numeric,
     backgroundColor: productAccent(group, row),
@@ -484,7 +501,11 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
       if (secondValue === undefined) return -1;
       return compareValues(firstValue, secondValue) * direction;
     });
-    result[group.id] = views;
+    result[group.id] =
+      config.value?.settings.mergeIdenticalRows &&
+      calculationsReadyForMerge.value
+        ? mergeRowViews(views)
+        : views;
   });
   return result;
 });
@@ -531,12 +552,54 @@ function sortValue(
   return view.numeric[column.id];
 }
 
+function mergeRowViews(
+  views: BasicCalculatorRowView[],
+): BasicCalculatorRowView[] {
+  const merged = new Map<string, BasicCalculatorRowView>();
+  views.forEach((view) => {
+    const key = JSON.stringify([
+      view.backgroundColor ?? null,
+      groupColumns(view.group)
+        .filter(
+          (column) =>
+            column.kind !== "operators" && column.kind !== "operatorNames",
+        )
+        .map((column) => [column.id, columnText(view, column)]),
+    ]);
+    const existing = merged.get(key);
+    if (existing) {
+      existing.sourceRows.push(...view.sourceRows);
+    } else {
+      merged.set(key, { ...view, sourceRows: [...view.sourceRows] });
+    }
+  });
+  return [...merged.values()];
+}
+
+function viewOperatorNameText(view: BasicCalculatorRowView): string {
+  return view.sourceRows
+    .map((row) => operatorNameText(view.group, row))
+    .filter(Boolean)
+    .join("/");
+}
+
+function viewVisibleOperators(
+  view: BasicCalculatorRowView,
+): Array<{ rowId: string; operator: BasicCalculatorOperator }> {
+  return view.sourceRows.flatMap((row) =>
+    rowVisibleOperators(view.group, row).map((operator) => ({
+      rowId: row.id,
+      operator,
+    })),
+  );
+}
+
 function columnText(
   view: BasicCalculatorRowView,
   column: BasicCalculatorColumn,
 ): string {
   if (column.kind === "operatorNames") {
-    return operatorNameText(view.group, view.row);
+    return viewOperatorNameText(view);
   }
   if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
@@ -1122,17 +1185,27 @@ function toggleGroupColumn(
           </a-radio-group>
         </a-form-item>
         <a-form-item label="干员名称">
-          <a-checkbox
-            :checked="config.settings.showOperatorProgressionInNames"
-            @change="
-              updateSetting(
-                'showOperatorProgressionInNames',
-                $event.target.checked,
-              )
-            "
-          >
-            显示练度
-          </a-checkbox>
+          <a-space wrap>
+            <a-checkbox
+              :checked="config.settings.showOperatorProgressionInNames"
+              @change="
+                updateSetting(
+                  'showOperatorProgressionInNames',
+                  $event.target.checked,
+                )
+              "
+            >
+              显示练度
+            </a-checkbox>
+            <a-checkbox
+              :checked="config.settings.mergeIdenticalRows"
+              @change="
+                updateSetting('mergeIdenticalRows', $event.target.checked)
+              "
+            >
+              合并相同内容
+            </a-checkbox>
+          </a-space>
         </a-form-item>
         <a-form-item label="精0孑">
           <a-space wrap>
@@ -1256,7 +1329,10 @@ function toggleGroupColumn(
                   :style="rowBackgroundStyle(view)"
                 >
                   <td class="basic-calculator-actions-column">
-                    <div class="basic-calculator-row-actions">
+                    <div
+                      v-if="view.sourceRows.length === 1"
+                      class="basic-calculator-row-actions"
+                    >
                       <a-tooltip title="编辑"
                         ><a-button
                           :icon="h(EditOutlined)"
@@ -1282,6 +1358,59 @@ function toggleGroupColumn(
                         </a-popconfirm>
                       </a-tooltip>
                     </div>
+                    <div v-else class="basic-calculator-row-actions">
+                      <a-popover placement="bottomLeft" trigger="click">
+                        <template #content>
+                          <div class="basic-calculator-merged-row-actions">
+                            <div
+                              v-for="(sourceRow, index) in view.sourceRows"
+                              :key="sourceRow.id"
+                              class="basic-calculator-merged-row-action"
+                            >
+                              <span class="basic-calculator-merged-row-name">
+                                {{
+                                  operatorNameText(group, sourceRow) ||
+                                  `未显示干员 ${index + 1}`
+                                }}
+                              </span>
+                              <a-tooltip title="编辑">
+                                <a-button
+                                  :icon="h(EditOutlined)"
+                                  :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
+                                  size="small"
+                                  type="text"
+                                  @click="openRowEditor(group, sourceRow)"
+                                />
+                              </a-tooltip>
+                              <a-tooltip title="删除">
+                                <a-popconfirm
+                                  cancel-text="取消"
+                                  ok-text="删除"
+                                  title="删除这一行？"
+                                  @confirm="deleteRow(group.id, sourceRow.id)"
+                                >
+                                  <a-button
+                                    :icon="h(DeleteOutlined)"
+                                    :aria-label="`删除${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
+                                    danger
+                                    size="small"
+                                    type="text"
+                                  />
+                                </a-popconfirm>
+                              </a-tooltip>
+                            </div>
+                          </div>
+                        </template>
+                        <a-tooltip title="管理合并行">
+                          <a-button
+                            :icon="h(MoreOutlined)"
+                            aria-label="管理合并行"
+                            size="small"
+                            type="text"
+                          />
+                        </a-tooltip>
+                      </a-popover>
+                    </div>
                   </td>
                   <td
                     v-for="column in groupColumns(group)"
@@ -1297,14 +1426,13 @@ function toggleGroupColumn(
                       class="basic-calculator-avatars"
                     >
                       <OperatorAvatarDisplay
-                        v-for="operator in rowVisibleOperators(
-                          view.group,
-                          view.row,
-                        )"
-                        :key="`${view.row.id}-${operator.name}`"
-                        :display-name="operator.name"
-                        :elite-level="operatorEliteLevel(view.group, operator)"
-                        :operator="operatorFor(operator.name)"
+                        v-for="entry in viewVisibleOperators(view)"
+                        :key="`${entry.rowId}-${entry.operator.name}`"
+                        :display-name="entry.operator.name"
+                        :elite-level="
+                          operatorEliteLevel(view.group, entry.operator)
+                        "
+                        :operator="operatorFor(entry.operator.name)"
                         :plain="true"
                         :proportional-layout="true"
                         :show-elite-level="
@@ -1314,9 +1442,9 @@ function toggleGroupColumn(
                         :show-rarity="config.settings.avatar.showRarity"
                         :size="58"
                         :special-label="
-                          operatorFor(operator.name)
+                          operatorFor(entry.operator.name)
                             ? undefined
-                            : operator.name.slice(0, 2)
+                            : entry.operator.name.slice(0, 2)
                         "
                       />
                     </div>
@@ -1691,6 +1819,26 @@ function toggleGroupColumn(
   justify-content: center;
   opacity: 0;
   transition: opacity 120ms ease;
+}
+.basic-calculator-merged-row-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-block-size: 280px;
+  max-inline-size: 420px;
+  min-inline-size: 220px;
+  overflow: auto;
+}
+.basic-calculator-merged-row-action {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+.basic-calculator-merged-row-name {
+  flex: 1;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+  text-align: start;
 }
 .basic-calculator-display-operator-form-item {
   margin-block-end: 0;

@@ -66,6 +66,7 @@ export interface BasicCalculatorSettings {
   };
   firstItemProgress: number;
   showOperatorProgressionInNames: boolean;
+  mergeIdenticalRows: boolean;
   efficiencyDisplay: "first" | "second" | "both";
   jieCalculation: "max" | "integral";
   integrateJieBaseline: boolean;
@@ -82,6 +83,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   },
   firstItemProgress: 0,
   showOperatorProgressionInNames: true,
+  mergeIdenticalRows: true,
   efficiencyDisplay: "both",
   jieCalculation: "max",
   integrateJieBaseline: false,
