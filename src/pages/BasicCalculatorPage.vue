@@ -113,6 +113,7 @@ const loading = ref(true);
 const loadError = ref("");
 const activeGroupIds = ref<string[]>([]);
 const columnModalOpen = ref(false);
+const columnSettingsDraft = ref<BasicCalculatorConfig>();
 const groupModalOpen = ref(false);
 const rowModalOpen = ref(false);
 const columnDraft = reactive({
@@ -592,70 +593,69 @@ function toggleSort(columnId: string): void {
 }
 
 function updateColumnLabel(id: string, label: string): void {
-  updateConfig((draft) => {
-    const column = draft.columns.find((item) => item.id === id);
-    if (column) column.label = label;
-  });
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (column) column.label = label;
 }
 
 function toggleColumn(id: string, visible: boolean): void {
-  updateConfig((draft) => {
-    const column = draft.columns.find((item) => item.id === id);
-    if (column) column.visible = visible;
-  });
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (column) column.visible = visible;
 }
 
 function updateColumnHours(id: string, hours: number): void {
-  updateConfig((draft) => {
-    const column = draft.columns.find((item) => item.id === id);
-    if (!column || column.kind !== "efficiency") return;
-    column.hours = Math.max(0.01, hours);
-    column.label = `${formatNumber(column.hours)}小时效率`;
-  });
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (!column || column.kind !== "efficiency") return;
+  column.hours = Math.max(0.01, hours);
+  column.label = `${formatNumber(column.hours)}小时效率`;
 }
 
 function updateColumnPath(id: string, path: string): void {
-  updateConfig((draft) => {
-    const column = draft.columns.find((item) => item.id === id);
-    if (column?.kind === "operatorField") column.path = path;
-  });
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (column?.kind === "operatorField") column.path = path;
 }
 
 function updateColumnAggregate(
   id: string,
   aggregate: BasicCalculatorAggregate,
 ): void {
-  updateConfig((draft) => {
-    const column = draft.columns.find((item) => item.id === id);
-    if (column?.kind === "operatorField") column.aggregate = aggregate;
-  });
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (column?.kind === "operatorField") column.aggregate = aggregate;
 }
 
 function moveColumn(id: string, direction: -1 | 1): void {
-  updateConfig((draft) => {
-    const index = draft.columns.findIndex((column) => column.id === id);
-    const destination = index + direction;
-    if (index < 0 || destination < 0 || destination >= draft.columns.length)
-      return;
-    const column = draft.columns[index];
-    const adjacentColumn = draft.columns[destination];
-    if (!column || !adjacentColumn) return;
-    draft.columns[index] = adjacentColumn;
-    draft.columns[destination] = column;
-  });
+  const columns = columnSettingsDraft.value?.columns;
+  if (!columns) return;
+  const index = columns.findIndex((column) => column.id === id);
+  const destination = index + direction;
+  if (index < 0 || destination < 0 || destination >= columns.length) return;
+  const column = columns[index];
+  const adjacentColumn = columns[destination];
+  if (!column || !adjacentColumn) return;
+  columns[index] = adjacentColumn;
+  columns[destination] = column;
 }
 
 function removeColumn(id: string): void {
-  updateConfig((draft) => {
-    draft.columns = draft.columns.filter((column) => column.id !== id);
-    draft.groups.forEach((group) => {
-      group.columnIds = group.columnIds.filter((columnId) => columnId !== id);
-    });
-    if (draft.settings.sortColumnId === id) {
-      draft.settings.sortColumnId = "efficiency-24";
-      draft.settings.sortDirection = "desc";
-    }
+  const draft = columnSettingsDraft.value;
+  if (!draft) return;
+  draft.columns = draft.columns.filter((column) => column.id !== id);
+  draft.groups.forEach((group) => {
+    group.columnIds = group.columnIds.filter((columnId) => columnId !== id);
   });
+  if (draft.settings.sortColumnId === id) {
+    draft.settings.sortColumnId = "efficiency-24";
+    draft.settings.sortDirection = "desc";
+  }
 }
 
 function resetColumnDraft(): void {
@@ -667,8 +667,35 @@ function resetColumnDraft(): void {
 }
 
 function openColumnEditor(): void {
+  if (!config.value) return;
+  columnSettingsDraft.value = cloneBasicCalculatorConfig(config.value);
   resetColumnDraft();
   columnModalOpen.value = true;
+}
+
+function cancelColumnSettings(): void {
+  columnSettingsDraft.value = undefined;
+  resetColumnDraft();
+  columnModalOpen.value = false;
+}
+
+function saveColumnSettings(): void {
+  const settingsDraft = columnSettingsDraft.value;
+  if (!settingsDraft) return;
+  const savedDraft = cloneBasicCalculatorConfig(settingsDraft);
+  updateConfig((draft) => {
+    draft.columns = savedDraft.columns;
+    const groupColumnIds = new Map(
+      savedDraft.groups.map((group) => [group.id, group.columnIds]),
+    );
+    draft.groups.forEach((group) => {
+      const columnIds = groupColumnIds.get(group.id);
+      if (columnIds) group.columnIds = columnIds;
+    });
+    draft.settings.sortColumnId = savedDraft.settings.sortColumnId;
+    draft.settings.sortDirection = savedDraft.settings.sortDirection;
+  });
+  cancelColumnSettings();
 }
 
 function editorOperatorCandidates(
@@ -767,6 +794,8 @@ function editorOperatorProgression(
 }
 
 function addColumn(): void {
+  const draft = columnSettingsDraft.value;
+  if (!draft) return;
   const id = `column-${crypto.randomUUID()}`;
   const column: BasicCalculatorColumn = {
     id,
@@ -783,10 +812,8 @@ function addColumn(): void {
       ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
       : {}),
   };
-  updateConfig((draft) => {
-    draft.columns.push(column);
-    draft.groups.forEach((group) => group.columnIds.push(id));
-  });
+  draft.columns.push(column);
+  draft.groups.forEach((group) => group.columnIds.push(id));
   resetColumnDraft();
 }
 
@@ -1230,14 +1257,16 @@ function toggleGroupColumn(
 
     <a-modal
       :open="columnModalOpen"
-      :footer="null"
+      cancel-text="取消"
+      ok-text="保存"
       title="列设置"
       width="760px"
-      @cancel="columnModalOpen = false"
+      @cancel="cancelColumnSettings"
+      @ok="saveColumnSettings"
     >
       <div class="basic-calculator-column-list">
         <div
-          v-for="(column, index) in config?.columns ?? []"
+          v-for="(column, index) in columnSettingsDraft?.columns ?? []"
           :key="column.id"
           class="basic-calculator-column-row"
         >
@@ -1247,26 +1276,24 @@ function toggleGroupColumn(
             @change="toggleColumn(column.id, $event.target.checked)"
           />
           <a-space :size="0">
-            <a-tooltip title="上移列">
-              <a-button
-                :disabled="index === 0"
-                :icon="h(ArrowUpOutlined)"
-                aria-label="上移列"
-                size="small"
-                type="text"
-                @click="moveColumn(column.id, -1)"
-              />
-            </a-tooltip>
-            <a-tooltip title="下移列">
-              <a-button
-                :disabled="index === (config?.columns.length ?? 0) - 1"
-                :icon="h(ArrowDownOutlined)"
-                aria-label="下移列"
-                size="small"
-                type="text"
-                @click="moveColumn(column.id, 1)"
-              />
-            </a-tooltip>
+            <a-button
+              :disabled="index === 0"
+              :icon="h(ArrowUpOutlined)"
+              aria-label="上移列"
+              size="small"
+              type="text"
+              @click="moveColumn(column.id, -1)"
+            />
+            <a-button
+              :disabled="
+                index === (columnSettingsDraft?.columns.length ?? 0) - 1
+              "
+              :icon="h(ArrowDownOutlined)"
+              aria-label="下移列"
+              size="small"
+              type="text"
+              @click="moveColumn(column.id, 1)"
+            />
           </a-space>
           <a-input
             :value="column.label"
