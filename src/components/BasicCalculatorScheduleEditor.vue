@@ -16,6 +16,7 @@ import ScheduleOperatorSlotContent from "@/components/ScheduleOperatorSlotConten
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type { OperatorProgressionNode } from "@arknights/riic-efficiency";
+import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import {
   scheduleOperatorPickerPlacement,
   useScheduleOperatorInteraction,
@@ -141,6 +142,10 @@ const layoutText = ref("");
 const layoutError = ref("");
 const pickerAddress = ref<SlotAddress>();
 const pickerStyle = ref<Record<string, string>>({});
+const { operatorPickerColumns } = useOperatorPickerSettings();
+const operatorPickerGridStyle = computed(() => ({
+  "--simulator-operator-picker-columns": `${operatorPickerColumns.value}`,
+}));
 const selectedProfession = ref("");
 const pickerShowAll = ref(false);
 const editingAddress = ref<SlotAddress>();
@@ -376,6 +381,9 @@ watch(
   },
   { deep: true, immediate: true },
 );
+watch(operatorPickerColumns, () => {
+  void updatePickerPosition();
+});
 
 onMounted(() => {
   window.addEventListener("resize", updatePickerPosition);
@@ -1203,10 +1211,7 @@ function navigateSlot(action: ScheduleOperatorNavigation): boolean {
 }
 function handleWindowPointerDown(event: PointerEvent): void {
   const target = event.target;
-  if (
-    target instanceof Element &&
-    target.closest(".simulator-context-menu")
-  ) {
+  if (target instanceof Element && target.closest(".simulator-context-menu")) {
     return;
   }
   closeContextMenu();
@@ -1678,7 +1683,7 @@ defineExpose({ clearInteractionState });
       :candidates="pickerCandidates"
       :profession-options="pickerProfessionOptions"
       :selected-profession="selectedProfession"
-      :style="pickerStyle"
+      :style="[pickerStyle, operatorPickerGridStyle]"
       :title="pickerTitle"
       @outside="closePicker"
       @select="selectOperator"
