@@ -637,7 +637,7 @@
                   ],
                   "manufacture": [
                     {
-                      "operators": ["红云", "铅踝"]
+                      "operators": ["红云", "铅踝", "白金"]
                     }
                   ]
                 }
@@ -1242,7 +1242,7 @@
                   ],
                   "manufacture": [
                     {
-                      "operators": ["泡泡", "铅踝"]
+                      "operators": ["泡泡", "铅踝", "白金"]
                     }
                   ]
                 }
