@@ -380,6 +380,7 @@ watch(
 onMounted(() => {
   window.addEventListener("resize", updatePickerPosition);
   window.addEventListener("scroll", updatePickerPosition, true);
+  window.addEventListener("pointerdown", handleWindowPointerDown, true);
   window.addEventListener("click", handleWindowClick);
   window.addEventListener("keydown", handleWindowKeydown, true);
   window.addEventListener("pointermove", handlePointerMove, true);
@@ -391,6 +392,7 @@ onBeforeUnmount(() => {
   if (layoutApplyTimer !== undefined) clearTimeout(layoutApplyTimer);
   window.removeEventListener("resize", updatePickerPosition);
   window.removeEventListener("scroll", updatePickerPosition, true);
+  window.removeEventListener("pointerdown", handleWindowPointerDown, true);
   window.removeEventListener("click", handleWindowClick);
   window.removeEventListener("keydown", handleWindowKeydown, true);
   window.removeEventListener("pointermove", handlePointerMove, true);
@@ -1199,6 +1201,17 @@ function navigateSlot(action: ScheduleOperatorNavigation): boolean {
   void focusSlotNameInput();
   return true;
 }
+function handleWindowPointerDown(event: PointerEvent): void {
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    target.closest(".simulator-context-menu")
+  ) {
+    return;
+  }
+  closeContextMenu();
+}
+
 function handleWindowClick(event: MouseEvent): void {
   const target = event.target;
   if (
@@ -1477,7 +1490,7 @@ function slotStyle(): Record<string, string> {
   return { "--simulator-slot-size": "76px" };
 }
 function layoutTextHint(): string {
-  return "数字顺序与排班模拟器一致；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间；当前组合的控制中枢和核心工作设施会自动保留。";
+  return "数字顺序与排班模拟器一致；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间；当前组合中已配置的控制中枢和核心工作设施会自动保留。";
 }
 defineExpose({ clearInteractionState });
 </script>

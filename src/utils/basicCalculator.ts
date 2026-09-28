@@ -89,7 +89,7 @@ export interface BasicCalculatorSettings {
 
 export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   avatar: {
-    showAvatar: true,
+    showAvatar: false,
     showProfession: false,
     showEliteLevel: false,
     showRarity: false,
@@ -98,7 +98,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   jieCalculation: "max",
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
-  defaultControlOperators: ["Lancet-2", "Castle-3", "12F", "杜林", "夜刀"],
+  defaultControlOperators: [],
 };
 
 export type BasicCalculatorAsset = Omit<BasicCalculatorConfig, "settings"> & {
@@ -552,8 +552,10 @@ export function buildBasicCalculatorSchedule(
     (operator) => !operator.room || operator.room === group.facility,
   );
   const extraRooms = row.extraRooms ?? [];
-  const layout = [
-    { type: "control" as const, level: 5 },
+  const layout: ScheduleDocument["layout"] = [
+    ...(controlOperators.length
+      ? [{ type: "control" as const, level: 5 }]
+      : []),
     { type: group.facility, level: group.facilityLevel },
     ...extraRooms.map((room) => ({ type: room.type, level: room.level })),
   ];
@@ -564,10 +566,12 @@ export function buildBasicCalculatorSchedule(
       stateForOperator(operator),
     ]),
   );
-  addRoomAssignment(rooms, "control", {
-    operators: controlOperators.map(({ name }) => name),
-    operatorStates: controlStates,
-  });
+  if (controlOperators.length) {
+    addRoomAssignment(rooms, "control", {
+      operators: controlOperators.map(({ name }) => name),
+      operatorStates: controlStates,
+    });
+  }
   addRoomAssignment(rooms, group.facility, {
     operators: workOperators.map(({ name }) => name),
     product: row.product,

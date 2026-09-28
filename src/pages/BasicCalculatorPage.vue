@@ -134,14 +134,30 @@ const operatorOptions = computed(() =>
 const rowDraftGroup = computed(() =>
   config.value?.groups.find((group) => group.id === rowDraftGroupId.value),
 );
+const rowDraftHasControl = computed(
+  () =>
+    rowDraftSchedule.value?.layout.some((entry) => entry.type === "control") ??
+    false,
+);
 const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
   () => {
     const group = rowDraftGroup.value;
     return group
-      ? { control: 5, [group.facility]: group.facilityLevel }
-      : { control: 5 };
+      ? {
+          ...(rowDraftHasControl.value ? { control: 5 } : {}),
+          [group.facility]: group.facilityLevel,
+        }
+      : {};
   },
 );
+const rowDraftFixedRoomTypes = computed<RoomKey[]>(() => {
+  const group = rowDraftGroup.value;
+  if (!group) return [];
+  return [
+    ...(rowDraftHasControl.value ? (["control"] as const) : []),
+    group.facility,
+  ];
+});
 const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
   () => {
     const group = rowDraftGroup.value;
@@ -1534,7 +1550,7 @@ function toggleGroupColumn(
           :session-key="rowDraftGroupId + ':' + rowDraft.id"
           :facility-colors="facilityColors"
           :fixed-room-levels="rowDraftFixedRoomLevels"
-          :fixed-room-types="['control', rowDraftGroup.facility]"
+          :fixed-room-types="rowDraftFixedRoomTypes"
           :operator-candidates="editorOperatorCandidates"
           :operator-elite-level="editorOperatorEliteLevel"
           :operator-progression="editorOperatorProgression"

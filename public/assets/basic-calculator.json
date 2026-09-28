@@ -111,14 +111,6 @@
               "room": "control"
             },
             {
-              "name": "12F",
-              "room": "control"
-            },
-            {
-              "name": "杜林",
-              "room": "control"
-            },
-            {
               "name": "多萝西",
               "room": "control"
             }
@@ -152,8 +144,7 @@
             {
               "name": "多萝西"
             }
-          ],
-          "product": "赤金"
+          ]
         },
         {
           "id": "red-cloud-07",
@@ -178,7 +169,8 @@
             {
               "name": "圣约送葬人"
             }
-          ]
+          ],
+          "product": "中级作战记录"
         },
         {
           "id": "red-cloud-09",
@@ -235,21 +227,8 @@
             {
               "name": "火龙S黑角",
               "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
-            },
-            {
-              "name": "杜林",
-              "room": "control"
-            },
-            {
-              "name": "夜刀",
-              "room": "control"
             }
           ],
-          "product": "中级作战记录",
           "note": "怪物猎人干员进驻中枢"
         },
         {
@@ -277,7 +256,8 @@
             {
               "name": "卡达"
             }
-          ]
+          ],
+          "product": "中级作战记录"
         },
         {
           "id": "red-cloud-18",
@@ -336,7 +316,7 @@
           "id": "bubble-02",
           "operators": [
             {
-              "name": "溯光星源"
+              "name": "酒神"
             },
             {
               "name": "Miss.Christine"
@@ -361,14 +341,6 @@
             },
             {
               "name": "赫默",
-              "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
-            },
-            {
-              "name": "杜林",
               "room": "control"
             },
             {
@@ -397,8 +369,7 @@
             {
               "name": "多萝西"
             }
-          ],
-          "product": "赤金"
+          ]
         },
         {
           "id": "bubble-06",
@@ -406,7 +377,8 @@
             {
               "name": "圣约送葬人"
             }
-          ]
+          ],
+          "product": "中级作战记录"
         },
         {
           "id": "bubble-07",
@@ -414,7 +386,8 @@
             {
               "name": "帕拉斯"
             }
-          ]
+          ],
+          "product": "中级作战记录"
         },
         {
           "id": "bubble-08",
@@ -487,8 +460,7 @@
             {
               "name": "泰拉大陆调查团"
             }
-          ],
-          "product": "中级作战记录"
+          ]
         },
         {
           "id": "bubble-16",
@@ -523,7 +495,8 @@
             {
               "name": "卡达"
             }
-          ]
+          ],
+          "product": "中级作战记录"
         },
         {
           "id": "bubble-20",
@@ -581,18 +554,6 @@
             },
             {
               "name": "维什戴尔",
-              "room": "control"
-            },
-            {
-              "name": "Lancet-2",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
@@ -746,10 +707,6 @@
             {
               "name": "灵知",
               "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
             }
           ],
           "note": "中枢"
@@ -773,18 +730,6 @@
             {
               "name": "灵知",
               "room": "control"
-            },
-            {
-              "name": "Lancet-2",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
             }
           ],
           "note": "中枢"
@@ -807,18 +752,6 @@
             },
             {
               "name": "灵知",
-              "room": "control"
-            },
-            {
-              "name": "Lancet-2",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
@@ -857,14 +790,6 @@
             },
             {
               "name": "灵知",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
@@ -965,18 +890,6 @@
             {
               "name": "灵知",
               "room": "control"
-            },
-            {
-              "name": "Lancet-2",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
             }
           ],
           "note": "中枢"
@@ -1007,14 +920,6 @@
             },
             {
               "name": "灵知",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
@@ -1047,14 +952,6 @@
             {
               "name": "灵知",
               "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
-              "room": "control"
             }
           ],
           "note": "中枢"
@@ -1077,18 +974,6 @@
             },
             {
               "name": "灵知",
-              "room": "control"
-            },
-            {
-              "name": "Lancet-2",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
@@ -1119,14 +1004,6 @@
             },
             {
               "name": "灵知",
-              "room": "control"
-            },
-            {
-              "name": "Castle-3",
-              "room": "control"
-            },
-            {
-              "name": "12F",
               "room": "control"
             }
           ],
