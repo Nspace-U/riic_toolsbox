@@ -1185,8 +1185,8 @@ function toggleGroupColumn(
             :value="config.settings.efficiencyDisplay"
             @change="updateSetting('efficiencyDisplay', $event.target.value)"
           >
-            <a-radio-button value="first">方式一</a-radio-button>
-            <a-radio-button value="second">方式二</a-radio-button>
+            <a-radio-button value="first">合计</a-radio-button>
+            <a-radio-button value="second">平均</a-radio-button>
             <a-radio-button value="both">两种</a-radio-button>
           </a-radio-group>
         </a-form-item>
