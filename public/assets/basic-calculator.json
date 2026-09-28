@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "columns": [
     {
       "id": "operators",
@@ -59,7 +59,6 @@
       "coreOperator": {
         "name": "红云"
       },
-      "baselineEfficiency": 16,
       "columnIds": [
         "operators",
         "operator-names",
@@ -72,216 +71,541 @@
       "rows": [
         {
           "id": "red-cloud-01",
-          "operators": [
-            {
-              "name": "稀音"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-01",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["红云", "稀音"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-02",
-          "operators": [
-            {
-              "name": "酒神"
-            },
-            {
-              "name": "Miss.Christine"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-02",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["红云", "酒神", "Miss.Christine"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-03",
-          "operators": [
-            {
-              "name": "溯光星源"
-            },
-            {
-              "name": "娜斯提"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "白面鸮",
-              "room": "control"
-            },
-            {
-              "name": "赫默",
-              "room": "control"
-            },
-            {
-              "name": "多萝西",
-              "room": "control"
-            }
-          ],
-          "product": "赤金",
-          "note": "4名莱茵生命干员"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-03",
+                "duration": 1440,
+                "description": "4名莱茵生命干员",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["白面鸮", "赫默", "多萝西"]
+                    }
+                  ],
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["红云", "溯光星源", "娜斯提"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-04",
-          "operators": [
-            {
-              "name": "帕拉斯"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-04",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["红云", "帕拉斯"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-05",
-          "operators": [
-            {
-              "name": "刻俄柏"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-05",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "刻俄柏"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-06",
-          "operators": [
-            {
-              "name": "溯光星源"
-            },
-            {
-              "name": "多萝西"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-06",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "溯光星源", "多萝西"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-07",
-          "operators": [
-            {
-              "name": "娜仁图亚"
-            }
-          ],
-          "extraRooms": [
-            {
-              "type": "dormitory",
-              "level": 3,
-              "count": 4
-            }
-          ],
-          "product": "赤金",
-          "note": "4间满级宿舍"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-07",
+                "duration": 1440,
+                "description": "4间满级宿舍",
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["红云", "娜仁图亚"]
+                    }
+                  ],
+                  "dormitory": [
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-08",
-          "operators": [
-            {
-              "name": "圣约送葬人"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-08",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["红云", "圣约送葬人"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-09",
-          "operators": [
-            {
-              "name": "裁度"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-09",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "裁度"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-10",
-          "operators": [
-            {
-              "name": "铅踝"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-10",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "铅踝"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-11",
-          "operators": [
-            {
-              "name": "洋灰"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-11",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "洋灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-12",
-          "operators": [
-            {
-              "name": "火神"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-12",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "火神"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-13",
-          "operators": [
-            {
-              "name": "石棉"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-13",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "石棉"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-14",
-          "operators": [
-            {
-              "name": "泰拉大陆调查团"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "麒麟R夜刀",
-              "room": "control"
-            },
-            {
-              "name": "火龙S黑角",
-              "room": "control"
-            }
-          ],
-          "note": "怪物猎人干员进驻中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-14",
+                "duration": 1440,
+                "description": "怪物猎人干员进驻中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["麒麟R夜刀", "火龙S黑角"]
+                    }
+                  ],
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "泰拉大陆调查团"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-15",
-          "operators": [
-            {
-              "name": "豆苗"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-15",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "豆苗"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-16",
-          "operators": [
-            {
-              "name": "黑角"
-            },
-            {
-              "name": "蛇屠箱"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-16",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "黑角", "蛇屠箱"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-17",
-          "operators": [
-            {
-              "name": "卡达"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-17",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["红云", "卡达"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-18",
-          "operators": [
-            {
-              "name": "米格鲁"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-18",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "米格鲁"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-19",
-          "operators": [
-            {
-              "name": "清道夫"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-19",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "清道夫"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "red-cloud-20",
-          "operators": [
-            {
-              "name": "贝娜"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "red-cloud-20",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "贝娜"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
       ]
     },
@@ -293,7 +617,6 @@
       "coreOperator": {
         "name": "泡泡"
       },
-      "baselineEfficiency": 16,
       "columnIds": [
         "operators",
         "operator-names",
@@ -306,205 +629,531 @@
       "rows": [
         {
           "id": "bubble-01",
-          "operators": [
-            {
-              "name": "火神"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-01",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "火神"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-02",
-          "operators": [
-            {
-              "name": "酒神"
-            },
-            {
-              "name": "Miss.Christine"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-02",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["泡泡", "酒神", "Miss.Christine"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-03",
-          "operators": [
-            {
-              "name": "溯光星源"
-            },
-            {
-              "name": "娜斯提"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "白面鸮",
-              "room": "control"
-            },
-            {
-              "name": "赫默",
-              "room": "control"
-            },
-            {
-              "name": "多萝西",
-              "room": "control"
-            }
-          ],
-          "product": "赤金",
-          "note": "4名莱茵生命干员"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-03",
+                "duration": 1440,
+                "description": "4名莱茵生命干员",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["白面鸮", "赫默", "多萝西"]
+                    }
+                  ],
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["泡泡", "溯光星源", "娜斯提"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-04",
-          "operators": [
-            {
-              "name": "稀音"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-04",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["泡泡", "稀音"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-05",
-          "operators": [
-            {
-              "name": "溯光星源"
-            },
-            {
-              "name": "多萝西"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-05",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "溯光星源", "多萝西"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-06",
-          "operators": [
-            {
-              "name": "圣约送葬人"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-06",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["泡泡", "圣约送葬人"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-07",
-          "operators": [
-            {
-              "name": "帕拉斯"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-07",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["泡泡", "帕拉斯"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-08",
-          "operators": [
-            {
-              "name": "刻俄柏"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-08",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "刻俄柏"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-09",
-          "operators": [
-            {
-              "name": "裁度"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-09",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "裁度"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-10",
-          "operators": [
-            {
-              "name": "贝娜"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-10",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "贝娜"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-11",
-          "operators": [
-            {
-              "name": "娜仁图亚"
-            }
-          ],
-          "extraRooms": [
-            {
-              "type": "dormitory",
-              "level": 3,
-              "count": 4
-            }
-          ],
-          "product": "赤金",
-          "note": "4间满级宿舍"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-11",
+                "duration": 1440,
+                "description": "4间满级宿舍",
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["泡泡", "娜仁图亚"]
+                    }
+                  ],
+                  "dormitory": [
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    },
+                    {
+                      "operators": []
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-12",
-          "operators": [
-            {
-              "name": "石棉"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-12",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "石棉"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-13",
-          "operators": [
-            {
-              "name": "铅踝"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-13",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "铅踝"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-14",
-          "operators": [
-            {
-              "name": "洋灰"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-14",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "洋灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-15",
-          "operators": [
-            {
-              "name": "泰拉大陆调查团"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-15",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "泰拉大陆调查团"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-16",
-          "operators": [
-            {
-              "name": "豆苗"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-16",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "豆苗"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-17",
-          "operators": [
-            {
-              "name": "黑角"
-            },
-            {
-              "name": "蛇屠箱"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-17",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "黑角", "蛇屠箱"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-18",
-          "operators": [
-            {
-              "name": "米格鲁"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-18",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "米格鲁"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-19",
-          "operators": [
-            {
-              "name": "卡达"
-            }
-          ],
-          "product": "中级作战记录"
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-19",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["泡泡", "卡达"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "bubble-20",
-          "operators": [
-            {
-              "name": "清道夫"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "bubble-20",
+                "duration": 1440,
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "清道夫"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
       ]
     },
@@ -516,7 +1165,6 @@
       "coreOperator": {
         "name": "孑"
       },
-      "baselineEfficiency": 40,
       "columnIds": [
         "operators",
         "operator-names",
@@ -529,290 +1177,509 @@
       "rows": [
         {
           "id": "jie-0-01",
-          "operators": [
-            {
-              "name": "泰拉大陆调查团"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-01",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "泰拉大陆调查团"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-02",
-          "operators": [
-            {
-              "name": "赫德雷",
-              "room": "control"
-            },
-            {
-              "name": "维什戴尔",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "赫德雷",
-              "room": "control"
-            },
-            {
-              "name": "维什戴尔",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-02",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["赫德雷", "维什戴尔"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-03",
-          "operators": [
-            {
-              "name": "何夜川"
-            },
-            {
-              "name": "贝洛内"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-03",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "何夜川", "贝洛内"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-04",
-          "operators": [
-            {
-              "name": "焰狐龙梓兰"
-            },
-            {
-              "name": "雷狼龙S空爆"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-04",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "焰狐龙梓兰", "雷狼龙S空爆"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-05",
-          "operators": [
-            {
-              "name": "琵盐"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-05",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "琵盐"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-06",
-          "operators": [
-            {
-              "name": "拉普兰德"
-            },
-            {
-              "name": "德克萨斯"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-06",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拉普兰德", "德克萨斯"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-07",
-          "operators": [
-            {
-              "name": "齐尔查克"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-07",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "齐尔查克"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-08",
-          "operators": [
-            {
-              "name": "衡沙"
-            },
-            {
-              "name": "拜松"
-            },
-            {
-              "name": "可颂"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-08",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "衡沙", "拜松", "可颂"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-09",
-          "operators": [
-            {
-              "name": "远山"
-            },
-            {
-              "name": "梓兰"
-            },
-            {
-              "name": "玫兰莎"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-09",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "远山", "梓兰", "玫兰莎"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-10",
-          "operators": [
-            {
-              "name": "涤火杰西卡"
-            },
-            {
-              "name": "四月"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-10",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "涤火杰西卡", "四月"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-11",
-          "operators": [
-            {
-              "name": "桃金娘"
-            },
-            {
-              "name": "暗索"
-            },
-            {
-              "name": "史都华德"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-11",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "桃金娘", "暗索", "史都华德"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-12",
-          "operators": [
-            {
-              "name": "剑羽"
-            },
-            {
-              "name": "黑角"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-12",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "剑羽", "黑角"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-13",
-          "operators": [
-            {
-              "name": "银灰"
-            },
-            {
-              "name": "铅踝",
-              "room": "control"
-            },
-            {
-              "name": "琳琅诗怀雅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "银灰",
-              "room": "control"
-            },
-            {
-              "name": "铅踝",
-              "room": "control"
-            },
-            {
-              "name": "琳琅诗怀雅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-13",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["银灰", "铅踝", "琳琅诗怀雅", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-14",
-          "operators": [
-            {
-              "name": "银灰"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "银灰",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-14",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["银灰", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-15",
-          "operators": [
-            {
-              "name": "塞雷娅"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "塞雷娅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-15",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["塞雷娅", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "塞雷娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-16",
-          "operators": [
-            {
-              "name": "银灰"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-16",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-17",
-          "operators": [
-            {
-              "name": "角峰"
-            },
-            {
-              "name": "讯使"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "角峰",
-              "room": "control"
-            },
-            {
-              "name": "讯使",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-17",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["角峰", "讯使", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰", "讯使"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-18",
-          "operators": [
-            {
-              "name": "塞雷娅"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-18",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "塞雷娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-0-19",
-          "operators": [
-            {
-              "name": "角峰"
-            },
-            {
-              "name": "讯使"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-0-19",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰", "讯使"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
       ]
     },
@@ -824,7 +1691,6 @@
       "coreOperator": {
         "name": "孑"
       },
-      "baselineEfficiency": 40,
       "columnIds": [
         "operators",
         "operator-names",
@@ -837,204 +1703,317 @@
       "rows": [
         {
           "id": "jie-1-01",
-          "operators": [
-            {
-              "name": "涤火杰西卡"
-            },
-            {
-              "name": "四月"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-01",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "涤火杰西卡", "四月"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-02",
-          "operators": [
-            {
-              "name": "桃金娘"
-            },
-            {
-              "name": "暗索"
-            },
-            {
-              "name": "史都华德"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-02",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "桃金娘", "暗索", "史都华德"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-03",
-          "operators": [
-            {
-              "name": "剑羽"
-            },
-            {
-              "name": "黑角"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-03",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "剑羽", "黑角"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-04",
-          "operators": [
-            {
-              "name": "银灰"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "银灰",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-04",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["银灰", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-05",
-          "operators": [
-            {
-              "name": "银灰"
-            },
-            {
-              "name": "琳琅诗怀雅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "银灰",
-              "room": "control"
-            },
-            {
-              "name": "琳琅诗怀雅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-05",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["银灰", "琳琅诗怀雅", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-06",
-          "operators": [
-            {
-              "name": "银灰"
-            },
-            {
-              "name": "铅踝",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "银灰",
-              "room": "control"
-            },
-            {
-              "name": "铅踝",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-06",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["银灰", "铅踝", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-07",
-          "operators": [
-            {
-              "name": "塞雷娅"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "塞雷娅",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-07",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["塞雷娅", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "塞雷娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-08",
-          "operators": [
-            {
-              "name": "角峰"
-            },
-            {
-              "name": "讯使"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "controlOperators": [
-            {
-              "name": "角峰",
-              "room": "control"
-            },
-            {
-              "name": "讯使",
-              "room": "control"
-            },
-            {
-              "name": "灵知",
-              "room": "control"
-            }
-          ],
-          "note": "中枢"
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-08",
+                "duration": 1440,
+                "description": "中枢",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["角峰", "讯使", "灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰", "讯使"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-09",
-          "operators": [
-            {
-              "name": "银灰"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-09",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-10",
-          "operators": [
-            {
-              "name": "塞雷娅"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-10",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "塞雷娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         },
         {
           "id": "jie-1-11",
-          "operators": [
-            {
-              "name": "角峰"
-            },
-            {
-              "name": "讯使"
-            }
-          ]
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "name": "jie-1-11",
+                "duration": 1440,
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰", "讯使"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
       ]
     }

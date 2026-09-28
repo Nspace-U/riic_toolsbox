@@ -5,7 +5,7 @@ import type {
   OperatorProgressionProfile,
 } from "@arknights/riic-efficiency";
 import type {
-  OperatorState,
+  RoomAssignment,
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
@@ -41,25 +41,10 @@ export interface BasicCalculatorOperator {
   level?: number;
 }
 
-export interface BasicCalculatorExtraRoom {
-  type: RoomKey;
-  level: number;
-  operators?: BasicCalculatorOperator[];
-  count?: number;
-  product?: string;
-  sourceMaterial?: string;
-}
-
 export interface BasicCalculatorRow {
   id: string;
-  operators: BasicCalculatorOperator[];
+  schedule: ScheduleDocument;
   displayOperators?: BasicCalculatorOperator[];
-  coreOperator?: BasicCalculatorOperator;
-  controlOperators?: BasicCalculatorOperator[];
-  product?: string;
-  sourceMaterial?: string;
-  note?: string;
-  extraRooms?: BasicCalculatorExtraRoom[];
 }
 
 export interface BasicCalculatorGroup {
@@ -68,7 +53,6 @@ export interface BasicCalculatorGroup {
   facility: Extract<RoomKey, "trading" | "manufacture">;
   facilityLevel: number;
   coreOperator: BasicCalculatorOperator;
-  baselineEfficiency: number;
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
@@ -84,7 +68,6 @@ export interface BasicCalculatorSettings {
   jieCalculation: "max" | "integral";
   sortColumnId: string;
   sortDirection: "asc" | "desc";
-  defaultControlOperators: string[];
 }
 
 export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
@@ -98,7 +81,6 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   jieCalculation: "max",
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
-  defaultControlOperators: [],
 };
 
 export type BasicCalculatorAsset = Omit<BasicCalculatorConfig, "settings"> & {
@@ -140,6 +122,7 @@ export interface BasicCalculatorEvaluation {
   facilityIndex: number;
   visibleResult: EfficiencyResult;
   visibleFacilityIndex: number;
+  baselineEfficiency: number;
   workOperators: BasicCalculatorOperator[];
   participants: BasicCalculatorOperator[];
 }
@@ -181,39 +164,8 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function normalizeExtraRooms(
-  rooms: BasicCalculatorExtraRoom[] | undefined,
-): BasicCalculatorExtraRoom[] | undefined {
-  if (!rooms?.length) return rooms;
-  return rooms.flatMap((room) => {
-    const count = Math.max(1, room.count ?? 1);
-    return Array.from({ length: count }, () => ({
-      ...room,
-      ...(room.operators ? { operators: clone(room.operators) } : {}),
-      count: undefined,
-    }));
-  });
-}
-
-function normalizeRow(row: BasicCalculatorRow): BasicCalculatorRow {
-  const next = clone(row);
-  const extraRooms = normalizeExtraRooms(next.extraRooms);
-  if (extraRooms) {
-    next.extraRooms = extraRooms.map((room) => {
-      const normalized = { ...room };
-      delete normalized.count;
-      return normalized;
-    });
-  }
-  return next;
-}
-
 function normalizeConfig(config: BasicCalculatorConfig): BasicCalculatorConfig {
-  const next = clone(config);
-  next.groups.forEach((group) => {
-    group.rows = group.rows.map(normalizeRow);
-  });
-  return next;
+  return clone(config);
 }
 
 function sameValue(first: unknown, second: unknown): boolean {
@@ -361,9 +313,7 @@ export function createBasicCalculatorPatch(
   (
     Object.keys(defaults.settings) as Array<keyof BasicCalculatorSettings>
   ).forEach((key) => {
-    if (key === "avatar" || key === "defaultControlOperators") {
-      return;
-    }
+    if (key === "avatar") return;
     if (!sameValue(defaults.settings[key], current.settings[key])) {
       settings[key] = current.settings[key] as never;
     }
@@ -379,16 +329,6 @@ export function createBasicCalculatorPatch(
   });
   if (Object.keys(avatarSettings).length > 0) {
     settings.avatar = avatarSettings;
-  }
-  if (
-    !sameValue(
-      defaults.settings.defaultControlOperators,
-      current.settings.defaultControlOperators,
-    )
-  ) {
-    settings.defaultControlOperators = [
-      ...current.settings.defaultControlOperators,
-    ];
   }
   if (Object.keys(settings).length > 0) {
     patch.settings = settings;
@@ -493,24 +433,6 @@ export function createBasicCalculatorPatch(
   return patch;
 }
 
-function stateForOperator(operator: BasicCalculatorOperator): OperatorState {
-  return {
-    ...(operator.mood === undefined ? {} : { mood: operator.mood }),
-    ...(operator.elite === undefined ? {} : { elite: operator.elite }),
-    ...(operator.level === undefined ? {} : { level: operator.level }),
-  };
-}
-
-function addRoomAssignment(
-  rooms: Record<string, unknown[]>,
-  type: RoomKey,
-  assignment: Record<string, unknown>,
-): void {
-  const list = (rooms[type] ?? []) as Record<string, unknown>[];
-  list.push(assignment);
-  rooms[type] = list;
-}
-
 function uniqueOperators(
   operators: BasicCalculatorOperator[],
 ): BasicCalculatorOperator[] {
@@ -524,98 +446,271 @@ function uniqueOperators(
   });
 }
 
-export function buildBasicCalculatorSchedule(
+export function basicCalculatorRoomAssignment(
+  document: ScheduleDocument,
+  type: RoomKey,
+  position: number = 0,
+): RoomAssignment | undefined {
+  const assignments = document.plans[0]?.rooms[type];
+  return Array.isArray(assignments)
+    ? (assignments[position] as RoomAssignment | undefined)
+    : undefined;
+}
+
+export function basicCalculatorScheduleOperators(
+  document: ScheduleDocument,
+): BasicCalculatorOperator[] {
+  const positions = new Map<RoomKey, number>();
+  const operators = document.layout.flatMap(({ type }) => {
+    const position = positions.get(type) ?? 0;
+    positions.set(type, position + 1);
+    const assignment = basicCalculatorRoomAssignment(document, type, position);
+    return (assignment?.operators ?? []).map((name) => ({
+      name,
+      room: type,
+      ...(assignment?.operatorStates?.[name] ?? {}),
+    }));
+  });
+  const seen = new Set<string>();
+  return operators.filter((operator) => {
+    const key = `${operator.name}:${operator.room ?? ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function basicCalculatorOperatorFieldNames(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
-  durationHours: number,
-  settings: BasicCalculatorSettings,
-  includeCore: boolean = true,
+): string[] {
+  const assignment = basicCalculatorRoomAssignment(
+    row.schedule,
+    group.facility,
+  );
+  const control = basicCalculatorRoomAssignment(row.schedule, "control");
+  return uniqueOperators([
+    { name: group.coreOperator.name },
+    ...(assignment?.operators ?? []).map((name) => ({ name })),
+    ...(control?.operators ?? []).map((name) => ({ name })),
+  ]).map(({ name }) => name);
+}
+
+export function createBasicCalculatorSchedule(
+  group: BasicCalculatorGroup,
+  rowId: string,
 ): ScheduleDocument {
-  const core = includeCore
-    ? (row.coreOperator ?? group.coreOperator)
-    : undefined;
-  const participants = uniqueOperators([
-    ...(core ? [core] : []),
-    ...row.operators,
-    ...(row.extraRooms ?? []).flatMap((room) => room.operators ?? []),
-  ]);
-  const controlOperators = uniqueOperators(
-    row.controlOperators ?? [
-      ...settings.defaultControlOperators.map((name) => ({
-        name,
-        room: "control" as const,
-      })),
-      ...row.operators.filter((operator) => operator.room === "control"),
-    ],
-  );
-  const workOperators = participants.filter(
-    (operator) => !operator.room || operator.room === group.facility,
-  );
-  const extraRooms = row.extraRooms ?? [];
-  const layout: ScheduleDocument["layout"] = [
-    ...(controlOperators.length
-      ? [{ type: "control" as const, level: 5 }]
-      : []),
-    { type: group.facility, level: group.facilityLevel },
-    ...extraRooms.map((room) => ({ type: room.type, level: room.level })),
-  ];
-  const rooms: Record<string, unknown[]> = {};
-  const controlStates = Object.fromEntries(
-    controlOperators.map((operator) => [
-      operator.name,
-      stateForOperator(operator),
-    ]),
-  );
-  if (controlOperators.length) {
-    addRoomAssignment(rooms, "control", {
-      operators: controlOperators.map(({ name }) => name),
-      operatorStates: controlStates,
-    });
-  }
-  addRoomAssignment(rooms, group.facility, {
-    operators: workOperators.map(({ name }) => name),
-    product: row.product,
-    sourceMaterial: row.sourceMaterial,
-    operatorStates: Object.fromEntries(
-      workOperators.map((operator) => [
-        operator.name,
-        stateForOperator(operator),
-      ]),
-    ),
-  });
-  extraRooms.forEach((room) => {
-    const operators =
-      room.operators ??
-      participants.filter((operator) => operator.room === room.type);
-    addRoomAssignment(rooms, room.type, {
-      operators: operators.map(({ name }) => name),
-      product: room.product,
-      sourceMaterial: room.sourceMaterial,
-      operatorStates: Object.fromEntries(
-        operators.map((operator) => [
-          operator.name,
-          stateForOperator(operator),
-        ]),
-      ),
-    });
-  });
   return {
-    title: `${group.name} · ${row.id}`,
-    layout,
+    layout: [{ type: group.facility, level: group.facilityLevel }],
     plans: [
       {
-        name: row.id,
-        duration: Math.round(durationHours * 60),
-        rooms,
+        name: rowId,
+        duration: 1440,
+        rooms: {
+          [group.facility]: [{ operators: [group.coreOperator.name] }],
+        },
       },
     ],
-    settings: {
-      clueExchanging: true,
-      dormFullTreat: true,
-      preferMaxJieEfficiency: settings.jieCalculation === "max",
-      firstItemProgress: 0,
-    },
   };
+}
+
+export function synchronizeBasicCalculatorGroupSchedule(
+  schedule: ScheduleDocument,
+  previousGroup: BasicCalculatorGroup,
+  nextGroup: BasicCalculatorGroup,
+): ScheduleDocument {
+  const document = clone(schedule);
+  const priorLayout = [...document.layout];
+  const affectedTypes = new Set(priorLayout.map(({ type }) => type));
+  let coreEntry = priorLayout.find(
+    (entry) => entry.type === previousGroup.facility,
+  );
+  if (!coreEntry) {
+    coreEntry = { type: nextGroup.facility, level: nextGroup.facilityLevel };
+    priorLayout.push(coreEntry);
+  }
+  const assignmentsByPlan = document.plans.map((plan) => {
+    const assignments = new Map<
+      ScheduleDocument["layout"][number],
+      RoomAssignment
+    >();
+    const positions = new Map<RoomKey, number>();
+    priorLayout.forEach((entry) => {
+      const position = positions.get(entry.type) ?? 0;
+      positions.set(entry.type, position + 1);
+      const rooms = plan.rooms[entry.type];
+      assignments.set(
+        entry,
+        Array.isArray(rooms)
+          ? clone((rooms[position] as RoomAssignment | undefined) ?? {})
+          : {},
+      );
+    });
+    return assignments;
+  });
+  const incomingStates = assignmentsByPlan.flatMap((assignments) =>
+    [...assignments.values()].flatMap((assignment) => {
+      const state = assignment.operatorStates?.[nextGroup.coreOperator.name];
+      return state ? [clone(state)] : [];
+    }),
+  );
+  coreEntry.type = nextGroup.facility;
+  coreEntry.level = nextGroup.facilityLevel;
+  affectedTypes.add(nextGroup.facility);
+  if (previousGroup.facility !== nextGroup.facility) {
+    const entryIndex = priorLayout.indexOf(coreEntry);
+    priorLayout.splice(entryIndex, 1);
+    const firstSameType = priorLayout.findIndex(
+      (entry) => entry.type === nextGroup.facility,
+    );
+    priorLayout.splice(
+      firstSameType < 0 ? priorLayout.length : firstSameType,
+      0,
+      coreEntry,
+    );
+  }
+
+  document.plans.forEach((plan, planIndex) => {
+    const assignments = assignmentsByPlan[planIndex]!;
+    const target = assignments.get(coreEntry) ?? {};
+    const coreName = nextGroup.coreOperator.name;
+    const oldCoreName = previousGroup.coreOperator.name;
+    let preservedState = target.operatorStates?.[coreName];
+    if (!preservedState) preservedState = incomingStates[0];
+
+    assignments.forEach((assignment, entry) => {
+      if (entry === coreEntry) return;
+      if (
+        !assignment.operators?.includes(coreName) &&
+        !assignment.operators?.includes(oldCoreName)
+      )
+        return;
+      assignment.operators = assignment.operators?.filter(
+        (name) => name !== coreName && name !== oldCoreName,
+      );
+      if (assignment.operatorStates) {
+        delete assignment.operatorStates[coreName];
+        delete assignment.operatorStates[oldCoreName];
+        if (!Object.keys(assignment.operatorStates).length)
+          delete assignment.operatorStates;
+      }
+    });
+
+    const targetNames = target.operators ?? [];
+    target.operators = [
+      coreName,
+      ...targetNames.filter(
+        (name) => name !== coreName && name !== oldCoreName,
+      ),
+    ];
+    const targetStates = target.operatorStates ?? {};
+    if (oldCoreName !== coreName) delete targetStates[oldCoreName];
+    if (preservedState) targetStates[coreName] = preservedState;
+    if (Object.keys(targetStates).length) target.operatorStates = targetStates;
+    else delete target.operatorStates;
+    if (previousGroup.facility !== nextGroup.facility) {
+      delete target.product;
+      delete target.sourceMaterial;
+    }
+    assignments.set(coreEntry, target);
+
+    const rooms = { ...plan.rooms };
+    affectedTypes.forEach((type) => delete rooms[type]);
+    priorLayout.forEach((entry) => {
+      const entries = (rooms[entry.type] ?? []) as RoomAssignment[];
+      entries.push(assignments.get(entry) ?? {});
+      rooms[entry.type] = entries;
+    });
+    plan.rooms = rooms;
+  });
+  document.layout = priorLayout;
+  return document;
+}
+
+function stateForAssignment(
+  assignment: RoomAssignment | undefined,
+  name: string,
+): BasicCalculatorOperator {
+  return {
+    name,
+    ...(assignment?.operatorStates?.[name] ?? {}),
+  };
+}
+
+function scheduleForCalculation(
+  schedule: ScheduleDocument,
+  durationHours: number,
+  settings: BasicCalculatorSettings,
+): ScheduleDocument {
+  const document = clone(schedule);
+  const plan = document.plans[0];
+  if (plan) plan.duration = Math.round(durationHours * 60);
+  document.settings = {
+    ...document.settings,
+    clueExchanging: document.settings?.clueExchanging ?? true,
+    dormFullTreat: document.settings?.dormFullTreat ?? true,
+    preferMaxJieEfficiency: settings.jieCalculation === "max",
+    firstItemProgress: document.settings?.firstItemProgress ?? 0,
+  };
+  return document;
+}
+
+function coreOnlySchedule(
+  document: ScheduleDocument,
+  group: BasicCalculatorGroup,
+  core: BasicCalculatorOperator,
+): ScheduleDocument {
+  const targetAssignment = basicCalculatorRoomAssignment(
+    document,
+    group.facility,
+  );
+  const assignment = clone(targetAssignment ?? {});
+  assignment.operators = [core.name];
+  const state = targetAssignment?.operatorStates?.[core.name];
+  if (state) assignment.operatorStates = { [core.name]: clone(state) };
+  else delete assignment.operatorStates;
+  const targetEntry = document.layout.find(
+    (entry) => entry.type === group.facility,
+  );
+  const sourcePlan = document.plans[0];
+  return {
+    layout: [
+      {
+        type: group.facility,
+        level: targetEntry?.level ?? group.facilityLevel,
+      },
+    ],
+    plans: [
+      {
+        ...(sourcePlan?.name ? { name: sourcePlan.name } : {}),
+        duration: 1440,
+        rooms: { [group.facility]: [assignment] },
+      },
+    ],
+    ...(document.settings ? { settings: clone(document.settings) } : {}),
+  };
+}
+
+function coreBaselineEfficiency(
+  catalog: EfficiencyCatalog,
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+  settings: BasicCalculatorSettings,
+  options: BasicCalculatorCalculationOptions,
+): number {
+  const document = scheduleForCalculation(row.schedule, 24, settings);
+  const assignment = basicCalculatorRoomAssignment(document, group.facility);
+  const core = stateForAssignment(assignment, group.coreOperator.name);
+  const result = calculateEfficiencyForBasicCalculator(
+    coreOnlySchedule(document, group, core),
+    catalog,
+    options,
+  );
+  return (
+    result.plans[0]?.facilities.find(
+      (facility) => facility.facility.type === group.facility,
+    )?.skillEfficiency ?? 0
+  );
 }
 
 export function evaluateBasicCalculatorRow(
@@ -625,10 +720,10 @@ export function evaluateBasicCalculatorRow(
   durationHours: number,
   settings: BasicCalculatorSettings,
   options: BasicCalculatorCalculationOptions = {},
+  baselineEfficiency?: number,
 ): BasicCalculatorEvaluation {
-  const document = buildBasicCalculatorSchedule(
-    group,
-    row,
+  const document = scheduleForCalculation(
+    row.schedule,
     durationHours,
     settings,
   );
@@ -637,30 +732,44 @@ export function evaluateBasicCalculatorRow(
     catalog,
     options,
   );
-  const core = row.coreOperator ?? group.coreOperator;
-  const visibleRow: BasicCalculatorRow = {
-    ...row,
-    operators: row.operators.filter((operator) => operator.name !== core.name),
-  };
-  const visibleDocument = buildBasicCalculatorSchedule(
-    group,
-    visibleRow,
-    durationHours,
-    settings,
-    false,
+  const targetAssignment = basicCalculatorRoomAssignment(
+    document,
+    group.facility,
   );
+  const core = stateForAssignment(targetAssignment, group.coreOperator.name);
+  const workOperators = uniqueOperators([
+    core,
+    ...(targetAssignment?.operators ?? []).map((name) =>
+      stateForAssignment(targetAssignment, name),
+    ),
+  ]);
+  const visibleDocument = clone(document);
+  const visibleAssignment = basicCalculatorRoomAssignment(
+    visibleDocument,
+    group.facility,
+  );
+  if (visibleAssignment) {
+    visibleAssignment.operators = visibleAssignment.operators?.filter(
+      (name) => name !== core.name,
+    );
+    if (visibleAssignment.operatorStates) {
+      delete visibleAssignment.operatorStates[core.name];
+      if (!Object.keys(visibleAssignment.operatorStates).length)
+        delete visibleAssignment.operatorStates;
+    }
+  }
   const visibleResult = calculateEfficiencyForBasicCalculator(
     visibleDocument,
     catalog,
     options,
   );
+  const baseline =
+    baselineEfficiency ??
+    coreBaselineEfficiency(catalog, group, row, settings, options);
   const facilityIndex =
     result.plans[0]?.facilities.findIndex(
       (facility) => facility.facility.type === group.facility,
     ) ?? -1;
-  const participants = uniqueOperators([core, ...row.operators]).filter(
-    (operator) => !operator.room || operator.room === group.facility,
-  );
   const visibleFacilityIndex =
     visibleResult.plans[0]?.facilities.findIndex(
       (facility) => facility.facility.type === group.facility,
@@ -670,8 +779,9 @@ export function evaluateBasicCalculatorRow(
     facilityIndex,
     visibleResult,
     visibleFacilityIndex,
-    workOperators: participants,
-    participants,
+    baselineEfficiency: baseline,
+    workOperators,
+    participants: workOperators,
   };
 }
 
@@ -690,6 +800,13 @@ export function calculateBasicCalculatorRowValues(
   );
   hours.add(24);
   const efficiency: Record<string, BasicCalculatorEfficiencyValue> = {};
+  const baselineEfficiency = coreBaselineEfficiency(
+    catalog,
+    group,
+    row,
+    settings,
+    options,
+  );
   let evaluation24: BasicCalculatorEvaluation | undefined;
   [...hours].forEach((duration) => {
     const evaluation = evaluateBasicCalculatorRow(
@@ -699,12 +816,10 @@ export function calculateBasicCalculatorRowValues(
       duration,
       settings,
       options,
+      baselineEfficiency,
     );
     if (duration === 24) evaluation24 = evaluation;
-    efficiency[String(duration)] = basicCalculatorEfficiencyValue(
-      evaluation,
-      group,
-    );
+    efficiency[String(duration)] = basicCalculatorEfficiencyValue(evaluation);
   });
   const facility = evaluation24
     ? visibleFacilityResultOf(evaluation24)
@@ -758,13 +873,12 @@ export function visibleFacilityResultOf(
 
 export function basicCalculatorEfficiencyValue(
   evaluation: BasicCalculatorEvaluation,
-  group: BasicCalculatorGroup,
 ): BasicCalculatorEfficiencyValue {
   const facility = facilityResultOf(evaluation);
   if (!facility) {
     return { first: 0 };
   }
-  const first = facility.skillEfficiency - group.baselineEfficiency;
+  const first = facility.skillEfficiency - evaluation.baselineEfficiency;
   const denominator = evaluation.participants.length - 1;
   return {
     first,

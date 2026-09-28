@@ -113,6 +113,7 @@ const props = withDefaults(
   defineProps<{
     modelValue: ScheduleDocument;
     sessionKey?: string;
+    fixedOperator?: { type: RoomKey; name: string };
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     facilityColors?: Partial<Record<RoomKey, string>>;
@@ -127,6 +128,7 @@ const props = withDefaults(
   }>(),
   {
     sessionKey: "",
+    fixedOperator: undefined,
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
     facilityColors: () => ({}),
@@ -300,7 +302,11 @@ const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
   onSelect(_event, address) {
     const context = pendingCalculatorSelection;
     pendingCalculatorSelection = undefined;
-    if (context?.key === address.key && !context.wasEditing)
+    if (
+      context?.key === address.key &&
+      !context.wasEditing &&
+      !isFixedOperator(address)
+    )
       void focusSlotNameInput();
   },
   onDrop(sources, target) {
@@ -343,6 +349,7 @@ const operatorInteraction = useScheduleOperatorInteraction<SlotAddress>({
     operatorInteraction.clearPasteHighlight();
   },
   onStartCharacter(address, character) {
+    if (isFixedOperator(address)) return;
     editingAddress.value = address;
     draftName.value = character;
     void focusSlotNameInput(false);
@@ -446,10 +453,52 @@ function clone<T>(value: T): T {
 function cloneDocument(): ScheduleDocument {
   return clone(props.modelValue);
 }
+function isFixedOperator(address: SlotAddress): boolean {
+  return Boolean(
+    props.fixedOperator &&
+    address.type === props.fixedOperator.type &&
+    address.position === 0 &&
+    address.slotIndex === 0,
+  );
+}
+function enforceFixedOperator(document: ScheduleDocument): void {
+  const fixed = props.fixedOperator;
+  const plan = document.plans[0];
+  if (!fixed || !plan) return;
+  const target = roomAt(document, fixed.type, 0, true);
+  if (!target) return;
+  let state = target.operatorStates?.[fixed.name];
+  Object.values(plan.rooms).forEach((value) => {
+    if (!Array.isArray(value)) return;
+    value.forEach((assignment) => {
+      if (!assignment || typeof assignment !== "object") return;
+      const room = assignment as RoomAssignment;
+      if (room === target || !room.operators?.includes(fixed.name)) return;
+      state ??= room.operatorStates?.[fixed.name];
+      room.operators = room.operators.filter((name) => name !== fixed.name);
+      if (room.operatorStates) {
+        delete room.operatorStates[fixed.name];
+        if (!Object.keys(room.operatorStates).length)
+          delete room.operatorStates;
+      }
+    });
+  });
+  target.operators = [
+    fixed.name,
+    ...(target.operators ?? []).filter((name) => name !== fixed.name),
+  ];
+  if (state) {
+    target.operatorStates = {
+      ...target.operatorStates,
+      [fixed.name]: state,
+    };
+  }
+}
 function updateDocument(update: (document: ScheduleDocument) => void): boolean {
   const before = cloneDocument();
   const after = cloneDocument();
   update(after);
+  enforceFixedOperator(after);
   if (JSON.stringify(before) === JSON.stringify(after)) return false;
   undoHistory.value = [
     ...undoHistory.value.slice(-99),
@@ -775,6 +824,7 @@ function applySnapshots(
   });
 }
 function setSlotName(address: SlotAddress, name: string): void {
+  if (isFixedOperator(address)) return;
   updateDocument((document) => {
     const room = roomAt(document, address.type, address.position, true);
     if (!room) return;
@@ -808,6 +858,7 @@ function commitSlotEdit(): void {
   operatorInteraction.resetSelectAllCycle();
 }
 function handleSlotInput(event: Event, address: SlotAddress): void {
+  if (isFixedOperator(address)) return;
   const value =
     event.target instanceof HTMLInputElement ? event.target.value : "";
   if (!slotIsEditing(address)) {
@@ -818,12 +869,14 @@ function handleSlotInput(event: Event, address: SlotAddress): void {
   pickerShowAll.value = false;
 }
 function handleSlotInputClick(address: SlotAddress): void {
+  if (isFixedOperator(address)) return;
   if (!slotIsEditing(address)) selectSlot(undefined, address);
 }
 async function focusSlotNameInput(selectText = true): Promise<void> {
   await nextTick();
   const address =
     editingAddress.value ?? operatorInteraction.selectedAddresses()[0];
+  if (address && isFixedOperator(address)) return;
   const input = address
     ? editorElement.value?.querySelector<HTMLInputElement>(
         `.simulator-slot-name-input[data-slot-key="${address.key}"]`,
@@ -840,6 +893,7 @@ async function focusSlotNameInput(selectText = true): Promise<void> {
   }
 }
 function openPicker(address: SlotAddress): void {
+  if (isFixedOperator(address)) return;
   pickerAddress.value = address;
   selectedProfession.value = "";
   pickerShowAll.value = false;
@@ -852,6 +906,7 @@ function closePicker(): void {
   pickerShowAll.value = false;
 }
 function handleSlotDoubleClick(address: SlotAddress): void {
+  if (isFixedOperator(address)) return;
   selectSlot(undefined, address);
   editingAddress.value = address;
   draftName.value = slotName(address);
@@ -983,6 +1038,10 @@ function transferPairs(
 function swapAddressPairs(
   pairs: Array<[SlotAddress, SlotAddress]>,
 ): SlotAddress[] {
+  pairs = pairs.filter(
+    ([source, destination]) =>
+      !isFixedOperator(source) && !isFixedOperator(destination),
+  );
   if (!pairs.length) return [];
   const document = cloneDocument();
   const snapshots = new Map<string, ClipboardEntry>();
@@ -1032,10 +1091,12 @@ function swapAddressPairs(
   return pairs.map(([, destination]) => destination);
 }
 function clipboardSource(): SlotAddress[] {
-  const selected = operatorInteraction.selectedAddresses();
+  const selected = operatorInteraction
+    .selectedAddresses()
+    .filter((address) => !isFixedOperator(address));
   if (selected.length) return selected;
   const target = currentTarget();
-  return target ? [target] : [];
+  return target && !isFixedOperator(target) ? [target] : [];
 }
 function copyOperators(): boolean {
   commitSlotEdit();
@@ -1102,7 +1163,7 @@ function pasteOperators(): boolean {
     state.entries,
     selected,
     fallback,
-  );
+  ).filter(({ address }) => !isFixedOperator(address));
   if (!assignments.length) return false;
   const destinations = assignments.map(({ address }) => address);
   const changed = updateDocument((candidate) => {
@@ -1156,9 +1217,12 @@ function deleteOperators(): boolean {
 }
 function operatorDeletionTargets(): SlotAddress[] {
   const selected = operatorInteraction.selectedAddresses();
-  if (selected.length) return selected;
+  if (selected.length)
+    return selected.filter((address) => !isFixedOperator(address));
   const hovered = operatorInteraction.hoveredAddress.value;
-  return hovered && slotName(hovered) ? [hovered] : [];
+  return hovered && slotName(hovered) && !isFixedOperator(hovered)
+    ? [hovered]
+    : [];
 }
 function navigateSlot(action: ScheduleOperatorNavigation): boolean {
   const current = editingAddress.value ?? currentTarget();
@@ -1582,15 +1646,20 @@ defineExpose({ clearInteractionState });
                     "
                     :name-input-pending="
                       slotIsSelected(slotAddress(slot, row.type)) &&
-                      !slotIsEditing(slotAddress(slot, row.type))
+                      !slotIsEditing(slotAddress(slot, row.type)) &&
+                      !isFixedOperator(slotAddress(slot, row.type))
                     "
                     :name-input-value="
                       slotDisplayName(slotAddress(slot, row.type))
                     "
                     :name-input-visible="
-                      slotIsSelected(slotAddress(slot, row.type))
+                      slotIsSelected(slotAddress(slot, row.type)) &&
+                      !isFixedOperator(slotAddress(slot, row.type))
                     "
-                    :name-editing="slotIsEditing(slotAddress(slot, row.type))"
+                    :name-editing="
+                      slotIsEditing(slotAddress(slot, row.type)) &&
+                      !isFixedOperator(slotAddress(slot, row.type))
+                    "
                     :operator="
                       operatorFor(slotDisplayName(slotAddress(slot, row.type)))
                     "

@@ -33,14 +33,18 @@ import type {
 } from "@/types/schedule";
 import {
   applyBasicCalculatorPatch,
-  buildBasicCalculatorSchedule,
+  basicCalculatorOperatorFieldNames,
+  basicCalculatorRoomAssignment,
+  basicCalculatorScheduleOperators,
   cloneBasicCalculatorConfig,
   compareValues,
   createBasicCalculatorConfig,
   createBasicCalculatorPatch,
+  createBasicCalculatorSchedule,
   operatorFieldOptions,
   operatorFieldValues,
   sortBasicCalculatorColumns,
+  synchronizeBasicCalculatorGroupSchedule,
 } from "@/utils/basicCalculator";
 import type {
   BasicCalculatorAggregate,
@@ -80,12 +84,11 @@ interface GroupDraft {
   facility: "trading" | "manufacture";
   facilityLevel: number;
   coreOperator: BasicCalculatorOperator;
-  baselineEfficiency: number;
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
 
-const STORAGE_KEY = "riic-tools:basic-calculator:v1";
+const STORAGE_KEY = "riic-tools:basic-calculator:v2";
 const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
@@ -111,6 +114,15 @@ const columnDraftAggregate = ref<BasicCalculatorAggregate>("list");
 const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
 const rowDraftSchedule = ref<ScheduleDocument>();
+const rowDraftNote = computed({
+  get: () => rowDraftSchedule.value?.plans[0]?.description ?? "",
+  set(value: string) {
+    const plan = rowDraftSchedule.value?.plans[0];
+    if (!plan) return;
+    if (value) plan.description = value;
+    else delete plan.description;
+  },
+});
 const rowDraftGroupId = ref("");
 const rowEditor = ref<InstanceType<typeof BasicCalculatorScheduleEditor>>();
 const calculatorWorker = ref<Worker>();
@@ -134,17 +146,11 @@ const operatorOptions = computed(() =>
 const rowDraftGroup = computed(() =>
   config.value?.groups.find((group) => group.id === rowDraftGroupId.value),
 );
-const rowDraftHasControl = computed(
-  () =>
-    rowDraftSchedule.value?.layout.some((entry) => entry.type === "control") ??
-    false,
-);
 const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
   () => {
     const group = rowDraftGroup.value;
     return group
       ? {
-          ...(rowDraftHasControl.value ? { control: 5 } : {}),
           [group.facility]: group.facilityLevel,
         }
       : {};
@@ -153,47 +159,33 @@ const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
 const rowDraftFixedRoomTypes = computed<RoomKey[]>(() => {
   const group = rowDraftGroup.value;
   if (!group) return [];
-  return [
-    ...(rowDraftHasControl.value ? (["control"] as const) : []),
-    group.facility,
-  ];
+  return [group.facility];
 });
 const draftSpecialOperatorOptions = computed<DraftDisplayOperatorOption[]>(
   () => {
     const group = rowDraftGroup.value;
     const row = rowDraft.value;
     if (!group || !row) return [];
-    const options: BasicCalculatorOperator[] = [
-      ...(row.controlOperators ?? []).map((operator) => ({
-        ...operator,
-        room: "control" as const,
-      })),
-      ...row.operators.filter(
-        (operator) => operator.room && operator.room !== group.facility,
-      ),
-      ...(row.extraRooms ?? []).flatMap((room) =>
-        (room.operators ?? []).map((operator) => ({
-          ...operator,
-          room: room.type,
-        })),
-      ),
-    ];
-    const seen = new Set<string>();
-    return options.flatMap((operator) => {
-      const key = `${operator.name}:${operator.room ?? ""}`;
-      if (seen.has(key)) return [];
-      seen.add(key);
-      return [{ operator, label: displayOperatorLabel(group, operator) }];
-    });
+    return displayOperatorsForSchedule(
+      group,
+      rowDraftSchedule.value ?? row.schedule,
+    ).map((operator) => ({
+      operator,
+      label: displayOperatorLabel(group, operator),
+    }));
   },
 );
 const draftDisplayOperatorNames = computed(() => {
   const row = rowDraft.value;
   const group = rowDraftGroup.value;
   if (!row || !group) return new Set<string>();
+  const displayOperators = displayOperatorsForSchedule(
+    group,
+    rowDraftSchedule.value ?? row.schedule,
+  );
   return new Set(
-    (row.displayOperators ?? defaultDisplayOperators(group, row)).map(
-      (operator) => displayOperatorKey(operator),
+    (row.displayOperators ?? displayOperators).map((operator) =>
+      displayOperatorKey(operator),
     ),
   );
 });
@@ -317,7 +309,6 @@ const calculationFingerprint = computed(() => {
     })),
     groups: current.groups,
     jieCalculation: current.settings.jieCalculation,
-    defaultControlOperators: current.settings.defaultControlOperators,
     progressionProfile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
@@ -365,10 +356,6 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   return sortBasicCalculatorColumns(columns);
 }
 
-function operatorNames(row: BasicCalculatorRow): string[] {
-  return row.operators.map(({ name }) => name);
-}
-
 function displayOperatorKey(operator: BasicCalculatorOperator): string {
   return `${operator.name}:${operator.room ?? ""}`;
 }
@@ -377,21 +364,18 @@ function defaultDisplayOperators(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): BasicCalculatorOperator[] {
-  const operators = [
-    ...(row.controlOperators ?? []).map((operator) => ({
-      ...operator,
-      room: "control" as const,
-    })),
-    ...row.operators.filter(
-      (operator) => operator.room && operator.room !== group.facility,
-    ),
-    ...(row.extraRooms ?? []).flatMap((room) =>
-      (room.operators ?? []).map((operator) => ({
-        ...operator,
-        room: room.type,
-      })),
-    ),
-  ];
+  return displayOperatorsForSchedule(group, row.schedule);
+}
+
+function displayOperatorsForSchedule(
+  group: BasicCalculatorGroup,
+  schedule: ScheduleDocument,
+): BasicCalculatorOperator[] {
+  const operators = basicCalculatorScheduleOperators(schedule).filter(
+    (operator) =>
+      operator.room !== group.facility &&
+      operator.name !== group.coreOperator.name,
+  );
   const seen = new Set<string>();
   return operators.filter((operator) => {
     const key = displayOperatorKey(operator);
@@ -421,17 +405,24 @@ function rowVisibleOperators(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): BasicCalculatorOperator[] {
-  const coreName = row.coreOperator?.name ?? group.coreOperator.name;
-  const workOperators = row.operators.filter(
-    (operator) =>
-      operator.name !== coreName &&
-      (!operator.room || operator.room === group.facility),
+  const assignment = basicCalculatorRoomAssignment(
+    row.schedule,
+    group.facility,
   );
+  const workOperators = (assignment?.operators ?? [])
+    .filter((name) => name !== group.coreOperator.name)
+    .map((name) => ({ name }));
   const workNames = new Set(workOperators.map((operator) => operator.name));
+  const availableDisplayOperators = new Set(
+    defaultDisplayOperators(group, row).map(displayOperatorKey),
+  );
   return [
     ...workOperators,
     ...rowDisplayOperators(group, row).filter(
-      (operator) => !workNames.has(operator.name),
+      (operator) =>
+        operator.name !== group.coreOperator.name &&
+        availableDisplayOperators.has(displayOperatorKey(operator)) &&
+        !workNames.has(operator.name),
     ),
   ];
 }
@@ -449,10 +440,14 @@ function productAccent(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): string | undefined {
-  if (!row.product) return undefined;
+  const product = basicCalculatorRoomAssignment(
+    row.schedule,
+    group.facility,
+  )?.product;
+  if (!product) return undefined;
   return (
-    productColors.value[row.product as keyof typeof productColors.value] ??
-    PRODUCT_REPRESENTATIVE_COLORS[row.product] ??
+    productColors.value[product as keyof typeof productColors.value] ??
+    PRODUCT_REPRESENTATIVE_COLORS[product] ??
     facilityColors.value[group.facility] ??
     ROOM_REPRESENTATIVE_COLORS[group.facility]
   );
@@ -489,7 +484,7 @@ function rowView(
       numeric[column.id] = aggregateValues(
         operatorFieldValues(
           catalog.value,
-          [group.coreOperator.name, ...operatorNames(row)],
+          basicCalculatorOperatorFieldNames(group, row),
           column.path ?? "",
         ),
         column.aggregate ?? "list",
@@ -552,7 +547,8 @@ function sortValue(
   if (column.kind === "operatorNames") {
     return operatorNameText(view.group, view.row);
   }
-  if (column.kind === "note") return view.row.note ?? "";
+  if (column.kind === "note")
+    return view.row.schedule.plans[0]?.description ?? "";
   if (
     column.kind === "operatorField" &&
     (column.aggregate ?? "list") === "list"
@@ -560,7 +556,7 @@ function sortValue(
     const values = catalog.value
       ? operatorFieldValues(
           catalog.value,
-          [view.group.coreOperator.name, ...operatorNames(view.row)],
+          basicCalculatorOperatorFieldNames(view.group, view.row),
           column.path ?? "",
         )
       : [];
@@ -587,7 +583,7 @@ function columnText(
     const values = catalog.value
       ? operatorFieldValues(
           catalog.value,
-          [view.group.coreOperator.name, ...operatorNames(view.row)],
+          basicCalculatorOperatorFieldNames(view.group, view.row),
           column.path ?? "",
         )
       : [];
@@ -599,7 +595,8 @@ function columnText(
     }
     return `${formatNumber(view.numeric[column.id] ?? 0)}${column.unit ?? ""}`;
   }
-  if (column.kind === "note") return view.row.note || "";
+  if (column.kind === "note")
+    return view.row.schedule.plans[0]?.description || "";
   return "";
 }
 
@@ -619,10 +616,15 @@ function toggleDraftDisplayOperator(
   const row = rowDraft.value;
   const group = rowDraftGroup.value;
   if (!row || !group) return;
+  const defaults = displayOperatorsForSchedule(
+    group,
+    rowDraftSchedule.value ?? row.schedule,
+  );
   const selected = new Map(
-    (row.displayOperators ?? defaultDisplayOperators(group, row)).map(
-      (item) => [displayOperatorKey(item), item],
-    ),
+    (row.displayOperators ?? defaults).map((item) => [
+      displayOperatorKey(item),
+      item,
+    ]),
   );
   const key = displayOperatorKey(operator);
   if (checked) selected.set(key, { ...operator });
@@ -838,130 +840,30 @@ function openRowEditor(
 ): void {
   rowDraftGroupId.value = group.id;
   rowDraft.value = JSON.parse(JSON.stringify(row)) as BasicCalculatorRow;
-  rowDraft.value.coreOperator = row.coreOperator
-    ? { ...row.coreOperator }
-    : { ...group.coreOperator };
-  rowDraftSchedule.value = config.value
-    ? buildBasicCalculatorSchedule(
-        group,
-        rowDraft.value,
-        24,
-        config.value.settings,
-      )
-    : undefined;
+  rowDraftSchedule.value = JSON.parse(
+    JSON.stringify(row.schedule),
+  ) as ScheduleDocument;
   rowModalOpen.value = true;
 }
 
-function operatorStateFromRoom(
-  document: ScheduleDocument,
-  type: RoomKey,
-  name: string,
-  position?: number,
-): BasicCalculatorOperator {
-  const rooms = document.plans[0]?.rooms[type];
-  const assignments = Array.isArray(rooms) ? (rooms as RoomAssignment[]) : [];
-  const state = (
-    position === undefined
-      ? assignments.flatMap((room) => Object.entries(room.operatorStates ?? []))
-      : Object.entries(assignments[position]?.operatorStates ?? [])
-  ).find(([operatorName]) => operatorName === name)?.[1] as
-    OperatorState | undefined;
-  return {
-    name,
-    ...(state?.mood === undefined ? {} : { mood: state.mood }),
-    ...(state?.elite === undefined ? {} : { elite: state.elite }),
-    ...(state?.level === undefined ? {} : { level: state.level }),
-  };
-}
-
-function uniqueNames(names: string[]): string[] {
-  return names.filter(
-    (name, index) => Boolean(name) && names.indexOf(name) === index,
-  );
-}
-
-function updateRowFromEditorSchedule(
-  draft: BasicCalculatorRow,
-  group: BasicCalculatorGroup,
-  document: ScheduleDocument,
-): void {
-  const workRooms = document.plans[0]?.rooms[group.facility];
-  const workRoom = Array.isArray(workRooms)
-    ? ((workRooms[0] as RoomAssignment | undefined) ?? {})
-    : {};
-  const workNames = uniqueNames(workRoom.operators ?? []);
-  const coreName =
-    workNames.shift() ?? draft.coreOperator?.name ?? group.coreOperator.name;
-  const operators = workNames.map((name) =>
-    operatorStateFromRoom(document, group.facility, name, 0),
-  );
-  const controlRooms = document.plans[0]?.rooms.control;
-  const controlNames = Array.isArray(controlRooms)
-    ? uniqueNames(
-        (controlRooms[0] as RoomAssignment | undefined)?.operators ?? [],
-      )
-    : [];
-  const defaultsForControl =
-    config.value?.settings.defaultControlOperators ?? [];
-  const controlOperators = controlNames.map((name) => ({
-    ...operatorStateFromRoom(document, "control", name, 0),
-    room: "control" as const,
-  }));
-  operators.push(...controlOperators);
-  const extraRooms = document.layout
-    .map((entry, index) => ({ entry, index }))
-    .filter(
-      ({ entry }) => entry.type !== "control" && entry.type !== group.facility,
-    )
-    .map(({ entry }) => {
-      const position = document.layout
-        .filter((item) => item.type === entry.type)
-        .findIndex((item) => item === entry);
-      const room = Array.isArray(document.plans[0]?.rooms[entry.type])
-        ? (document.plans[0]?.rooms[entry.type] as RoomAssignment[])[position]
-        : undefined;
-      const roomOperators = uniqueNames(room?.operators ?? []).map((name) => ({
-        ...operatorStateFromRoom(document, entry.type, name, position),
-        room: entry.type,
-      }));
-      return {
-        type: entry.type,
-        level: entry.level,
-        ...(roomOperators.length ? { operators: roomOperators } : {}),
-        ...(room?.product ? { product: room.product } : {}),
-        ...(room?.sourceMaterial
-          ? { sourceMaterial: room.sourceMaterial }
-          : {}),
-      };
-    });
-  draft.coreOperator = {
-    ...operatorStateFromRoom(document, group.facility, coreName),
-    name: coreName,
-  };
-  draft.operators = operators;
-  draft.controlOperators =
-    JSON.stringify(controlNames) === JSON.stringify(defaultsForControl)
-      ? undefined
-      : controlOperators;
-  draft.extraRooms = extraRooms;
-  draft.product = workRoom.product;
-  draft.sourceMaterial = workRoom.sourceMaterial;
-}
-
 function saveRow(): void {
-  if (!rowDraft.value || !rowDraftGroupId.value) return;
+  if (!rowDraft.value || !rowDraftGroupId.value || !rowDraftSchedule.value)
+    return;
   const draft = JSON.parse(
     JSON.stringify(rowDraft.value),
   ) as BasicCalculatorRow;
+  draft.schedule = JSON.parse(
+    JSON.stringify(rowDraftSchedule.value),
+  ) as ScheduleDocument;
   const group = config.value?.groups.find(
     (item) => item.id === rowDraftGroupId.value,
   );
   if (group) {
-    if (rowDraftSchedule.value) {
-      updateRowFromEditorSchedule(draft, group, rowDraftSchedule.value);
-    }
     const defaultDisplay = defaultDisplayOperators(group, draft);
-    const selectedDisplay = draft.displayOperators ?? defaultDisplay;
+    const available = new Set(defaultDisplay.map(displayOperatorKey));
+    const selectedDisplay = (draft.displayOperators ?? defaultDisplay).filter(
+      (operator) => available.has(displayOperatorKey(operator)),
+    );
     if (
       selectedDisplay.length === defaultDisplay.length &&
       selectedDisplay.every((operator) =>
@@ -971,12 +873,8 @@ function saveRow(): void {
       )
     ) {
       delete draft.displayOperators;
-    }
+    } else draft.displayOperators = selectedDisplay;
   }
-  draft.operators = draft.operators.filter(
-    ({ name }, index, list) =>
-      name && list.findIndex((item) => item.name === name) === index,
-  );
   updateConfig((next) => {
     const group = next.groups.find((item) => item.id === rowDraftGroupId.value);
     const row = group?.rows.find((item) => item.id === draft.id);
@@ -998,10 +896,10 @@ function deleteRow(groupId: string, rowId: string): void {
 }
 
 function addRow(group: BasicCalculatorGroup): void {
+  const id = `${group.id}-row-${Date.now().toString(36)}`;
   const row: BasicCalculatorRow = {
-    id: `${group.id}-row-${Date.now().toString(36)}`,
-    operators: [],
-    coreOperator: { ...group.coreOperator },
+    id,
+    schedule: createBasicCalculatorSchedule(group, id),
   };
   updateConfig((draft) => {
     draft.groups.find((item) => item.id === group.id)?.rows.push(row);
@@ -1018,7 +916,6 @@ function openGroupEditor(group?: BasicCalculatorGroup): void {
         facility: "manufacture",
         facilityLevel: 3,
         coreOperator: { name: operators.value[0]?.name ?? "红云" },
-        baselineEfficiency: 0,
         columnIds: config.value?.groups[0]?.columnIds ?? [],
         rows: [],
       };
@@ -1031,8 +928,18 @@ function saveGroup(): void {
   updateConfig((next) => {
     const index = next.groups.findIndex((group) => group.id === draft.id);
     const group = JSON.parse(JSON.stringify(draft)) as BasicCalculatorGroup;
-    if (index >= 0) next.groups.splice(index, 1, group);
-    else next.groups.push(group);
+    if (index >= 0) {
+      const previousGroup = next.groups[index]!;
+      group.rows = previousGroup.rows.map((row) => ({
+        ...row,
+        schedule: synchronizeBasicCalculatorGroupSchedule(
+          row.schedule,
+          previousGroup,
+          group,
+        ),
+      }));
+      next.groups.splice(index, 1, group);
+    } else next.groups.push(group);
   });
   groupModalOpen.value = false;
 }
@@ -1523,11 +1430,6 @@ function toggleGroupColumn(
             :max="3"
             :min="1"
         /></a-form-item>
-        <a-form-item label="核心干员单人基准效率"
-          ><a-input-number
-            v-model:value="groupDraft.baselineEfficiency"
-            addon-after="%"
-        /></a-form-item>
       </a-form>
     </a-modal>
 
@@ -1548,6 +1450,10 @@ function toggleGroupColumn(
           ref="rowEditor"
           v-model:model-value="rowDraftSchedule"
           :session-key="rowDraftGroupId + ':' + rowDraft.id"
+          :fixed-operator="{
+            type: rowDraftGroup.facility,
+            name: rowDraftGroup.coreOperator.name,
+          }"
           :facility-colors="facilityColors"
           :fixed-room-levels="rowDraftFixedRoomLevels"
           :fixed-room-types="rowDraftFixedRoomTypes"
@@ -1558,7 +1464,7 @@ function toggleGroupColumn(
         />
         <a-form layout="vertical">
           <a-form-item label="备注">
-            <a-input v-model:value="rowDraft.note" />
+            <a-input v-model:value="rowDraftNote" />
           </a-form-item>
           <a-form-item
             v-if="draftSpecialOperatorOptions.length"
