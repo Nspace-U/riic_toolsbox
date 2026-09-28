@@ -1132,7 +1132,7 @@ function toggleGroupColumn(
           <a-button
             :icon="h(PlusOutlined)"
             type="primary"
-            @click="openGroupEditor"
+            @click="openGroupEditor()"
             >新建组合组</a-button
           >
           <a-popconfirm
