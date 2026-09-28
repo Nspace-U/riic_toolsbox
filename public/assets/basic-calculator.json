@@ -438,7 +438,15 @@
                 "rooms": {
                   "control": [
                     {
-                      "operators": ["麒麟R夜刀", "火龙S黑角"]
+                      "operators": ["麒麟R夜刀", "火龙S黑角"],
+                      "operatorStates": {
+                        "麒麟R夜刀": {
+                          "elite": 0
+                        },
+                        "火龙S黑角": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ],
                   "manufacture": [
@@ -1043,7 +1051,15 @@
                 "rooms": {
                   "control": [
                     {
-                      "operators": ["麒麟R夜刀", "火龙S黑角"]
+                      "operators": ["麒麟R夜刀", "火龙S黑角"],
+                      "operatorStates": {
+                        "麒麟R夜刀": {
+                          "elite": 0
+                        },
+                        "火龙S黑角": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ],
                   "manufacture": [
@@ -1274,8 +1290,6 @@
         "operator-names",
         "order",
         "efficiency-12",
-        "efficiency-24",
-        "efficiency-36-923",
         "note"
       ],
       "rows": [
@@ -1297,7 +1311,15 @@
                 "rooms": {
                   "control": [
                     {
-                      "operators": ["麒麟R夜刀", "火龙S黑角"]
+                      "operators": ["麒麟R夜刀", "火龙S黑角"],
+                      "operatorStates": {
+                        "麒麟R夜刀": {
+                          "elite": 0
+                        },
+                        "火龙S黑角": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ],
                   "trading": [
@@ -1367,7 +1389,7 @@
             ],
             "plans": [
               {
-                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "description": "满级会客室，八幡海铃Ⅱ进驻控制中枢额外+10%",
                 "rooms": {
                   "trading": [
                     {
@@ -1438,11 +1460,16 @@
             ],
             "plans": [
               {
-                "description": "八幡海铃进驻控制中枢额外+5%",
+                "description": "八幡海铃Ⅱ进驻控制中枢额外+5%",
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "拉普兰德", "德克萨斯"]
+                      "operators": ["孑", "拉普兰德", "德克萨斯"],
+                      "operatorStates": {
+                        "德克萨斯": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ]
                 }
@@ -1466,7 +1493,7 @@
             ],
             "plans": [
               {
-                "description": "森西进驻满级宿舍",
+                "description": "森西Ⅱ进驻满级宿舍",
                 "rooms": {
                   "trading": [
                     {
@@ -2078,8 +2105,6 @@
         "operator-names",
         "order",
         "efficiency-12",
-        "efficiency-24",
-        "efficiency-36-923",
         "note"
       ],
       "rows": [
@@ -2173,7 +2198,7 @@
             ],
             "plans": [
               {
-                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "description": "满级会客室，八幡海铃Ⅱ进驻控制中枢额外+10%",
                 "rooms": {
                   "trading": [
                     {
@@ -2247,12 +2272,17 @@
             ],
             "plans": [
               {
-                "description": "八幡海铃进驻控制中枢额外+5%",
+                "description": "八幡海铃Ⅱ进驻控制中枢额外+5%",
                 "rooms": {
                   "trading": [
                     {
                       "operators": ["孑", "拉普兰德", "德克萨斯"],
-                      "product": "合成玉"
+                      "product": "合成玉",
+                      "operatorStates": {
+                        "德克萨斯": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ]
                 }
@@ -2276,7 +2306,7 @@
             ],
             "plans": [
               {
-                "description": "森西进驻满级宿舍",
+                "description": "森西Ⅱ进驻满级宿舍",
                 "rooms": {
                   "trading": [
                     {
@@ -2916,8 +2946,6 @@
         "operator-names",
         "order",
         "efficiency-12",
-        "efficiency-24",
-        "efficiency-36-923",
         "note"
       ],
       "rows": [
@@ -3013,7 +3041,7 @@
             ],
             "plans": [
               {
-                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "description": "满级会客室，八幡海铃Ⅱ进驻控制中枢额外+10%",
                 "rooms": {
                   "trading": [
                     {
@@ -3111,11 +3139,16 @@
             ],
             "plans": [
               {
-                "description": "八幡海铃进驻控制中枢额外+5%",
+                "description": "八幡海铃Ⅱ进驻控制中枢额外+5%",
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "拉普兰德", "德克萨斯"]
+                      "operators": ["孑", "拉普兰德", "德克萨斯"],
+                      "operatorStates": {
+                        "德克萨斯": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ],
                   "control": [
@@ -3148,7 +3181,7 @@
             ],
             "plans": [
               {
-                "description": "森西进驻满级宿舍",
+                "description": "森西Ⅱ进驻满级宿舍",
                 "rooms": {
                   "trading": [
                     {
@@ -3922,8 +3955,6 @@
         "operator-names",
         "order",
         "efficiency-12",
-        "efficiency-24",
-        "efficiency-36-923",
         "note"
       ],
       "rows": [
@@ -4021,7 +4052,7 @@
             ],
             "plans": [
               {
-                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "description": "满级会客室，八幡海铃Ⅱ进驻控制中枢额外+10%",
                 "rooms": {
                   "trading": [
                     {
@@ -4122,12 +4153,17 @@
             ],
             "plans": [
               {
-                "description": "八幡海铃进驻控制中枢额外+5%",
+                "description": "八幡海铃Ⅱ进驻控制中枢额外+5%",
                 "rooms": {
                   "trading": [
                     {
                       "operators": ["孑", "拉普兰德", "德克萨斯"],
-                      "product": "合成玉"
+                      "product": "合成玉",
+                      "operatorStates": {
+                        "德克萨斯": {
+                          "elite": 0
+                        }
+                      }
                     }
                   ],
                   "control": [
@@ -4160,7 +4196,7 @@
             ],
             "plans": [
               {
-                "description": "森西进驻满级宿舍",
+                "description": "森西Ⅱ进驻满级宿舍",
                 "rooms": {
                   "trading": [
                     {
