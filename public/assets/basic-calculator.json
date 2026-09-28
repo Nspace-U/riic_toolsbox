@@ -435,7 +435,6 @@
             ],
             "plans": [
               {
-                "description": "怪物猎人干员进驻中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1053,8 +1052,7 @@
                       "operators": ["泡泡", "泰拉大陆调查团"]
                     }
                   ]
-                },
-                "description": "怪物猎人干员进驻中枢"
+                }
               }
             ]
           },
@@ -1309,8 +1307,7 @@
                       "operators": ["孑", "泰拉大陆调查团"]
                     }
                   ]
-                },
-                "description": "怪物猎人干员进驻中枢"
+                }
               }
             ]
           },
@@ -1331,7 +1328,6 @@
             ],
             "plans": [
               {
-                "description": "维什戴尔进驻中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1778,7 +1774,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1811,7 +1806,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1844,7 +1838,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1877,7 +1870,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1933,7 +1925,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -1966,7 +1957,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2087,7 +2077,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "涤火杰西卡"]
+                      "operators": ["孑", "涤火杰西卡"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2110,7 +2105,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "四月"]
+                      "operators": ["孑", "四月"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2133,7 +2133,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "桃金娘"]
+                      "operators": ["孑", "桃金娘"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2156,7 +2161,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "暗索"]
+                      "operators": ["孑", "暗索"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2179,7 +2189,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "史都华德"]
+                      "operators": ["孑", "史都华德"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2202,7 +2217,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "翎羽"]
+                      "operators": ["孑", "翎羽"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2225,7 +2245,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "黑角"]
+                      "operators": ["孑", "黑角"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2249,7 +2274,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2258,7 +2282,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "银灰"]
+                      "operators": ["孑", "银灰"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2282,7 +2311,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2291,7 +2319,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "银灰", "琳琅诗怀雅"]
+                      "operators": ["孑", "银灰", "琳琅诗怀雅"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2315,7 +2348,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2324,7 +2356,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "银灰", "锏"]
+                      "operators": ["孑", "银灰", "锏"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2348,7 +2385,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2357,7 +2393,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "崖心"]
+                      "operators": ["孑", "崖心"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2381,7 +2422,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2390,7 +2430,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "角峰"]
+                      "operators": ["孑", "角峰"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2414,7 +2459,6 @@
             ],
             "plans": [
               {
-                "description": "中枢",
                 "rooms": {
                   "control": [
                     {
@@ -2423,7 +2467,12 @@
                   ],
                   "trading": [
                     {
-                      "operators": ["孑", "讯使"]
+                      "operators": ["孑", "讯使"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2446,7 +2495,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "银灰"]
+                      "operators": ["孑", "银灰"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2469,7 +2523,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "崖心"]
+                      "operators": ["孑", "崖心"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2492,7 +2551,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "角峰"]
+                      "operators": ["孑", "角峰"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
@@ -2515,7 +2579,12 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["孑", "讯使"]
+                      "operators": ["孑", "讯使"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
                     }
                   ]
                 }
