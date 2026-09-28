@@ -764,25 +764,60 @@ export function facilityContentScale(
 }
 
 function reflowFacilities(grid: HTMLElement): number {
-  const queueColumns = directChildrenWithClass(grid, "simulator-queue-column");
-  const columns = [
-    ...queueColumns,
-    ...directChildrenWithClass(grid, "simulator-facility-column"),
-  ];
+  const queueColumn = directChildrenWithClass(
+    grid,
+    "simulator-queue-column",
+  )[0];
+  const facilityColumns = directChildrenWithClass(
+    grid,
+    "simulator-facility-column",
+  );
   const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
   const availableWidth = Math.max(
     1,
     EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING,
   );
-  const groups = partitionFacilities(columns, availableWidth, gap);
+  const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
+  const queueGap = queueColumn && facilityColumns.length > 0 ? gap : 0;
+  const availableFacilityWidth = Math.max(
+    1,
+    availableWidth - queueWidth - queueGap,
+  );
+  let groups: HTMLElement[][];
+  if (facilityColumns.length > 0) {
+    groups = partitionFacilities(facilityColumns, availableFacilityWidth, gap);
+  } else if (queueColumn) {
+    groups = [[]];
+  } else {
+    groups = [];
+  }
+  const rowWidths = groups.map(
+    (group) =>
+      rowWidth(
+        group.map(facilityColumnWidth),
+        0,
+        group.length,
+        gap,
+      ) +
+      queueWidth +
+      (queueColumn && group.length > 0 ? gap : 0),
+  );
+  const maxRowWidth = Math.max(1, ...rowWidths);
   const rows: HTMLElement[] = [];
-  groups.forEach((group) => {
+  groups.forEach((group, index) => {
     const row = window.document.createElement("div");
     row.className = "simulator-export-facility-row";
     row.style.gap = `${gap}px`;
-    row.style.width = `${availableWidth}px`;
-    row.style.minWidth = "0";
-    row.style.justifyContent = "center";
+    row.style.width = `${maxRowWidth}px`;
+    row.style.minWidth = `${maxRowWidth}px`;
+    row.style.justifyContent = "flex-start";
+    if (queueColumn) {
+      row.append(
+        index === 0
+          ? queueColumn
+          : (queueColumn.cloneNode(true) as HTMLElement),
+      );
+    }
     group.forEach((column) => row.append(column));
     rows.push(row);
   });
@@ -792,16 +827,11 @@ function reflowFacilities(grid: HTMLElement): number {
   grid.style.rowGap = `${gap}px`;
   grid.style.marginInline = "0";
   grid.style.paddingInline = "0";
-  grid.style.width = `${availableWidth}px`;
-  grid.style.minWidth = `${availableWidth}px`;
+  grid.style.width = `${maxRowWidth}px`;
+  grid.style.minWidth = `${maxRowWidth}px`;
   grid.style.overflow = "visible";
   grid.replaceChildren(...rows);
-  return Math.max(
-    1,
-    ...groups.map((group) =>
-      rowWidth(group.map(facilityColumnWidth), 0, group.length, gap),
-    ),
-  );
+  return maxRowWidth;
 }
 
 function scaleFacilityContent(
