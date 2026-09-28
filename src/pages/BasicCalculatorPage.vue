@@ -118,6 +118,7 @@ const columnModalOpen = ref(false);
 const columnSettingsDraft = ref<BasicCalculatorConfig>();
 const groupModalOpen = ref(false);
 const rowModalOpen = ref(false);
+const activeMergedRowPopover = ref("");
 const columnDraft = reactive({
   kind: "efficiency" as BasicCalculatorColumnKind,
   label: "",
@@ -908,6 +909,25 @@ function openRowEditor(
   rowModalOpen.value = true;
 }
 
+function setMergedRowPopoverOpen(
+  groupId: string,
+  rowId: string,
+  open: boolean,
+): void {
+  const key = `${groupId}:${rowId}`;
+  if (open) activeMergedRowPopover.value = key;
+  else if (activeMergedRowPopover.value === key)
+    activeMergedRowPopover.value = "";
+}
+
+function openMergedRowEditor(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): void {
+  activeMergedRowPopover.value = "";
+  openRowEditor(group, row);
+}
+
 function saveRow(): void {
   if (!rowDraft.value || !rowDraftGroupId.value || !rowDraftSchedule.value)
     return;
@@ -1359,7 +1379,17 @@ function toggleGroupColumn(
                       </a-tooltip>
                     </div>
                     <div v-else class="basic-calculator-row-actions">
-                      <a-popover placement="bottomLeft" trigger="click">
+                      <a-popover
+                        :open="
+                          activeMergedRowPopover ===
+                          `${group.id}:${view.row.id}`
+                        "
+                        placement="bottomLeft"
+                        trigger="click"
+                        @open-change="
+                          setMergedRowPopoverOpen(group.id, view.row.id, $event)
+                        "
+                      >
                         <template #content>
                           <div class="basic-calculator-merged-row-actions">
                             <div
@@ -1379,7 +1409,7 @@ function toggleGroupColumn(
                                   :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
                                   size="small"
                                   type="text"
-                                  @click="openRowEditor(group, sourceRow)"
+                                  @click="openMergedRowEditor(group, sourceRow)"
                                 />
                               </a-tooltip>
                               <a-tooltip title="删除">
