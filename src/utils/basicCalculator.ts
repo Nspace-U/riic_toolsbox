@@ -66,6 +66,7 @@ export interface BasicCalculatorSettings {
   };
   efficiencyDisplay: "first" | "second" | "both";
   jieCalculation: "max" | "integral";
+  integrateJieBaseline: boolean;
   sortColumnId: string;
   sortDirection: "asc" | "desc";
 }
@@ -79,6 +80,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   },
   efficiencyDisplay: "both",
   jieCalculation: "max",
+  integrateJieBaseline: false,
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
 };
@@ -698,7 +700,11 @@ function coreBaselineEfficiency(
   settings: BasicCalculatorSettings,
   options: BasicCalculatorCalculationOptions,
 ): number {
-  const document = scheduleForCalculation(row.schedule, 24, settings);
+  const baselineSettings =
+    settings.jieCalculation === "integral" && !settings.integrateJieBaseline
+      ? { ...settings, jieCalculation: "max" as const }
+      : settings;
+  const document = scheduleForCalculation(row.schedule, 24, baselineSettings);
   const assignment = basicCalculatorRoomAssignment(document, group.facility);
   const core = stateForAssignment(assignment, group.coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(

@@ -308,6 +308,7 @@ const calculationFingerprint = computed(() => {
     })),
     groups: current.groups,
     jieCalculation: current.settings.jieCalculation,
+    integrateJieBaseline: current.settings.integrateJieBaseline,
     progressionProfile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
@@ -1071,13 +1072,23 @@ function toggleGroupColumn(
           </a-radio-group>
         </a-form-item>
         <a-form-item label="精0孑">
-          <a-radio-group
-            :value="config.settings.jieCalculation"
-            @change="updateSetting('jieCalculation', $event.target.value)"
-          >
-            <a-radio-button value="max">最高效率</a-radio-button>
-            <a-radio-button value="integral">积分平均</a-radio-button>
-          </a-radio-group>
+          <a-space wrap>
+            <a-radio-group
+              :value="config.settings.jieCalculation"
+              @change="updateSetting('jieCalculation', $event.target.value)"
+            >
+              <a-radio-button value="max">最高效率</a-radio-button>
+              <a-radio-button value="integral">积分平均</a-radio-button>
+            </a-radio-group>
+            <a-checkbox
+              v-if="config.settings.jieCalculation === 'integral'"
+              :checked="config.settings.integrateJieBaseline"
+              @change="
+                updateSetting('integrateJieBaseline', $event.target.checked)
+              "
+              >基准也积分平均</a-checkbox
+            >
+          </a-space>
         </a-form-item>
       </a-form>
     </a-card>
