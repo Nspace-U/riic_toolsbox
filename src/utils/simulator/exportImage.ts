@@ -835,9 +835,9 @@ function scaleFacilityContent(
     availableHeight,
   );
   facilityContent.style.width = `${availableWidth}px`;
-  facilityContent.style.height = `${contentHeight * scale}px`;
+  facilityContent.style.height = `${availableHeight}px`;
   grid.style.transform = `scale(${scale})`;
-  grid.style.transformOrigin = "top center";
+  grid.style.transformOrigin = "center center";
 }
 
 function waitForImages(
