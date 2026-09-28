@@ -164,7 +164,7 @@ npm run generate:operator-skills
 | `basePointGain`    | 基地点数产出          | 必须配 `term`                               |
 | `basePointConvert` | 基地点数派生增益      | 使用 `from`、`to`、`rate`；保留 `from` 点数 |
 | `tradeOrder`       | 贸易站订单规则        | 使用 `order` 对象                           |
-| `zeroOpMood`       | 消除技能心情消耗      | 由未来心情计算器解释                        |
+| `zeroOpMood`       | 消除技能心情效果      | 由心情计算器按来源干员和目标范围解释        |
 | `zeroOpBonus`      | 其他干员效率归零      | 可配 `except`                               |
 | `facBase`          | 设施基础效率层效果    | 当前主要由未来训练室跨设施效果使用          |
 | `abyssalBoost`     | 深海猎人特殊制造加成  | 歌蕾蒂娅特殊规则                            |
@@ -295,24 +295,28 @@ npm run generate:operator-skills
 
 这些字段描述“效果给谁”和“效果怎么合并”：
 
-| 字段              | 取值/说明                                                     |
-| ----------------- | ------------------------------------------------------------- |
-| `scope`           | `self` 自身、`room` 同设施、`op` 指定干员；缺省由效果类型决定 |
-| `op`              | `scope: op` 时的干员名                                        |
-| `scopeGroup`      | 受影响的阵营术语 key                                          |
-| `facilities`      | 作用设施集合。通常与 `target: any` 搭配                       |
-| `exclude`         | 从基建计数中排除的设施 key                                    |
-| `subjects`        | 宿舍效果的 `single` 单体或 `spread` 均摊                      |
-| `moodBelow`       | 目标对象当前计算心情低于该值时生效；严格小于，不包含阈值本身  |
-| `other`           | 受众/计数是否排除自身                                         |
-| `stack`           | `max` 表示同组取最高；缺省表示累加                            |
-| `maxGroup`        | `stack: max` 的显式分组名                                     |
-| `suppresses`      | 同一目标设施上被该技能压制的技能名列表，优先生效              |
-| `excludeFromStat` | 不计入其他技能 `source: "stat"` 的效率基数                    |
-| `baseValue`       | 与 `per` 共存的固定基础值，最终值为基础值加线性值             |
-| `recipe`          | 制造站配方类别，例如 `贵金属`                                 |
+| 字段                 | 取值/说明                                                     |
+| -------------------- | ------------------------------------------------------------- |
+| `scope`              | `self` 自身、`room` 同设施、`op` 指定干员；缺省由效果类型决定 |
+| `op`                 | `scope: op` 时的干员名                                        |
+| `scopeGroup`         | 受影响的阵营术语 key                                          |
+| `group`              | `zeroOpMood` 清除规则限定的目标阵营术语 key                   |
+| `facilities`         | 作用设施集合。通常与 `target: any` 搭配                       |
+| `exclude`            | 从基建计数中排除的设施 key                                    |
+| `subjects`           | 宿舍效果的 `single` 单体或 `spread` 均摊                      |
+| `moodBelow`          | 目标对象当前计算心情低于该值时生效；严格小于，不包含阈值本身  |
+| `other`              | 受众/计数是否排除自身                                         |
+| `blockOtherRecovery` | 该干员不接受其他来源提供的心情恢复                            |
+| `stack`              | `max` 表示同组取最高；缺省表示累加                            |
+| `maxGroup`           | `stack: max` 的显式分组名                                     |
+| `suppresses`         | 同一目标设施上被该技能压制的技能名列表，优先生效              |
+| `excludeFromStat`    | 不计入其他技能 `source: "stat"` 的效率基数                    |
+| `baseValue`          | 与 `per` 共存的固定基础值，最终值为基础值加线性值             |
+| `recipe`             | 制造站配方类别，例如 `贵金属`                                 |
 
 `stack: "max"` 的含义是：先按每个目标设施、条件和 `per` 计算候选值，再在相同 `maxGroup` 中取满足条件的最大值；不能把标记为 `max` 的效果与普通效果混为一组。玛恩纳、重岳、维什戴尔针对 `部分设施/其他设施` 的心情恢复使用 `maxGroup: "otherFacRec"`，由每个设施分别取最高。
+
+`zeroOpMood` 清除目标干员通过个人作用范围获得的自身技能心情修正，不区分正负值；房间共享效果不会因此被清除，即使共享效果的提供者也在目标房间。设置 `group` 时，规则只作用于该阵营；控制中枢内的阵营清除还会移除当前中枢其他干员施加给该阵营成员的技能心情消耗和恢复。`blockOtherRecovery` 阻止目标干员接受其他来源的 `moodRecover`；若效果本身是房间恢复，应同时用 `other: true` 排除技能拥有者。
 
 宿舍“该宿舍内心情 N 以下的干员恢复效果额外 +X”使用 `moodBelow: N` 和独立的 `maxGroup` 表示。计算时按每个目标干员的当前计算心情判断 `mood < N`，再与宿舍群体恢复效果分别取最高，最后叠加两类结果。
 

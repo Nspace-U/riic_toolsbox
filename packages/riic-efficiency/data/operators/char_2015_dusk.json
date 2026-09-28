@@ -19,7 +19,9 @@
               "target": "control",
               "stat": "moodRecover",
               "value": 0.05,
-              "scope": "room"
+              "scope": "room",
+              "other": true,
+              "blockOtherRecovery": true
             },
             {
               "target": "any",

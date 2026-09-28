@@ -81,6 +81,23 @@ export const OPERATOR_SKILL_OVERRIDES = {
       excludeFromStat: true,
     },
   ],
+  'char_2015_dusk#"不以物喜"': [
+    {
+      target: CONTROL,
+      stat: "moodRecover",
+      value: 0.05,
+      scope: "room",
+      other: true,
+      blockOtherRecovery: true,
+    },
+    {
+      target: "any",
+      stat: "basePointGain",
+      term: "cc.bd_b1",
+      value: 15,
+      condition: { type: "moodCmp", value: 12, op: "le" },
+    },
+  ],
   "char_226_hmau#坚毅随和": [
     {
       target: CONTROL,
@@ -95,8 +112,9 @@ export const OPERATOR_SKILL_OVERRIDES = {
       },
     },
     {
-      target: "any",
+      target: CONTROL,
       stat: "moodRecover",
+      scope: "room",
       scopeGroup: "cc.g.lda",
       per: {
         per: 1,

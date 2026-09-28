@@ -1111,7 +1111,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
 // ===== 制造站效果解析（target 基值为 'manufacture'） =====
 // 制造站主效率 stat 为 manuProd（生产力 %）；新增：
 //   recipe（配方分类：作战记录/贵金属/源石碎片）、storageCap（仓库容量上限，基础值按等级 24/36/54）、
-//   zeroOpMood（消除技能正数心情消耗）、per.source={skillTagCount, stat, opCount, facilityCount,
+//   zeroOpMood（消除技能心情效果）、per.source={skillTagCount, stat, opCount, facilityCount,
 //       trainLevel, dormLevel, dormOccupants, facilityLevelTotal, basePoint, opGroupInBase, opGroupInFacility}、
 //   condition={workHours, moodDrop}、curve（描述未写首小时 → 从 0% 开始）。
 // 各模式命中后从文本移除（防误配），最后固定值兜底（生产力/仓库容量/心情消耗）。

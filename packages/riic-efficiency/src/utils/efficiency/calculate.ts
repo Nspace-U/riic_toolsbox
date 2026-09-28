@@ -1422,6 +1422,26 @@ function effectAppliesToSubject(
   return true;
 }
 
+function zeroMoodAppliesToSubject(
+  item: ActiveEffect,
+  subject: Placement,
+  target: EfficiencyFacility,
+  catalog: EfficiencyCatalog,
+): boolean {
+  return (
+    effectAppliesToSubject(item, subject, target, catalog) &&
+    (!item.effect.group ||
+      groupIncludesOperator(catalog, item.effect.group, subject.name))
+  );
+}
+
+function isPersonalMoodEffect(item: ActiveEffect, subject: Placement): boolean {
+  if (item.owner.name !== subject.name) return false;
+  if (item.effect.scope === "self") return true;
+  if (item.effect.scope === "op") return item.effect.op === subject.name;
+  return item.effect.scope === undefined && item.effect.target !== "any";
+}
+
 function collectActive(
   context: PlanContext,
   catalog: EfficiencyCatalog,
@@ -1797,14 +1817,15 @@ function resolveMoodRate(
       });
     }
   }
-  const zeroMood = context.active
-    .filter((item) => item.effect.stat === "zeroOpMood")
-    .some(
-      (item) =>
-        effectAppliesToSubject(item, placement, placement.facility, catalog) ||
-        (item.effect.group &&
-          groupIncludesOperator(catalog, item.effect.group, placement.name)),
-    );
+  const zeroMoodRules = context.active.filter(
+    (item) => item.effect.stat === "zeroOpMood",
+  );
+  const blocksOtherRecovery = context.active.some(
+    (item) =>
+      item.owner.name === placement.name &&
+      item.target?.id === placement.facility.id &&
+      item.effect.blockOtherRecovery === true,
+  );
   const skillCosts = moodEffectValues(
     context,
     placement,
@@ -1812,7 +1833,23 @@ function resolveMoodRate(
     data,
   ).flatMap(({ item, value }) => {
     const cost = item.effect.stat === "moodRecover" ? -value : value;
-    return zeroMood && cost > 0
+    const clearedByZeroMood = zeroMoodRules.some(
+      (zeroMoodRule) =>
+        zeroMoodAppliesToSubject(
+          zeroMoodRule,
+          placement,
+          placement.facility,
+          catalog,
+        ) &&
+        (isPersonalMoodEffect(item, placement) ||
+          (zeroMoodRule.effect.group !== undefined &&
+            zeroMoodRule.target?.id === item.target?.id)),
+    );
+    const blockedRecovery =
+      blocksOtherRecovery &&
+      item.effect.stat === "moodRecover" &&
+      item.owner.name !== placement.name;
+    return clearedByZeroMood || blockedRecovery
       ? []
       : [
           {
