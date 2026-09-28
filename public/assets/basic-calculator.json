@@ -640,8 +640,7 @@
                       "operators": ["红云", "铅踝"]
                     }
                   ]
-                },
-                "description": "模拟真实进驻人数的心情消耗"
+                }
               }
             ]
           },
@@ -1246,8 +1245,7 @@
                       "operators": ["泡泡", "铅踝"]
                     }
                   ]
-                },
-                "description": "模拟真实进驻人数的心情消耗"
+                }
               }
             ]
           },
@@ -1324,10 +1322,14 @@
               {
                 "type": "trading",
                 "level": 3
+              },
+              {
+                "type": "training"
               }
             ],
             "plans": [
               {
+                "description": "伊内丝、W入驻工作场所",
                 "rooms": {
                   "control": [
                     {
@@ -1338,12 +1340,17 @@
                     {
                       "operators": ["孑", "赫德雷"]
                     }
+                  ],
+                  "training": [
+                    {
+                      "operators": ["伊内丝", "W"]
+                    }
                   ]
                 }
               }
             ]
           },
-          "hiddenOperators": ["孑"]
+          "hiddenOperators": ["孑", "伊内丝", "W"]
         },
         {
           "id": "jie-0-03",
@@ -1352,10 +1359,15 @@
               {
                 "type": "trading",
                 "level": 3
+              },
+              {
+                "type": "meeting",
+                "level": 3
               }
             ],
             "plans": [
               {
+                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
                 "rooms": {
                   "trading": [
                     {
@@ -1379,6 +1391,7 @@
             ],
             "plans": [
               {
+                "description": "罗德岛隐秘队进驻贸易站额外+20%",
                 "rooms": {
                   "trading": [
                     {
@@ -1425,6 +1438,7 @@
             ],
             "plans": [
               {
+                "description": "八幡海铃进驻控制中枢额外+5%",
                 "rooms": {
                   "trading": [
                     {
@@ -1444,16 +1458,22 @@
               {
                 "type": "trading",
                 "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
               }
             ],
             "plans": [
               {
+                "description": "森西进驻满级宿舍",
                 "rooms": {
                   "trading": [
                     {
                       "operators": ["孑", "齐尔查克"]
                     }
-                  ]
+                  ],
+                  "dormitory": [{ "operators": ["森西"] }]
                 }
               }
             ]
@@ -2057,9 +2077,7 @@
         "operators",
         "operator-names",
         "order",
-        "efficiency-12",
         "efficiency-24",
-        "efficiency-36-923",
         "note"
       ],
       "rows": [
