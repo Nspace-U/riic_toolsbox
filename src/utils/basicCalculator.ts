@@ -64,6 +64,8 @@ export interface BasicCalculatorSettings {
     showEliteLevel: boolean;
     showRarity: boolean;
   };
+  firstItemProgress: number;
+  showOperatorProgressionInNames: boolean;
   efficiencyDisplay: "first" | "second" | "both";
   jieCalculation: "max" | "integral";
   integrateJieBaseline: boolean;
@@ -78,6 +80,8 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
     showEliteLevel: false,
     showRarity: false,
   },
+  firstItemProgress: 0,
+  showOperatorProgressionInNames: true,
   efficiencyDisplay: "both",
   jieCalculation: "max",
   integrateJieBaseline: false,
@@ -654,7 +658,8 @@ function scheduleForCalculation(
     clueExchanging: document.settings?.clueExchanging ?? true,
     dormFullTreat: document.settings?.dormFullTreat ?? true,
     preferMaxJieEfficiency: settings.jieCalculation === "max",
-    firstItemProgress: document.settings?.firstItemProgress ?? 0,
+    firstItemProgress:
+      Math.max(0, Math.min(100, settings.firstItemProgress)) / 100,
   };
   return document;
 }

@@ -32,6 +32,7 @@ import type {
 import {
   DEFAULT_SOURCE_MATERIAL,
   PRODUCT_OPTIONS,
+  PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
@@ -117,6 +118,7 @@ const props = withDefaults(
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     facilityColors?: Partial<Record<RoomKey, string>>;
+    productColors?: Partial<Record<string, string>>;
     operatorCandidates: (type: RoomKey) => OperatorPickerCandidateView[];
     operatorFor: (name: string) => Operator | undefined;
     operatorEliteLevel: (name: string, type: RoomKey) => EliteLevel;
@@ -132,6 +134,7 @@ const props = withDefaults(
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
     facilityColors: () => ({}),
+    productColors: () => ({}),
     operatorProgression: undefined,
   },
 );
@@ -541,10 +544,20 @@ function clearInteractionState(): void {
 function canDeleteOperators(): boolean {
   return operatorDeletionTargets().length > 0;
 }
-function facilityStyle(type: RoomKey): Record<string, string> {
+function facilityStyle(row: FacilityRow): Record<string, string> {
+  const product = roomAt(
+    props.modelValue,
+    row.type,
+    row.entries[0]?.position ?? 0,
+    false,
+  )?.product;
   return {
     "--simulator-facility-accent":
-      props.facilityColors?.[type] ?? ROOM_REPRESENTATIVE_COLORS[type],
+      (product &&
+        (props.productColors?.[product] ??
+          PRODUCT_REPRESENTATIVE_COLORS[product])) ??
+      props.facilityColors?.[row.type] ??
+      ROOM_REPRESENTATIVE_COLORS[row.type],
   };
 }
 function facilityWidth(row: FacilityRow): string {
@@ -1593,7 +1606,7 @@ defineExpose({ clearInteractionState });
         <a-card
           :bordered="false"
           class="simulator-column-card simulator-facility-card"
-          :style="facilityStyle(row.type)"
+          :style="facilityStyle(row)"
           @contextmenu.stop.prevent="openRoomContextMenu($event, row)"
         >
           <template #title>

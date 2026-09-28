@@ -2066,6 +2066,2886 @@
       ]
     },
     {
+      "id": "jie-0-originium",
+      "name": "精0孑组（合成玉）",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "孑"
+      },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "order",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "jie-0-originium-01",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["麒麟R夜刀", "火龙S黑角"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "泰拉大陆调查团"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-02",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "training"
+              }
+            ],
+            "plans": [
+              {
+                "description": "伊内丝、W入驻工作场所",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["维什戴尔"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "赫德雷"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "training": [
+                    {
+                      "operators": ["伊内丝", "W"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑", "伊内丝", "W"]
+        },
+        {
+          "id": "jie-0-originium-03",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "meeting",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "伺夜", "贝洛内"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-04",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "罗德岛隐秘队进驻贸易站额外+20%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "焰狐龙梓兰", "雷狼龙S空爆"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-05",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "瑰盐"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-06",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "八幡海铃进驻控制中枢额外+5%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拉普兰德", "德克萨斯"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-07",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
+              }
+            ],
+            "plans": [
+              {
+                "description": "森西进驻满级宿舍",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "齐尔查克"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "dormitory": [
+                    {
+                      "operators": ["森西"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-08",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "衡沙"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-09",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拜松"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-10",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "可颂"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-11",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "远山"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-12",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "梓兰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-13",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "玫兰莎"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-14",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "涤火杰西卡"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-15",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "四月"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-16",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "桃金娘"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-17",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "暗索"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-18",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "史都华德"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-19",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "翎羽"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-20",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "黑角"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-21",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "琳琅诗怀雅"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-22",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "锏"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-23",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-24",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-25",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-26",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-27",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-28",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-29",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-originium-30",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        }
+      ]
+    },
+    {
+      "id": "jie-0-amiya-lmd",
+      "name": "精0孑组（未指定产物，按龙门币计算，含阿米娅）",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "孑"
+      },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "order",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "jie-0-amiya-lmd-01",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["麒麟R夜刀", "火龙S黑角", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "泰拉大陆调查团"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-02",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "training"
+              }
+            ],
+            "plans": [
+              {
+                "description": "伊内丝、W入驻工作场所",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["维什戴尔", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "赫德雷"]
+                    }
+                  ],
+                  "training": [
+                    {
+                      "operators": ["伊内丝", "W"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑", "伊内丝", "W"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-03",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "meeting",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "伺夜", "贝洛内"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-04",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "罗德岛隐秘队进驻贸易站额外+20%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "焰狐龙梓兰", "雷狼龙S空爆"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-05",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "瑰盐"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-06",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "八幡海铃进驻控制中枢额外+5%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拉普兰德", "德克萨斯"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-07",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
+              }
+            ],
+            "plans": [
+              {
+                "description": "森西进驻满级宿舍",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "齐尔查克"]
+                    }
+                  ],
+                  "dormitory": [
+                    {
+                      "operators": ["森西"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-08",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "衡沙"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-09",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拜松"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-10",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "可颂"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-11",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "远山"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-12",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "梓兰"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-13",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "玫兰莎"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-14",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "涤火杰西卡"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-15",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "四月"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-16",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "桃金娘"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-17",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "暗索"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-18",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "史都华德"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-19",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "翎羽"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-20",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "黑角"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-21",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "琳琅诗怀雅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-22",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "锏"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-23",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-24",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-25",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-26",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-27",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-28",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-29",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-lmd-30",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        }
+      ]
+    },
+    {
+      "id": "jie-0-amiya-originium",
+      "name": "精0孑组（合成玉，含阿米娅）",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "coreOperator": {
+        "name": "孑"
+      },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "order",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "jie-0-amiya-originium-01",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["麒麟R夜刀", "火龙S黑角", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "泰拉大陆调查团"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-02",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "training"
+              }
+            ],
+            "plans": [
+              {
+                "description": "伊内丝、W入驻工作场所",
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["维什戴尔", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "赫德雷"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "training": [
+                    {
+                      "operators": ["伊内丝", "W"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑", "伊内丝", "W"]
+        },
+        {
+          "id": "jie-0-amiya-originium-03",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "meeting",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "满级会客室，八幡海铃进驻控制中枢额外+10%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "伺夜", "贝洛内"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-04",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "罗德岛隐秘队进驻贸易站额外+20%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "焰狐龙梓兰", "雷狼龙S空爆"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-05",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "瑰盐"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-06",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "description": "八幡海铃进驻控制中枢额外+5%",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拉普兰德", "德克萨斯"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-07",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
+              }
+            ],
+            "plans": [
+              {
+                "description": "森西进驻满级宿舍",
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "齐尔查克"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "dormitory": [
+                    {
+                      "operators": ["森西"]
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-08",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "衡沙"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-09",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "拜松"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-10",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "可颂"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-11",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "远山"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-12",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "梓兰"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-13",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "玫兰莎"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-14",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "涤火杰西卡"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-15",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "四月"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-16",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "桃金娘"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-17",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "暗索"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-18",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "史都华德"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-19",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "翎羽"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-20",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "黑角"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-21",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "琳琅诗怀雅"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-22",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰", "锏"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-23",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-24",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-25",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "银灰"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-26",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-27",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["灵知", "阿米娅"]
+                    }
+                  ],
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"],
+                      "product": "合成玉"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-28",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "崖心"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-29",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "角峰"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-0-amiya-originium-30",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "讯使"],
+                      "product": "合成玉"
+                    }
+                  ],
+                  "control": [
+                    {
+                      "operators": ["阿米娅"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        }
+      ]
+    },
+    {
       "id": "jie-1",
       "name": "精1孑组（满级贸易站，40%）",
       "facility": "trading",

@@ -307,6 +307,7 @@ const calculationFingerprint = computed(() => {
       hours: column.hours,
     })),
     groups: current.groups,
+    firstItemProgress: current.settings.firstItemProgress,
     jieCalculation: current.settings.jieCalculation,
     integrateJieBaseline: current.settings.integrateJieBaseline,
     progressionProfile: activeProfile.value,
@@ -364,6 +365,20 @@ function displayOperatorLabel(
     : operator.name;
 }
 
+function displayOperatorNameLabel(
+  group: BasicCalculatorGroup,
+  operator: BasicCalculatorOperator,
+): string {
+  if (!config.value?.settings.showOperatorProgressionInNames) {
+    return displayOperatorLabel(group, operator);
+  }
+  const name =
+    operator.name + displayOperatorProgressionSuffix(group, operator);
+  return operator.room && operator.room !== group.facility
+    ? `${name}（${ROOM_LABELS[operator.room]}）`
+    : name;
+}
+
 function rowVisibleOperators(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
@@ -383,7 +398,7 @@ function operatorNameText(
   row: BasicCalculatorRow,
 ): string {
   return rowVisibleOperators(group, row)
-    .map((operator) => displayOperatorLabel(group, operator))
+    .map((operator) => displayOperatorNameLabel(group, operator))
     .join(" + ");
 }
 
@@ -947,6 +962,13 @@ function operatorEliteLevel(
   group: BasicCalculatorGroup,
   operator: BasicCalculatorOperator,
 ): EliteLevel {
+  return operatorProgression(group, operator).elite;
+}
+
+function operatorProgression(
+  group: BasicCalculatorGroup,
+  operator: BasicCalculatorOperator,
+): ResolvedOperatorProgression {
   const data = operatorFor(operator.name);
   const profile = data ? catalog.value?.operators[data.name] : undefined;
   return resolveOperatorProgression({
@@ -959,7 +981,25 @@ function operatorEliteLevel(
     profile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
-  }).elite;
+  });
+}
+
+function displayOperatorProgressionSuffix(
+  group: BasicCalculatorGroup,
+  operator: BasicCalculatorOperator,
+): string {
+  const data = operatorFor(operator.name);
+  const profile = data ? catalog.value?.operators[data.name] : undefined;
+  const facility = operator.room ?? group.facility;
+  const progression = operatorProgression(group, operator);
+  const eliteSuffix =
+    progression.elite === 1 ? "Ⅰ" : progression.elite === 2 ? "Ⅱ" : "";
+  const unlocksAtLevel30 = progressionNodesForFacility(
+    profile?.skillFile,
+    facility,
+    data?.rarity ?? 0,
+  ).some((node) => node.type === "level" && node.value === 30);
+  return `${eliteSuffix}${progression.level === 30 && unlocksAtLevel30 ? "(Lv30)" : ""}`;
 }
 
 function rowBackgroundStyle(
@@ -1061,6 +1101,16 @@ function toggleGroupColumn(
             >
           </a-space>
         </a-form-item>
+        <a-form-item label="首件进度">
+          <a-input-number
+            :max="100"
+            :min="0"
+            :step="1"
+            :value="config.settings.firstItemProgress"
+            addon-after="%"
+            @update:value="updateSetting('firstItemProgress', $event ?? 0)"
+          />
+        </a-form-item>
         <a-form-item label="效率显示">
           <a-radio-group
             :value="config.settings.efficiencyDisplay"
@@ -1070,6 +1120,19 @@ function toggleGroupColumn(
             <a-radio-button value="second">平均</a-radio-button>
             <a-radio-button value="both">两种</a-radio-button>
           </a-radio-group>
+        </a-form-item>
+        <a-form-item label="干员名称">
+          <a-checkbox
+            :checked="config.settings.showOperatorProgressionInNames"
+            @change="
+              updateSetting(
+                'showOperatorProgressionInNames',
+                $event.target.checked,
+              )
+            "
+          >
+            显示练度
+          </a-checkbox>
         </a-form-item>
         <a-form-item label="精0孑">
           <a-space wrap>
@@ -1470,6 +1533,7 @@ function toggleGroupColumn(
             name: rowDraftGroup.coreOperator.name,
           }"
           :facility-colors="facilityColors"
+          :product-colors="productColors"
           :fixed-room-levels="rowDraftFixedRoomLevels"
           :fixed-room-types="rowDraftFixedRoomTypes"
           :operator-candidates="editorOperatorCandidates"
