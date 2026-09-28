@@ -1640,7 +1640,7 @@ function toggleGroupColumn(
 }
 .basic-calculator-column-submit {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 @media (max-width: 720px) {
   .basic-calculator-header-content {
