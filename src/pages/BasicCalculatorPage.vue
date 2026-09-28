@@ -354,15 +354,6 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   );
 }
 
-function isNumericColumn(column: BasicCalculatorColumn): boolean {
-  return (
-    column.kind === "storageDelta" ||
-    column.kind === "orderDelta" ||
-    column.kind === "efficiency" ||
-    column.kind === "operatorField"
-  );
-}
-
 function displayOperatorLabel(
   group: BasicCalculatorGroup,
   operator: BasicCalculatorOperator,
@@ -1157,9 +1148,6 @@ function toggleGroupColumn(
                   <th
                     v-for="column in groupColumns(group)"
                     :key="column.id"
-                    :class="{
-                      'basic-calculator-numeric-cell': isNumericColumn(column),
-                    }"
                     :aria-sort="
                       config.settings.sortColumnId === column.id
                         ? config.settings.sortDirection === 'asc'
@@ -1228,7 +1216,6 @@ function toggleGroupColumn(
                       'basic-calculator-name-cell':
                         column.kind === 'operatorNames',
                       'basic-calculator-note-cell': column.kind === 'note',
-                      'basic-calculator-numeric-cell': isNumericColumn(column),
                     }"
                   >
                     <div
@@ -1571,6 +1558,7 @@ function toggleGroupColumn(
 }
 .basic-calculator-table {
   border-collapse: collapse;
+  margin-inline: auto;
   table-layout: auto;
   width: max-content;
 }
@@ -1581,16 +1569,6 @@ function toggleGroupColumn(
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
-}
-.basic-calculator-table th.basic-calculator-numeric-cell,
-.basic-calculator-table td.basic-calculator-numeric-cell {
-  text-align: end;
-}
-.basic-calculator-table
-  th.basic-calculator-numeric-cell
-  .basic-calculator-sort-button {
-  justify-content: flex-end;
-  width: 100%;
 }
 .basic-calculator-table td.basic-calculator-note-cell {
   text-align: start;
