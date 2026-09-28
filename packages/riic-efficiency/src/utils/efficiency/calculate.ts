@@ -1820,12 +1820,6 @@ function resolveMoodRate(
   const zeroMoodRules = context.active.filter(
     (item) => item.effect.stat === "zeroOpMood",
   );
-  const blocksOtherRecovery = context.active.some(
-    (item) =>
-      item.owner.name === placement.name &&
-      item.target?.id === placement.facility.id &&
-      item.effect.blockOtherRecovery === true,
-  );
   const skillCosts = moodEffectValues(
     context,
     placement,
@@ -1842,14 +1836,10 @@ function resolveMoodRate(
           catalog,
         ) &&
         (isPersonalMoodEffect(item, placement) ||
-          (zeroMoodRule.effect.group !== undefined &&
+          (zeroMoodRule.effect.target === "control" &&
             zeroMoodRule.target?.id === item.target?.id)),
     );
-    const blockedRecovery =
-      blocksOtherRecovery &&
-      item.effect.stat === "moodRecover" &&
-      item.owner.name !== placement.name;
-    return clearedByZeroMood || blockedRecovery
+    return clearedByZeroMood
       ? []
       : [
           {
