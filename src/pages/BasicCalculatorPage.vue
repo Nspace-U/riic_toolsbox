@@ -377,7 +377,7 @@ function displayOperatorLabel(
   operator: BasicCalculatorOperator,
 ): string {
   return operator.room && operator.room !== group.facility
-    ? `${operator.name}（${ROOM_LABELS[operator.room]}）`
+    ? `${operator.name}(${ROOM_LABELS[operator.room]})`
     : operator.name;
 }
 
@@ -391,7 +391,7 @@ function displayOperatorNameLabel(
   const name =
     operator.name + displayOperatorProgressionSuffix(group, operator);
   return operator.room && operator.room !== group.facility
-    ? `${name}（${ROOM_LABELS[operator.room]}）`
+    ? `${name}(${ROOM_LABELS[operator.room]})`
     : name;
 }
 
@@ -580,7 +580,7 @@ function viewOperatorNameText(view: BasicCalculatorRowView): string {
   return view.sourceRows
     .map((row) => operatorNameText(view.group, row))
     .filter(Boolean)
-    .join("/");
+    .join(" / ");
 }
 
 function viewVisibleOperators(
