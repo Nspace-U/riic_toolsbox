@@ -1263,7 +1263,7 @@
     },
     {
       "id": "jie-0",
-      "name": "精0孑组（满级贸易站，40%，递减）",
+      "name": "精0孑组（满级贸易站）",
       "facility": "trading",
       "facilityLevel": 3,
       "coreOperator": {
@@ -2905,7 +2905,7 @@
     },
     {
       "id": "jie-0-amiya-lmd",
-      "name": "精0孑组（未指定产物，按龙门币计算，含阿米娅）",
+      "name": "精0孑组（含阿米娅）",
       "facility": "trading",
       "facilityLevel": 3,
       "coreOperator": {
