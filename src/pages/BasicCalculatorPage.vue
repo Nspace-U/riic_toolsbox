@@ -99,7 +99,7 @@ interface GroupDraft {
   rows: BasicCalculatorRow[];
 }
 
-const STORAGE_KEY = "riic-tools:basic-calculator:v4";
+const STORAGE_KEY = "riic-tools:basic-calculator:v5";
 const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
@@ -324,9 +324,6 @@ const calculationFingerprint = computed(() => {
       hours: column.hours,
     })),
     groups: current.groups,
-    firstItemProgress: current.settings.firstItemProgress,
-    jieCalculation: current.settings.jieCalculation,
-    integrateJieBaseline: current.settings.integrateJieBaseline,
     progressionProfile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
@@ -353,7 +350,6 @@ function requestCalculations(): void {
     catalog: cloneSerializable(currentCatalog),
     columns: cloneSerializable(current.columns),
     groups: cloneSerializable(current.groups),
-    settings: cloneSerializable(current.settings),
     ...(activeProfile.value
       ? { progressionProfile: cloneSerializable(activeProfile.value) }
       : {}),
@@ -1184,16 +1180,6 @@ function toggleGroupColumn(
             >
           </a-space>
         </a-form-item>
-        <a-form-item label="首件进度">
-          <a-input-number
-            :max="100"
-            :min="0"
-            :step="1"
-            :value="config.settings.firstItemProgress"
-            addon-after="%"
-            @update:value="updateSetting('firstItemProgress', $event ?? 0)"
-          />
-        </a-form-item>
         <a-form-item label="效率显示">
           <a-radio-group
             :value="config.settings.efficiencyDisplay"
@@ -1225,25 +1211,6 @@ function toggleGroupColumn(
             >
               合并相同内容
             </a-checkbox>
-          </a-space>
-        </a-form-item>
-        <a-form-item label="精0孑">
-          <a-space wrap>
-            <a-radio-group
-              :value="config.settings.jieCalculation"
-              @change="updateSetting('jieCalculation', $event.target.value)"
-            >
-              <a-radio-button value="max">最高效率</a-radio-button>
-              <a-radio-button value="integral">积分平均</a-radio-button>
-            </a-radio-group>
-            <a-checkbox
-              v-if="config.settings.jieCalculation === 'integral'"
-              :checked="config.settings.integrateJieBaseline"
-              @change="
-                updateSetting('integrateJieBaseline', $event.target.checked)
-              "
-              >基准也积分平均</a-checkbox
-            >
           </a-space>
         </a-form-item>
       </a-form>

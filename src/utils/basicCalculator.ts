@@ -64,12 +64,9 @@ export interface BasicCalculatorSettings {
     showEliteLevel: boolean;
     showRarity: boolean;
   };
-  firstItemProgress: number;
   showOperatorProgressionInNames: boolean;
   mergeIdenticalRows: boolean;
   efficiencyDisplay: "first" | "second" | "both";
-  jieCalculation: "max" | "integral";
-  integrateJieBaseline: boolean;
   sortColumnId: string;
   sortDirection: "asc" | "desc";
 }
@@ -81,12 +78,9 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
     showEliteLevel: false,
     showRarity: false,
   },
-  firstItemProgress: 0,
   showOperatorProgressionInNames: true,
   mergeIdenticalRows: true,
   efficiencyDisplay: "both",
-  jieCalculation: "max",
-  integrateJieBaseline: false,
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
 };
@@ -152,7 +146,6 @@ export interface BasicCalculatorWorkerRequest {
   catalog: EfficiencyCatalog;
   groups: BasicCalculatorGroup[];
   columns: BasicCalculatorColumn[];
-  settings: BasicCalculatorSettings;
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
 }
@@ -650,7 +643,6 @@ function stateForAssignment(
 function scheduleForCalculation(
   schedule: ScheduleDocument,
   durationHours: number,
-  settings: BasicCalculatorSettings,
 ): ScheduleDocument {
   const document = clone(schedule);
   const plan = document.plans[0];
@@ -659,9 +651,8 @@ function scheduleForCalculation(
     ...document.settings,
     clueExchanging: document.settings?.clueExchanging ?? true,
     dormFullTreat: document.settings?.dormFullTreat ?? true,
-    preferMaxJieEfficiency: settings.jieCalculation === "max",
-    firstItemProgress:
-      Math.max(0, Math.min(100, settings.firstItemProgress)) / 100,
+    preferMaxJieEfficiency: true,
+    firstItemProgress: 0,
   };
   return document;
 }
@@ -704,14 +695,9 @@ function coreBaselineEfficiency(
   catalog: EfficiencyCatalog,
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
-  settings: BasicCalculatorSettings,
   options: BasicCalculatorCalculationOptions,
 ): number {
-  const baselineSettings =
-    settings.jieCalculation === "integral" && !settings.integrateJieBaseline
-      ? { ...settings, jieCalculation: "max" as const }
-      : settings;
-  const document = scheduleForCalculation(row.schedule, 24, baselineSettings);
+  const document = scheduleForCalculation(row.schedule, 24);
   const assignment = basicCalculatorRoomAssignment(document, group.facility);
   const core = stateForAssignment(assignment, group.coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(
@@ -731,15 +717,10 @@ export function evaluateBasicCalculatorRow(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
   durationHours: number,
-  settings: BasicCalculatorSettings,
   options: BasicCalculatorCalculationOptions = {},
   baselineEfficiency?: number,
 ): BasicCalculatorEvaluation {
-  const document = scheduleForCalculation(
-    row.schedule,
-    durationHours,
-    settings,
-  );
+  const document = scheduleForCalculation(row.schedule, durationHours);
   const result = calculateEfficiencyForBasicCalculator(
     document,
     catalog,
@@ -777,8 +758,7 @@ export function evaluateBasicCalculatorRow(
     options,
   );
   const baseline =
-    baselineEfficiency ??
-    coreBaselineEfficiency(catalog, group, row, settings, options);
+    baselineEfficiency ?? coreBaselineEfficiency(catalog, group, row, options);
   const facilityIndex =
     result.plans[0]?.facilities.findIndex(
       (facility) => facility.facility.type === group.facility,
@@ -803,7 +783,6 @@ export function calculateBasicCalculatorRowValues(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
   columns: BasicCalculatorColumn[],
-  settings: BasicCalculatorSettings,
   options: BasicCalculatorCalculationOptions = {},
 ): BasicCalculatorRowCalculation {
   const hours = new Set(
@@ -817,7 +796,6 @@ export function calculateBasicCalculatorRowValues(
     catalog,
     group,
     row,
-    settings,
     options,
   );
   let evaluation24: BasicCalculatorEvaluation | undefined;
@@ -827,7 +805,6 @@ export function calculateBasicCalculatorRowValues(
       group,
       row,
       duration,
-      settings,
       options,
       baselineEfficiency,
     );

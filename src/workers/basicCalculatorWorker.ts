@@ -19,7 +19,6 @@ self.onmessage = (event: MessageEvent<BasicCalculatorWorkerRequest>) => {
             group,
             row,
             request.columns,
-            request.settings,
             {
               dormitoryDefaultIncludesMoodRecovery:
                 request.dormitoryDefaultIncludesMoodRecovery,
