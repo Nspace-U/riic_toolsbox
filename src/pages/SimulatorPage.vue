@@ -2616,6 +2616,12 @@ async function focusSlotNameInput(selectText = true): Promise<void> {
     instance.setSelectionRange(cursor, cursor);
     operatorPickerShowAll.value = false;
   }
+  const facilityBody = instance
+    .closest<HTMLElement>(".simulator-facility-queue")
+    ?.querySelector<HTMLElement>(".ant-card-body");
+  if (facilityBody) {
+    facilityBody.scrollLeft = 0;
+  }
 }
 
 function cancelOperatorNameEdit(): void {
