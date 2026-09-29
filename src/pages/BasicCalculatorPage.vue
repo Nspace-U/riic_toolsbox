@@ -1706,6 +1706,9 @@ function toggleGroupColumn(
   gap: 16px;
   min-width: 0;
 }
+.basic-calculator-groups :deep(.ant-collapse-header) {
+  align-items: center;
+}
 .basic-calculator-row-editor {
   display: grid;
   gap: 16px;
