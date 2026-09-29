@@ -20,6 +20,7 @@ import {
   onBeforeUnmount,
   onMounted,
   ref,
+  shallowRef,
   watch,
   type ComponentPublicInstance,
 } from "vue";
@@ -499,7 +500,7 @@ const imageExportPreviewViewportWidth = ref(0);
 const imageExportPreviewContentSize = ref({ width: 1920, height: 1080 });
 const imageExportPreviewContentScale = ref(1);
 const importedScheduleNotice = ref<EfficiencyNotice>();
-const efficiencyCatalog = ref<EfficiencyCatalog>();
+const efficiencyCatalog = shallowRef<EfficiencyCatalog>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
