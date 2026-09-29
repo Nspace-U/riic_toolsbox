@@ -89,6 +89,11 @@ interface BasicCalculatorRowView {
   backgroundColor?: string;
 }
 
+interface BasicCalculatorSortState {
+  column: BasicCalculatorColumn | undefined;
+  direction: "asc" | "desc";
+}
+
 interface GroupDraft {
   id: string;
   name: string;
@@ -369,6 +374,48 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   );
 }
 
+function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
+  const columns = groupColumns(group);
+  const settings = config.value?.settings;
+  const selectedColumn = columns.find(
+    (column) => column.id === settings?.sortColumnId,
+  );
+  if (selectedColumn) {
+    return {
+      column: selectedColumn,
+      direction: settings?.sortDirection ?? "desc",
+    };
+  }
+
+  const efficiencyColumns = columns.filter(
+    (column) => column.kind === "efficiency",
+  );
+  const dayEfficiency = efficiencyColumns.find(
+    (column) => (column.hours ?? 24) === 24,
+  );
+  if (dayEfficiency) return { column: dayEfficiency, direction: "desc" };
+  if (efficiencyColumns.length > 0) {
+    const longestEfficiency = efficiencyColumns.reduce((longest, column) =>
+      (column.hours ?? 24) > (longest.hours ?? 24) ? column : longest,
+    );
+    return { column: longestEfficiency, direction: "desc" };
+  }
+
+  const dataColumn = columns.find(
+    (column) =>
+      column.kind !== "operators" &&
+      column.kind !== "operatorNames" &&
+      column.kind !== "note" &&
+      column.kind !== "efficiency",
+  );
+  if (dataColumn) return { column: dataColumn, direction: "desc" };
+
+  return {
+    column: columns.find((column) => column.kind === "operatorNames"),
+    direction: "asc",
+  };
+}
+
 function displayOperatorLabel(
   group: BasicCalculatorGroup,
   operator: BasicCalculatorOperator,
@@ -484,12 +531,10 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
   const result: Record<string, BasicCalculatorRowView[]> = {};
   (config.value?.groups ?? []).forEach((group) => {
     const views = group.rows.map((row) => rowView(group, row));
-    const sortColumnId = config.value?.settings.sortColumnId ?? "";
-    const direction = config.value?.settings.sortDirection === "asc" ? 1 : -1;
+    const sortState = groupSortState(group);
+    const direction = sortState.direction === "asc" ? 1 : -1;
     views.sort((first, second) => {
-      const column = groupColumns(group).find(
-        (candidate) => candidate.id === sortColumnId,
-      );
+      const column = sortState.column;
       if (!column) return 0;
       const firstValue = sortValue(first, column);
       const secondValue = sortValue(second, column);
@@ -657,7 +702,8 @@ function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
   });
 }
 
-function toggleSort(columnId: string): void {
+function toggleSort(group: BasicCalculatorGroup, columnId: string): void {
+  const currentSort = groupSortState(group);
   updateConfig((draft) => {
     if (draft.settings.sortColumnId === columnId) {
       draft.settings.sortDirection =
@@ -665,7 +711,12 @@ function toggleSort(columnId: string): void {
       return;
     }
     draft.settings.sortColumnId = columnId;
-    draft.settings.sortDirection = "desc";
+    draft.settings.sortDirection =
+      currentSort.column?.id === columnId
+        ? currentSort.direction === "asc"
+          ? "desc"
+          : "asc"
+        : "desc";
   });
 }
 
@@ -1284,8 +1335,8 @@ function toggleGroupColumn(
                     v-for="column in groupColumns(group)"
                     :key="column.id"
                     :aria-sort="
-                      config.settings.sortColumnId === column.id
-                        ? config.settings.sortDirection === 'asc'
+                      groupSortState(group).column?.id === column.id
+                        ? groupSortState(group).direction === 'asc'
                           ? 'ascending'
                           : 'descending'
                         : 'none'
@@ -1294,17 +1345,19 @@ function toggleGroupColumn(
                     <button
                       class="basic-calculator-sort-button"
                       type="button"
-                      @click="toggleSort(column.id)"
+                      @click="toggleSort(group, column.id)"
                     >
                       <span>{{ column.label }}</span>
                       <SortAscendingOutlined
                         v-if="
-                          config.settings.sortColumnId === column.id &&
-                          config.settings.sortDirection === 'asc'
+                          groupSortState(group).column?.id === column.id &&
+                          groupSortState(group).direction === 'asc'
                         "
                       />
                       <SortDescendingOutlined
-                        v-else-if="config.settings.sortColumnId === column.id"
+                        v-else-if="
+                          groupSortState(group).column?.id === column.id
+                        "
                       />
                     </button>
                   </th>
