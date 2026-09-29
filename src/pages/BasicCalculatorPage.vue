@@ -518,6 +518,7 @@ function efficiencyText(
       ? "—"
       : `${formatEfficiencyNumber(value.second)}%`;
   if (config.value?.settings.efficiencyDisplay === "second") return second;
+  if (first === second) return first;
   return `${first} / ${second}`;
 }
 
@@ -1180,16 +1181,6 @@ function toggleGroupColumn(
             >
           </a-space>
         </a-form-item>
-        <a-form-item label="效率显示">
-          <a-radio-group
-            :value="config.settings.efficiencyDisplay"
-            @change="updateSetting('efficiencyDisplay', $event.target.value)"
-          >
-            <a-radio-button value="first">合计</a-radio-button>
-            <a-radio-button value="second">平均</a-radio-button>
-            <a-radio-button value="both">两种</a-radio-button>
-          </a-radio-group>
-        </a-form-item>
         <a-form-item label="干员名称">
           <a-space wrap>
             <a-checkbox
@@ -1212,6 +1203,16 @@ function toggleGroupColumn(
               合并相同内容
             </a-checkbox>
           </a-space>
+        </a-form-item>
+        <a-form-item label="效率显示">
+          <a-radio-group
+            :value="config.settings.efficiencyDisplay"
+            @change="updateSetting('efficiencyDisplay', $event.target.value)"
+          >
+            <a-radio-button value="first">合计</a-radio-button>
+            <a-radio-button value="second">平均</a-radio-button>
+            <a-radio-button value="both">两种</a-radio-button>
+          </a-radio-group>
         </a-form-item>
       </a-form>
     </a-card>

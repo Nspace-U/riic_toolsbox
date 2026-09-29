@@ -80,7 +80,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   },
   showOperatorProgressionInNames: true,
   mergeIdenticalRows: true,
-  efficiencyDisplay: "both",
+  efficiencyDisplay: "first",
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
 };
