@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import OperatorSkillTooltip from "@/components/OperatorSkillTooltip.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
 
 defineOptions({ inheritAttrs: false });
@@ -81,30 +82,35 @@ function showAvatar(): boolean {
 </script>
 
 <template>
-  <OperatorAvatarDisplay
+  <OperatorSkillTooltip
     v-if="showAvatar()"
-    :display-name="displayName"
-    :elite-level="eliteLevel"
-    :missing="missing"
-    :mood-remaining="moodRemaining"
-    :mood-scattered="moodScattered"
-    :name-editing="nameEditing ?? nameInputVisible"
-    :operator-owned="operatorOwned"
-    :operator-training-upgraded="operatorTrainingUpgraded"
     :operator="operator"
-    :plain="true"
-    :proportional-layout="true"
-    :show-elite-level="Boolean(operator)"
-    :show-name="true"
-    :show-profession="Boolean(operator)"
-    :show-rarity="Boolean(operator)"
-    :size="size"
-    :skipped="skipped"
-    :special-label="specialLabel"
-    @click.stop="emit('click', $event)"
-    @contextmenu.stop.prevent="emit('contextmenu', $event)"
-    @dblclick.stop="emit('dblclick', $event)"
-  />
+    target-tag="div"
+  >
+    <OperatorAvatarDisplay
+      :display-name="displayName"
+      :elite-level="eliteLevel"
+      :missing="missing"
+      :mood-remaining="moodRemaining"
+      :mood-scattered="moodScattered"
+      :name-editing="nameEditing ?? nameInputVisible"
+      :operator-owned="operatorOwned"
+      :operator-training-upgraded="operatorTrainingUpgraded"
+      :operator="operator"
+      :plain="true"
+      :proportional-layout="true"
+      :show-elite-level="Boolean(operator)"
+      :show-name="true"
+      :show-profession="Boolean(operator)"
+      :show-rarity="Boolean(operator)"
+      :size="size"
+      :skipped="skipped"
+      :special-label="specialLabel"
+      @click.stop="emit('click', $event)"
+      @contextmenu.stop.prevent="emit('contextmenu', $event)"
+      @dblclick.stop="emit('dblclick', $event)"
+    />
+  </OperatorSkillTooltip>
   <template v-else>
     <div
       :style="frameStyle()"

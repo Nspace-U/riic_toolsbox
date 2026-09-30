@@ -23,6 +23,7 @@ import {
 
 import BasicCalculatorScheduleEditor from "@/components/BasicCalculatorScheduleEditor.vue";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import OperatorSkillTooltip from "@/components/OperatorSkillTooltip.vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
@@ -641,6 +642,33 @@ function viewVisibleOperators(
       operator,
     })),
   );
+}
+
+function viewVisibleOperatorNameParts(view: BasicCalculatorRowView): Array<{
+  key: string;
+  label: string;
+  operator: Operator | undefined;
+  separator: string;
+}> {
+  const parts: Array<{
+    key: string;
+    label: string;
+    operator: Operator | undefined;
+    separator: string;
+  }> = [];
+
+  view.sourceRows.forEach((row) => {
+    rowVisibleOperators(view.group, row).forEach((operator, index) => {
+      parts.push({
+        key: `${row.id}-${index}-${operator.name}`,
+        label: displayOperatorNameLabel(view.group, operator),
+        operator: operatorFor(operator.name),
+        separator: index === 0 ? (parts.length > 0 ? " / " : "") : " + ",
+      });
+    });
+  });
+
+  return parts;
 }
 
 function columnText(
@@ -1496,6 +1524,23 @@ function toggleGroupColumn(
                         "
                       />
                     </div>
+                    <span
+                      v-else-if="column.kind === 'operatorNames'"
+                      class="basic-calculator-operator-name-list"
+                    >
+                      <template
+                        v-for="part in viewVisibleOperatorNameParts(view)"
+                        :key="part.key"
+                      >
+                        <span>{{ part.separator }}</span>
+                        <OperatorSkillTooltip
+                          :operator="part.operator"
+                          target-tag="span"
+                        >
+                          <span>{{ part.label }}</span>
+                        </OperatorSkillTooltip>
+                      </template>
+                    </span>
                     <span v-else>{{ columnText(view, column) }}</span>
                   </td>
                 </tr>

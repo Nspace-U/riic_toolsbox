@@ -460,6 +460,22 @@ export function useScheduleOperatorInteraction<
     }
     const isImeEvent =
       event.isComposing || event.key === "Process" || event.keyCode === 229;
+    const target = event.target instanceof Element ? event.target : undefined;
+    const skillTooltipTarget =
+      target?.closest("[data-operator-skill-tooltip]") ??
+      (typeof document === "undefined"
+        ? null
+        : document.querySelector("[data-operator-skill-tooltip]:hover"));
+    if (
+      event.key.toLowerCase() === "g" &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      !isImeEvent &&
+      skillTooltipTarget
+    ) {
+      return;
+    }
     const operatorInput = findOperatorInput(event.target);
     const pendingOperatorInput = operatorInput?.classList.contains(
       "simulator-slot-name-input--pending",
@@ -500,7 +516,6 @@ export function useScheduleOperatorInteraction<
       options.onEscape(operatorInput);
       return;
     }
-    const target = event.target instanceof Element ? event.target : undefined;
     const editableTarget = target?.closest("input, textarea, select");
     if (editableTarget && !pendingOperatorInput) return;
     const primaryModifier =
