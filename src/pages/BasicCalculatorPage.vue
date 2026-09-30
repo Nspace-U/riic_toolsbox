@@ -706,6 +706,43 @@ function columnText(
   return "";
 }
 
+function tableCellColumns(view: BasicCalculatorRowView): Array<{
+  column: BasicCalculatorColumn;
+  colspan: number;
+}> {
+  const columns = groupColumns(view.group);
+  const shouldMergeCells =
+    config.value?.settings.mergeIdenticalEfficiencyCells &&
+    calculationsReadyForMerge.value;
+  const cells: Array<{ column: BasicCalculatorColumn; colspan: number }> = [];
+
+  for (let index = 0; index < columns.length; index += 1) {
+    const column = columns[index];
+    if (!column) continue;
+
+    let colspan = 1;
+    if (shouldMergeCells && column.kind === "efficiency") {
+      const text = columnText(view, column);
+      while (index + colspan < columns.length) {
+        const nextColumn = columns[index + colspan];
+        if (
+          !nextColumn ||
+          nextColumn.kind !== "efficiency" ||
+          columnText(view, nextColumn) !== text
+        ) {
+          break;
+        }
+        colspan += 1;
+      }
+    }
+
+    cells.push({ column, colspan });
+    index += colspan - 1;
+  }
+
+  return cells;
+}
+
 function updateAvatarSetting(
   key: keyof BasicCalculatorConfig["settings"]["avatar"],
   value: boolean,
@@ -1290,14 +1327,27 @@ function toggleGroupColumn(
           </a-space>
         </a-form-item>
         <a-form-item label="效率显示">
-          <a-radio-group
-            :value="config.settings.efficiencyDisplay"
-            @change="updateSetting('efficiencyDisplay', $event.target.value)"
-          >
-            <a-radio-button value="first">合计</a-radio-button>
-            <a-radio-button value="second">平均</a-radio-button>
-            <a-radio-button value="both">两种</a-radio-button>
-          </a-radio-group>
+          <a-space wrap>
+            <a-radio-group
+              :value="config.settings.efficiencyDisplay"
+              @change="updateSetting('efficiencyDisplay', $event.target.value)"
+            >
+              <a-radio-button value="first">合计</a-radio-button>
+              <a-radio-button value="second">平均</a-radio-button>
+              <a-radio-button value="both">两种</a-radio-button>
+            </a-radio-group>
+            <a-checkbox
+              :checked="config.settings.mergeIdenticalEfficiencyCells"
+              @change="
+                updateSetting(
+                  'mergeIdenticalEfficiencyCells',
+                  $event.target.checked,
+                )
+              "
+            >
+              合并相同效率单元格
+            </a-checkbox>
+          </a-space>
         </a-form-item>
       </a-form>
     </a-card>
@@ -1368,6 +1418,10 @@ function toggleGroupColumn(
                   <th
                     v-for="column in groupColumns(group)"
                     :key="column.id"
+                    :class="{
+                      'basic-calculator-efficiency-column':
+                        column.kind === 'efficiency',
+                    }"
                     :aria-sort="
                       groupSortState(group).column?.id === column.id
                         ? groupSortState(group).direction === 'asc'
@@ -1489,16 +1543,19 @@ function toggleGroupColumn(
                     </div>
                   </td>
                   <td
-                    v-for="column in groupColumns(group)"
-                    :key="column.id"
+                    v-for="cell in tableCellColumns(view)"
+                    :key="cell.column.id"
+                    :colspan="cell.colspan"
                     :class="{
+                      'basic-calculator-efficiency-column':
+                        cell.column.kind === 'efficiency',
                       'basic-calculator-name-cell':
-                        column.kind === 'operatorNames',
-                      'basic-calculator-note-cell': column.kind === 'note',
+                        cell.column.kind === 'operatorNames',
+                      'basic-calculator-note-cell': cell.column.kind === 'note',
                     }"
                   >
                     <div
-                      v-if="column.kind === 'operators'"
+                      v-if="cell.column.kind === 'operators'"
                       class="basic-calculator-avatars"
                     >
                       <OperatorAvatarDisplay
@@ -1525,7 +1582,7 @@ function toggleGroupColumn(
                       />
                     </div>
                     <span
-                      v-else-if="column.kind === 'operatorNames'"
+                      v-else-if="cell.column.kind === 'operatorNames'"
                       class="basic-calculator-operator-name-list"
                     >
                       <template
@@ -1541,7 +1598,7 @@ function toggleGroupColumn(
                         </OperatorSkillTooltip>
                       </template>
                     </span>
-                    <span v-else>{{ columnText(view, column) }}</span>
+                    <span v-else>{{ columnText(view, cell.column) }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -1868,6 +1925,9 @@ function toggleGroupColumn(
   text-align: center;
   vertical-align: middle;
   white-space: nowrap;
+}
+.basic-calculator-efficiency-column {
+  min-inline-size: 104px;
 }
 .basic-calculator-table td.basic-calculator-note-cell {
   text-align: start;

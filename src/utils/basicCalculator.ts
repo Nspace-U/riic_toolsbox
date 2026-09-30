@@ -66,6 +66,7 @@ export interface BasicCalculatorSettings {
   };
   showOperatorProgressionInNames: boolean;
   mergeIdenticalRows: boolean;
+  mergeIdenticalEfficiencyCells: boolean;
   efficiencyDisplay: "first" | "second" | "both";
   sortColumnId: string;
   sortDirection: "asc" | "desc";
@@ -80,6 +81,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   },
   showOperatorProgressionInNames: true,
   mergeIdenticalRows: true,
+  mergeIdenticalEfficiencyCells: true,
   efficiencyDisplay: "first",
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
