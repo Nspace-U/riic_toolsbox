@@ -538,10 +538,16 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
       if (!column) return 0;
       const firstValue = sortValue(first, column);
       const secondValue = sortValue(second, column);
-      if (firstValue === undefined && secondValue === undefined) return 0;
-      if (firstValue === undefined) return 1;
-      if (secondValue === undefined) return -1;
-      return compareValues(firstValue, secondValue) * direction;
+      if (firstValue === undefined && secondValue !== undefined) return 1;
+      if (secondValue === undefined && firstValue !== undefined) return -1;
+      if (firstValue !== undefined && secondValue !== undefined) {
+        const valueComparison = compareValues(firstValue, secondValue);
+        if (valueComparison !== 0) return valueComparison * direction;
+      }
+      return compareValues(
+        operatorNameText(first.group, first.row),
+        operatorNameText(second.group, second.row),
+      );
     });
     result[group.id] =
       config.value?.settings.mergeIdenticalRows &&
