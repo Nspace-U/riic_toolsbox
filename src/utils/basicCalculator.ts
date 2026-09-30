@@ -50,9 +50,9 @@ export interface BasicCalculatorRow {
 export interface BasicCalculatorGroup {
   id: string;
   name: string;
-  facility: Extract<RoomKey, "trading" | "manufacture">;
-  facilityLevel: number;
-  coreOperator: BasicCalculatorOperator;
+  facility?: RoomKey;
+  facilityLevel?: number;
+  coreOperator?: BasicCalculatorOperator;
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
@@ -129,6 +129,7 @@ export interface BasicCalculatorEvaluation {
   baselineEfficiency: number;
   workOperators: BasicCalculatorOperator[];
   participants: BasicCalculatorOperator[];
+  hasCoreOperator: boolean;
 }
 
 export interface BasicCalculatorCalculationOptions {
@@ -488,17 +489,32 @@ export function basicCalculatorScheduleOperators(
   return uniqueOperators(operators);
 }
 
+export function basicCalculatorTargetFacility(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): RoomKey | undefined {
+  if (group.facility) return group.facility;
+  const isWorkFacility = (type: RoomKey): boolean =>
+    type !== "control" && type !== "dormitory";
+  return (
+    basicCalculatorScheduleOperators(row.schedule).find(
+      (operator) => operator.room && isWorkFacility(operator.room),
+    )?.room ??
+    row.schedule.layout.find(({ type }) => isWorkFacility(type))?.type
+  );
+}
+
 export function basicCalculatorOperatorFieldNames(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): string[] {
-  const assignment = basicCalculatorRoomAssignment(
-    row.schedule,
-    group.facility,
-  );
+  const facility = basicCalculatorTargetFacility(group, row);
+  const assignment = facility
+    ? basicCalculatorRoomAssignment(row.schedule, facility)
+    : undefined;
   const control = basicCalculatorRoomAssignment(row.schedule, "control");
   return uniqueOperators([
-    { name: group.coreOperator.name },
+    ...(group.coreOperator ? [{ name: group.coreOperator.name }] : []),
     ...(assignment?.operators ?? []).map((name) => ({ name })),
     ...(control?.operators ?? []).map((name) => ({ name })),
   ]).map(({ name }) => name);
@@ -507,6 +523,13 @@ export function basicCalculatorOperatorFieldNames(
 export function createBasicCalculatorSchedule(
   group: BasicCalculatorGroup,
 ): ScheduleDocument {
+  if (
+    !group.coreOperator ||
+    !group.facility ||
+    group.facilityLevel === undefined
+  ) {
+    return { layout: [], plans: [{ rooms: {} }] };
+  }
   return {
     layout: [{ type: group.facility, level: group.facilityLevel }],
     plans: [
@@ -524,14 +547,26 @@ export function synchronizeBasicCalculatorGroupSchedule(
   previousGroup: BasicCalculatorGroup,
   nextGroup: BasicCalculatorGroup,
 ): ScheduleDocument {
+  const previousCoreOperator = previousGroup.coreOperator;
+  const nextCoreOperator = nextGroup.coreOperator;
+  const previousFacility = previousGroup.facility;
+  const nextFacility = nextGroup.facility;
+  const nextFacilityLevel = nextGroup.facilityLevel;
+  if (
+    !previousCoreOperator ||
+    !nextCoreOperator ||
+    !previousFacility ||
+    !nextFacility ||
+    nextFacilityLevel === undefined
+  ) {
+    return clone(schedule);
+  }
   const document = clone(schedule);
   const priorLayout = [...document.layout];
   const affectedTypes = new Set(priorLayout.map(({ type }) => type));
-  let coreEntry = priorLayout.find(
-    (entry) => entry.type === previousGroup.facility,
-  );
+  let coreEntry = priorLayout.find((entry) => entry.type === previousFacility);
   if (!coreEntry) {
-    coreEntry = { type: nextGroup.facility, level: nextGroup.facilityLevel };
+    coreEntry = { type: nextFacility, level: nextFacilityLevel };
     priorLayout.push(coreEntry);
   }
   const assignmentsByPlan = document.plans.map((plan) => {
@@ -555,18 +590,18 @@ export function synchronizeBasicCalculatorGroupSchedule(
   });
   const incomingStates = assignmentsByPlan.flatMap((assignments) =>
     [...assignments.values()].flatMap((assignment) => {
-      const state = assignment.operatorStates?.[nextGroup.coreOperator.name];
+      const state = assignment.operatorStates?.[nextCoreOperator.name];
       return state ? [clone(state)] : [];
     }),
   );
-  coreEntry.type = nextGroup.facility;
-  coreEntry.level = nextGroup.facilityLevel;
-  affectedTypes.add(nextGroup.facility);
-  if (previousGroup.facility !== nextGroup.facility) {
+  coreEntry.type = nextFacility;
+  coreEntry.level = nextFacilityLevel;
+  affectedTypes.add(nextFacility);
+  if (previousFacility !== nextFacility) {
     const entryIndex = priorLayout.indexOf(coreEntry);
     priorLayout.splice(entryIndex, 1);
     const firstSameType = priorLayout.findIndex(
-      (entry) => entry.type === nextGroup.facility,
+      (entry) => entry.type === nextFacility,
     );
     priorLayout.splice(
       firstSameType < 0 ? priorLayout.length : firstSameType,
@@ -578,8 +613,8 @@ export function synchronizeBasicCalculatorGroupSchedule(
   document.plans.forEach((plan, planIndex) => {
     const assignments = assignmentsByPlan[planIndex]!;
     const target = assignments.get(coreEntry) ?? {};
-    const coreName = nextGroup.coreOperator.name;
-    const oldCoreName = previousGroup.coreOperator.name;
+    const coreName = nextCoreOperator.name;
+    const oldCoreName = previousCoreOperator.name;
     let preservedState = target.operatorStates?.[coreName];
     if (!preservedState) preservedState = incomingStates[0];
 
@@ -613,7 +648,7 @@ export function synchronizeBasicCalculatorGroupSchedule(
     if (preservedState) targetStates[coreName] = preservedState;
     if (Object.keys(targetStates).length) target.operatorStates = targetStates;
     else delete target.operatorStates;
-    if (previousGroup.facility !== nextGroup.facility) {
+    if (previousFacility !== nextFacility) {
       delete target.product;
       delete target.sourceMaterial;
     }
@@ -661,32 +696,28 @@ function scheduleForCalculation(
 
 function coreOnlySchedule(
   document: ScheduleDocument,
-  group: BasicCalculatorGroup,
+  facility: RoomKey,
+  facilityLevel: number,
   core: BasicCalculatorOperator,
 ): ScheduleDocument {
-  const targetAssignment = basicCalculatorRoomAssignment(
-    document,
-    group.facility,
-  );
+  const targetAssignment = basicCalculatorRoomAssignment(document, facility);
   const assignment = clone(targetAssignment ?? {});
   assignment.operators = [core.name];
   const state = targetAssignment?.operatorStates?.[core.name];
   if (state) assignment.operatorStates = { [core.name]: clone(state) };
   else delete assignment.operatorStates;
-  const targetEntry = document.layout.find(
-    (entry) => entry.type === group.facility,
-  );
+  const targetEntry = document.layout.find((entry) => entry.type === facility);
   return {
     layout: [
       {
-        type: group.facility,
-        level: targetEntry?.level ?? group.facilityLevel,
+        type: facility,
+        level: targetEntry?.level ?? facilityLevel,
       },
     ],
     plans: [
       {
         duration: 1440,
-        rooms: { [group.facility]: [assignment] },
+        rooms: { [facility]: [assignment] },
       },
     ],
     ...(document.settings ? { settings: clone(document.settings) } : {}),
@@ -699,17 +730,21 @@ function coreBaselineEfficiency(
   row: BasicCalculatorRow,
   options: BasicCalculatorCalculationOptions,
 ): number {
+  const facility = group.facility;
+  const facilityLevel = group.facilityLevel;
+  const coreOperator = group.coreOperator;
+  if (!facility || facilityLevel === undefined || !coreOperator) return 0;
   const document = scheduleForCalculation(row.schedule, 24);
-  const assignment = basicCalculatorRoomAssignment(document, group.facility);
-  const core = stateForAssignment(assignment, group.coreOperator.name);
+  const assignment = basicCalculatorRoomAssignment(document, facility);
+  const core = stateForAssignment(assignment, coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(
-    coreOnlySchedule(document, group, core),
+    coreOnlySchedule(document, facility, facilityLevel, core),
     catalog,
     options,
   );
   return (
     result.plans[0]?.facilities.find(
-      (facility) => facility.facility.type === group.facility,
+      (resultFacility) => resultFacility.facility.type === facility,
     )?.skillEfficiency ?? 0
   );
 }
@@ -722,6 +757,10 @@ export function evaluateBasicCalculatorRow(
   options: BasicCalculatorCalculationOptions = {},
   baselineEfficiency?: number,
 ): BasicCalculatorEvaluation {
+  const targetFacility = basicCalculatorTargetFacility(group, row);
+  if (!targetFacility) {
+    throw new Error("当前排班没有可计算的工作设施");
+  }
   const document = scheduleForCalculation(row.schedule, durationHours);
   const result = calculateEfficiencyForBasicCalculator(
     document,
@@ -730,11 +769,13 @@ export function evaluateBasicCalculatorRow(
   );
   const targetAssignment = basicCalculatorRoomAssignment(
     document,
-    group.facility,
+    targetFacility,
   );
-  const core = stateForAssignment(targetAssignment, group.coreOperator.name);
+  const core = group.coreOperator
+    ? stateForAssignment(targetAssignment, group.coreOperator.name)
+    : undefined;
   const workOperators = uniqueOperators([
-    core,
+    ...(core ? [core] : []),
     ...(targetAssignment?.operators ?? []).map((name) =>
       stateForAssignment(targetAssignment, name),
     ),
@@ -742,9 +783,9 @@ export function evaluateBasicCalculatorRow(
   const visibleDocument = clone(document);
   const visibleAssignment = basicCalculatorRoomAssignment(
     visibleDocument,
-    group.facility,
+    targetFacility,
   );
-  if (visibleAssignment) {
+  if (visibleAssignment && core) {
     visibleAssignment.operators = visibleAssignment.operators?.filter(
       (name) => name !== core.name,
     );
@@ -763,11 +804,11 @@ export function evaluateBasicCalculatorRow(
     baselineEfficiency ?? coreBaselineEfficiency(catalog, group, row, options);
   const facilityIndex =
     result.plans[0]?.facilities.findIndex(
-      (facility) => facility.facility.type === group.facility,
+      (facility) => facility.facility.type === targetFacility,
     ) ?? -1;
   const visibleFacilityIndex =
     visibleResult.plans[0]?.facilities.findIndex(
-      (facility) => facility.facility.type === group.facility,
+      (facility) => facility.facility.type === targetFacility,
     ) ?? -1;
   return {
     result,
@@ -777,6 +818,7 @@ export function evaluateBasicCalculatorRow(
     baselineEfficiency: baseline,
     workOperators,
     participants: workOperators,
+    hasCoreOperator: core !== undefined,
   };
 }
 
@@ -794,6 +836,7 @@ export function calculateBasicCalculatorRowValues(
   );
   hours.add(24);
   const efficiency: Record<string, BasicCalculatorEfficiencyValue> = {};
+  if (!basicCalculatorTargetFacility(group, row)) return { efficiency };
   const baselineEfficiency = coreBaselineEfficiency(
     catalog,
     group,
@@ -871,7 +914,8 @@ export function basicCalculatorEfficiencyValue(
     return { first: 0 };
   }
   const first = facility.skillEfficiency - evaluation.baselineEfficiency;
-  const denominator = evaluation.participants.length - 1;
+  const denominator =
+    evaluation.participants.length - Number(evaluation.hasCoreOperator);
   return {
     first,
     second: denominator > 0 ? first / denominator : undefined,

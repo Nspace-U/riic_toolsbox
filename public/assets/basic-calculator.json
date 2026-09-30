@@ -2639,6 +2639,83 @@
           "hiddenOperators": ["孑"]
         }
       ]
+    },
+    {
+      "id": "other",
+      "name": "其他组",
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "efficiency-12",
+        "efficiency-24",
+        "efficiency-36-923",
+        "note"
+      ],
+      "rows": [
+        {
+          "id": "other-fang",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [{ "rooms": { "manufacture": [{ "operators": ["芬"] }] } }]
+          }
+        },
+        {
+          "id": "other-kroos",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              { "rooms": { "manufacture": [{ "operators": ["克洛丝"] }] } }
+            ]
+          }
+        },
+        {
+          "id": "other-aroma",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [
+                    { "product": "赤金", "operators": ["阿罗玛"] }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "other-mcnist",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "product": "中级作战记录",
+                      "operators": ["机械师"]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "other-spuria",
+          "schedule": {
+            "layout": [{ "type": "power", "level": 3 }],
+            "plans": [{ "rooms": { "power": [{ "operators": ["空构"] }] } }]
+          }
+        },
+        {
+          "id": "other-ines",
+          "schedule": {
+            "layout": [{ "type": "meeting", "level": 3 }],
+            "plans": [{ "rooms": { "meeting": [{ "operators": ["伊内丝"] }] } }]
+          }
+        }
+      ]
     }
   ]
 }

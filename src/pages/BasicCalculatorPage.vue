@@ -48,6 +48,7 @@ import {
   basicCalculatorOperatorFieldNames,
   basicCalculatorRoomAssignment,
   basicCalculatorScheduleOperators,
+  basicCalculatorTargetFacility,
   cloneBasicCalculatorConfig,
   compareValues,
   createBasicCalculatorConfig,
@@ -98,9 +99,9 @@ interface BasicCalculatorSortState {
 interface GroupDraft {
   id: string;
   name: string;
-  facility: "trading" | "manufacture";
-  facilityLevel: number;
-  coreOperator: BasicCalculatorOperator;
+  facility?: RoomKey;
+  facilityLevel?: number;
+  coreOperator?: BasicCalculatorOperator;
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
@@ -184,16 +185,18 @@ const rowDraftGroup = computed(() =>
 const rowDraftFixedRoomLevels = computed<Partial<Record<RoomKey, number>>>(
   () => {
     const group = rowDraftGroup.value;
-    return group
-      ? {
-          [group.facility]: group.facilityLevel,
-        }
-      : {};
+    if (
+      !group?.coreOperator ||
+      !group.facility ||
+      group.facilityLevel === undefined
+    )
+      return {};
+    return { [group.facility]: group.facilityLevel };
   },
 );
 const rowDraftFixedRoomTypes = computed<RoomKey[]>(() => {
   const group = rowDraftGroup.value;
-  if (!group) return [];
+  if (!group?.coreOperator || !group.facility) return [];
   return [group.facility];
 });
 const draftHiddenOperatorOptions = computed<DraftHiddenOperatorOption[]>(() => {
@@ -445,12 +448,13 @@ function rowVisibleOperators(
   row: BasicCalculatorRow,
 ): BasicCalculatorOperator[] {
   const hiddenOperators = new Set(row.hiddenOperators ?? []);
+  const facility = basicCalculatorTargetFacility(group, row);
   const visible = basicCalculatorScheduleOperators(row.schedule).filter(
     (operator) => !hiddenOperators.has(operator.name),
   );
   return [
-    ...visible.filter((operator) => operator.room === group.facility),
-    ...visible.filter((operator) => operator.room !== group.facility),
+    ...visible.filter((operator) => operator.room === facility),
+    ...visible.filter((operator) => operator.room !== facility),
   ];
 }
 
@@ -467,16 +471,18 @@ function productAccent(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): string | undefined {
+  const facility = basicCalculatorTargetFacility(group, row);
+  if (!facility) return undefined;
   const product = basicCalculatorRoomAssignment(
     row.schedule,
-    group.facility,
+    facility,
   )?.product;
   if (!product) return undefined;
   return (
     productColors.value[product as keyof typeof productColors.value] ??
     PRODUCT_REPRESENTATIVE_COLORS[product] ??
-    facilityColors.value[group.facility] ??
-    ROOM_REPRESENTATIVE_COLORS[group.facility]
+    facilityColors.value[facility] ??
+    ROOM_REPRESENTATIVE_COLORS[facility]
   );
 }
 
@@ -551,6 +557,7 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
       );
     });
     result[group.id] =
+      group.coreOperator &&
       config.value?.settings.mergeIdenticalRows &&
       calculationsReadyForMerge.value
         ? mergeRowViews(views)
@@ -1081,7 +1088,9 @@ function addRow(group: BasicCalculatorGroup): void {
   const row: BasicCalculatorRow = {
     id,
     schedule: createBasicCalculatorSchedule(group),
-    hiddenOperators: [group.coreOperator.name],
+    ...(group.coreOperator
+      ? { hiddenOperators: [group.coreOperator.name] }
+      : {}),
   };
   updateConfig((draft) => {
     draft.groups.find((item) => item.id === group.id)?.rows.push(row);
@@ -1106,29 +1115,43 @@ function openGroupEditor(group?: BasicCalculatorGroup): void {
 
 function saveGroup(): void {
   const draft = groupDraft.value;
-  if (!draft || !draft.name.trim() || !draft.coreOperator.name) return;
+  if (
+    !draft ||
+    !draft.name.trim() ||
+    (draft.coreOperator &&
+      (!draft.coreOperator.name ||
+        !draft.facility ||
+        draft.facilityLevel === undefined))
+  )
+    return;
   updateConfig((next) => {
     const index = next.groups.findIndex((group) => group.id === draft.id);
     const group = JSON.parse(JSON.stringify(draft)) as BasicCalculatorGroup;
     if (index >= 0) {
       const previousGroup = next.groups[index]!;
-      group.rows = previousGroup.rows.map((row) => ({
-        ...row,
-        hiddenOperators:
-          previousGroup.coreOperator.name === group.coreOperator.name
-            ? row.hiddenOperators
-            : [
-                ...new Set([
-                  ...(row.hiddenOperators ?? []),
-                  group.coreOperator.name,
-                ]),
-              ],
-        schedule: synchronizeBasicCalculatorGroupSchedule(
-          row.schedule,
-          previousGroup,
-          group,
-        ),
-      }));
+      const previousCoreOperator = previousGroup.coreOperator;
+      const nextCoreOperator = group.coreOperator;
+      if (previousCoreOperator && nextCoreOperator) {
+        group.rows = previousGroup.rows.map((row) => ({
+          ...row,
+          hiddenOperators:
+            previousCoreOperator.name === nextCoreOperator.name
+              ? row.hiddenOperators
+              : [
+                  ...new Set([
+                    ...(row.hiddenOperators ?? []),
+                    nextCoreOperator.name,
+                  ]),
+                ],
+          schedule: synchronizeBasicCalculatorGroupSchedule(
+            row.schedule,
+            previousGroup,
+            group,
+          ),
+        }));
+      } else {
+        group.rows = previousGroup.rows;
+      }
       next.groups.splice(index, 1, group);
     } else next.groups.push(group);
   });
@@ -1173,9 +1196,10 @@ function operatorProgression(
 ): ResolvedOperatorProgression {
   const data = operatorFor(operator.name);
   const profile = data ? catalog.value?.operators[data.name] : undefined;
+  const facility = operator.room ?? group.facility ?? "manufacture";
   return resolveOperatorProgression({
     operatorId: data?.id ?? operator.name,
-    facility: operator.room ?? group.facility,
+    facility,
     operatorSkillFile: profile?.skillFile,
     maxEliteLevel: data?.maxEliteLevel,
     manualElite: operator.elite,
@@ -1192,7 +1216,7 @@ function displayOperatorProgressionSuffix(
 ): string {
   const data = operatorFor(operator.name);
   const profile = data ? catalog.value?.operators[data.name] : undefined;
-  const facility = operator.room ?? group.facility;
+  const facility = operator.room ?? group.facility ?? "manufacture";
   const progression = operatorProgression(group, operator);
   const eliteSuffix =
     progression.elite === 1 ? "Ⅰ" : progression.elite === 2 ? "Ⅱ" : "";
@@ -1362,10 +1386,11 @@ function toggleGroupColumn(
           <template #header>
             <div class="basic-calculator-group-header">
               <strong>{{ group.name }}</strong>
-              <span
-                >{{ group.coreOperator.name }} ·
-                {{ ROOM_LABELS[group.facility] }}</span
-              >
+              <span v-if="group.coreOperator && group.facility">
+                {{ group.coreOperator.name }} ·
+                {{ ROOM_LABELS[group.facility] }}
+              </span>
+              <span v-else>无核心干员</span>
               <span class="basic-calculator-group-header-actions" @click.stop>
                 <a-button
                   :icon="h(EditOutlined)"
@@ -1385,9 +1410,10 @@ function toggleGroupColumn(
           </template>
           <div class="basic-calculator-group-toolbar">
             <span
-              >核心：{{ group.coreOperator.name }} ·
-              {{ group.facilityLevel }}级</span
+              v-if="group.coreOperator && group.facilityLevel !== undefined"
             >
+              核心：{{ group.coreOperator.name }} · {{ group.facilityLevel }}级
+            </span>
             <a-space wrap>
               <a-checkbox
                 v-for="column in config.columns"
@@ -1764,28 +1790,31 @@ function toggleGroupColumn(
         <a-form-item label="组合组名称"
           ><a-input v-model:value="groupDraft.name"
         /></a-form-item>
-        <a-form-item label="核心干员">
-          <a-select v-model:value="groupDraft.coreOperator.name" show-search>
-            <a-select-option
-              v-for="option in operatorOptions"
-              :key="option.value"
-              :value="option.value"
-              >{{ option.label }}</a-select-option
-            >
-          </a-select>
-        </a-form-item>
-        <a-form-item label="工作设施">
-          <a-select v-model:value="groupDraft.facility"
-            ><a-select-option value="manufacture">制造站</a-select-option
-            ><a-select-option value="trading">贸易站</a-select-option></a-select
-          >
-        </a-form-item>
-        <a-form-item label="设施等级"
-          ><a-input-number
-            v-model:value="groupDraft.facilityLevel"
-            :max="3"
-            :min="1"
-        /></a-form-item>
+        <template v-if="groupDraft.coreOperator">
+          <a-form-item label="核心干员">
+            <a-select v-model:value="groupDraft.coreOperator.name" show-search>
+              <a-select-option
+                v-for="option in operatorOptions"
+                :key="option.value"
+                :value="option.value"
+                >{{ option.label }}</a-select-option
+              >
+            </a-select>
+          </a-form-item>
+          <a-form-item label="工作设施">
+            <a-select v-model:value="groupDraft.facility">
+              <a-select-option value="manufacture">制造站</a-select-option>
+              <a-select-option value="trading">贸易站</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="设施等级">
+            <a-input-number
+              v-model:value="groupDraft.facilityLevel"
+              :max="3"
+              :min="1"
+            />
+          </a-form-item>
+        </template>
       </a-form>
     </a-modal>
 
@@ -1806,10 +1835,14 @@ function toggleGroupColumn(
           ref="rowEditor"
           v-model:model-value="rowDraftSchedule"
           :session-key="rowDraftGroupId + ':' + rowDraft.id"
-          :fixed-operator="{
-            type: rowDraftGroup.facility,
-            name: rowDraftGroup.coreOperator.name,
-          }"
+          :fixed-operator="
+            rowDraftGroup.coreOperator && rowDraftGroup.facility
+              ? {
+                  type: rowDraftGroup.facility,
+                  name: rowDraftGroup.coreOperator.name,
+                }
+              : undefined
+          "
           :facility-colors="facilityColors"
           :product-colors="productColors"
           :fixed-room-levels="rowDraftFixedRoomLevels"
