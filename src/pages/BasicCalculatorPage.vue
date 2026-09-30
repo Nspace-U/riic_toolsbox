@@ -1380,30 +1380,27 @@ function toggleGroupColumn(
                       v-if="view.sourceRows.length === 1"
                       class="basic-calculator-row-actions"
                     >
-                      <a-tooltip title="编辑"
-                        ><a-button
-                          :icon="h(EditOutlined)"
-                          aria-label="编辑行"
+                      <a-button
+                        :icon="h(EditOutlined)"
+                        aria-label="编辑行"
+                        size="small"
+                        type="text"
+                        @click="openRowEditor(group, view.row)"
+                      />
+                      <a-popconfirm
+                        cancel-text="取消"
+                        ok-text="删除"
+                        title="删除这一行？"
+                        @confirm="deleteRow(group.id, view.row.id)"
+                      >
+                        <a-button
+                          :icon="h(DeleteOutlined)"
+                          aria-label="删除行"
+                          danger
                           size="small"
                           type="text"
-                          @click="openRowEditor(group, view.row)"
-                      /></a-tooltip>
-                      <a-tooltip title="删除">
-                        <a-popconfirm
-                          cancel-text="取消"
-                          ok-text="删除"
-                          title="删除这一行？"
-                          @confirm="deleteRow(group.id, view.row.id)"
-                        >
-                          <a-button
-                            :icon="h(DeleteOutlined)"
-                            aria-label="删除行"
-                            danger
-                            size="small"
-                            type="text"
-                          />
-                        </a-popconfirm>
-                      </a-tooltip>
+                        />
+                      </a-popconfirm>
                     </div>
                     <div v-else class="basic-calculator-row-actions">
                       <a-popover
@@ -1430,42 +1427,36 @@ function toggleGroupColumn(
                                   `未显示干员 ${index + 1}`
                                 }}
                               </span>
-                              <a-tooltip title="编辑">
+                              <a-button
+                                :icon="h(EditOutlined)"
+                                :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
+                                size="small"
+                                type="text"
+                                @click="openMergedRowEditor(group, sourceRow)"
+                              />
+                              <a-popconfirm
+                                cancel-text="取消"
+                                ok-text="删除"
+                                title="删除这一行？"
+                                @confirm="deleteRow(group.id, sourceRow.id)"
+                              >
                                 <a-button
-                                  :icon="h(EditOutlined)"
-                                  :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
+                                  :icon="h(DeleteOutlined)"
+                                  :aria-label="`删除${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
+                                  danger
                                   size="small"
                                   type="text"
-                                  @click="openMergedRowEditor(group, sourceRow)"
                                 />
-                              </a-tooltip>
-                              <a-tooltip title="删除">
-                                <a-popconfirm
-                                  cancel-text="取消"
-                                  ok-text="删除"
-                                  title="删除这一行？"
-                                  @confirm="deleteRow(group.id, sourceRow.id)"
-                                >
-                                  <a-button
-                                    :icon="h(DeleteOutlined)"
-                                    :aria-label="`删除${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
-                                    danger
-                                    size="small"
-                                    type="text"
-                                  />
-                                </a-popconfirm>
-                              </a-tooltip>
+                              </a-popconfirm>
                             </div>
                           </div>
                         </template>
-                        <a-tooltip title="管理合并行">
-                          <a-button
-                            :icon="h(MoreOutlined)"
-                            aria-label="管理合并行"
-                            size="small"
-                            type="text"
-                          />
-                        </a-tooltip>
+                        <a-button
+                          :icon="h(MoreOutlined)"
+                          aria-label="管理合并行"
+                          size="small"
+                          type="text"
+                        />
                       </a-popover>
                     </div>
                   </td>
