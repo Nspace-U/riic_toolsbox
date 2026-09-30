@@ -384,10 +384,20 @@ function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
   const selectedColumn = columns.find(
     (column) => column.id === settings?.sortColumnId,
   );
-  if (selectedColumn) {
+  if (
+    selectedColumn &&
+    (group.coreOperator || settings?.sortColumnCustomized)
+  ) {
     return {
       column: selectedColumn,
       direction: settings?.sortDirection ?? "desc",
+    };
+  }
+
+  if (!group.coreOperator) {
+    return {
+      column: columns.find((column) => column.kind === "operatorNames"),
+      direction: "asc",
     };
   }
 
@@ -783,11 +793,6 @@ function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
 function toggleSort(group: BasicCalculatorGroup, columnId: string): void {
   const currentSort = groupSortState(group);
   updateConfig((draft) => {
-    if (draft.settings.sortColumnId === columnId) {
-      draft.settings.sortDirection =
-        draft.settings.sortDirection === "asc" ? "desc" : "asc";
-      return;
-    }
     draft.settings.sortColumnId = columnId;
     draft.settings.sortDirection =
       currentSort.column?.id === columnId
@@ -795,6 +800,7 @@ function toggleSort(group: BasicCalculatorGroup, columnId: string): void {
           ? "desc"
           : "asc"
         : "desc";
+    draft.settings.sortColumnCustomized = true;
   });
 }
 

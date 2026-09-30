@@ -70,6 +70,7 @@ export interface BasicCalculatorSettings {
   efficiencyDisplay: "first" | "second" | "both";
   sortColumnId: string;
   sortDirection: "asc" | "desc";
+  sortColumnCustomized: boolean;
 }
 
 export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
@@ -85,6 +86,7 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   efficiencyDisplay: "first",
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
+  sortColumnCustomized: false,
 };
 
 export type BasicCalculatorAsset = Omit<BasicCalculatorConfig, "settings"> & {
@@ -274,9 +276,14 @@ export function applyBasicCalculatorPatch(
 
   if (patch.settings) {
     const avatar = patch.settings.avatar;
+    const sortColumnCustomized =
+      patch.settings.sortColumnCustomized ??
+      (patch.settings.sortColumnId !== undefined ||
+        patch.settings.sortDirection !== undefined);
     config.settings = {
       ...config.settings,
       ...clone(patch.settings),
+      sortColumnCustomized,
       avatar: {
         ...config.settings.avatar,
         ...(avatar?.showAvatar === undefined
