@@ -67,15 +67,21 @@ function handleWindowKeydown(event: KeyboardEvent): void {
   event.preventDefault();
 }
 
+function handleWindowResize(): void {
+  open.value = false;
+}
+
 function startListeningForShortcut(): void {
   if (!hasSkillDescriptions.value || listeningForShortcut) return;
   window.addEventListener("keydown", handleWindowKeydown, true);
+  window.addEventListener("resize", handleWindowResize);
   listeningForShortcut = true;
 }
 
 function stopListeningForShortcut(): void {
   if (!listeningForShortcut) return;
   window.removeEventListener("keydown", handleWindowKeydown, true);
+  window.removeEventListener("resize", handleWindowResize);
   listeningForShortcut = false;
 }
 
