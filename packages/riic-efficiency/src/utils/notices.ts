@@ -91,12 +91,27 @@ export function buildEfficiencyNotices(
   if (!result) {
     return notices;
   }
-  if (result.maaDroneAcceleration?.warnings.length) {
+  const maaDroneWarnings = result.maaDroneAcceleration?.warnings ?? [];
+  const droneOverflowDetails = maaDroneWarnings
+    .filter((warning) => warning.code === "overflow")
+    .map((warning) => warning.message);
+  if (droneOverflowDetails.length > 0) {
     notices.push({
       code: "maa-drone-overflow",
       level: "info",
       message: "发现无人机爆仓风险",
-      details: result.maaDroneAcceleration.warnings,
+      details: droneOverflowDetails,
+    });
+  }
+  const droneTargetDetails = maaDroneWarnings
+    .filter((warning) => warning.code !== "overflow")
+    .map((warning) => warning.message);
+  if (droneTargetDetails.length > 0) {
+    notices.push({
+      code: "maa-drone-target",
+      level: "warning",
+      message: "无人机加速目标无效",
+      details: droneTargetDetails,
     });
   }
   if (result.warnings.length > 0) {

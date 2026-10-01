@@ -70,7 +70,11 @@ try {
       readFile("src/assets/main.css", "utf8"),
       readFile("src/pages/SimulatorPage.vue", "utf8"),
     ]);
-  assert.match(exportImageSource, /row\.style\.justifyContent = "center"/);
+  assert.match(exportImageSource, /row\.style\.justifyContent = "flex-start"/);
+  assert.match(
+    exportImageSource,
+    /grid\.style\.transformOrigin = "center center"/,
+  );
   assert.match(
     exportImageSource,
     /const description = schedule\.description \?\? ""/,

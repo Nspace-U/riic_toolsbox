@@ -320,11 +320,18 @@ export interface DroneAccelerationCandidate extends DroneAccelerationDetail {
   accelerated: boolean;
 }
 
+export type MaaDroneWarningCode = "overflow" | "invalidTarget" | "noProduction";
+
+export interface MaaDroneWarning {
+  code: MaaDroneWarningCode;
+  message: string;
+}
+
 export interface MaaDroneAccelerationResult {
   enabled: boolean;
   details: DroneAccelerationDetail[];
   candidates: DroneAccelerationCandidate[];
-  warnings: string[];
+  warnings: MaaDroneWarning[];
   generatedDrones: number;
   usedDrones: number;
 }

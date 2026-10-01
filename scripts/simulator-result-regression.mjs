@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
+async function readSourceText(filePath) {
+  const text = await readFile(filePath, "utf8");
+  return text.replace(/\r\n/g, "\n");
+}
+
 const [template, stylesheet] = await Promise.all([
-  readFile("src/pages/SimulatorPage.vue", "utf8"),
-  readFile("src/assets/main.css", "utf8"),
+  readSourceText("src/pages/SimulatorPage.vue"),
+  readSourceText("src/assets/main.css"),
 ]);
 
 const calculationIndex = template.indexOf(
@@ -29,9 +34,8 @@ assert.ok(calculationEndIndex > basePointIndex);
 const calculationBlock = template.slice(calculationIndex, calculationEndIndex);
 const queueBlock = template.slice(queueIndex, basePointIndex);
 const basePointBlock = template.slice(basePointIndex, basePointEndIndex);
-const calculationStepContent = await readFile(
+const calculationStepContent = await readSourceText(
   "src/components/SimulatorCalculationStepContent.vue",
-  "utf8",
 );
 
 assert.match(

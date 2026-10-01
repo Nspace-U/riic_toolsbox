@@ -174,6 +174,8 @@ export type {
   MoodRateDetailKind,
   MoodSnapshot,
   MaaDroneAccelerationResult,
+  MaaDroneWarning,
+  MaaDroneWarningCode,
   ProductionValue,
   TradeOrderSummary,
   OperatorEfficiencyCalculation,

@@ -24,6 +24,7 @@ import type {
   MoodRateDetail,
   MoodSnapshot,
   MaaDroneAccelerationResult,
+  MaaDroneWarning,
   OperatorEfficiencyDetail,
   OperatorSkillFile,
   ProductionValue,
@@ -4696,8 +4697,8 @@ function maaDroneTargets(
   document: ScheduleDocument,
   plans: EfficiencyPlanResult[],
   facilities: EfficiencyFacility[],
-): { targets: MaaDroneTarget[]; warnings: string[] } {
-  const warnings: string[] = [];
+): { targets: MaaDroneTarget[]; warnings: MaaDroneWarning[] } {
+  const warnings: MaaDroneWarning[] = [];
   const targets: MaaDroneTarget[] = [];
   document.plans.forEach((plan, planIndex) => {
     const drones = plan.drones;
@@ -4713,9 +4714,10 @@ function maaDroneTargets(
           )
         : undefined;
     if (!facility || !plans[planIndex]) {
-      warnings.push(
-        `${plan.name || `队列${planIndex + 1}`}：无人机目标设施无效，未参与无人机计算`,
-      );
+      warnings.push({
+        code: "invalidTarget",
+        message: `${plan.name || `队列${planIndex + 1}`}：无人机目标设施无效，未参与无人机计算`,
+      });
       return;
     }
     const sourcePlanIndex =
@@ -4728,9 +4730,10 @@ function maaDroneTargets(
           candidate.facility.id === facility.id && candidate.production,
       )
     ) {
-      warnings.push(
-        `${plan.name || `队列${planIndex + 1}`}：无人机目标设施没有有效产出，未参与无人机计算`,
-      );
+      warnings.push({
+        code: "noProduction",
+        message: `${plan.name || `队列${planIndex + 1}`}：无人机目标设施没有有效产出，未参与无人机计算`,
+      });
       return;
     }
     targets.push({
@@ -4904,9 +4907,10 @@ function calculateMaaDroneAcceleration(
           planIndex,
           Math.max(overflowByPlan.get(planIndex) ?? 0, overflow),
         );
-        warnings.push(
-          `${plans[planIndex]?.name || `队列${planIndex + 1}`}：无人机库存 ${inventory.toFixed(2)} 架，超过 ${ruleset.droneLimit} 架上限`,
-        );
+        warnings.push({
+          code: "overflow",
+          message: `${plans[planIndex]?.name || `队列${planIndex + 1}`}：无人机库存 ${inventory.toFixed(2)} 架，超过 ${ruleset.droneLimit} 架上限`,
+        });
         if (document.settings?.droneOverflowMode === "zero") {
           inventory = ruleset.droneLimit;
         }

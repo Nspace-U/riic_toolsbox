@@ -641,6 +641,76 @@ function runTests(runtime) {
     catalog,
   );
   assert.ok(overflowResult.maaDroneAcceleration?.warnings.length);
+  assert.equal(
+    overflowResult.maaDroneAcceleration?.warnings.every(
+      (warning) => warning.code === "overflow",
+    ),
+    true,
+  );
+
+  const invalidTargetResult = calculateEfficiency(
+    {
+      ...maaDroneDocument,
+      plans: maaDroneDocument.plans.map((plan, planIndex) =>
+        planIndex === 0
+          ? { ...plan, drones: { ...plan.drones, index: 5 } }
+          : plan,
+      ),
+    },
+    catalog,
+  );
+  assert.equal(
+    invalidTargetResult.maaDroneAcceleration?.warnings.some(
+      (warning) => warning.code === "invalidTarget",
+    ),
+    true,
+  );
+  assert.equal(
+    invalidTargetResult.maaDroneAcceleration?.details.some(
+      (detail) => detail.planIndex === 0,
+    ),
+    false,
+  );
+  assert.equal(
+    invalidTargetResult.maaDroneAcceleration?.candidates.some(
+      (candidate) => candidate.planIndex === 0,
+    ),
+    false,
+  );
+
+  const emptyTargetResult = calculateEfficiency(
+    {
+      layout: [
+        { type: "power", level: 3 },
+        { type: "trading", level: 3 },
+        { type: "manufacture", level: 3 },
+      ],
+      plans: [
+        {
+          duration: 1440,
+          drones: {
+            enable: true,
+            room: "manufacture",
+            index: 0,
+            rule: "all",
+            order: "post",
+          },
+          rooms: {
+            power: [{ operators: ["Lancet-2"] }],
+            trading: [{ operators: ["但书"], product: "龙门币" }],
+            manufacture: [{}],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.deepEqual(
+    emptyTargetResult.maaDroneAcceleration?.warnings.map(({ code }) => code),
+    ["noProduction"],
+  );
+  assert.equal(emptyTargetResult.maaDroneAcceleration?.enabled, false);
+  assert.equal(emptyTargetResult.maaDroneAcceleration?.candidates.length, 0);
   const parsedDroneStrategy = parseLmdDroneStrategy(
     "3 巫恋 龙舌兰2 但书0",
     catalog,

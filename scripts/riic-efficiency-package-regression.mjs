@@ -200,7 +200,15 @@ const noticeDocument = {
   plans: [{ rooms: {} }],
 };
 const noticeResult = {
-  maaDroneAcceleration: { warnings: ["无人机库存将超过上限"] },
+  maaDroneAcceleration: {
+    warnings: [
+      { code: "overflow", message: "无人机库存将超过上限" },
+      {
+        code: "noProduction",
+        message: "队列1：无人机目标设施没有有效产出，未参与无人机计算",
+      },
+    ],
+  },
   warnings: ["缺少陈的技能数据"],
   plans: [
     {
@@ -263,6 +271,12 @@ assert.deepEqual(
       level: "info",
       message: "发现无人机爆仓风险",
       details: ["无人机库存将超过上限"],
+    },
+    {
+      code: "maa-drone-target",
+      level: "warning",
+      message: "无人机加速目标无效",
+      details: ["队列1：无人机目标设施没有有效产出，未参与无人机计算"],
     },
     {
       code: "missing-skill-data",
