@@ -43,7 +43,9 @@ import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPan
 import ScheduleLayoutEditor from "@/components/ScheduleLayoutEditor.vue";
 import ScheduleOperatorPicker from "@/components/ScheduleOperatorPicker.vue";
 import ScheduleOperatorSlotContent from "@/components/ScheduleOperatorSlotContent.vue";
-import SimulatorCalculationStepContent from "@/components/SimulatorCalculationStepContent.vue";
+import SimulatorDisplayCard from "@/components/SimulatorDisplayCard.vue";
+import SimulatorDisplayTile from "@/components/SimulatorDisplayTile.vue";
+import SimulatorDisplayValue from "@/components/SimulatorDisplayValue.vue";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
@@ -60,15 +62,9 @@ import type {
   OperatorProgressionNode,
   ResolvedOperatorProgression,
   DroneAccelerationResult,
-  DroneAccelerationCandidate,
-  BasePointQueueDetail,
-  DailyOutputCard,
-  DailyOutputQueueDetail,
-  DroneScenarioDisplay,
-  EfficiencyCalculationStepGroup,
-  EfficiencyCalculationStepView,
   BasePointSource,
-  MaaDroneQueueDetail,
+  DisplayTile,
+  ResultDisplay,
 } from "@arknights/riic-efficiency";
 import type {
   LayoutEntry,
@@ -85,14 +81,8 @@ import type {
 import {
   baseAmountsWithoutMaaDrones,
   calculateDroneAcceleration,
-  buildBasePointQueueDetails,
-  buildCalculationStepGroups,
-  buildCalculationSteps,
-  buildDailyOutputCards,
-  buildDailyOutputQueueDetails,
   buildDailySanityAmounts,
-  buildDroneScenarioDisplays,
-  buildMaaDroneQueueDetails,
+  buildResultDisplay,
   calculateEfficiency,
   analyzeSchedulePeriods,
   buildEfficiencyNotices,
@@ -107,7 +97,6 @@ import {
   formatBasePointLabel,
   formatBasePointSource,
   formatFacilityResultLabel,
-  formatInheritedSourceLabel,
 } from "@arknights/riic-efficiency";
 import {
   DEFAULT_SOURCE_MATERIAL,
@@ -141,11 +130,7 @@ import {
   OPERATOR_AVATAR_SOURCE_WIDTH,
 } from "@/utils/operatorAvatarLayout";
 import { sortProfessionValues } from "@/utils/operatorOrdering";
-import {
-  calculateSanityResult,
-  type SanityResourceAmounts,
-  type SanityResult,
-} from "@/utils/sanity";
+import { type SanityResourceAmounts } from "@/utils/sanity";
 import {
   TORAPPU_SANITY_ICON_FILE,
   torappuItemIconPath,
@@ -168,7 +153,6 @@ import {
   formatDurationHours,
   formatEfficiencyNumber,
   planDurationHoursValue,
-  resourceLabel,
 } from "@/utils/simulator/presentation";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 import {
@@ -207,8 +191,6 @@ interface FacilitySlotRef {
   entry: FacilityEntry;
   slotIndex: number;
 }
-
-type SimulatorCalculationStep = EfficiencyCalculationStepView;
 
 interface OperatorSlotAddress {
   planIndex: number;
@@ -1027,40 +1009,10 @@ const currentEfficiencySettings = computed(() => {
   };
 });
 
-const calculationSteps = computed<SimulatorCalculationStep[]>(() => {
-  const result = efficiencyResult.value;
-  return result ? buildCalculationSteps(result) : [];
-});
-
-const calculationStepGroups = computed<EfficiencyCalculationStepGroup[]>(() => {
-  const result = efficiencyResult.value;
-  return result
-    ? buildCalculationStepGroups(result, calculationSteps.value, {
-        facilityLabel: (facility) => facilityResultLabel(facility),
-      })
-    : [];
-});
-
-const dailyOutputQueueDetails = computed<DailyOutputQueueDetail[]>(() => {
-  const result = efficiencyResult.value;
-  return result
-    ? buildDailyOutputQueueDetails(result, sanityValues.value, {
-        facilityLabel: (facility) => facilityResultLabel(facility),
-      })
-    : [];
-});
-
 const dailySanityAmounts = computed<SanityResourceAmounts | undefined>(() => {
   const result = efficiencyResult.value;
   return result && result.dailyHours > 0
     ? buildDailySanityAmounts(result)
-    : undefined;
-});
-
-const dailySanityResult = computed<SanityResult | undefined>(() => {
-  const amounts = dailySanityAmounts.value;
-  return amounts
-    ? calculateSanityResult(amounts, sanityValues.value)
     : undefined;
 });
 
@@ -1073,43 +1025,24 @@ function dailyOutputSourceFacility(product: string): RoomKey | undefined {
   )?.facility.type;
 }
 
-function dailyOutputCardAccent(card: DailyOutputCard): string | undefined {
-  const productColor = productAccent(card.product);
+function displayTileAccent(tile: DisplayTile): string | undefined {
+  const productColor = productAccent(tile.icon ?? "");
   if (productColor) {
     return productColor;
   }
-  const sourceFacility = card.sourceFacility;
+  const sourceFacility = tile.sourceFacility;
   return sourceFacility
     ? (facilityColors.value[sourceFacility] ??
         ROOM_REPRESENTATIVE_COLORS[sourceFacility])
     : undefined;
 }
 
-function dailyOutputCardHasAccent(card: DailyOutputCard): boolean {
-  return dailyOutputCardAccent(card) !== undefined;
-}
-
-function dailyOutputCardStyle(card: DailyOutputCard): Record<string, string> {
-  const accent = dailyOutputCardAccent(card);
-  if (!accent) {
-    return {};
+function displayTileIconUrl(tile: DisplayTile): string | undefined {
+  if (tile.key === "daily-sanity-total") {
+    return sanityIconUrl();
   }
-  return {
-    "--simulator-daily-output-accent": accent,
-  };
+  return tile.icon ? dailyOutputIconUrl(tile.icon) : undefined;
 }
-
-const dailyOutputCards = computed<DailyOutputCard[]>(() => {
-  const result = efficiencyResult.value;
-  const amounts = dailySanityAmounts.value;
-  const sanity = dailySanityResult.value;
-  if (!result || !amounts || !sanity) {
-    return [];
-  }
-  return buildDailyOutputCards(result, amounts, sanity, {
-    sourceFacilityForProduct: dailyOutputSourceFacility,
-  });
-});
 
 const lmdDroneFacilityExists = computed(() => {
   const document = currentDocument.value;
@@ -1161,29 +1094,10 @@ const droneAcceleration = computed<DroneAccelerationResult | undefined>(() => {
   );
 });
 
-const droneScenarioDisplays = computed<DroneScenarioDisplay[]>(() => {
-  const result = efficiencyResult.value;
-  const acceleration = droneAcceleration.value;
-  if (!result || !acceleration || result.dailyHours <= 0) {
-    return [];
-  }
-
-  return buildDroneScenarioDisplays(
-    result,
-    acceleration,
-    dailySanityAmounts.value ?? {},
-    { sourceFacilityForProduct: dailyOutputSourceFacility },
-  );
-});
-
-const droneAccelerationVisible = computed(
-  () => lmdDroneFacilityExists.value || droneScenarioDisplays.value.length > 0,
-);
-
-const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
+const resultDisplay = computed<ResultDisplay | undefined>(() => {
   const result = efficiencyResult.value;
   if (!result) {
-    return [];
+    return undefined;
   }
   const visibleTerms = new Set(
     result.plans.flatMap((plan) =>
@@ -1192,19 +1106,24 @@ const basePointQueueDetails = computed<BasePointQueueDetail[]>(() => {
         .map((point) => point.term),
     ),
   );
-  return buildBasePointQueueDetails(result, visibleTerms);
+  return buildResultDisplay(result, {
+    sanityValues: sanityValues.value,
+    dailyAmounts: dailySanityAmounts.value,
+    droneAcceleration: droneAcceleration.value,
+    simulateOverflow: currentEfficiencySettings.value.simulateOverflow,
+    facilityLabel: (facility) => facilityResultLabel(facility),
+    basePointLabel: (term) => basePointLabel(term),
+    basePointSource: (source) => basePointSourceText(source),
+    visibleBasePointTerms: visibleTerms,
+    sourceFacilityForProduct: dailyOutputSourceFacility,
+  });
 });
 
-const maaDroneQueueDetails = computed<MaaDroneQueueDetail[]>(() => {
-  const result = efficiencyResult.value;
-  return result ? buildMaaDroneQueueDetails(result) : [];
-});
-
-function otherDroneCandidates(
-  queue: MaaDroneQueueDetail,
-): DroneAccelerationCandidate[] {
-  return queue.candidates.filter((candidate) => !candidate.accelerated);
-}
+const droneAccelerationVisible = computed(
+  () =>
+    lmdDroneFacilityExists.value ||
+    (resultDisplay.value?.droneScenarios.length ?? 0) > 0,
+);
 
 const operatorPickerRoom = computed(() => {
   const picker = operatorPicker.value;
@@ -4271,13 +4190,6 @@ function basePointSourceText(source: BasePointSource): string {
   return formatBasePointSource(source, getRiicEfficiencyCatalog().terms);
 }
 
-function inheritedSourceLabel(result: FacilityEfficiencyResult): string {
-  return formatInheritedSourceLabel(
-    result,
-    efficiencyResult.value?.plans ?? [],
-  );
-}
-
 function refreshEfficiencyCatalog(): void {
   efficiencyCatalog.value = undefined;
   efficiencyError.value = "";
@@ -7268,105 +7180,34 @@ defineExpose({ prepareScheduleReferenceImage });
             show-icon
             type="info"
           />
-          <template v-else-if="efficiencyResult">
+          <template v-else-if="efficiencyResult && resultDisplay">
             <div class="simulator-daily-output">
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">DAILY OUTPUT</span>
-                  <h3>每日产出</h3>
+                  <span class="simulator-eyebrow">{{
+                    resultDisplay.dailyOutput.eyebrow
+                  }}</span>
+                  <h3>{{ resultDisplay.dailyOutput.label }}</h3>
                 </div>
-                <a-tag color="blue">
-                  循环
-                  <SimulatorNumericValue
-                    :value="efficiencyResult.dailyHours"
-                    unit="小时"
-                  />
-                  小时
-                </a-tag>
+                <a-tag color="blue"
+                  >循环
+                  <SimulatorDisplayValue
+                    :value="resultDisplay.dailyOutput.cycleHours"
+                /></a-tag>
               </div>
               <div
-                v-if="dailyOutputCards.length"
+                v-if="resultDisplay.dailyOutput.tiles.length"
                 class="simulator-daily-output-grid"
               >
+                <SimulatorDisplayTile
+                  v-for="tile in resultDisplay.dailyOutput.tiles"
+                  :key="tile.key"
+                  :accent="displayTileAccent(tile)"
+                  :icon="displayTileIconUrl(tile)"
+                  :tile="tile"
+                />
                 <div
-                  v-for="card in dailyOutputCards"
-                  :key="card.product"
-                  class="simulator-daily-output-item"
-                  :class="{
-                    'simulator-daily-output-item--net':
-                      card.grossAmount === undefined,
-                    'simulator-daily-output-item--accent':
-                      dailyOutputCardHasAccent(card),
-                  }"
-                  :style="dailyOutputCardStyle(card)"
-                >
-                  <img
-                    v-if="dailyOutputIconUrl(card.product)"
-                    :alt="resourceLabel(card.product)"
-                    :src="dailyOutputIconUrl(card.product)"
-                    class="simulator-daily-output-icon"
-                  />
-                  <div class="simulator-daily-output-content">
-                    <strong class="simulator-daily-output-main-value">
-                      <SimulatorNumericValue
-                        v-if="card.grossAmount === undefined"
-                        mode="signed"
-                        :value="card.netAmount"
-                        :unit="card.netUnit"
-                      />
-                      <SimulatorNumericValue
-                        v-else
-                        mode="production"
-                        :value="card.grossAmount"
-                        :unit="card.netUnit"
-                      />
-                    </strong>
-                    <div class="simulator-daily-output-card-copy">
-                      <span
-                        v-if="card.grossPoints !== undefined"
-                        class="simulator-daily-output-gross-points"
-                      >
-                        <SimulatorNumericValue
-                          mode="production"
-                          :value="card.grossPoints"
-                          :unit="card.grossPointsLabel"
-                        />
-                        {{ card.grossPointsLabel }}
-                      </span>
-                      <span
-                        v-if="card.showNet"
-                        class="simulator-daily-output-net"
-                      >
-                        净收入
-                        <SimulatorNumericValue
-                          mode="signed"
-                          :value="card.netAmount"
-                          :unit="card.netUnit"
-                        />
-                        {{ card.netUnit }}
-                      </span>
-                      <strong
-                        v-if="card.netContribution !== undefined"
-                        class="simulator-daily-output-sanity"
-                      >
-                        <SimulatorNumericValue
-                          mode="signed"
-                          :value="card.netContribution"
-                          unit="理智"
-                        />
-                        理智
-                      </strong>
-                      <span
-                        v-else
-                        class="simulator-daily-output-sanity-missing"
-                      >
-                        未计入
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div
-                  v-if="dailySanityResult"
+                  v-if="resultDisplay.dailyOutput.totalTile"
                   class="simulator-daily-output-item"
                 >
                   <img
@@ -7375,26 +7216,20 @@ defineExpose({ prepareScheduleReferenceImage });
                     class="simulator-daily-output-icon"
                   />
                   <strong class="simulator-daily-output-main-value">
-                    <SimulatorNumericValue
-                      mode="signed"
-                      :value="dailySanityResult.total"
-                      unit="理智"
+                    <SimulatorDisplayValue
+                      :value="resultDisplay.dailyOutput.totalTile.main"
                     />
                   </strong>
                 </div>
               </div>
               <a-empty
                 v-else
+                :description="resultDisplay.dailyOutput.empty"
                 :image="undefined"
-                description="当前排班没有可统计的产出"
               />
               <a-alert
-                v-if="dailySanityResult && !dailySanityResult.complete"
-                :message="
-                  '总理智不完整：未设置' +
-                  dailySanityResult.missing.join('、') +
-                  '价值'
-                "
+                v-if="resultDisplay.dailyOutput.warning"
+                :message="resultDisplay.dailyOutput.warning"
                 show-icon
                 type="warning"
               />
@@ -7406,71 +7241,54 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">DRONE ACCELERATION</span>
-                  <h3>无人机使用策略</h3>
+                  <span class="simulator-eyebrow">{{
+                    resultDisplay.droneStrategy.eyebrow
+                  }}</span>
+                  <h3>{{ resultDisplay.droneStrategy.label }}</h3>
                 </div>
               </div>
               <div
                 v-if="lmdDroneFacilityExists"
                 class="simulator-drone-strategy"
               >
-                <a-form-item label="本排班表专用策略（可选）">
+                <a-form-item :label="resultDisplay.droneStrategy.inputLabel">
                   <a-input
+                    :placeholder="resultDisplay.droneStrategy.placeholder"
                     :value="lmdDroneStrategyDraft"
-                    placeholder="留空时按通用设置自动选择"
                     @blur="commitLmdDroneStrategy"
                     @press-enter="commitLmdDroneStrategy"
                     @update:value="updateLmdDroneStrategyDraft"
                   />
                 </a-form-item>
-                <span class="simulator-result-hint"
-                  >输入一行：贸易站等级，后接干员；干员名末尾的 0、1、2 表示精
-                  0、精 1、精
-                  2。留空时按通用设置中的最低贸易站等级自动选择。</span
-                >
+                <span class="simulator-result-hint">{{
+                  resultDisplay.droneStrategy.hint
+                }}</span>
               </div>
               <a-alert
-                v-if="droneAcceleration?.strategyError"
-                :message="droneAcceleration.strategyError"
+                v-if="resultDisplay.droneStrategy.strategyError"
+                :message="resultDisplay.droneStrategy.strategyError"
                 show-icon
                 type="error"
               />
               <div
-                v-if="droneScenarioDisplays.length"
+                v-if="resultDisplay.droneScenarios.length"
                 class="simulator-drone-scenarios"
               >
                 <div
-                  v-for="entry in droneScenarioDisplays"
-                  :key="entry.scenario.key"
+                  v-for="entry in resultDisplay.droneScenarios"
+                  :key="entry.key"
                   class="simulator-drone-scenario"
                 >
                   <div class="simulator-drone-scenario-heading">
                     <strong>
-                      {{ resourceLabel(entry.scenario.product) }}
-                      <span v-if="entry.scenario.sourceLabel">
-                        · {{ entry.scenario.sourceLabel }}
-                      </span>
+                      <SimulatorDisplayValue :value="entry.title" />
                     </strong>
                     <span>
-                      <SimulatorNumericValue
-                        :value="entry.scenario.droneAmount"
-                        unit="架"
-                      />
-                      架 ·
-                      <SimulatorNumericValue
-                        :value="entry.scenario.acceleratedHours"
-                        unit="小时"
-                      />
-                      小时
+                      <SimulatorDisplayValue :value="entry.meta" />
                     </span>
-                    <span
-                      >基础
-                      <SimulatorNumericValue
-                        mode="production"
-                        :value="entry.scenario.baseAmountPerHour"
-                        unit="/小时"
-                      />/小时</span
-                    >
+                    <span>
+                      <SimulatorDisplayValue :value="entry.baseRate" />
+                    </span>
                   </div>
                   <div
                     v-for="view in entry.views"
@@ -7481,645 +7299,193 @@ defineExpose({ prepareScheduleReferenceImage });
                       <strong>{{ view.label }}</strong>
                     </div>
                     <div
-                      v-if="view.cards.length"
+                      v-if="view.tiles.length"
                       class="simulator-daily-output-grid simulator-drone-output-grid"
                     >
-                      <div
-                        v-for="card in view.cards"
-                        :key="`${entry.scenario.key}-${view.key}-${card.product}`"
-                        class="simulator-daily-output-item"
-                        :class="{
-                          'simulator-daily-output-item--net':
-                            card.grossAmount === undefined,
-                          'simulator-daily-output-item--accent':
-                            dailyOutputCardHasAccent(card),
-                        }"
-                        :style="dailyOutputCardStyle(card)"
-                      >
-                        <img
-                          v-if="dailyOutputIconUrl(card.product)"
-                          :alt="resourceLabel(card.product)"
-                          :src="dailyOutputIconUrl(card.product)"
-                          class="simulator-daily-output-icon"
-                        />
-                        <div class="simulator-daily-output-content">
-                          <strong class="simulator-daily-output-main-value">
-                            <SimulatorNumericValue
-                              v-if="card.grossAmount === undefined"
-                              mode="signed"
-                              :value="card.netAmount"
-                              :unit="card.netUnit"
-                            />
-                            <SimulatorNumericValue
-                              v-else
-                              mode="production"
-                              :value="card.grossAmount"
-                              :unit="card.netUnit"
-                            />
-                          </strong>
-                          <div class="simulator-daily-output-card-copy">
-                            <span
-                              v-if="card.grossPoints !== undefined"
-                              class="simulator-daily-output-gross-points"
-                            >
-                              <SimulatorNumericValue
-                                mode="production"
-                                :value="card.grossPoints"
-                                :unit="card.grossPointsLabel"
-                              />
-                              {{ card.grossPointsLabel }}
-                            </span>
-                            <span
-                              v-if="card.showNet"
-                              class="simulator-daily-output-net"
-                            >
-                              净收入
-                              <SimulatorNumericValue
-                                mode="signed"
-                                :value="card.netAmount"
-                                :unit="card.netUnit"
-                              />
-                              {{ card.netUnit }}
-                            </span>
-                            <span
-                              v-if="
-                                view.key === 'accelerated' &&
-                                card.product === entry.scenario.product &&
-                                card.showNet
-                              "
-                              class="simulator-drone-output-net-resource"
-                            >
-                              净{{ resourceLabel(card.product) }}
-                              <SimulatorNumericValue
-                                mode="signed"
-                                :value="card.netResourceAmount"
-                                :unit="resourceLabel(card.product)"
-                              />
-                            </span>
-                          </div>
-                        </div>
-                      </div>
+                      <SimulatorDisplayTile
+                        v-for="tile in view.tiles"
+                        :key="tile.key"
+                        :accent="displayTileAccent(tile)"
+                        :icon="displayTileIconUrl(tile)"
+                        :tile="tile"
+                      />
                     </div>
                   </div>
                 </div>
               </div>
               <a-empty
                 v-else-if="
-                  lmdDroneFacilityExists && !droneAcceleration?.strategyError
+                  lmdDroneFacilityExists &&
+                  !resultDisplay.droneStrategy.strategyError
                 "
+                :description="resultDisplay.droneStrategy.empty"
                 :image="undefined"
-                description="未设置有效的龙门币贸易站策略"
               />
             </div>
 
             <div class="simulator-calculation-steps">
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">CALCULATION STEPS</span>
-                  <h3>计算步骤</h3>
+                  <span class="simulator-eyebrow">{{
+                    resultDisplay.calculationSteps.eyebrow
+                  }}</span>
+                  <h3>{{ resultDisplay.calculationSteps.label }}</h3>
                 </div>
-                <span class="simulator-result-hint"
-                  >展开分区查看详细计算过程</span
-                >
+                <span class="simulator-result-hint">{{
+                  resultDisplay.calculationSteps.hint
+                }}</span>
               </div>
               <a-collapse v-model:active-key="calculationStepActiveKeys" ghost>
                 <a-collapse-panel
-                  v-if="efficiencyResult.maaDroneAcceleration?.enabled"
+                  v-if="resultDisplay.calculationSteps.maaDrone"
                   key="maa-drone-acceleration"
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span>MAA 换班式无人机加速</span>
+                      <span>{{
+                        resultDisplay.calculationSteps.maaDrone.label
+                      }}</span>
                       <span class="simulator-result-hint">
-                        消耗
-                        <SimulatorNumericValue
-                          :value="
-                            efficiencyResult.maaDroneAcceleration.usedDrones
-                          "
-                          unit="架"
-                        />架
+                        <SimulatorDisplayValue
+                          v-if="resultDisplay.calculationSteps.maaDrone.hint"
+                          :value="resultDisplay.calculationSteps.maaDrone.hint"
+                        />
                       </span>
                     </div>
                   </template>
                   <div class="simulator-calculation-step-columns">
                     <div
-                      v-for="queue in maaDroneQueueDetails"
-                      :key="`maa-drone-${queue.planIndex}`"
+                      v-for="card in resultDisplay.calculationSteps.maaDrone
+                        .cards"
+                      :key="card.key"
                       class="simulator-calculation-step-column"
                     >
                       <div class="simulator-calculation-step-column-header">
                         <span>
-                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
-                          <small
-                            >·
-                            <SimulatorNumericValue
-                              :value="queue.plan.durationHours"
-                              unit="小时"
-                            />
-                            小时</small
-                          >
+                          <SimulatorDisplayValue :value="card.title" />
+                          <small v-if="card.subtitle">
+                            <SimulatorDisplayValue :value="card.subtitle" />
+                          </small>
                         </span>
-                        <strong v-if="queue.candidates.length"
-                          >{{ queue.candidates.length }} 项</strong
-                        >
+                        <strong v-if="card.badge">
+                          <SimulatorDisplayValue :value="card.badge" />
+                        </strong>
                       </div>
-                      <div
-                        v-if="queue.details.length"
-                        class="simulator-step-content"
-                      >
-                        <div class="simulator-step-detail-grid">
-                          <template
-                            v-for="detail in queue.details"
-                            :key="`${detail.planIndex}-${detail.facilityId}-${detail.order}`"
-                          >
-                            <span>设施</span>
-                            <strong>
-                              {{ ROOM_LABELS[detail.room]
-                              }}{{ detail.facilityIndex + 1 }}
-                            </strong>
-                            <span>加速时机</span>
-                            <strong>
-                              {{ detail.order === "pre" ? "换班前" : "换班后" }}
-                            </strong>
-                            <span>来源队列</span>
-                            <strong>
-                              {{
-                                currentDocument.plans[detail.sourcePlanIndex]
-                                  ?.name || `队列${detail.sourcePlanIndex + 1}`
-                              }}
-                            </strong>
-                            <span>产物</span>
-                            <strong>{{ resourceLabel(detail.product) }}</strong>
-                            <span>消耗无人机</span>
-                            <strong>
-                              <SimulatorNumericValue
-                                :value="detail.droneAmount"
-                                unit="架"
-                              />架
-                            </strong>
-                            <span>加速时长</span>
-                            <strong>
-                              <SimulatorNumericValue
-                                :value="detail.acceleratedHours"
-                                unit="小时"
-                              />小时
-                            </strong>
-                            <span>基础速率</span>
-                            <strong>
-                              <SimulatorNumericValue
-                                mode="production"
-                                :value="detail.baseAmountPerHour"
-                                unit="/小时"
-                              />/小时
-                            </strong>
-                            <span>无人机额外产出</span>
-                            <strong>
-                              <SimulatorNumericValue
-                                mode="production"
-                                :value="detail.extraAmount"
-                                :unit="resourceLabel(detail.product)"
-                              />
-                            </strong>
-                            <template
-                              v-for="(amount, material) in detail.extraMaterial"
-                              :key="`${detail.planIndex}-${detail.facilityId}-${material}`"
-                            >
-                              <span>无人机额外材料</span>
-                              <strong>
-                                {{ resourceLabel(material) }}
-                                <SimulatorNumericValue
-                                  mode="signed"
-                                  :value="amount"
-                                  :unit="resourceLabel(material)"
-                                />
-                              </strong>
-                            </template>
-                            <span v-if="detail.overflowed">无人机爆仓</span>
-                            <strong v-if="detail.overflowed">
-                              超出
-                              <SimulatorNumericValue
-                                :value="detail.overflowAmount"
-                                unit="架"
-                              />架
-                            </strong>
-                          </template>
-                        </div>
-                        <div
-                          v-if="otherDroneCandidates(queue).length"
-                          class="simulator-step-section"
-                        >
-                          <span class="simulator-step-subheading"
-                            >其他设施加速收益</span
-                          >
-                          <div class="simulator-drone-candidate-list">
-                            <div
-                              v-for="candidate in otherDroneCandidates(queue)"
-                              :key="`${candidate.planIndex}-${candidate.facilityId}`"
-                              class="simulator-drone-candidate-row"
-                            >
-                              <span class="simulator-drone-candidate-facility">
-                                {{ ROOM_LABELS[candidate.room]
-                                }}{{ candidate.facilityIndex + 1 }}
-                              </span>
-                              <span class="simulator-drone-candidate-product">{{
-                                resourceLabel(candidate.product)
-                              }}</span>
-                              <span class="simulator-drone-candidate-value">
-                                基础
-                                <SimulatorNumericValue
-                                  mode="production"
-                                  :value="candidate.baseAmountPerHour"
-                                  unit="/小时"
-                                />/小时
-                              </span>
-                              <span class="simulator-drone-candidate-value">
-                                额外
-                                <SimulatorNumericValue
-                                  mode="production"
-                                  :value="candidate.extraAmount"
-                                  :unit="resourceLabel(candidate.product)"
-                                />
-                                <template
-                                  v-for="(
-                                    amount, material
-                                  ) in candidate.extraMaterial"
-                                  :key="`${candidate.facilityId}-${material}`"
-                                >
-                                  <span aria-hidden="true">/</span>
-                                  {{ resourceLabel(material) }}
-                                  <SimulatorNumericValue
-                                    mode="signed"
-                                    :value="amount"
-                                    :unit="resourceLabel(material)"
-                                  />
-                                </template>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div v-else class="simulator-step-column-empty">
-                        当前队列未设置无人机加速
-                      </div>
+                      <SimulatorDisplayCard
+                        :card="card"
+                        :icon-url="dailyOutputIconUrl"
+                      />
                     </div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel
-                  v-if="dailyOutputQueueDetails.length"
+                  v-if="resultDisplay.calculationSteps.dailyOutput"
                   key="daily-output-breakdown"
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span>队列计算明细</span>
-                      <span class="simulator-result-hint"
-                        >按队列时长折算到每日产出</span
+                      <span>{{
+                        resultDisplay.calculationSteps.dailyOutput.label
+                      }}</span>
+                      <span
+                        v-if="resultDisplay.calculationSteps.dailyOutput.hint"
+                        class="simulator-result-hint"
                       >
+                        <SimulatorDisplayValue
+                          :value="
+                            resultDisplay.calculationSteps.dailyOutput.hint
+                          "
+                        />
+                      </span>
                     </div>
                   </template>
                   <div class="simulator-calculation-step-columns">
                     <div
-                      v-for="queue in dailyOutputQueueDetails"
-                      :key="`daily-output-${queue.planIndex}`"
+                      v-for="card in resultDisplay.calculationSteps.dailyOutput
+                        .cards"
+                      :key="card.key"
                       class="simulator-calculation-step-column"
                     >
                       <div class="simulator-calculation-step-column-header">
                         <span>
-                          {{ queue.plan.name || `队列${queue.planIndex + 1}` }}
-                          <small
-                            >·
-                            <SimulatorNumericValue
-                              :value="queue.plan.durationHours"
-                              unit="小时"
-                            />
-                            小时</small
-                          >
+                          <SimulatorDisplayValue :value="card.title" />
+                          <small v-if="card.subtitle">
+                            <SimulatorDisplayValue :value="card.subtitle" />
+                          </small>
                         </span>
-                        <strong>{{ queue.products.length }} 种产物</strong>
+                        <strong v-if="card.badge">
+                          <SimulatorDisplayValue :value="card.badge" />
+                        </strong>
                       </div>
-                      <div class="simulator-step-content">
-                        <section
-                          v-for="product in queue.products"
-                          :key="product.product"
-                          class="simulator-step-section"
-                        >
-                          <span class="simulator-step-subheading">{{
-                            resourceLabel(product.product)
-                          }}</span>
-                          <div class="simulator-step-detail-grid">
-                            <span>总效率</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="efficiency"
-                                :value="product.totalEfficiency"
-                                unit="%"
-                              />%</strong
-                            >
-                            <span>基础效率产出</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="production"
-                                :value="product.baseOutputPerHour"
-                                unit="/小时"
-                              />/小时</strong
-                            >
-                            <span>总效率产出</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="production"
-                                :value="product.totalOutputPerHour"
-                                unit="/小时"
-                              />/小时</strong
-                            >
-                            <span>队列折算</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="production"
-                                :value="product.dailyContribution"
-                                unit="/日"
-                              />/日</strong
-                            >
-                            <span>队列时长总产出</span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="production"
-                                :value="product.queueTotal"
-                                :unit="resourceLabel(product.product)"
-                            /></strong>
-                          </div>
-                          <div
-                            v-if="product.materials.length"
-                            class="simulator-step-subsection"
-                          >
-                            <span class="simulator-step-subheading"
-                              >材料消耗合计</span
-                            >
-                            <div class="simulator-step-detail-grid">
-                              <template
-                                v-for="material in product.materials"
-                                :key="`product-material-${product.product}-${material.material}`"
-                              >
-                                <span>基础材料消耗速率</span>
-                                <strong>
-                                  {{ resourceLabel(material.material) }}
-                                  <SimulatorNumericValue
-                                    mode="signed"
-                                    :value="material.baseAmountPerHour"
-                                    unit="/小时"
-                                  />/小时
-                                </strong>
-                                <span>材料消耗 · 队列折算</span>
-                                <strong>
-                                  {{ resourceLabel(material.material) }}
-                                  <SimulatorNumericValue
-                                    mode="signed"
-                                    :value="material.dailyAmount"
-                                    unit="/日"
-                                  />/日
-                                </strong>
-                                <span>材料消耗 · 队列时长总消耗</span>
-                                <strong>
-                                  {{ resourceLabel(material.material) }}
-                                  <SimulatorNumericValue
-                                    mode="signed"
-                                    :value="material.queueTotal"
-                                    :unit="resourceLabel(material.material)"
-                                  />
-                                </strong>
-                              </template>
-                            </div>
-                          </div>
-                          <div
-                            v-if="product.facilities.length"
-                            class="simulator-step-subsection"
-                          >
-                            <span class="simulator-step-subheading"
-                              >设施明细</span
-                            >
-                            <div class="simulator-step-detail-grid">
-                              <template
-                                v-for="facility in product.facilities"
-                                :key="facility.label"
-                              >
-                                <span>{{ facility.label }} · 总效率</span>
-                                <strong
-                                  ><SimulatorNumericValue
-                                    mode="efficiency"
-                                    :value="facility.totalEfficiency"
-                                    unit="%"
-                                  />%</strong
-                                >
-                                <span>{{ facility.label }} · 基础产出</span>
-                                <strong
-                                  ><SimulatorNumericValue
-                                    mode="production"
-                                    :value="facility.baseOutputPerHour"
-                                    unit="/小时"
-                                  />/小时</strong
-                                >
-                                <span>{{ facility.label }} · 总产出</span>
-                                <strong
-                                  ><SimulatorNumericValue
-                                    mode="production"
-                                    :value="facility.totalOutputPerHour"
-                                    unit="/小时"
-                                  />/小时</strong
-                                >
-                                <template
-                                  v-for="material in facility.materials"
-                                  :key="`${facility.label}-${material.material}`"
-                                >
-                                  <span>
-                                    {{ facility.label }} · 基础材料消耗速率
-                                  </span>
-                                  <strong>
-                                    {{ resourceLabel(material.material) }}
-                                    <SimulatorNumericValue
-                                      mode="signed"
-                                      :value="material.baseAmountPerHour"
-                                      unit="/小时"
-                                    />/小时
-                                  </strong>
-                                  <span>
-                                    {{ facility.label }} · 材料消耗 · 队列折算
-                                  </span>
-                                  <strong>
-                                    {{ resourceLabel(material.material) }}
-                                    <SimulatorNumericValue
-                                      mode="signed"
-                                      :value="material.dailyAmount"
-                                      unit="/日"
-                                    />/日
-                                  </strong>
-                                  <span>
-                                    {{ facility.label }} · 材料消耗 ·
-                                    队列时长总消耗
-                                  </span>
-                                  <strong>
-                                    {{ resourceLabel(material.material) }}
-                                    <SimulatorNumericValue
-                                      mode="signed"
-                                      :value="material.queueTotal"
-                                      :unit="resourceLabel(material.material)"
-                                    />
-                                  </strong>
-                                </template>
-                                <template
-                                  v-for="order in facility.orders"
-                                  :key="`${facility.label}-${order.name}`"
-                                >
-                                  <span>
-                                    {{ facility.label }} · 订单产出 ·
-                                    {{ order.name }} ·
-                                    <SimulatorNumericValue
-                                      :value="order.probability * 100"
-                                      unit="%"
-                                    />%
-                                  </span>
-                                  <span>
-                                    基础
-                                    <SimulatorNumericValue
-                                      mode="production"
-                                      :value="order.baseRate"
-                                      unit="/小时"
-                                    />/小时 · 总
-                                    <SimulatorNumericValue
-                                      mode="production"
-                                      :value="order.totalRate"
-                                      unit="/小时"
-                                    />/小时
-                                    <template v-if="order.ignoreEfficiency">
-                                      · 固定订单
-                                    </template>
-                                  </span>
-                                </template>
-                              </template>
-                            </div>
-                          </div>
-                        </section>
-                        <section
-                          class="simulator-step-section simulator-daily-output-queue-sanity"
-                        >
-                          <span class="simulator-step-subheading"
-                            >队列等效理智</span
-                          >
-                          <div class="simulator-step-detail-grid">
-                            <template
-                              v-for="item in queue.sanity.items"
-                              :key="item.resource"
-                            >
-                              <span class="simulator-sanity-detail-label">
-                                <img
-                                  v-if="dailyOutputIconUrl(item.resource)"
-                                  :alt="item.label"
-                                  :src="dailyOutputIconUrl(item.resource)"
-                                  class="simulator-daily-output-icon"
-                                />
-                                {{ item.label }} ·
-                                <SimulatorNumericValue
-                                  mode="signed"
-                                  :value="item.amount"
-                                  :unit="item.amountUnit"
-                                />
-                                {{ item.amountUnit }}/日
-                              </span>
-                              <strong v-if="item.contribution !== undefined">
-                                <SimulatorNumericValue
-                                  mode="signed"
-                                  :value="item.contribution"
-                                  unit="理智"
-                                />
-                                理智
-                              </strong>
-                              <span v-else class="simulator-sanity-missing"
-                                >未计入</span
-                              >
-                            </template>
-                            <span class="simulator-sanity-detail-label">
-                              <img
-                                :alt="'理智'"
-                                :src="sanityIconUrl()"
-                                class="simulator-daily-output-icon"
-                              />
-                              {{
-                                queue.sanity.complete
-                                  ? "队列等效理智合计"
-                                  : "队列等效理智合计（部分）"
-                              }}
-                            </span>
-                            <strong
-                              ><SimulatorNumericValue
-                                mode="signed"
-                                :value="queue.sanity.total"
-                                unit="理智"
-                              />
-                              理智/日</strong
-                            >
-                          </div>
-                        </section>
-                      </div>
+                      <SimulatorDisplayCard
+                        :card="card"
+                        :icon-url="dailyOutputIconUrl"
+                      />
                     </div>
                   </div>
                 </a-collapse-panel>
                 <a-collapse-panel
-                  v-if="basePointQueueDetails.length"
+                  v-if="resultDisplay.calculationSteps.basePoints"
                   key="base-points"
                 >
                   <template #header>
                     <div class="simulator-step-header">
-                      <span>基地点数</span>
+                      <span>{{
+                        resultDisplay.calculationSteps.basePoints.label
+                      }}</span>
                     </div>
                   </template>
                   <div class="simulator-calculation-step-columns">
                     <div
-                      v-for="entry in basePointQueueDetails"
-                      :key="`base-points-${entry.planIndex}`"
+                      v-for="column in resultDisplay.calculationSteps.basePoints
+                        .columns"
+                      :key="column.key"
                       class="simulator-calculation-step-column"
                     >
                       <div class="simulator-calculation-step-column-header">
                         <span>
-                          {{ entry.plan.name || `队列${entry.planIndex + 1}` }}
-                          <small
-                            >·
-                            <SimulatorNumericValue
-                              :value="entry.plan.durationHours"
-                              unit="小时"
-                            />
-                            小时</small
-                          >
+                          <SimulatorDisplayValue :value="column.title" />
+                          <small v-if="column.subtitle">
+                            <SimulatorDisplayValue :value="column.subtitle" />
+                          </small>
                         </span>
                       </div>
                       <div class="simulator-step-content">
                         <div class="simulator-base-point-grid">
                           <div
-                            v-for="point in entry.points"
-                            :key="point.term"
+                            v-for="point in column.points"
+                            :key="point.key"
                             class="simulator-base-point-item"
                           >
                             <div class="simulator-base-point-value">
-                              <span>{{ basePointLabel(point.term) }}</span>
-                              <strong
-                                ><SimulatorNumericValue :value="point.value"
-                              /></strong>
+                              <span>
+                                <SimulatorDisplayValue :value="point.name" />
+                              </span>
+                              <strong>
+                                <SimulatorDisplayValue :value="point.value" />
+                              </strong>
                             </div>
                             <div class="simulator-base-point-sources">
                               <div
-                                v-for="(source, sourceIndex) in point.sources"
-                                :key="`${point.term}-${source.operator}-${source.skill ?? 'skill'}-${source.kind}-${sourceIndex}`"
+                                v-for="source in point.sources"
+                                :key="source.key"
                                 class="simulator-base-point-source"
                               >
-                                <span>{{ basePointSourceText(source) }}</span>
-                                <strong
-                                  ><SimulatorNumericValue
-                                    mode="signed"
+                                <span>
+                                  <SimulatorDisplayValue :value="source.text" />
+                                </span>
+                                <strong>
+                                  <SimulatorDisplayValue
                                     :value="source.value"
-                                /></strong>
+                                  />
+                                </strong>
                               </div>
                             </div>
                           </div>
                           <span
-                            v-if="!entry.points.length"
+                            v-if="!column.points.length"
                             class="simulator-step-column-empty"
-                            >当前队列无基地点数</span
+                            >{{ column.empty }}</span
                           >
                         </div>
                       </div>
@@ -8128,111 +7494,65 @@ defineExpose({ prepareScheduleReferenceImage });
                 </a-collapse-panel>
                 <template v-if="calculationStepDisplayMode === 'facility'">
                   <a-collapse-panel
-                    v-for="group in calculationStepGroups"
-                    :key="`facility-${group.key}`"
+                    v-for="pane in resultDisplay.calculationSteps.facilitySteps
+                      .byFacility"
+                    :key="pane.key"
                   >
                     <template #header>
                       <div class="simulator-step-header">
-                        <span>{{ group.label }}</span>
-                        <small
-                          >{{ group.activeColumnCount }} /
-                          {{ group.columns.length }} 个队列</small
-                        >
+                        <span>{{ pane.label }}</span>
+                        <small v-if="pane.badge">
+                          <SimulatorDisplayValue :value="pane.badge" />
+                        </small>
                       </div>
                     </template>
                     <div class="simulator-calculation-step-columns">
                       <div
-                        v-for="column in group.columns"
-                        :key="`${group.key}-${column.planIndex}`"
+                        v-for="card in pane.cards"
+                        :key="card.key"
                         class="simulator-calculation-step-column"
                       >
                         <div class="simulator-calculation-step-column-header">
                           <span>
-                            {{ column.plan.name }}
-                            <small
-                              >·
-                              <SimulatorNumericValue
-                                :value="column.plan.durationHours"
-                                unit="小时"
-                              />
-                              小时</small
-                            >
-                            <small
-                              v-if="
-                                column.step?.facility &&
-                                inheritedSourceLabel(column.step.facility)
-                              "
-                            >
-                              · {{ inheritedSourceLabel(column.step.facility) }}
+                            <SimulatorDisplayValue :value="card.title" />
+                            <small v-if="card.subtitle">
+                              <SimulatorDisplayValue :value="card.subtitle" />
                             </small>
                           </span>
-                          <strong v-if="column.step?.facility"
-                            ><SimulatorNumericValue
-                              :value="column.step.facility.efficiency"
-                              unit="%"
-                            />%</strong
-                          >
+                          <strong v-if="card.badge">
+                            <SimulatorDisplayValue :value="card.badge" />
+                          </strong>
                         </div>
-                        <SimulatorCalculationStepContent
-                          v-if="column.step"
-                          :inherited-source-label="
-                            column.step.facility
-                              ? inheritedSourceLabel(column.step.facility)
-                              : undefined
-                          "
-                          :simulate-overflow="
-                            currentEfficiencySettings.simulateOverflow
-                          "
-                          :step="column.step"
+                        <SimulatorDisplayCard
+                          :card="card"
+                          :icon-url="dailyOutputIconUrl"
                         />
-                        <div v-else class="simulator-step-column-empty">
-                          当前队列无此设施计算数据
-                        </div>
                       </div>
                     </div>
                   </a-collapse-panel>
                 </template>
                 <template v-else>
                   <a-collapse-panel
-                    v-for="(result, resultIndex) in calculationSteps"
-                    :key="`${result.planIndex}-${result.facility?.facility.id ?? 'control-mood'}-${resultIndex}`"
+                    v-for="card in resultDisplay.calculationSteps.facilitySteps
+                      .byQueue"
+                    :key="card.key"
                   >
                     <template #header>
                       <div class="simulator-step-header">
                         <span>
-                          {{ result.plan.name }} ·
-                          {{
-                            result.facility
-                              ? facilityResultLabel(result.facility)
-                              : ROOM_LABELS.control
-                          }}
-                          <small
-                            v-if="
-                              result.facility &&
-                              inheritedSourceLabel(result.facility)
-                            "
-                          >
-                            · {{ inheritedSourceLabel(result.facility) }}
+                          <SimulatorDisplayValue :value="card.title" />
+                          <small v-if="card.subtitle">
+                            <SimulatorDisplayValue :value="card.subtitle" />
                           </small>
                         </span>
-                        <strong v-if="result.facility"
-                          ><SimulatorNumericValue
-                            :value="result.facility.efficiency"
-                            unit="%"
-                          />%</strong
-                        >
+                        <strong v-if="card.badge">
+                          <SimulatorDisplayValue :value="card.badge" />
+                        </strong>
                       </div>
                     </template>
-                    <SimulatorCalculationStepContent
-                      :inherited-source-label="
-                        result.facility
-                          ? inheritedSourceLabel(result.facility)
-                          : undefined
-                      "
-                      :simulate-overflow="
-                        currentEfficiencySettings.simulateOverflow
-                      "
-                      :step="result"
+                    <SimulatorDisplayCard
+                      :card="card"
+                      :icon-url="dailyOutputIconUrl"
                     />
                   </a-collapse-panel>
                 </template>

@@ -113,6 +113,12 @@ export {
   resultPresentationSourceFacility,
 } from "./utils/resultPresentation";
 export {
+  buildDailyOutputDisplay,
+  buildDroneScenarioViews,
+  buildDroneStrategyDisplay,
+  buildResultDisplay,
+} from "./utils/resultDisplay";
+export {
   cluePreferenceText,
   convertedProductionAmount,
   efficiencyStatLabel,
@@ -248,4 +254,27 @@ export type {
   ResultPresentationData,
   ResultPresentationOptions,
 } from "./types/resultPresentation";
+export type {
+  BasePointColumn,
+  BasePointDisplay,
+  BasePointSourceView,
+  BasePointView,
+  CalculationStepsDisplay,
+  DailyOutputDisplay,
+  DisplayCard,
+  DisplayEntry,
+  DisplayLine,
+  DisplayNumberFormat,
+  DisplayPane,
+  DisplayRow,
+  DisplaySection,
+  DisplaySectionKind,
+  DisplayTile,
+  DisplayValue,
+  DisplayValuePart,
+  DroneScenarioView as ResultDisplayDroneScenarioView,
+  DroneStrategyDisplay,
+  ResultDisplay,
+  ResultDisplayOptions,
+} from "./types/resultDisplay";
 export type { OperatorCalculationRow } from "./utils/presentation";

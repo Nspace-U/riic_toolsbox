@@ -11,13 +11,16 @@ const [template, stylesheet] = await Promise.all([
   readSourceText("src/assets/main.css"),
 ]);
 
+const resultDisplayIndex = template.indexOf(
+  '<template v-else-if="efficiencyResult',
+);
 const calculationIndex = template.indexOf(
   '<div class="simulator-calculation-steps">',
 );
 const queueIndex = template.indexOf('key="daily-output-breakdown"');
 const basePointIndex = template.indexOf('key="base-points"');
-const basePointEndIndex = template.indexOf(
-  '<template v-if="calculationStepDisplayMode',
+const facilityModeIndex = template.indexOf(
+  "v-if=\"calculationStepDisplayMode === 'facility'\"",
   basePointIndex,
 );
 const calculationEndIndex = template.indexOf(
@@ -25,64 +28,151 @@ const calculationEndIndex = template.indexOf(
   calculationIndex,
 );
 
-assert.ok(calculationIndex >= 0);
+assert.ok(resultDisplayIndex >= 0);
+assert.ok(calculationIndex > resultDisplayIndex);
 assert.ok(queueIndex > calculationIndex);
 assert.ok(basePointIndex > queueIndex);
-assert.ok(basePointEndIndex > basePointIndex);
-assert.ok(calculationEndIndex > basePointIndex);
+assert.ok(facilityModeIndex > basePointIndex);
+assert.ok(calculationEndIndex > facilityModeIndex);
 
 const calculationBlock = template.slice(calculationIndex, calculationEndIndex);
 const queueBlock = template.slice(queueIndex, basePointIndex);
-const basePointBlock = template.slice(basePointIndex, basePointEndIndex);
-const calculationStepContent = await readSourceText(
-  "src/components/SimulatorCalculationStepContent.vue",
+const basePointBlock = template.slice(basePointIndex, facilityModeIndex);
+const resultBlock = template.slice(resultDisplayIndex, calculationEndIndex);
+
+assert.match(template, /const resultDisplay = computed<ResultDisplay/);
+assert.match(template, /return buildResultDisplay\(result, \{/);
+assert.match(template, /sourceFacilityForProduct: dailyOutputSourceFacility/);
+assert.match(
+  template,
+  /function dailyOutputSourceFacility\(product: string\): RoomKey \| undefined \{/,
 );
+assert.match(template, /if \(product === "信用"\) \{\s+return "meeting";/);
+
+assert.match(template, /import SimulatorDisplayCard from/);
+assert.match(template, /import SimulatorDisplayTile from/);
+assert.match(template, /import SimulatorDisplayValue from/);
+assert.doesNotMatch(template, /SimulatorCalculationStepContent/);
 
 assert.match(
   calculationBlock,
   /<a-collapse\s+v-model:active-key="calculationStepActiveKeys"\s+ghost>/,
 );
-const maaDroneIndex = calculationBlock.indexOf('key="maa-drone-acceleration"');
-assert.ok(maaDroneIndex > 0 && maaDroneIndex < queueIndex - calculationIndex);
-const maaDroneBlock = calculationBlock.slice(
-  0,
-  calculationBlock.indexOf('key="daily-output-breakdown"'),
+assert.match(calculationBlock, /key="maa-drone-acceleration"/);
+assert.match(
+  calculationBlock,
+  /v-for="card in resultDisplay\.calculationSteps\.maaDrone\s*\.cards"/,
 );
-assert.match(maaDroneBlock, /v-for="queue in maaDroneQueueDetails"/);
-assert.match(maaDroneBlock, /当前队列未设置无人机加速/);
-assert.match(maaDroneBlock, /<span>基础速率<\/span>/);
-assert.match(maaDroneBlock, /detail\.baseAmountPerHour/);
-assert.match(queueBlock, /v-for="queue in dailyOutputQueueDetails"/);
+assert.match(
+  calculationBlock,
+  /<SimulatorDisplayCard\s+:card="card"\s+:icon-url="dailyOutputIconUrl"\s*\/>/,
+);
+
+assert.match(queueBlock, /key="daily-output-breakdown"/);
 assert.match(queueBlock, /class="simulator-calculation-step-columns"/);
 assert.match(queueBlock, /class="simulator-calculation-step-column"/);
-assert.match(queueBlock, /<span>队列计算明细<\/span>/);
-assert.match(queueBlock, /队列时长总产出/);
-assert.match(queueBlock, /v-for="material in facility\.materials"/);
-assert.match(queueBlock, /v-for="material in product\.materials"/);
-assert.match(queueBlock, /基础材料消耗速率/);
-assert.doesNotMatch(queueBlock, /<span>基础效率<\/span>/);
-assert.doesNotMatch(queueBlock, /· 基础效率<\/span>/);
-assert.match(queueBlock, /队列折算<\/span>/);
-assert.doesNotMatch(queueBlock, /队列折算每日/);
-assert.match(queueBlock, /队列时长总消耗/);
-assert.match(queueBlock, /sanityIconUrl\(\)/);
-assert.match(queueBlock, /理智\/日/);
-assert.doesNotMatch(
+assert.match(
   queueBlock,
-  /<span class="simulator-step-subheading">队列计算明细<\/span>/,
+  /v-for="card in resultDisplay\.calculationSteps\.dailyOutput\s*\.cards"/,
 );
-assert.doesNotMatch(queueBlock, /<a-alert[\s\S]*?queue\.sanity\.complete/);
-assert.match(basePointBlock, /v-for="entry in basePointQueueDetails"/);
-assert.match(basePointBlock, /v-for="point in entry\.points"/);
-assert.match(basePointBlock, /class="simulator-base-point-value"/);
-assert.match(basePointBlock, /<span>基地点数<\/span>/);
-assert.doesNotMatch(
+assert.doesNotMatch(queueBlock, /facility\.materials/);
+assert.doesNotMatch(queueBlock, /product\.materials/);
+assert.doesNotMatch(queueBlock, /sanityIconUrl\(\)/);
+
+assert.match(
   basePointBlock,
-  /<span class="simulator-step-subheading">基地点数<\/span>/,
+  /v-for="column in resultDisplay\.calculationSteps\.basePoints\s*\.columns"/,
 );
-assert.doesNotMatch(basePointBlock, /<a-collapse-panel[\s\S]*?v-for=/);
-assert.doesNotMatch(basePointBlock, /simulator-base-point-source-title/);
+assert.match(basePointBlock, /v-for="point in column\.points"/);
+assert.match(basePointBlock, /class="simulator-base-point-value"/);
+assert.match(basePointBlock, /class="simulator-base-point-sources"/);
+assert.match(basePointBlock, /v-for="source in point\.sources"/);
+assert.doesNotMatch(basePointBlock, /basePointSourceText\(/);
+
+assert.match(
+  calculationBlock,
+  /v-for="pane in resultDisplay\.calculationSteps\.facilitySteps\s*\.byFacility"/,
+);
+assert.match(
+  calculationBlock,
+  /v-for="card in resultDisplay\.calculationSteps\.facilitySteps\s*\.byQueue"/,
+);
+
+assert.doesNotMatch(template, /buildCalculationSteps\(/);
+assert.doesNotMatch(template, /buildCalculationStepGroups\(/);
+assert.doesNotMatch(template, /buildDailyOutputQueueDetails\(/);
+assert.doesNotMatch(template, /buildMaaDroneQueueDetails\(/);
+assert.doesNotMatch(template, /buildBasePointQueueDetails\(/);
+assert.doesNotMatch(template, /buildDroneScenarioDisplays\(/);
+assert.doesNotMatch(template, /otherDroneCandidates/);
+assert.doesNotMatch(template, /dailyOutputCardStyle/);
+assert.doesNotMatch(template, /dailyOutputCardAccent/);
+assert.doesNotMatch(template, /dailySanityResult/);
+
+const stepContentExists = await readFile(
+  "src/components/SimulatorCalculationStepContent.vue",
+  "utf8",
+).then(
+  () => true,
+  () => false,
+);
+assert.equal(stepContentExists, false);
+
+const [displayValue, displaySection, displayCard, displayTile] =
+  await Promise.all([
+    readSourceText("src/components/SimulatorDisplayValue.vue"),
+    readSourceText("src/components/SimulatorDisplaySection.vue"),
+    readSourceText("src/components/SimulatorDisplayCard.vue"),
+    readSourceText("src/components/SimulatorDisplayTile.vue"),
+  ]);
+
+assert.match(displayValue, /SimulatorNumericValue/);
+assert.match(displayValue, /v-for="\(part, index\) in props\.value\.parts"/);
+assert.match(displayValue, /:mode="part\.format"/);
+
+assert.match(
+  displaySection,
+  /"queue-sanity":\s*"simulator-daily-output-queue-sanity"/,
+);
+assert.match(displaySection, /class="simulator-step-detail-grid"/);
+assert.match(displaySection, /class="simulator-skill-detail-row"/);
+assert.match(displaySection, /class="simulator-mood-detail-row"/);
+assert.match(displaySection, /class="simulator-drone-candidate-list"/);
+assert.match(
+  displaySection,
+  /class="simulator-skill-detail-calculation-label"/,
+);
+assert.match(displaySection, /<SimulatorDisplaySection/);
+assert.match(displaySection, /:nested="true"|nested/);
+
+assert.match(displayCard, /class="simulator-step-column-empty"/);
+assert.match(displayCard, /class="simulator-step-content"/);
+assert.match(displayCard, /class="simulator-step-empty"/);
+
+assert.match(displayTile, /class="simulator-daily-output-item"/);
+assert.match(displayTile, /'simulator-daily-output-item--net'/);
+assert.match(displayTile, /'simulator-daily-output-item--accent'/);
+assert.match(
+  displayTile,
+  /"gross-points": "simulator-daily-output-gross-points"/,
+);
+assert.match(
+  displayTile,
+  /"net-resource": "simulator-drone-output-net-resource"/,
+);
+assert.match(
+  displayTile,
+  /"sanity-missing": "simulator-daily-output-sanity-missing"/,
+);
+assert.match(displayTile, /--simulator-daily-output-accent/);
+assert.match(displayTile, /line\.key === 'sanity'/);
+
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
+assert.match(resultBlock, /show-icon/);
+assert.equal((resultBlock.match(/type="warning"/g) ?? []).length, 1);
+assert.equal((resultBlock.match(/type="error"/g) ?? []).length, 1);
+assert.equal((resultBlock.match(/:image="undefined"/g) ?? []).length, 2);
+assert.equal((resultBlock.match(/<a-collapse-panel/g) ?? []).length, 5);
 assert.doesNotMatch(template, /class="simulator-base-point-results"/);
 assert.doesNotMatch(template, /combinationEfficiency/);
 assert.doesNotMatch(
@@ -102,40 +192,7 @@ assert.match(stylesheet, /\.simulator-efficiency-summary-drone-icon--pre/);
 assert.match(stylesheet, /\.simulator-efficiency-summary-drone-icon--post/);
 assert.match(template, /scope: "operator"/);
 assert.match(template, /menu\.scope !== "operator"/);
-assert.match(calculationStepContent, /<span>干员心情效率<\/span>/);
-assert.doesNotMatch(calculationStepContent, /<span>计算公式<\/span>/);
-const inheritedIndex = calculationStepContent.indexOf(">继承说明<");
-const summaryIndex = calculationStepContent.indexOf(">效率汇总<");
-assert.ok(inheritedIndex >= 0 && inheritedIndex < summaryIndex);
-assert.doesNotMatch(calculationStepContent, /干员组合贡献/);
-assert.match(template, /function dailyOutputSourceFacility\(product: string\)/);
-assert.match(template, /if \(product === "信用"\) \{\s+return "meeting";/);
-assert.match(template, /function dailyOutputCardAccent\(/);
-assert.match(template, /const productColor = productAccent\(card\.product\);/);
-assert.match(template, /function dailyOutputCardHasAccent\(/);
-assert.match(template, /function dailyOutputCardStyle\(/);
-assert.equal(
-  (template.match(/:style="dailyOutputCardStyle\(card\)"/g) ?? []).length,
-  2,
-);
-assert.match(template, /simulator-daily-output-item--accent/);
-assert.match(template, /dailySanityResult\.missing\.join/);
 assert.doesNotMatch(template, /ROOM_LABELS\[facility\.type\]\}（合并）/);
-const facilityResultLabelStart = template.indexOf(
-  "function facilityResultLabel(result: FacilityEfficiencyResult): string {",
-);
-const facilityResultLabelEnd = template.indexOf(
-  "\nfunction basePointLabel(",
-  facilityResultLabelStart,
-);
-const facilityResultLabelBlock = template.slice(
-  facilityResultLabelStart,
-  facilityResultLabelEnd,
-);
-assert.match(
-  facilityResultLabelBlock,
-  /formatFacilityResultLabel\(result, currentDocument\.value\?\.layout \?\? \[\]\)/,
-);
 assert.doesNotMatch(stylesheet, /simulator-step-formula/);
 assert.match(stylesheet, /\.simulator-step-detail-grid strong small/);
 assert.match(
@@ -146,5 +203,10 @@ assert.match(
   stylesheet,
   /\.simulator-daily-output-item--accent\s*\{[\s\S]*?color-mix\(/,
 );
+assert.match(
+  stylesheet,
+  /\.simulator-daily-output-queue-sanity\s*\{[\s\S]*?gap: 10px;/,
+);
+assert.match(stylesheet, /\.simulator-sanity-detail-label\s*\{/);
 
 console.log("simulator result regression: passed");

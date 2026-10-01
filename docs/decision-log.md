@@ -1028,3 +1028,11 @@
 - **影响范围**：默认配置和 patch 版本升至 `3`；旧 patch 不应用。排班编辑保存时保留暂时不在该行排班中的隐藏项。
 - **状态**：已实施。
 - **验证**：70 行默认组合均无计划时长且隐藏名单包含组核心干员；`npm run type-check`、定向 ESLint、JSON 结构核对和 `git diff --check` 通过。
+
+## 2026-10-01：结果区展示改为包内成品展示契约
+
+- **决定**：`packages/riic-efficiency` 新增 `buildResultDisplay(result, options)`（`src/utils/resultDisplay.ts` 与 `src/types/resultDisplay.ts`），按与 `buildEfficiencyNotices` 相同的方式产出成品中文文案加原始数值：每日产出格子、无人机策略文案与场景格子、计算步骤四个一级分区的面板/列/区块/行。宿主只做布局映射，`src/pages/SimulatorPage.vue` 结果区模板与 `SimulatorCalculationStepContent.vue` 改为消费该契约，后者删除，改由 `SimulatorDisplayValue`、`SimulatorDisplaySection`、`SimulatorDisplayCard`、`SimulatorDisplayTile` 四个通用渲染组件承担。
+- **原因**：外部项目调用旧的 `buildResultPresentation` 只能拿到结构化数值，区块标题、字段名、单位拼接和计算过程文案全部硬编码在模拟器模板里，无法复用；notice 之所以可直接使用，是因为包内已经产出成品文案。
+- **影响范围**：`DisplayValue.parts` 成为唯一渲染来源，数值部件保留 `value/format/unit` 供宿主继续实现原始精度悬停，`muted` 部件由宿主渲染为 `<small>`；区块种类为 `grid`、`skill-list`、`mood-list`、`candidate-list`，基地点数保留独立的列结构。不修改计算逻辑与 `EfficiencyResult` 结构。
+- **状态**：已实施。
+- **验证**：用 Vue 编译器编译旧结果区模板与新模板/组件后逐条比对旧文案与样式类：旧文案 226 条中 15 条差异全部可解释（已删除组件名、迁入脚本映射的类名、运行时拼接的复合标签、旧折叠 key），58 个 `simulator-*` 样式类全部保留；新增 `scripts/result-display-regression.mjs` 与 `scripts/fixtures/result-display-golden.json` 固定 192 行成品输出；`npm run test:result-display`、`test:simulator-result`、`test:efficiency`、`test:sanity`、`test:riic-efficiency-package`、`test:simulator-layout`、`test:operator-progression`、`npm run lint`、定向 Prettier、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
