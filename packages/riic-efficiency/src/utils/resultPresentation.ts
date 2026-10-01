@@ -550,10 +550,14 @@ export function buildMaaDroneQueueDetails(
   result: EfficiencyResult,
 ): MaaDroneQueueDetail[] {
   const details = result.maaDroneAcceleration?.details ?? [];
+  const candidates = result.maaDroneAcceleration?.candidates ?? [];
   return result.plans.map((plan, planIndex) => ({
     plan,
     planIndex,
     details: details.filter((detail) => detail.planIndex === planIndex),
+    candidates: candidates.filter(
+      (candidate) => candidate.planIndex === planIndex,
+    ),
   }));
 }
 

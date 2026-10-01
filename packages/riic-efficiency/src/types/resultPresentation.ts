@@ -1,5 +1,6 @@
 import type {
   BasePointDetail,
+  DroneAccelerationCandidate,
   DroneAccelerationDetail,
   EfficiencyFacility,
   EfficiencyPlanResult,
@@ -86,6 +87,7 @@ export interface MaaDroneQueueDetail {
   plan: EfficiencyPlanResult;
   planIndex: number;
   details: DroneAccelerationDetail[];
+  candidates: DroneAccelerationCandidate[];
 }
 
 export interface DailyOutputCard {

@@ -154,6 +154,7 @@ export type {
   BasePointSourceKind,
   CluePreference,
   DailyOutput,
+  DroneAccelerationCandidate,
   DroneAccelerationDetail,
   EfficiencyFacility,
   EfficiencyNotice,

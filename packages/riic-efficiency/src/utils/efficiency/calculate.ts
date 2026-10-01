@@ -19,6 +19,7 @@ import type {
   CluePreference,
   CurveCalculationStep,
   StatCalculationStep,
+  DroneAccelerationCandidate,
   DroneAccelerationDetail,
   MoodRateDetail,
   MoodSnapshot,
@@ -4759,6 +4760,105 @@ function generatedDronesForPlans(
   });
 }
 
+function isDroneAcceleratableFacility(
+  facility: EfficiencyFacility,
+): facility is EfficiencyFacility & { type: "trading" | "manufacture" } {
+  return facility.type === "trading" || facility.type === "manufacture";
+}
+
+function droneFlowCacheKey(
+  facility: EfficiencyFacility,
+  production: ProductionValue,
+): string {
+  const materials =
+    production.baseMaterialPerHour ?? production.materialPerHour ?? {};
+  const materialKey = Object.keys(materials)
+    .sort()
+    .map((material) => `${material}:${materials[material]}`)
+    .join(",");
+  return `${facility.type}:${production.product}:${production.baseAmountPerHour}:${materialKey}`;
+}
+
+function maaDroneCandidates(
+  plans: EfficiencyPlanResult[],
+  facilities: EfficiencyFacility[],
+  targets: MaaDroneTarget[],
+  usedByPlan: Map<number, number>,
+  overflowByPlan: Map<number, number>,
+): DroneAccelerationCandidate[] {
+  const candidates: DroneAccelerationCandidate[] = [];
+  const flows = new Map<
+    string,
+    {
+      product: string;
+      baseAmountPerHour: number;
+      baseMaterialPerHour: Record<string, number>;
+    }
+  >();
+  targets.forEach((target) => {
+    const sourcePlan = plans[target.sourcePlanIndex];
+    if (!sourcePlan) {
+      return;
+    }
+    const droneAmount = usedByPlan.get(target.planIndex) ?? 0;
+    const acceleratedHours = (droneAmount * DRONE_ACCELERATION_MINUTES) / 60;
+    const overflowAmount = overflowByPlan.get(target.planIndex) ?? 0;
+    const planCandidates = facilities
+      .filter(isDroneAcceleratableFacility)
+      .flatMap((facility): DroneAccelerationCandidate[] => {
+        const production = sourcePlan.facilities.find(
+          (candidate) => candidate.facility.id === facility.id,
+        )?.production;
+        if (!production) {
+          return [];
+        }
+        const key = droneFlowCacheKey(facility, production);
+        let flow = flows.get(key);
+        if (!flow) {
+          flow = {
+            product: production.product,
+            baseAmountPerHour: production.baseAmountPerHour,
+            baseMaterialPerHour:
+              production.baseMaterialPerHour ??
+              production.materialPerHour ??
+              {},
+          };
+          flows.set(key, flow);
+        }
+        return [
+          {
+            planIndex: target.planIndex,
+            facilityId: facility.id,
+            room: facility.type,
+            facilityIndex: facility.index,
+            order: target.order,
+            sourcePlanIndex: target.sourcePlanIndex,
+            sourceDurationHours: sourcePlan.durationHours,
+            product: flow.product,
+            droneAmount,
+            acceleratedHours,
+            baseAmountPerHour: flow.baseAmountPerHour,
+            baseMaterialPerHour: flow.baseMaterialPerHour,
+            extraAmount: flow.baseAmountPerHour * acceleratedHours,
+            extraMaterial: Object.fromEntries(
+              Object.entries(flow.baseMaterialPerHour).map(
+                ([material, amount]) => [material, amount * acceleratedHours],
+              ),
+            ),
+            overflowed: overflowAmount > 0,
+            overflowAmount,
+            accelerated: facility.id === target.facility.id,
+          },
+        ];
+      })
+      .sort(
+        (left, right) => Number(right.accelerated) - Number(left.accelerated),
+      );
+    candidates.push(...planCandidates);
+  });
+  return candidates;
+}
+
 function calculateMaaDroneAcceleration(
   document: ScheduleDocument,
   plans: EfficiencyPlanResult[],
@@ -4771,6 +4871,7 @@ function calculateMaaDroneAcceleration(
       ? {
           enabled: false,
           details: [],
+          candidates: [],
           warnings,
           generatedDrones: 0,
           usedDrones: 0,
@@ -4869,6 +4970,13 @@ function calculateMaaDroneAcceleration(
   return {
     enabled: true,
     details,
+    candidates: maaDroneCandidates(
+      plans,
+      facilities,
+      targets,
+      usedByPlan,
+      overflowByPlan,
+    ),
     warnings,
     generatedDrones: generated.reduce((total, amount) => total + amount, 0),
     usedDrones: details.reduce(

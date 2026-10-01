@@ -60,6 +60,7 @@ import type {
   OperatorProgressionNode,
   ResolvedOperatorProgression,
   DroneAccelerationResult,
+  DroneAccelerationCandidate,
   BasePointQueueDetail,
   DailyOutputCard,
   DailyOutputQueueDetail,
@@ -1198,6 +1199,12 @@ const maaDroneQueueDetails = computed<MaaDroneQueueDetail[]>(() => {
   const result = efficiencyResult.value;
   return result ? buildMaaDroneQueueDetails(result) : [];
 });
+
+function otherDroneCandidates(
+  queue: MaaDroneQueueDetail,
+): DroneAccelerationCandidate[] {
+  return queue.candidates.filter((candidate) => !candidate.accelerated);
+}
 
 const operatorPickerRoom = computed(() => {
   const picker = operatorPicker.value;
@@ -7612,8 +7619,8 @@ defineExpose({ prepareScheduleReferenceImage });
                             小时</small
                           >
                         </span>
-                        <strong v-if="queue.details.length"
-                          >{{ queue.details.length }} 项</strong
+                        <strong v-if="queue.candidates.length"
+                          >{{ queue.candidates.length }} 项</strong
                         >
                       </div>
                       <div
@@ -7696,6 +7703,59 @@ defineExpose({ prepareScheduleReferenceImage });
                               />架
                             </strong>
                           </template>
+                        </div>
+                        <div
+                          v-if="otherDroneCandidates(queue).length"
+                          class="simulator-step-section"
+                        >
+                          <span class="simulator-step-subheading"
+                            >其他设施加速收益</span
+                          >
+                          <div class="simulator-drone-candidate-list">
+                            <div
+                              v-for="candidate in otherDroneCandidates(queue)"
+                              :key="`${candidate.planIndex}-${candidate.facilityId}`"
+                              class="simulator-drone-candidate-row"
+                            >
+                              <span class="simulator-drone-candidate-facility">
+                                {{ ROOM_LABELS[candidate.room]
+                                }}{{ candidate.facilityIndex + 1 }}
+                              </span>
+                              <span class="simulator-drone-candidate-product">{{
+                                resourceLabel(candidate.product)
+                              }}</span>
+                              <span class="simulator-drone-candidate-value">
+                                基础
+                                <SimulatorNumericValue
+                                  mode="production"
+                                  :value="candidate.baseAmountPerHour"
+                                  unit="/小时"
+                                />/小时
+                              </span>
+                              <span class="simulator-drone-candidate-value">
+                                额外
+                                <SimulatorNumericValue
+                                  mode="production"
+                                  :value="candidate.extraAmount"
+                                  :unit="resourceLabel(candidate.product)"
+                                />
+                                <template
+                                  v-for="(
+                                    amount, material
+                                  ) in candidate.extraMaterial"
+                                  :key="`${candidate.facilityId}-${material}`"
+                                >
+                                  <span aria-hidden="true">/</span>
+                                  {{ resourceLabel(material) }}
+                                  <SimulatorNumericValue
+                                    mode="signed"
+                                    :value="amount"
+                                    :unit="resourceLabel(material)"
+                                  />
+                                </template>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                       <div v-else class="simulator-step-column-empty">

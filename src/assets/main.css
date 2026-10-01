@@ -3158,6 +3158,39 @@ a {
   font-weight: 600;
 }
 
+.simulator-drone-candidate-list {
+  display: grid;
+  grid-template-columns: minmax(0, max-content);
+  gap: 4px;
+  width: max-content;
+  min-width: 100%;
+  color: #344447;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.simulator-drone-candidate-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.simulator-drone-candidate-facility {
+  flex: 0 0 auto;
+  color: #344447;
+  font-weight: 600;
+}
+
+.simulator-drone-candidate-product {
+  flex: 0 0 auto;
+  color: #72807f;
+}
+
+.simulator-drone-candidate-value {
+  flex: 0 0 auto;
+  color: #344447;
+}
+
 .simulator-step-section > .simulator-step-subheading,
 .simulator-step-subsection > .simulator-step-subheading {
   margin-block-end: 0;

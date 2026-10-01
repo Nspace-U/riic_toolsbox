@@ -520,6 +520,115 @@ function runTests(runtime) {
     false,
   );
   assert.ok(maaDroneResult.maaDroneAcceleration?.warnings.length);
+  const maaCandidates = maaDroneResult.maaDroneAcceleration?.candidates ?? [];
+  assert.equal(maaCandidates.length, 4);
+  const firstPlanCandidates = maaCandidates.filter(
+    (candidate) => candidate.planIndex === 0,
+  );
+  assert.deepEqual(
+    firstPlanCandidates.map((candidate) => candidate.facilityId),
+    ["trading-1", "manufacture-1"],
+  );
+  assert.equal(firstPlanCandidates[0]?.accelerated, true);
+  assert.equal(firstPlanCandidates[0]?.room, "trading");
+  assert.equal(firstPlanCandidates[0]?.product, "龙门币");
+  assert.equal(firstPlanCandidates[0]?.sourcePlanIndex, 2);
+  assert.equal(
+    firstPlanCandidates[0]?.extraAmount,
+    maaDroneResult.maaDroneAcceleration?.details[0]?.extraAmount,
+  );
+  assert.equal(firstPlanCandidates[1]?.accelerated, false);
+  assert.equal(firstPlanCandidates[1]?.room, "manufacture");
+  assert.equal(
+    firstPlanCandidates[1]?.extraAmount,
+    (firstPlanCandidates[1]?.baseAmountPerHour ?? 0) *
+      (firstPlanCandidates[1]?.acceleratedHours ?? 0),
+  );
+  assert.equal(
+    maaCandidates.some((candidate) => candidate.planIndex === 1),
+    false,
+  );
+  const thirdPlanCandidates = maaCandidates.filter(
+    (candidate) => candidate.planIndex === 2,
+  );
+  assert.deepEqual(
+    thirdPlanCandidates.map((candidate) => candidate.facilityId),
+    ["manufacture-1", "trading-1"],
+  );
+  assert.equal(thirdPlanCandidates[0]?.accelerated, true);
+  assert.equal(thirdPlanCandidates[0]?.product, "中级作战记录");
+
+  const candidateDocument = {
+    layout: [
+      { type: "power", level: 3 },
+      { type: "trading", level: 3 },
+      { type: "trading", level: 3 },
+      { type: "manufacture", level: 3 },
+      { type: "manufacture", level: 3 },
+    ],
+    plans: [
+      {
+        duration: 1440,
+        drones: {
+          enable: true,
+          room: "trading",
+          index: 0,
+          rule: "all",
+          order: "post",
+        },
+        rooms: {
+          power: [{ operators: ["Lancet-2"] }],
+          trading: [
+            { operators: ["巫恋"], product: "龙门币" },
+            { operators: ["但书"], product: "龙门币" },
+          ],
+          manufacture: [
+            {
+              operators: ["温蒂"],
+              product: "源石碎片",
+              sourceMaterial: "固源岩",
+            },
+            {
+              operators: ["帕拉斯"],
+              product: "源石碎片",
+              sourceMaterial: "装置",
+            },
+          ],
+        },
+      },
+    ],
+  };
+  const candidateResult = calculateEfficiency(candidateDocument, catalog);
+  const facilityCandidates =
+    candidateResult.maaDroneAcceleration?.candidates ?? [];
+  assert.equal(facilityCandidates.length, 4);
+  assert.equal(facilityCandidates[0]?.accelerated, true);
+  assert.equal(facilityCandidates[0]?.room, "trading");
+  assert.equal(facilityCandidates[0]?.facilityIndex, 0);
+  const lmdCandidates = facilityCandidates.filter(
+    (candidate) => candidate.product === "龙门币",
+  );
+  assert.equal(lmdCandidates.length, 2);
+  assert.notEqual(
+    lmdCandidates[0]?.baseAmountPerHour,
+    lmdCandidates[1]?.baseAmountPerHour,
+  );
+  const shardCandidates = facilityCandidates.filter(
+    (candidate) => candidate.product === "源石碎片",
+  );
+  assert.equal(shardCandidates.length, 2);
+  assert.deepEqual(
+    shardCandidates.map((candidate) => candidate.accelerated),
+    [false, false],
+  );
+  assert.notDeepEqual(
+    shardCandidates[0]?.extraMaterial,
+    shardCandidates[1]?.extraMaterial,
+  );
+  assert.equal(
+    (candidateResult.maaDroneAcceleration?.details.length ?? 0) > 0,
+    true,
+  );
 
   const overflowResult = calculateEfficiency(
     {

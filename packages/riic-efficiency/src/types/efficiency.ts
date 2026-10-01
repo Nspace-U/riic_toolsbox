@@ -316,9 +316,14 @@ export interface DroneAccelerationDetail {
   overflowAmount: number;
 }
 
+export interface DroneAccelerationCandidate extends DroneAccelerationDetail {
+  accelerated: boolean;
+}
+
 export interface MaaDroneAccelerationResult {
   enabled: boolean;
   details: DroneAccelerationDetail[];
+  candidates: DroneAccelerationCandidate[];
   warnings: string[];
   generatedDrones: number;
   usedDrones: number;
