@@ -3130,8 +3130,12 @@ a {
   white-space: nowrap;
 }
 
+.simulator-step-detail-grid > span:nth-child(odd) {
+  color: #72807f;
+}
+
 .simulator-step-detail-grid > strong,
-.simulator-skill-detail-row > span:nth-child(2),
+.simulator-skill-detail-row > span,
 .simulator-skill-detail-calculation-row > span:last-child,
 .simulator-mood-detail-row > strong {
   color: #344447;
@@ -3284,6 +3288,11 @@ a {
 
 .simulator-skill-detail-calculation-label {
   padding-inline-start: 1em;
+  color: #72807f;
+}
+
+.simulator-mood-detail-row > span {
+  color: #72807f;
 }
 
 .simulator-mood-detail-row {
