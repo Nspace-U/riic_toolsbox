@@ -63,6 +63,8 @@ import type {
   ResolvedOperatorProgression,
   DroneAccelerationResult,
   BasePointSource,
+  DisplayCard,
+  DisplayPane,
   DisplayTile,
   ResultDisplay,
 } from "@arknights/riic-efficiency";
@@ -82,6 +84,8 @@ import {
   baseAmountsWithoutMaaDrones,
   calculateDroneAcceleration,
   buildDailySanityAmounts,
+  buildFacilityStepCards,
+  buildFacilityStepPanes,
   buildResultDisplay,
   calculateEfficiency,
   analyzeSchedulePeriods,
@@ -1117,6 +1121,20 @@ const resultDisplay = computed<ResultDisplay | undefined>(() => {
     visibleBasePointTerms: visibleTerms,
     sourceFacilityForProduct: dailyOutputSourceFacility,
   });
+});
+
+const facilityStepPanes = computed<DisplayPane[]>(() => {
+  const facilitySteps = resultDisplay.value?.calculationSteps.facilitySteps;
+  return calculationStepDisplayMode.value === "facility" && facilitySteps
+    ? buildFacilityStepPanes(facilitySteps)
+    : [];
+});
+
+const facilityStepCards = computed<DisplayCard[]>(() => {
+  const facilitySteps = resultDisplay.value?.calculationSteps.facilitySteps;
+  return calculationStepDisplayMode.value === "queue" && facilitySteps
+    ? buildFacilityStepCards(facilitySteps)
+    : [];
 });
 
 const droneAccelerationVisible = computed(
@@ -7494,8 +7512,7 @@ defineExpose({ prepareScheduleReferenceImage });
                 </a-collapse-panel>
                 <template v-if="calculationStepDisplayMode === 'facility'">
                   <a-collapse-panel
-                    v-for="pane in resultDisplay.calculationSteps.facilitySteps
-                      .byFacility"
+                    v-for="pane in facilityStepPanes"
                     :key="pane.key"
                   >
                     <template #header>
@@ -7533,8 +7550,7 @@ defineExpose({ prepareScheduleReferenceImage });
                 </template>
                 <template v-else>
                   <a-collapse-panel
-                    v-for="card in resultDisplay.calculationSteps.facilitySteps
-                      .byQueue"
+                    v-for="card in facilityStepCards"
                     :key="card.key"
                   >
                     <template #header>

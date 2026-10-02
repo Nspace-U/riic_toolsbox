@@ -506,39 +506,50 @@ function flatten(entries) {
       }
     }
   }
-  for (const pane of steps.facilitySteps.byFacility) {
-    lines.push(`pane:${pane.key}:${pane.label}:${value(pane.badge)}`);
-    for (const card of pane.cards) {
-      lines.push(
-        `card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}|${card.emptyNote ?? ""}`,
-      );
-      for (const section of card.sections) {
-        lines.push(`section:${section.label ?? ""}:${section.kind ?? "grid"}`);
-        for (const row of section.rows) {
+  const facilitySteps = steps.facilitySteps;
+  lines.push(
+    `plans:${facilitySteps.plans.map((plan) => `${plan.planIndex}:${plan.name}:${plan.durationHours}`).join("|")}`,
+  );
+  for (const step of facilitySteps.steps) {
+    lines.push(
+      `step:${step.key}:${step.planIndex}:${step.facilityId ?? ""}:${step.facilityLabel}:${step.inheritedLabel ?? ""}:${step.efficiency ?? ""}:${step.emptyNote ?? ""}`,
+    );
+    for (const section of step.sections) {
+      lines.push(`section:${section.label ?? ""}:${section.kind ?? "grid"}`);
+      for (const row of section.rows) {
+        lines.push(
+          `row:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
+        );
+      }
+      for (const entry of section.entries ?? []) {
+        lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
+        for (const row of entry.rows) {
+          lines.push(`entry-row:${value(row.label)}|${value(row.value)}`);
+        }
+      }
+      for (const child of section.sections ?? []) {
+        lines.push(`subsection:${child.label ?? ""}`);
+        for (const row of child.rows) {
           lines.push(
-            `row:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
+            `subrow:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
           );
-        }
-        for (const entry of section.entries ?? []) {
-          lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
-          for (const row of entry.rows) {
-            lines.push(`entry-row:${value(row.label)}|${value(row.value)}`);
-          }
-        }
-        for (const child of section.sections ?? []) {
-          lines.push(`subsection:${child.label ?? ""}`);
-          for (const row of child.rows) {
-            lines.push(
-              `subrow:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
-            );
-          }
         }
       }
     }
   }
-  for (const card of steps.facilitySteps.byQueue) {
+  for (const pane of packageModule.buildFacilityStepPanes(facilitySteps)) {
     lines.push(
-      `queue-card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.emptyNote ?? ""}`,
+      `pane:${pane.key}:${pane.label}:${value(pane.badge)}:${pane.cards.length}`,
+    );
+    for (const card of pane.cards) {
+      lines.push(
+        `card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}|${card.emptyNote ?? ""}`,
+      );
+    }
+  }
+  for (const card of packageModule.buildFacilityStepCards(facilitySteps)) {
+    lines.push(
+      `queue-card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.emptyNote ?? ""}:${card.sections.length}`,
     );
   }
   return lines;

@@ -143,6 +143,28 @@ export interface BasePointDisplay {
   columns: BasePointColumn[];
 }
 
+export interface DisplayPlanView {
+  planIndex: number;
+  name: string;
+  durationHours: number;
+}
+
+export interface FacilityStepView {
+  key: string;
+  planIndex: number;
+  facilityId?: string;
+  facilityLabel: string;
+  inheritedLabel?: string;
+  efficiency?: number;
+  sections: DisplaySection[];
+  emptyNote?: string;
+}
+
+export interface FacilityStepsDisplay {
+  plans: DisplayPlanView[];
+  steps: FacilityStepView[];
+}
+
 export interface CalculationStepsDisplay {
   eyebrow: string;
   label: string;
@@ -150,10 +172,7 @@ export interface CalculationStepsDisplay {
   maaDrone?: DisplayPane;
   dailyOutput?: DisplayPane;
   basePoints?: BasePointDisplay;
-  facilitySteps: {
-    byFacility: DisplayPane[];
-    byQueue: DisplayCard[];
-  };
+  facilitySteps: FacilityStepsDisplay;
 }
 
 export interface ResultDisplay {

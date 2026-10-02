@@ -89,14 +89,30 @@ assert.match(basePointBlock, /class="simulator-base-point-sources"/);
 assert.match(basePointBlock, /v-for="source in point\.sources"/);
 assert.doesNotMatch(basePointBlock, /basePointSourceText\(/);
 
+assert.match(calculationBlock, /v-for="pane in facilityStepPanes"/);
+assert.match(calculationBlock, /v-for="card in facilityStepCards"/);
 assert.match(
-  calculationBlock,
-  /v-for="pane in resultDisplay\.calculationSteps\.facilitySteps\s*\.byFacility"/,
+  template,
+  /import \{[\s\S]*buildFacilityStepCards[\s\S]*\} from "@arknights\/riic-efficiency"/,
 );
 assert.match(
-  calculationBlock,
-  /v-for="card in resultDisplay\.calculationSteps\.facilitySteps\s*\.byQueue"/,
+  template,
+  /const facilityStepPanes = computed<DisplayPane\[\]>\(\(\) => \{/,
 );
+assert.match(
+  template,
+  /const facilityStepCards = computed<DisplayCard\[\]>\(\(\) => \{/,
+);
+assert.match(
+  template,
+  /calculationStepDisplayMode\.value === "facility" && facilitySteps/,
+);
+assert.match(
+  template,
+  /calculationStepDisplayMode\.value === "queue" && facilitySteps/,
+);
+assert.doesNotMatch(template, /facilitySteps\s*\.byFacility/);
+assert.doesNotMatch(template, /facilitySteps\s*\.byQueue/);
 
 assert.doesNotMatch(template, /buildCalculationSteps\(/);
 assert.doesNotMatch(template, /buildCalculationStepGroups\(/);

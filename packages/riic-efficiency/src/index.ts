@@ -116,6 +116,8 @@ export {
   buildDailyOutputDisplay,
   buildDroneScenarioViews,
   buildDroneStrategyDisplay,
+  buildFacilityStepCards,
+  buildFacilityStepPanes,
   buildResultDisplay,
 } from "./utils/resultDisplay";
 export {
@@ -266,14 +268,19 @@ export type {
   DisplayLine,
   DisplayNumberFormat,
   DisplayPane,
+  DisplayPlanView,
   DisplayRow,
   DisplaySection,
   DisplaySectionKind,
   DisplayTile,
   DisplayValue,
   DisplayValuePart,
+  DisplayValuePartNumber,
+  DisplayValuePartText,
   DroneScenarioView as ResultDisplayDroneScenarioView,
   DroneStrategyDisplay,
+  FacilityStepsDisplay,
+  FacilityStepView,
   ResultDisplay,
   ResultDisplayOptions,
 } from "./types/resultDisplay";

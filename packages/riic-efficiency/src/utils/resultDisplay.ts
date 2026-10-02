@@ -11,13 +11,13 @@ import type {
   BasePointColumn,
   BasePointDisplay,
   BasePointView,
-  CalculationStepsDisplay,
   DailyOutputDisplay,
   DisplayCard,
   DisplayEntry,
   DisplayLine,
   DisplayNumberFormat,
   DisplayPane,
+  DisplayPlanView,
   DisplayRow,
   DisplaySection,
   DisplayTile,
@@ -25,6 +25,8 @@ import type {
   DisplayValuePart,
   DroneScenarioView,
   DroneStrategyDisplay,
+  FacilityStepsDisplay,
+  FacilityStepView,
   ResultDisplay,
   ResultDisplayOptions,
 } from "../types/resultDisplay";
@@ -54,7 +56,6 @@ import {
 } from "./presentation";
 import {
   buildBasePointQueueDetails,
-  buildCalculationStepGroups,
   buildCalculationSteps,
   buildDailyOutputCards,
   buildDailyOutputQueueDetails,
@@ -192,24 +193,15 @@ function inheritedStepLabel(
 }
 
 function facilityStepSubtitle(
-  step: EfficiencyCalculationStepView,
-  result: EfficiencyResult,
+  step: FacilityStepView,
+  plan: DisplayPlanView,
 ): DisplayValue {
-  const inherited = inheritedStepLabel(step, result);
   return displayValue(
     " · ",
-    numberPart(step.plan.durationHours, "number", "小时"),
+    numberPart(plan.durationHours, "number", "小时"),
     " 小时",
-    ...(inherited ? ["· ", inherited] : []),
+    ...(step.inheritedLabel ? ["· ", step.inheritedLabel] : []),
   );
-}
-
-function queueStepSubtitle(
-  step: EfficiencyCalculationStepView,
-  result: EfficiencyResult,
-): DisplayValue | undefined {
-  const inherited = inheritedStepLabel(step, result);
-  return inherited ? displayValue(" · ", inherited) : undefined;
 }
 
 function outputTileLines(
@@ -1219,15 +1211,13 @@ function facilityStepSections(
   return sections;
 }
 
-function stepCard(
+function facilityStepView(
   step: EfficiencyCalculationStepView,
   result: EfficiencyResult,
   options: ResultDisplayOptions,
-  title: DisplayValue,
-  subtitle?: DisplayValue,
-  badge?: DisplayValue,
-): DisplayCard {
+): FacilityStepView {
   const facility = step.facility;
+  const inherited = inheritedStepLabel(step, result);
   const emptyNote =
     facility &&
     !facility.details.length &&
@@ -1237,9 +1227,14 @@ function stepCard(
       : undefined;
   return {
     key: `step-${step.planIndex}-${facility?.facility.id ?? "control"}`,
-    title,
-    ...(subtitle === undefined ? {} : { subtitle }),
-    ...(badge === undefined ? {} : { badge }),
+    planIndex: step.planIndex,
+    ...(facility ? { facilityId: facility.facility.id } : {}),
+    facilityLabel: facility
+      ? (options.facilityLabel?.(facility) ??
+        formatFacilityResultLabel(facility, result.document.layout))
+      : ROOM_LABELS.control,
+    ...(inherited ? { inheritedLabel: inherited } : {}),
+    ...(facility ? { efficiency: facility.efficiency } : {}),
     sections: facilityStepSections(step, result, options),
     ...(emptyNote === undefined ? {} : { emptyNote }),
   };
@@ -1248,59 +1243,86 @@ function stepCard(
 function buildFacilitySteps(
   result: EfficiencyResult,
   options: ResultDisplayOptions,
-): CalculationStepsDisplay["facilitySteps"] {
-  const steps = buildCalculationSteps(result);
-  if (!steps.length) {
-    return { byFacility: [], byQueue: [] };
-  }
-  const groups = buildCalculationStepGroups(
-    result,
-    steps,
-    options.facilityLabel ? { facilityLabel: options.facilityLabel } : {},
-  );
-  const byFacility: DisplayPane[] = groups.map((group) => ({
-    key: `facility-${group.key}`,
-    label: group.label,
-    badge: displayText(
-      `${group.activeColumnCount} / ${group.columns.length} 个队列`,
+): FacilityStepsDisplay {
+  return {
+    plans: result.plans.map((plan, planIndex) => ({
+      planIndex,
+      name: plan.name,
+      durationHours: plan.durationHours,
+    })),
+    steps: buildCalculationSteps(result).map((step) =>
+      facilityStepView(step, result, options),
     ),
-    cards: group.columns.map((column) =>
-      column.step
-        ? stepCard(
-            column.step,
-            result,
-            options,
-            displayText(column.plan.name),
-            facilityStepSubtitle(column.step, result),
-            column.step.facility
-              ? displayUnit(column.step.facility.efficiency, "number", "%")
-              : undefined,
-          )
-        : {
-            key: `empty-${group.key}-${column.planIndex}`,
-            title: displayText(column.plan.name),
-            subtitle: durationSubtitle(column.plan.durationHours),
+  };
+}
+
+export function buildFacilityStepCards(
+  facilitySteps: FacilityStepsDisplay,
+): DisplayCard[] {
+  return facilitySteps.steps.map((step) => {
+    const plan = facilitySteps.plans[step.planIndex];
+    return {
+      key: step.key,
+      title: displayText(`${plan?.name ?? ""} · ${step.facilityLabel}`),
+      ...(step.inheritedLabel === undefined
+        ? {}
+        : { subtitle: displayValue(" · ", step.inheritedLabel) }),
+      ...(step.efficiency === undefined
+        ? {}
+        : { badge: displayUnit(step.efficiency, "number", "%") }),
+      sections: step.sections,
+      ...(step.emptyNote === undefined ? {} : { emptyNote: step.emptyNote }),
+    };
+  });
+}
+
+export function buildFacilityStepPanes(
+  facilitySteps: FacilityStepsDisplay,
+): DisplayPane[] {
+  const groups = new Map<string, FacilityStepView[]>();
+  for (const step of facilitySteps.steps) {
+    const key = step.facilityId ?? "control";
+    const group = groups.get(key);
+    if (group) {
+      group.push(step);
+    } else {
+      groups.set(key, [step]);
+    }
+  }
+  return [...groups.entries()].map(([key, steps]) => {
+    const byPlan = new Map(steps.map((step) => [step.planIndex, step]));
+    return {
+      key: `facility-${key}`,
+      label: steps[0]?.facilityLabel ?? ROOM_LABELS.control,
+      badge: displayText(
+        `${steps.length} / ${facilitySteps.plans.length} 个队列`,
+      ),
+      cards: facilitySteps.plans.map((plan): DisplayCard => {
+        const step = byPlan.get(plan.planIndex);
+        if (step === undefined) {
+          return {
+            key: `empty-${key}-${plan.planIndex}`,
+            title: displayText(plan.name),
+            subtitle: durationSubtitle(plan.durationHours),
             sections: [],
             empty: "当前队列无此设施计算数据",
-          },
-    ),
-  }));
-  const byQueue: DisplayCard[] = steps.map((step) => {
-    const facility = step.facility;
-    const label = facility
-      ? (options.facilityLabel?.(facility) ??
-        formatFacilityResultLabel(facility, result.document.layout))
-      : ROOM_LABELS.control;
-    return stepCard(
-      step,
-      result,
-      options,
-      displayText(`${step.plan.name} · ${label}`),
-      queueStepSubtitle(step, result),
-      facility ? displayUnit(facility.efficiency, "number", "%") : undefined,
-    );
+          };
+        }
+        return {
+          key: step.key,
+          title: displayText(plan.name),
+          subtitle: facilityStepSubtitle(step, plan),
+          ...(step.efficiency === undefined
+            ? {}
+            : { badge: displayUnit(step.efficiency, "number", "%") }),
+          sections: step.sections,
+          ...(step.emptyNote === undefined
+            ? {}
+            : { emptyNote: step.emptyNote }),
+        };
+      }),
+    };
   });
-  return { byFacility, byQueue };
 }
 
 export function buildResultDisplay(
