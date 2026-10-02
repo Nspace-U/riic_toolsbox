@@ -146,11 +146,6 @@
 - 基础计算器不提供首件进度设置；名称列练度后缀默认开启，按有效练度追加精1“Ⅰ”、精2“Ⅱ”，精0不追加，且仅在当前设施存在 30 级解锁节点并达到 30 级时追加“(Lv30)”，头像列不受此设置影响。行编辑器设施强调色按该设施产物颜色显示，未配置产物色时回退设施色。
 - 基础计算器默认组合不再包含精0孑合成玉组和含阿米娅的两组精0孑组合。
 - 基础计算器核心组排序按当前组可见列解析：默认优先 24 小时效率降序，其次可见效率列中工作时长最长者降序，再次取最靠左的非名称、头像、备注数据列降序，最后按干员名称升序。无核心的其他组在用户未手动选择排序列时仅按干员名称升序；手动选择的排序列沿用全局设置，可见时优先，隐藏时核心组按上述规则回退、其他组回退到干员名称。排序列值相同时，按当前行显示的干员名称组合以 `zh-CN` 升序排列；名称组合也相同时保留原始排班行顺序。名称和文本字段采用与基建技能一览相同的 `zh-CN` 顺序，未定义值排末尾。
-- 开发服务器由 `npm run dev` 启动 `scripts/dev-server.cmd`，经 `Start-Process` 脱离启动并立即返回终端，运行时不挂在 IDE 终端、扩展宿主或任何 agent 的进程树下；`scripts/stop-dev-server.cmd` 按 5173 端口反查并停止，不使用 pid 文件。运行日志写入 `.dev-server.log`，pid 写入 `.dev-server.pid`，两者均被 `.gitignore` 的 `*.log` 与忽略规则覆盖。需要前台阻塞运行的原始行为使用 `npm run dev:blocking`。
-- `scripts/dev-server.mjs` 以 `createServer` 启动开发服务器，并把 `cacheDir` 指向独立的 `node_modules/.vite-dev`，与其它工具（回归脚本的 middleware 模式 Vite 实例）共用根目录时互不覆盖依赖优化缓存；服务固定 5173 端口，占用时直接失败而不顺延端口。该脚本自行写日志、不继承父进程标准输出句柄，因此启动器退出后服务仍然存活；`unhandledRejection` 与 `uncaughtException` 只对文件监视器的 `EBUSY`、`EPERM`、`ENOENT`（消息含 `watch '`）跳过退出，其它错误仍然终止进程。
-- `vite.config.ts` 的 `server.watch.ignored` 忽略路径段以 `-tmpdir` 结尾的目录。工具改写源文件采用「先写 `.<文件名>.<pid>.<uuid>-tmpdir/` 临时文件再改名」的原子写，chokidar 会在临时文件仍被占用时尝试 watch 它，`fs.watch` 抛出未捕获的 `EBUSY: resource busy or locked`，于是开发服务器整体退出（实测签名：`unhandledRejection: Error: EBUSY ... watch '...\\.<file>.<pid>.<uuid>-tmpdir\\<file>.tmp'`，栈顶 `NodeFsHandler._handleFile`）。
-- `server.watch.ignored` 只能写**函数或正则**：chokidar v5 的 `createPattern` 对字符串模式做的是**精确相等比较**，不展开 glob，`"**/.*-tmpdir/**"` 这类写法完全无效；而传给忽略函数的路径**不带尾部斜杠**（目录自身就是 `...-tmpdir`），所以要求尾部斜杠的 glob 也匹配不到目录本身。
-- Vite 的 watcher 内置忽略 `**/node_modules/**`、`**/.git/**`、`**/test-results/**` 与 `cacheDir`，因此 `packages/riic-efficiency/dist` 的构建写入不会触发开发服务器；不要再为构建产物添加 `server.watch.ignored`。
 
 ## 风险与下一步
 

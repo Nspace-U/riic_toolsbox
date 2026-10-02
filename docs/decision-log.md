@@ -1036,15 +1036,6 @@
 - **影响范围**：`DisplayValue.parts` 成为唯一渲染来源，数值部件保留 `value/format/unit` 供宿主继续实现原始精度悬停，`muted` 部件由宿主渲染为 `<small>`；区块种类为 `grid`、`skill-list`、`mood-list`、`candidate-list`，基地点数保留独立的列结构。不修改计算逻辑与 `EfficiencyResult` 结构。
 - **状态**：已实施。
 - **验证**：用 Vue 编译器编译旧结果区模板与新模板/组件后逐条比对旧文案与样式类：旧文案 226 条中 15 条差异全部可解释（已删除组件名、迁入脚本映射的类名、运行时拼接的复合标签、旧折叠 key），58 个 `simulator-*` 样式类全部保留；新增 `scripts/result-display-regression.mjs` 与 `scripts/fixtures/result-display-golden.json` 固定 192 行成品输出；`npm run test:result-display`、`test:simulator-result`、`test:efficiency`、`test:sanity`、`test:riic-efficiency-package`、`test:simulator-layout`、`test:operator-progression`、`npm run lint`、定向 Prettier、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
-
-## 2026-10-02：开发服务器与 IDE、agent 进程隔离
-
-- **决定**：`npm run dev` 改为启动 `scripts/dev-server.cmd`，用 `Start-Process -WindowStyle Hidden` 脱离启动 `scripts/dev-server.mjs` 后立即返回终端；前台阻塞的原始行为保留为 `npm run dev:blocking`。新增 `scripts/stop-dev-server.cmd`，按 5173 端口反查并停止。
-- **原因**：`vite` 作为终端子进程运行时，VS Code 窗口重载或扩展宿主重启会连带结束它；同时 agent 在同一仓库跑 `build:riic-efficiency` 与回归脚本时，多个 Vite 实例会争抢同一份依赖优化缓存。实测 08:02:44 启动的 dev server 在 08:13:20 随并发构建消失，两个 node 进程同秒终止、包装 shell 仍存活。
-- **影响范围**：`scripts/dev-server.mjs` 用 `createServer` 启动，把 `cacheDir` 指向独立的 `node_modules/.vite-dev`，并自行写 `.dev-server.log`、不继承父进程标准输出句柄，因此启动器退出后服务仍存活；固定 5173 端口且 `strictPort`，端口被占用时直接失败而不顺延。`.dev-server.log` 与 `.dev-server.pid` 不进入版本库。
-- **状态**：已实施。
-- **验证**：`npm run dev` 0.39 秒返回；随后运行 `npm run test:result-display`（含 `build:riic-efficiency`），30 个采样点间隔 2 秒监测 5173，owner 恒为 18808、无掉线，回归通过；`http://localhost:5173/` 返回 200；`node_modules/.vite-dev` 生成而 `node_modules/.vite` 时间戳保持 09-30 未变；启动器进程随后消失，服务仍存活且 `ppid` 已不存在（确认脱离）。
-
 ## 2026-10-02：结果区数据不再携带显示指令
 
 - **决定**：`buildResultDisplay` 的 `DisplayValue` 由 `{ text, parts }` 改为 `{ template, raws }`：`template` 是含 `{n}` 占位的文本骨架，`raws` 只保留原始数值与 `signed` 语义。删除 `format`、`unit`、`muted`、`emphasis`、`kind`、`netOnly`、`icon`、`eyebrow`。新增 `formatDisplayValue`、`formatDisplayNumber` 与 `flattenResultDisplay`。`BasePointSourceView.text` 更名 `label`。
@@ -1052,11 +1043,3 @@
 - **影响范围**：显示决策全部移到调用方——区块布局按结构推导、净量卡按 `main.raws[0].signed` 判定、图标按 `product` 查表、装饰标题由宿主写死；弱化与加粗差异被删除，容量括号与心情“计算过程”行的样式随之变化；模板里没有紧跟字面量的数值（每日产出主数值、无人机额外产出、队列时长总产出、队列等效理智数值）在悬停提示中不再带单位。
 - **状态**：已实施。
 - **验证**：`npm run test:result-display`（195 行 golden，同时固定成品文本与 `template`／`raws` 形状）、`test:simulator-result`、`test:riic-efficiency-package`、`test:sanity`、`test:efficiency`、`test:simulator-layout`、`test:operator-progression`、`test:schedule-import`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-avatar`、`test:operator-skill-generation`、`npm run lint`、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
-
-## 2026-10-02：用忽略函数修掉 chokidar 原子写临时文件导致的 dev server 崩溃
-
-- **决定**：`vite.config.ts` 的 `server.watch.ignored` 使用函数 `(path) => path.split(/[\\/]/).some((segment) => segment.endsWith("-tmpdir"))`，忽略一切以 `-tmpdir` 结尾的路径段；`scripts/dev-server.mjs` 同时只对文件监视器的 `EBUSY`、`EPERM`、`ENOENT`（消息含 `watch '`）跳过退出，其余错误照旧终止进程。
-- **原因**：工具改写源文件采用「先写 `.<文件名>.<pid>.<uuid>-tmpdir/` 下的临时文件再改名」的原子写；chokidar 会在临时文件仍被占用时对它调用 `fs.watch`，抛出无人接管的 `EBUSY: resource busy or locked`，`NodeFsHandler._handleFile` 处直接让整个 dev server 退出。实测崩溃 3 次，签名一致（08:49:09、08:53:13 由脚本触发，09:05:16 由真实 agent 写入触发），每次都是 `unhandledRejection: Error: EBUSY ... watch '...-tmpdir\\<file>.tmp'`。
-- **影响范围**：只影响开发服务器监视范围，构建、类型检查、回归与生产产物不变。既有 `server.watch.ignored` 写法若依赖 glob 字符串必须改成函数或正则：chokidar v5 的 `createPattern` 对字符串做精确相等比较，不展开 glob；传给忽略函数的路径不带尾部斜杠，目录自身即 `...-tmpdir`。
-- **状态**：已实施。
-- **验证**：用 chokidar 直接做对照实验，同一 harness 下「不忽略」产生 101 次临时路径询问与 32 个事件，「用该函数」降为 16 次询问与 0 个临时目录事件，正常文件事件保持 16 个不变；40 次带锁临时目录的 watch 会话零崩溃。真实环境重启后跨多次 agent 写入与一次 `npm run test:result-display`（含 `build:riic-efficiency`）全程 5173 owner 不变、无 EBUSY 记录；`npm run type-check`、定向 ESLint、Prettier 与 `test:result-display` 通过。

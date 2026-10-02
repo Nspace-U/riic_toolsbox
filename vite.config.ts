@@ -15,13 +15,4 @@ export default defineConfig({
       ),
     },
   },
-  server: {
-    // chokidar v5 只接受函数、正则或精确路径，glob 字符串不会被展开
-    watch: {
-      ignored: [
-        (path: string) =>
-          path.split(/[\\/]/).some((segment) => segment.endsWith("-tmpdir")),
-      ],
-    },
-  },
 });
