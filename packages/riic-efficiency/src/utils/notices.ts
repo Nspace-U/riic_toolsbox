@@ -96,9 +96,7 @@ export function buildEfficiencyNotices(
       code: "layout-inferred",
       level: "info",
       message: "本次计算使用了推测布局",
-      details: [
-        "排班表未包含布局，已按队列中的设施自动推测；如需精确结果请导入含布局的排班表",
-      ],
+      details: ["排班表未包含布局，已按队列中的设施自动推测"],
     });
   }
   const maaDroneWarnings = result.maaDroneAcceleration?.warnings ?? [];
