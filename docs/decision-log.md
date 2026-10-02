@@ -1036,6 +1036,7 @@
 - **影响范围**：`DisplayValue.parts` 成为唯一渲染来源，数值部件保留 `value/format/unit` 供宿主继续实现原始精度悬停，`muted` 部件由宿主渲染为 `<small>`；区块种类为 `grid`、`skill-list`、`mood-list`、`candidate-list`，基地点数保留独立的列结构。不修改计算逻辑与 `EfficiencyResult` 结构。
 - **状态**：已实施。
 - **验证**：用 Vue 编译器编译旧结果区模板与新模板/组件后逐条比对旧文案与样式类：旧文案 226 条中 15 条差异全部可解释（已删除组件名、迁入脚本映射的类名、运行时拼接的复合标签、旧折叠 key），58 个 `simulator-*` 样式类全部保留；新增 `scripts/result-display-regression.mjs` 与 `scripts/fixtures/result-display-golden.json` 固定 192 行成品输出；`npm run test:result-display`、`test:simulator-result`、`test:efficiency`、`test:sanity`、`test:riic-efficiency-package`、`test:simulator-layout`、`test:operator-progression`、`npm run lint`、定向 Prettier、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
+
 ## 2026-10-02：结果区数据不再携带显示指令
 
 - **决定**：`buildResultDisplay` 的 `DisplayValue` 由 `{ text, parts }` 改为 `{ template, raws }`：`template` 是含 `{n}` 占位的文本骨架，`raws` 只保留原始数值与 `signed` 语义。删除 `format`、`unit`、`muted`、`emphasis`、`kind`、`netOnly`、`icon`、`eyebrow`。新增 `formatDisplayValue`、`formatDisplayNumber` 与 `flattenResultDisplay`。`BasePointSourceView.text` 更名 `label`。
