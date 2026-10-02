@@ -97,5 +97,36 @@ const packageModule = await import(
   );
   assert.equal(resolve({ profile: profile(1, 80) }).upgraded, true);
   assert.equal(resolve({ manualElite: 1, manualLevel: 1 }).upgraded, true);
+
+  const {
+    maximumProgressionForFacility,
+    minimumProgressionForNodes,
+    progressionEntryFromUnknown,
+  } = packageModule;
+
+  assert.deepEqual(minimumProgressionForNodes([]), { elite: 0, level: 1 });
+  assert.deepEqual(maximumProgressionForFacility(skillFile, "processing"), {
+    elite: 0,
+    level: 1,
+  });
+  assert.equal(
+    resolve({ facility: "manufacture", treatSkillsAsUnlocked: false }).level,
+    1,
+  );
+  assert.equal(
+    resolve({ manualLevel: 0, treatSkillsAsUnlocked: false }).level,
+    1,
+  );
+  assert.equal(
+    progressionEntryFromUnknown({
+      id: "test_operator",
+      name: "测试干员",
+      elite: 0,
+      level: 0,
+      own: true,
+      rarity: 6,
+    }).level,
+    1,
+  );
   console.log("operator progression regression: passed");
 }

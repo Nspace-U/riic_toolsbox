@@ -23,7 +23,7 @@ function clampElite(value: number): EliteLevel {
 }
 
 function clampLevel(value: number): number {
-  return Math.max(0, Math.min(90, Math.round(value)));
+  return Math.max(1, Math.min(90, Math.round(value)));
 }
 
 function nodeKey(type: "elite" | "level", value: number): string {
@@ -98,7 +98,7 @@ export function progressionEntryFromUnknown(
     id,
     name,
     elite: clampElite(elite),
-    level,
+    level: Math.max(1, level),
     owned: value.own,
     rarity,
   };
@@ -197,7 +197,7 @@ export function minimumProgressionForNodes(
   nodes: OperatorProgressionNode[],
 ): Pick<OperatorProgressionEntry, "elite" | "level"> {
   if (nodes.length === 0) {
-    return { elite: 0, level: 0 };
+    return { elite: 0, level: 1 };
   }
 
   const eliteNodes = nodes.filter((node) => node.type === "elite");
@@ -238,7 +238,7 @@ export function maximumProgressionForFacility(
     );
   }
   if (NON_WORK_ROOMS.has(facility)) {
-    return { elite: 0, level: 0 };
+    return { elite: 0, level: 1 };
   }
   const nodes = progressionNodes(operatorSkillFile).filter((node) =>
     node.facilities.includes(facility),
