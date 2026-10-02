@@ -3117,7 +3117,8 @@ a {
   border-block-start: 1px solid #edf1f0;
 }
 
-.simulator-step-detail-grid {
+.simulator-step-detail-grid,
+.simulator-skill-detail-list {
   display: grid;
   grid-template-columns: minmax(0, max-content) minmax(0, max-content);
   gap: 4px 12px;
@@ -3130,7 +3131,9 @@ a {
 }
 
 .simulator-step-detail-grid > strong,
-.simulator-step-detail-grid > span:nth-child(even) {
+.simulator-skill-detail-row > span:nth-child(2),
+.simulator-skill-detail-calculation-row > span:last-child,
+.simulator-mood-detail-row > strong {
   color: #344447;
   font-weight: 600;
 }
@@ -3139,19 +3142,6 @@ a {
   color: #72807f;
   font-size: inherit;
   font-weight: 400;
-}
-
-.simulator-step-detail-row {
-  display: contents;
-}
-
-.simulator-step-detail-row > span:first-child {
-  color: #72807f;
-}
-
-.simulator-step-detail-row > :last-child {
-  color: #344447;
-  font-weight: 600;
 }
 
 .simulator-drone-candidate-list {
@@ -3279,71 +3269,25 @@ a {
   border-block-start: 1px solid #edf1f0;
 }
 
-.simulator-skill-detail-list {
-  display: grid;
-  grid-template-columns: minmax(0, max-content) minmax(0, max-content);
-  gap: 4px 12px;
-  width: max-content;
-  min-width: 100%;
-  color: #344447;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.simulator-skill-detail-row {
+.simulator-skill-detail-row,
+.simulator-skill-detail-calculation,
+.simulator-mood-detail-row {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
   row-gap: 4px;
 }
 
-.simulator-skill-detail-row > span {
-  padding-block: 2px;
-}
-
-.simulator-skill-detail-row > span:nth-child(2) {
-  color: #344447;
-  font-weight: 600;
-}
-
-.simulator-skill-detail-calculation {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  gap: 4px 12px;
-  color: #344447;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
 .simulator-skill-detail-calculation-row {
   display: contents;
-}
-
-.simulator-skill-detail-calculation-row > span {
-  padding-block: 2px;
 }
 
 .simulator-skill-detail-calculation-label {
   padding-inline-start: 1em;
 }
 
-.simulator-skill-detail-calculation-row > span:last-child {
-  color: #344447;
-  font-weight: 600;
-}
-
 .simulator-mood-detail-row {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  gap: 4px 12px;
   align-items: start;
-}
-
-.simulator-mood-detail-row > strong {
-  color: #344447;
-  font-weight: 600;
 }
 
 .simulator-mood-operator {
