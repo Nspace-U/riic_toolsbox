@@ -637,7 +637,7 @@ function materialRows(
     return [
       displayRow(
         `${keyPrefix}-${material.material}-base`,
-        displayText(`${labelPrefix}基础材料消耗速率`),
+        displayText(`${labelPrefix}材料消耗 · 基础速率`),
         displayValue(
           label,
           " ",
