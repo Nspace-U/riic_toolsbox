@@ -14,15 +14,15 @@ import type {
   DailyOutputDisplay,
   DisplayCard,
   DisplayEntry,
+  DisplayFlatLine,
   DisplayLine,
-  DisplayNumberFormat,
   DisplayPane,
   DisplayPlanView,
+  DisplayRawNumber,
   DisplayRow,
   DisplaySection,
   DisplayTile,
   DisplayValue,
-  DisplayValuePart,
   DroneScenarioView,
   DroneStrategyDisplay,
   FacilityStepsDisplay,
@@ -44,7 +44,6 @@ import {
   efficiencyStatLabel,
   efficiencyStatUnit,
   facilityOverflowLabel,
-  formatEfficiencyNumber,
   formatNumber,
   moodRateDetailLabel,
   moodRateFormula,
@@ -76,69 +75,102 @@ const NET_RESOURCE_KEY = "net-resource";
 const SANITY_KEY = "sanity";
 const SANITY_MISSING_KEY = "sanity-missing";
 
-function displayFormat(value: number, format: DisplayNumberFormat): string {
-  if (format === "signed") {
-    return signedNumber(value);
+type BuildNumberFormat = "number" | "production" | "efficiency" | "signed";
+
+type BuildPart =
+  | string
+  | {
+      value: number;
+      format?: BuildNumberFormat;
+      unit?: string;
+      muted?: boolean;
+    }
+  | { text: string; muted?: boolean };
+
+function composeParts(parts: readonly BuildPart[]): DisplayValue {
+  let template = "";
+  const raws: DisplayRawNumber[] = [];
+  for (const part of parts) {
+    if (typeof part === "string") {
+      template += part;
+      continue;
+    }
+    if ("text" in part) {
+      template += part.text;
+      continue;
+    }
+    template += `{${raws.length}}`;
+    raws.push({
+      value: part.value,
+      ...(part.format === "signed" ? { signed: true } : {}),
+    });
   }
-  if (format === "efficiency") {
-    return formatEfficiencyNumber(value);
-  }
-  return formatNumber(value);
+  return raws.length === 0 ? { template } : { template, raws };
 }
 
-function displayPartText(part: DisplayValuePart): string {
-  if (typeof part === "string") {
-    return part;
-  }
-  if ("text" in part) {
-    return part.text;
-  }
-  return displayFormat(part.value, part.format ?? "number");
+export function formatDisplayNumber(raw: DisplayRawNumber): string {
+  return raw.signed === true
+    ? signedNumber(raw.value)
+    : formatNumber(raw.value);
 }
 
-function displayValue(...parts: DisplayValuePart[]): DisplayValue {
-  return { text: parts.map(displayPartText).join(""), parts };
+export function formatDisplayValue(
+  value: DisplayValue,
+  format: (
+    raw: DisplayRawNumber,
+    index: number,
+  ) => string = formatDisplayNumber,
+): string {
+  const raws = value.raws;
+  if (raws === undefined || raws.length === 0) {
+    return value.template;
+  }
+  return value.template.replace(/\{(\d+)\}/g, (match, index: string) => {
+    const raw = raws[Number(index)];
+    return raw === undefined ? match : format(raw, Number(index));
+  });
+}
+
+function displayValue(...parts: BuildPart[]): DisplayValue {
+  return composeParts(parts);
 }
 
 function displayText(text: string): DisplayValue {
-  return { text, parts: [text] };
+  return { template: text };
 }
 
 function displayNumber(
   value: number,
-  format: DisplayNumberFormat = "number",
-  unit?: string,
+  format: BuildNumberFormat = "number",
 ): DisplayValue {
-  return displayValue(
-    unit === undefined ? { value, format } : { value, format, unit },
-  );
+  return composeParts([{ value, format }]);
 }
 
 function displayUnit(
   value: number,
-  format: DisplayNumberFormat,
+  format: BuildNumberFormat,
   unit: string,
 ): DisplayValue {
-  return displayValue({ value, format, unit }, unit);
+  return composeParts([{ value, format }, unit]);
 }
 
 function numberPart(
   value: number,
-  format: DisplayNumberFormat = "number",
+  format: BuildNumberFormat = "number",
   unit?: string,
-): DisplayValuePart {
+): BuildPart {
   return unit === undefined ? { value, format } : { value, format, unit };
 }
 
-function mutedText(text: string): DisplayValuePart {
+function mutedText(text: string): BuildPart {
   return { text, muted: true };
 }
 
 function mutedNumber(
   value: number,
-  format: DisplayNumberFormat = "number",
+  format: BuildNumberFormat = "number",
   unit?: string,
-): DisplayValuePart {
+): BuildPart {
   return {
     value,
     format,
@@ -151,13 +183,11 @@ function displayRow(
   key: string,
   label: DisplayValue | undefined,
   value: DisplayValue,
-  emphasis = true,
 ): DisplayRow {
   return {
     key,
     ...(label === undefined ? {} : { label }),
     value,
-    ...(emphasis ? {} : { emphasis: false }),
   };
 }
 
@@ -170,7 +200,6 @@ function displaySection(
   return {
     key,
     ...(label === undefined ? {} : { label }),
-    kind: "grid",
     rows,
     ...(sections === undefined ? {} : { sections }),
   };
@@ -255,15 +284,13 @@ function outputTile(
   const gross = card.grossAmount;
   return {
     key,
-    icon: card.product,
+    product: card.product,
     ...(card.sourceFacility === undefined
       ? {}
       : { sourceFacility: card.sourceFacility }),
-    ...(gross === undefined ? { netOnly: true } : {}),
     main: displayNumber(
       gross ?? card.netAmount,
       gross === undefined ? "signed" : "production",
-      card.netUnit,
     ),
     lines: outputTileLines(card, extraLines, includeSanity),
   };
@@ -288,7 +315,6 @@ export function buildDailyOutputDisplay(
       : [];
   return {
     key: "daily-output",
-    eyebrow: "DAILY OUTPUT",
     label: "每日产出",
     cycleHours: displayValue(
       numberPart(result.dailyHours, "number", "小时"),
@@ -299,8 +325,8 @@ export function buildDailyOutputDisplay(
       ? {
           totalTile: {
             key: "daily-sanity-total",
-            icon: "理智",
-            main: displayNumber(sanity.total, "signed", "理智"),
+            product: "理智",
+            main: displayNumber(sanity.total, "signed"),
             lines: [],
           },
         }
@@ -316,7 +342,6 @@ export function buildDroneStrategyDisplay(
   options: ResultDisplayOptions,
 ): DroneStrategyDisplay {
   return {
-    eyebrow: "DRONE ACCELERATION",
     label: "无人机使用策略",
     inputLabel: "本排班表专用策略（可选）",
     placeholder: "留空时按通用设置自动选择",
@@ -452,11 +477,7 @@ function droneCommonRows(
     displayRow(
       `${keyPrefix}-extra`,
       displayText("无人机额外产出"),
-      displayNumber(
-        detail.extraAmount,
-        "production",
-        resourceLabel(detail.product),
-      ),
+      displayNumber(detail.extraAmount, "production"),
     ),
     ...droneMaterialRows(detail, keyPrefix),
     ...droneOverflowRow(detail, keyPrefix),
@@ -544,7 +565,6 @@ function buildMaaDronePane(result: EfficiencyResult): DisplayPane | undefined {
       sections.push({
         key: `maa-${queue.planIndex}-others`,
         label: "其他设施加速收益",
-        kind: "candidate-list",
         rows: [],
         entries: others.map((candidate) => ({
           key: `candidate-${candidate.facilityId}`,
@@ -697,11 +717,7 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
     displayRow(
       `${product.product}-queue-total`,
       displayText("队列时长总产出"),
-      displayNumber(
-        product.queueTotal,
-        "production",
-        resourceLabel(product.product),
-      ),
+      displayNumber(product.queueTotal, "production"),
     ),
   ];
   const sections: DisplaySection[] = [];
@@ -709,7 +725,6 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
     sections.push({
       key: `${product.product}-materials`,
       label: "材料消耗合计",
-      kind: "grid",
       rows: materialRows(`${product.product}-material`, "", product.materials),
     });
   }
@@ -717,7 +732,6 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
     sections.push({
       key: `${product.product}-facilities`,
       label: "设施明细",
-      kind: "grid",
       rows: product.facilities.flatMap((facility) => [
         displayRow(
           `${facility.label}-eff`,
@@ -746,7 +760,6 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
   return {
     key: `product-${product.product}`,
     label: resourceLabel(product.product),
-    kind: "grid",
     rows,
     ...(sections.length ? { sections } : {}),
   };
@@ -755,7 +768,6 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
 function queueSanitySection(queue: DailyOutputQueueDetail): DisplaySection {
   const rows: DisplayRow[] = queue.sanity.items.map((item) => ({
     key: `sanity-${item.resource}`,
-    icon: item.resource,
     label: displayValue(
       item.label,
       " · ",
@@ -765,7 +777,7 @@ function queueSanitySection(queue: DailyOutputQueueDetail): DisplaySection {
       "/日",
     ),
     ...(item.contribution === undefined
-      ? { value: displayText("未计入"), muted: true }
+      ? { value: displayText("未计入") }
       : {
           value: displayValue(
             numberPart(item.contribution, "signed", "理智"),
@@ -775,7 +787,6 @@ function queueSanitySection(queue: DailyOutputQueueDetail): DisplaySection {
   }));
   rows.push({
     key: "sanity-total",
-    icon: "理智",
     label: displayText(
       queue.sanity.complete ? "队列等效理智合计" : "队列等效理智合计（部分）",
     ),
@@ -784,7 +795,7 @@ function queueSanitySection(queue: DailyOutputQueueDetail): DisplaySection {
       "理智/日",
     ),
   });
-  return { key: "queue-sanity", label: "队列等效理智", kind: "grid", rows };
+  return { key: "queue-sanity", label: "队列等效理智", rows };
 }
 
 function buildDailyOutputBreakdownPane(
@@ -840,7 +851,7 @@ function buildBasePointDisplay(
       value: displayNumber(point.value),
       sources: point.sources.map((source: BasePointSource, index) => ({
         key: `${point.term}-${source.operator}-${source.kind}-${index}`,
-        text: displayText(
+        label: displayText(
           options.basePointSource?.(source) ??
             formatBasePointSource(source, {}),
         ),
@@ -858,7 +869,6 @@ function skillSection(
   return {
     key: "skill-details",
     label: "生效技能明细",
-    kind: "skill-list",
     rows: [],
     entries: details.map((detail, index): DisplayEntry => {
       const unit = efficiencyStatUnit(detail.stat);
@@ -890,7 +900,6 @@ function moodSection(
   return {
     key: "moods",
     label: "干员心情消耗步骤",
-    kind: "mood-list",
     rows: [],
     entries: moods.map((mood) => {
       const rows: DisplayRow[] = mood.rateDetails.map((detail, index) => ({
@@ -910,7 +919,6 @@ function moodSection(
           displayValue(
             `${formatNumber(mood.start)} - ${formatNumber(mood.costRate)} × ${formatNumber(plan.durationHours)} = ${formatNumber(mood.end)}`,
           ),
-          false,
         ),
         displayRow(
           "mood-end",
@@ -1081,7 +1089,6 @@ function productionSection(
     sections.push({
       key: "capacity-segments",
       label: "动态容量时间段",
-      kind: "grid",
       rows: capacity.segments.map((segment) => ({
         key: `capacity-segment-${segment.startHours}-${segment.endHours}`,
         label: displayValue(
@@ -1107,7 +1114,6 @@ function productionSection(
     sections.push({
       key: "production-orders",
       label: "订单摘要",
-      kind: "grid",
       rows: production.orders.map((order, index) => ({
         key: `order-${order.name}-${order.time}-${order.quantity}-${index}`,
         label: displayValue(
@@ -1337,7 +1343,6 @@ export function buildResultDisplay(
     droneStrategy: buildDroneStrategyDisplay(options),
     droneScenarios: buildDroneScenarioViews(result, options),
     calculationSteps: {
-      eyebrow: "CALCULATION STEPS",
       label: "计算步骤",
       hint: "展开分区查看详细计算过程",
       ...(maaDrone === undefined ? {} : { maaDrone }),
@@ -1346,4 +1351,217 @@ export function buildResultDisplay(
       facilitySteps: buildFacilitySteps(result, options),
     },
   };
+}
+
+export function flattenResultDisplay(
+  display: ResultDisplay,
+  format: (
+    raw: DisplayRawNumber,
+    index: number,
+  ) => string = formatDisplayNumber,
+): DisplayFlatLine[] {
+  const lines: DisplayFlatLine[] = [];
+  const push = (
+    level: number,
+    key: string,
+    value: DisplayValue | undefined,
+    label?: string,
+  ): void => {
+    if (value === undefined) {
+      return;
+    }
+    lines.push({
+      level,
+      key,
+      ...(label === undefined ? {} : { label }),
+      text: formatDisplayValue(value, format),
+    });
+  };
+  const pushSections = (sections: readonly DisplaySection[], level: number) => {
+    for (const section of sections) {
+      lines.push({
+        level,
+        key: section.key,
+        ...(section.label === undefined ? {} : { label: section.label }),
+        text: section.label ?? "",
+      });
+      for (const row of section.rows) {
+        push(
+          level + 1,
+          row.key,
+          row.value,
+          row.label === undefined
+            ? undefined
+            : formatDisplayValue(row.label, format),
+        );
+      }
+      for (const entry of section.entries ?? []) {
+        push(
+          level + 1,
+          entry.key,
+          entry.title,
+          entry.value === undefined
+            ? undefined
+            : formatDisplayValue(entry.value, format),
+        );
+        for (const cell of entry.cells ?? []) {
+          push(level + 2, `${entry.key}-cell`, cell);
+        }
+        for (const row of entry.rows) {
+          push(
+            level + 2,
+            row.key,
+            row.value,
+            row.label === undefined
+              ? undefined
+              : formatDisplayValue(row.label, format),
+          );
+        }
+      }
+      pushSections(section.sections ?? [], level + 1);
+    }
+  };
+  const pushCards = (cards: readonly DisplayCard[], level: number) => {
+    for (const card of cards) {
+      lines.push({
+        level,
+        key: card.key,
+        label: formatDisplayValue(card.title, format),
+        text: [
+          formatDisplayValue(card.title, format),
+          card.subtitle === undefined
+            ? ""
+            : formatDisplayValue(card.subtitle, format),
+          card.badge === undefined
+            ? ""
+            : formatDisplayValue(card.badge, format),
+        ]
+          .filter(Boolean)
+          .join(" "),
+      });
+      pushSections(card.sections, level + 1);
+    }
+  };
+
+  lines.push({
+    level: 0,
+    key: display.dailyOutput.key,
+    text: display.dailyOutput.label,
+  });
+  push(1, "cycle", display.dailyOutput.cycleHours);
+  for (const tile of display.dailyOutput.tiles) {
+    push(1, tile.key, tile.main, tile.product);
+    for (const line of tile.lines) {
+      push(2, `${tile.key}-${line.key}`, line.value);
+    }
+  }
+  if (display.dailyOutput.totalTile) {
+    push(
+      1,
+      display.dailyOutput.totalTile.key,
+      display.dailyOutput.totalTile.main,
+      display.dailyOutput.totalTile.product,
+    );
+  }
+
+  lines.push({
+    level: 0,
+    key: "drone-strategy",
+    text: display.droneStrategy.label,
+  });
+  for (const scenario of display.droneScenarios) {
+    lines.push({
+      level: 1,
+      key: scenario.key,
+      label: formatDisplayValue(scenario.title, format),
+      text: [
+        formatDisplayValue(scenario.title, format),
+        formatDisplayValue(scenario.meta, format),
+        formatDisplayValue(scenario.baseRate, format),
+      ].join(" "),
+    });
+    for (const view of scenario.views) {
+      lines.push({
+        level: 2,
+        key: `${scenario.key}-${view.key}`,
+        text: view.label,
+      });
+      for (const tile of view.tiles) {
+        push(3, tile.key, tile.main, tile.product);
+        for (const line of tile.lines) {
+          push(4, `${tile.key}-${line.key}`, line.value);
+        }
+      }
+    }
+  }
+
+  const steps = display.calculationSteps;
+  lines.push({ level: 0, key: "calculation-steps", text: steps.label });
+  if (steps.maaDrone) {
+    lines.push({
+      level: 1,
+      key: steps.maaDrone.key,
+      text: [
+        steps.maaDrone.label,
+        steps.maaDrone.hint === undefined
+          ? ""
+          : formatDisplayValue(steps.maaDrone.hint, format),
+      ]
+        .filter(Boolean)
+        .join(" "),
+    });
+    pushCards(steps.maaDrone.cards, 2);
+  }
+  if (steps.dailyOutput) {
+    lines.push({
+      level: 1,
+      key: steps.dailyOutput.key,
+      text: steps.dailyOutput.label,
+    });
+    pushCards(steps.dailyOutput.cards, 2);
+  }
+  if (steps.basePoints) {
+    lines.push({
+      level: 1,
+      key: steps.basePoints.key,
+      text: steps.basePoints.label,
+    });
+    for (const column of steps.basePoints.columns) {
+      push(2, column.key, column.title);
+      push(3, `${column.key}-duration`, column.subtitle);
+      for (const point of column.points) {
+        push(3, point.key, point.value, formatDisplayValue(point.name, format));
+        for (const source of point.sources) {
+          push(
+            4,
+            source.key,
+            source.value,
+            formatDisplayValue(source.label, format),
+          );
+        }
+      }
+    }
+  }
+  for (const plan of steps.facilitySteps.plans) {
+    lines.push({
+      level: 1,
+      key: `plan-${plan.planIndex}`,
+      text: `${plan.name} ${plan.durationHours} 小时`,
+    });
+  }
+  for (const step of steps.facilitySteps.steps) {
+    lines.push({
+      level: 1,
+      key: step.key,
+      text: [
+        step.facilityLabel,
+        step.inheritedLabel === undefined ? "" : step.inheritedLabel,
+        step.efficiency === undefined ? "" : String(step.efficiency),
+      ]
+        .filter(Boolean)
+        .join(" "),
+    });
+    pushSections(step.sections, 2);
+  }
+  return lines;
 }

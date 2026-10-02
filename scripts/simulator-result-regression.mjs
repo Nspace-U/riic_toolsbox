@@ -146,7 +146,7 @@ const [displayValue, displaySection, displayCard, displayTile] =
 
 assert.match(displayValue, /SimulatorNumericValue/);
 assert.match(displayValue, /props\.value\.template/);
-assert.match(displayValue, /PLACEHOLDER\.exec\(template\)/);
+assert.match(displayValue, /template\.matchAll/);
 assert.match(
   displayValue,
   /:mode="segment\.raw\.signed \? 'signed' : 'number'"/,
@@ -203,7 +203,10 @@ assert.match(
 );
 assert.match(displayTile, /--simulator-daily-output-accent/);
 assert.match(displayTile, /line\.key === 'sanity'/);
-assert.match(displayTile, /props\.tile\.main\.raws\?\.\[0\]\?\.signed === true/);
+assert.match(
+  displayTile,
+  /props\.tile\.main\.raws\?\.\[0\]\?\.signed === true/,
+);
 assert.match(displayTile, /props\.tile\.product/);
 assert.doesNotMatch(displayTile, /netOnly|tile\.icon|muted/);
 
