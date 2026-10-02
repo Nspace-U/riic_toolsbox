@@ -1044,3 +1044,11 @@
 - **影响范围**：`scripts/dev-server.mjs` 用 `createServer` 启动，把 `cacheDir` 指向独立的 `node_modules/.vite-dev`，并自行写 `.dev-server.log`、不继承父进程标准输出句柄，因此启动器退出后服务仍存活；固定 5173 端口且 `strictPort`，端口被占用时直接失败而不顺延。`.dev-server.log` 与 `.dev-server.pid` 不进入版本库。
 - **状态**：已实施。
 - **验证**：`npm run dev` 0.39 秒返回；随后运行 `npm run test:result-display`（含 `build:riic-efficiency`），30 个采样点间隔 2 秒监测 5173，owner 恒为 18808、无掉线，回归通过；`http://localhost:5173/` 返回 200；`node_modules/.vite-dev` 生成而 `node_modules/.vite` 时间戳保持 09-30 未变；启动器进程随后消失，服务仍存活且 `ppid` 已不存在（确认脱离）。
+
+## 2026-10-02：结果区数据不再携带显示指令
+
+- **决定**：`buildResultDisplay` 的 `DisplayValue` 由 `{ text, parts }` 改为 `{ template, raws }`：`template` 是含 `{n}` 占位的文本骨架，`raws` 只保留原始数值与 `signed` 语义。删除 `format`、`unit`、`muted`、`emphasis`、`kind`、`netOnly`、`icon`、`eyebrow`。新增 `formatDisplayValue`、`formatDisplayNumber` 与 `flattenResultDisplay`。`BasePointSourceView.text` 更名 `label`。
+- **原因**：调用方需要的是数据，不是"如何显示"；旧结构里 `text` 与 `parts` 互为副本（实测 `text` 占返回体积 16.2%、`parts` 占 42.6%），且 `parts` 同时承担格式化名、单位与样式标记。实测 `number`／`production`／`efficiency` 三种格式的格式化结果完全一致，只有 `signed` 有信息量。
+- **影响范围**：显示决策全部移到调用方——区块布局按结构推导、净量卡按 `main.raws[0].signed` 判定、图标按 `product` 查表、装饰标题由宿主写死；弱化与加粗差异被删除，容量括号与心情“计算过程”行的样式随之变化；模板里没有紧跟字面量的数值（每日产出主数值、无人机额外产出、队列时长总产出、队列等效理智数值）在悬停提示中不再带单位。
+- **状态**：已实施。
+- **验证**：`npm run test:result-display`（195 行 golden，同时固定成品文本与 `template`／`raws` 形状）、`test:simulator-result`、`test:riic-efficiency-package`、`test:sanity`、`test:efficiency`、`test:simulator-layout`、`test:operator-progression`、`test:schedule-import`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-avatar`、`test:operator-skill-generation`、`npm run lint`、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。

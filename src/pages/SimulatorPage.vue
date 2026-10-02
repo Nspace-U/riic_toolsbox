@@ -7486,7 +7486,9 @@ defineExpose({ prepareScheduleReferenceImage });
                                 class="simulator-base-point-source"
                               >
                                 <span>
-                                  <SimulatorDisplayValue :value="source.label" />
+                                  <SimulatorDisplayValue
+                                    :value="source.label"
+                                  />
                                 </span>
                                 <strong>
                                   <SimulatorDisplayValue

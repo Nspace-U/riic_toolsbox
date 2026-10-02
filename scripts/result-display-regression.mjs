@@ -412,12 +412,14 @@ function flatten(entries) {
       : `${item.template}#${item.raws
           .map((raw) => `${raw.value}${raw.signed === true ? "s" : ""}`)
           .join(",")}`;
-  
+
   lines.push(`cycle:${value(entries.dailyOutput.cycleHours)}`);
   for (const tile of entries.dailyOutput.tiles) {
     lines.push(`tile:${tile.product}:${value(tile.main)}|${raws(tile.main)}`);
     for (const line of tile.lines) {
-      lines.push(`tile-line:${tile.key}:${line.key}:${value(line.value)}|${raws(line.value)}`);
+      lines.push(
+        `tile-line:${tile.key}:${line.key}:${value(line.value)}|${raws(line.value)}`,
+      );
     }
   }
   if (entries.dailyOutput.totalTile) {
@@ -436,7 +438,9 @@ function flatten(entries) {
         `scenario-view:${view.key}:${view.label}:${view.tiles.length}`,
       );
       for (const tile of view.tiles) {
-        lines.push(`scenario-tile:${tile.key}:${value(tile.main)}|${raws(tile.main)}`);
+        lines.push(
+          `scenario-tile:${tile.key}:${value(tile.main)}|${raws(tile.main)}`,
+        );
       }
     }
   }
@@ -452,20 +456,26 @@ function flatten(entries) {
       for (const section of card.sections) {
         lines.push(`section:${section.label ?? ""}`);
         for (const row of section.rows) {
-          lines.push(`row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
+          lines.push(
+            `row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+          );
         }
         for (const entry of section.entries ?? []) {
           lines.push(
             `entry:${value(entry.title)}|${value(entry.value)}|${(entry.cells ?? []).map((cell) => value(cell)).join(" || ")}`,
           );
           for (const row of entry.rows) {
-            lines.push(`entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
+            lines.push(
+              `entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+            );
           }
         }
         for (const child of section.sections ?? []) {
           lines.push(`subsection:${child.label ?? ""}`);
           for (const row of child.rows) {
-            lines.push(`subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
+            lines.push(
+              `subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+            );
           }
         }
       }
@@ -488,7 +498,9 @@ function flatten(entries) {
         for (const child of section.sections ?? []) {
           lines.push(`subsection:${child.label ?? ""}`);
           for (const row of child.rows) {
-            lines.push(`subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
+            lines.push(
+              `subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+            );
           }
         }
       }
@@ -526,7 +538,9 @@ function flatten(entries) {
       for (const entry of section.entries ?? []) {
         lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
         for (const row of entry.rows) {
-          lines.push(`entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
+          lines.push(
+            `entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+          );
         }
       }
       for (const child of section.sections ?? []) {
