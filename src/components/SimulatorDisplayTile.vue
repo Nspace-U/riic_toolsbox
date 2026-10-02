@@ -25,12 +25,16 @@ const LINE_CLASSES: Record<string, string> = {
 function lineClass(key: string): string {
   return LINE_CLASSES[key] ?? "simulator-daily-output-net";
 }
+
+function isNetTile(): boolean {
+  return props.tile.main.raws?.[0]?.signed === true;
+}
 </script>
 
 <template>
   <div
     :class="{
-      'simulator-daily-output-item--net': props.tile.netOnly === true,
+      'simulator-daily-output-item--net': isNetTile(),
       'simulator-daily-output-item--accent': props.accent !== undefined,
     }"
     :style="
@@ -42,7 +46,7 @@ function lineClass(key: string): string {
   >
     <img
       v-if="props.icon"
-      :alt="props.tile.icon ? resourceLabel(props.tile.icon) : ''"
+      :alt="props.tile.product ? resourceLabel(props.tile.product) : ''"
       :src="props.icon"
       class="simulator-daily-output-icon"
     />

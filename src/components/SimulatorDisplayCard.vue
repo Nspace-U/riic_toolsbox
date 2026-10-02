@@ -6,9 +6,11 @@ const props = withDefaults(
   defineProps<{
     card: DisplayCard;
     iconUrl?: (key: string) => string | undefined;
+    sanityIcon?: string;
   }>(),
   {
     iconUrl: undefined,
+    sanityIcon: undefined,
   },
 );
 </script>
@@ -22,6 +24,7 @@ const props = withDefaults(
       v-for="section in props.card.sections"
       :key="section.key"
       :icon-url="props.iconUrl"
+      :sanity-icon="props.sanityIcon"
       :section="section"
     />
     <a-empty

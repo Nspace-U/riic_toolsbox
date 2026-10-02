@@ -404,22 +404,24 @@ const display = packageModule.buildResultDisplay(result, {
 
 function flatten(entries) {
   const lines = [];
-  const value = (item) => (item === undefined ? "" : item.text);
-  const muted = (item) =>
-    item === undefined
-      ? 0
-      : item.parts.filter((part) => typeof part !== "string" && part.muted)
-          .length;
-  lines.push(`eyebrow:${entries.dailyOutput.eyebrow}`);
-  lines.push(`cycle:${entries.dailyOutput.cycleHours.text}`);
+  const value = (item) =>
+    item === undefined ? "" : packageModule.formatDisplayValue(item);
+  const raws = (item) =>
+    item?.raws === undefined
+      ? ""
+      : `${item.template}#${item.raws
+          .map((raw) => `${raw.value}${raw.signed === true ? "s" : ""}`)
+          .join(",")}`;
+  
+  lines.push(`cycle:${value(entries.dailyOutput.cycleHours)}`);
   for (const tile of entries.dailyOutput.tiles) {
-    lines.push(`tile:${tile.icon}:${tile.main.text}`);
+    lines.push(`tile:${tile.product}:${value(tile.main)}|${raws(tile.main)}`);
     for (const line of tile.lines) {
-      lines.push(`tile-line:${tile.key}:${line.key}:${line.value.text}`);
+      lines.push(`tile-line:${tile.key}:${line.key}:${value(line.value)}|${raws(line.value)}`);
     }
   }
   if (entries.dailyOutput.totalTile) {
-    lines.push(`tile-total:${entries.dailyOutput.totalTile.main.text}`);
+    lines.push(`tile-total:${value(entries.dailyOutput.totalTile.main)}`);
   }
   if (entries.dailyOutput.warning) {
     lines.push(`daily-warning:${entries.dailyOutput.warning}`);
@@ -427,43 +429,43 @@ function flatten(entries) {
   lines.push(`strategy:${entries.droneStrategy.label}`);
   lines.push(`strategy-hint:${entries.droneStrategy.hint}`);
   for (const scenario of entries.droneScenarios) {
-    lines.push(`scenario:${scenario.title.text}:${scenario.meta.text}`);
-    lines.push(`scenario-base:${scenario.baseRate.text}`);
+    lines.push(`scenario:${value(scenario.title)}:${value(scenario.meta)}`);
+    lines.push(`scenario-base:${value(scenario.baseRate)}`);
     for (const view of scenario.views) {
       lines.push(
         `scenario-view:${view.key}:${view.label}:${view.tiles.length}`,
       );
       for (const tile of view.tiles) {
-        lines.push(`scenario-tile:${tile.key}:${tile.main.text}`);
+        lines.push(`scenario-tile:${tile.key}:${value(tile.main)}|${raws(tile.main)}`);
       }
     }
   }
   const steps = entries.calculationSteps;
-  lines.push(`steps:${steps.eyebrow}:${steps.label}:${steps.hint}`);
+  lines.push(`steps:${steps.label}:${steps.hint}`);
   if (steps.maaDrone) {
     lines.push(`pane:${steps.maaDrone.key}:${steps.maaDrone.label}`);
-    lines.push(`pane-hint:${steps.maaDrone.hint.text}`);
+    lines.push(`pane-hint:${value(steps.maaDrone.hint)}`);
     for (const card of steps.maaDrone.cards) {
       lines.push(
-        `card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}`,
+        `card:${value(card.title)}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}`,
       );
       for (const section of card.sections) {
-        lines.push(`section:${section.label ?? ""}:${section.kind ?? "grid"}`);
+        lines.push(`section:${section.label ?? ""}`);
         for (const row of section.rows) {
-          lines.push(`row:${value(row.label)}|${value(row.value)}`);
+          lines.push(`row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
         }
         for (const entry of section.entries ?? []) {
           lines.push(
-            `entry:${value(entry.title)}|${value(entry.value)}|${(entry.cells ?? []).map((cell) => cell.text).join(" || ")}`,
+            `entry:${value(entry.title)}|${value(entry.value)}|${(entry.cells ?? []).map((cell) => value(cell)).join(" || ")}`,
           );
           for (const row of entry.rows) {
-            lines.push(`entry-row:${value(row.label)}|${value(row.value)}`);
+            lines.push(`entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
           }
         }
         for (const child of section.sections ?? []) {
           lines.push(`subsection:${child.label ?? ""}`);
           for (const row of child.rows) {
-            lines.push(`subrow:${value(row.label)}|${value(row.value)}`);
+            lines.push(`subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
           }
         }
       }
@@ -471,22 +473,22 @@ function flatten(entries) {
   }
   if (steps.dailyOutput) {
     lines.push(`pane:${steps.dailyOutput.key}:${steps.dailyOutput.label}`);
-    lines.push(`pane-hint:${steps.dailyOutput.hint.text}`);
+    lines.push(`pane-hint:${value(steps.dailyOutput.hint)}`);
     for (const card of steps.dailyOutput.cards) {
       lines.push(
-        `card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}`,
+        `card:${value(card.title)}|${value(card.subtitle)}|${value(card.badge)}`,
       );
       for (const section of card.sections) {
-        lines.push(`section:${section.label ?? ""}:${section.kind ?? "grid"}`);
+        lines.push(`section:${section.label ?? ""}`);
         for (const row of section.rows) {
           lines.push(
-            `row:${value(row.label)}|${value(row.value)}|${row.icon ?? ""}|${row.muted === true}`,
+            `row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
           );
         }
         for (const child of section.sections ?? []) {
           lines.push(`subsection:${child.label ?? ""}`);
           for (const row of child.rows) {
-            lines.push(`subrow:${value(row.label)}|${value(row.value)}`);
+            lines.push(`subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
           }
         }
       }
@@ -496,12 +498,12 @@ function flatten(entries) {
     lines.push(`pane:${steps.basePoints.key}:${steps.basePoints.label}`);
     for (const column of steps.basePoints.columns) {
       lines.push(
-        `card:${column.title.text}|${value(column.subtitle)}|${column.empty}`,
+        `card:${value(column.title)}|${value(column.subtitle)}|${column.empty}`,
       );
       for (const point of column.points) {
-        lines.push(`point:${point.name.text}|${point.value.text}`);
+        lines.push(`point:${value(point.name)}|${value(point.value)}`);
         for (const source of point.sources) {
-          lines.push(`source:${source.text.text}|${source.value.text}`);
+          lines.push(`source:${value(source.label)}|${value(source.value)}`);
         }
       }
     }
@@ -515,23 +517,23 @@ function flatten(entries) {
       `step:${step.key}:${step.planIndex}:${step.facilityId ?? ""}:${step.facilityLabel}:${step.inheritedLabel ?? ""}:${step.efficiency ?? ""}:${step.emptyNote ?? ""}`,
     );
     for (const section of step.sections) {
-      lines.push(`section:${section.label ?? ""}:${section.kind ?? "grid"}`);
+      lines.push(`section:${section.label ?? ""}`);
       for (const row of section.rows) {
         lines.push(
-          `row:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
+          `row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
         );
       }
       for (const entry of section.entries ?? []) {
         lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
         for (const row of entry.rows) {
-          lines.push(`entry-row:${value(row.label)}|${value(row.value)}`);
+          lines.push(`entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`);
         }
       }
       for (const child of section.sections ?? []) {
         lines.push(`subsection:${child.label ?? ""}`);
         for (const row of child.rows) {
           lines.push(
-            `subrow:${value(row.label)}|${value(row.value)}|m${muted(row.value)}`,
+            `subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
           );
         }
       }
@@ -543,13 +545,13 @@ function flatten(entries) {
     );
     for (const card of pane.cards) {
       lines.push(
-        `card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}|${card.emptyNote ?? ""}`,
+        `card:${value(card.title)}|${value(card.subtitle)}|${value(card.badge)}|${card.empty ?? ""}|${card.emptyNote ?? ""}`,
       );
     }
   }
   for (const card of packageModule.buildFacilityStepCards(facilitySteps)) {
     lines.push(
-      `queue-card:${card.title.text}|${value(card.subtitle)}|${value(card.badge)}|${card.emptyNote ?? ""}:${card.sections.length}`,
+      `queue-card:${value(card.title)}|${value(card.subtitle)}|${value(card.badge)}|${card.emptyNote ?? ""}:${card.sections.length}`,
     );
   }
   return lines;

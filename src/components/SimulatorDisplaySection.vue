@@ -1,21 +1,36 @@
 <script setup lang="ts">
-import type { DisplaySection } from "@arknights/riic-efficiency";
+import type { DisplaySection, DisplayValue } from "@arknights/riic-efficiency";
+import { formatDisplayValue } from "@arknights/riic-efficiency";
 import SimulatorDisplayValue from "@/components/SimulatorDisplayValue.vue";
+
+type SectionLayout = "grid" | "skill-list" | "mood-list" | "candidate-list";
 
 const props = withDefaults(
   defineProps<{
     section: DisplaySection;
     nested?: boolean;
     iconUrl?: (key: string) => string | undefined;
+    sanityIcon?: string;
   }>(),
   {
     nested: false,
     iconUrl: undefined,
+    sanityIcon: undefined,
   },
 );
 
-function sectionIconUrl(key: string): string | undefined {
-  return props.iconUrl?.(key);
+function sectionLayout(): SectionLayout {
+  const entries = props.section.entries ?? [];
+  if (entries.length === 0) {
+    return "grid";
+  }
+  if (entries.some((entry) => entry.cells !== undefined)) {
+    return "candidate-list";
+  }
+  if (entries.some((entry) => entry.value !== undefined)) {
+    return "skill-list";
+  }
+  return "mood-list";
 }
 
 const SECTION_CLASSES: Record<string, string> = {
@@ -28,6 +43,20 @@ function sectionClass(): (string | undefined)[] {
     SECTION_CLASSES[props.section.key],
   ];
 }
+
+function labelText(value: DisplayValue | undefined): string {
+  return value === undefined ? "" : formatDisplayValue(value);
+}
+
+function rowIconUrl(rowKey: string): string | undefined {
+  if (rowKey === "sanity-total") {
+    return props.sanityIcon;
+  }
+  if (rowKey.startsWith("sanity-")) {
+    return props.iconUrl?.(rowKey.slice("sanity-".length));
+  }
+  return undefined;
+}
 </script>
 
 <template>
@@ -35,35 +64,25 @@ function sectionClass(): (string | undefined)[] {
     <span v-if="props.section.label" class="simulator-step-subheading">{{
       props.section.label
     }}</span>
-    <div
-      v-if="props.section.kind === 'grid'"
-      class="simulator-step-detail-grid"
-    >
+    <div v-if="sectionLayout() === 'grid'" class="simulator-step-detail-grid">
       <template v-for="row in props.section.rows" :key="row.key">
-        <span v-if="row.icon" class="simulator-sanity-detail-label">
+        <span v-if="rowIconUrl(row.key)" class="simulator-sanity-detail-label">
           <img
-            v-if="sectionIconUrl(row.icon)"
-            :alt="row.label?.text ?? ''"
-            :src="sectionIconUrl(row.icon)"
+            :alt="labelText(row.label)"
+            :src="rowIconUrl(row.key)"
             class="simulator-daily-output-icon"
           />
           <SimulatorDisplayValue v-if="row.label" :value="row.label" />
         </span>
         <SimulatorDisplayValue v-else-if="row.label" :value="row.label" />
         <span v-else aria-hidden="true"></span>
-        <span v-if="row.muted" class="simulator-sanity-missing">
-          <SimulatorDisplayValue v-if="row.value" :value="row.value" />
-        </span>
-        <strong v-else-if="row.emphasis !== false">
+        <strong>
           <SimulatorDisplayValue v-if="row.value" :value="row.value" />
         </strong>
-        <span v-else>
-          <SimulatorDisplayValue v-if="row.value" :value="row.value" />
-        </span>
       </template>
     </div>
     <div
-      v-else-if="props.section.kind === 'skill-list'"
+      v-else-if="sectionLayout() === 'skill-list'"
       class="simulator-skill-detail-list"
     >
       <div
@@ -101,7 +120,7 @@ function sectionClass(): (string | undefined)[] {
       </div>
     </div>
     <div
-      v-else-if="props.section.kind === 'mood-list'"
+      v-else-if="sectionLayout() === 'mood-list'"
       class="simulator-step-detail-grid"
     >
       <div
@@ -117,19 +136,13 @@ function sectionClass(): (string | undefined)[] {
             <SimulatorDisplayValue :value="row.label" />
           </span>
           <span v-else aria-hidden="true"></span>
-          <strong v-if="row.emphasis !== false">
+          <strong>
             <SimulatorDisplayValue v-if="row.value" :value="row.value" />
           </strong>
-          <span v-else>
-            <SimulatorDisplayValue v-if="row.value" :value="row.value" />
-          </span>
         </template>
       </div>
     </div>
-    <div
-      v-else-if="props.section.kind === 'candidate-list'"
-      class="simulator-drone-candidate-list"
-    >
+    <div v-else class="simulator-drone-candidate-list">
       <div
         v-for="entry in props.section.entries"
         :key="entry.key"
@@ -165,6 +178,7 @@ function sectionClass(): (string | undefined)[] {
       v-for="child in props.section.sections"
       :key="child.key"
       :icon-url="props.iconUrl"
+      :sanity-icon="props.sanityIcon"
       nested
       :section="child"
     />

@@ -77,7 +77,7 @@ assert.match(
 );
 assert.doesNotMatch(queueBlock, /facility\.materials/);
 assert.doesNotMatch(queueBlock, /product\.materials/);
-assert.doesNotMatch(queueBlock, /sanityIconUrl\(\)/);
+assert.match(queueBlock, /:sanity-icon="sanityIconUrl\(\)"/);
 
 assert.match(
   basePointBlock,
@@ -124,6 +124,8 @@ assert.doesNotMatch(template, /otherDroneCandidates/);
 assert.doesNotMatch(template, /dailyOutputCardStyle/);
 assert.doesNotMatch(template, /dailyOutputCardAccent/);
 assert.doesNotMatch(template, /dailySanityResult/);
+assert.doesNotMatch(template, /tile\.icon|\.eyebrow\b/);
+assert.doesNotMatch(resultBlock, /part\.format|\.parts\b|\.text\b/);
 
 const stepContentExists = await readFile(
   "src/components/SimulatorCalculationStepContent.vue",
@@ -143,8 +145,14 @@ const [displayValue, displaySection, displayCard, displayTile] =
   ]);
 
 assert.match(displayValue, /SimulatorNumericValue/);
-assert.match(displayValue, /v-for="\(part, index\) in props\.value\.parts"/);
-assert.match(displayValue, /:mode="part\.format"/);
+assert.match(displayValue, /props\.value\.template/);
+assert.match(displayValue, /PLACEHOLDER\.exec\(template\)/);
+assert.match(
+  displayValue,
+  /:mode="segment\.raw\.signed \? 'signed' : 'number'"/,
+);
+assert.match(displayValue, /unit: following\.trimStart\(\)\.split/);
+assert.doesNotMatch(displayValue, /muted|<small/);
 
 assert.match(
   displaySection,
@@ -158,12 +166,25 @@ assert.match(
   displaySection,
   /class="simulator-skill-detail-calculation-label"/,
 );
+assert.match(displaySection, /function sectionLayout\(\): SectionLayout/);
+assert.match(
+  displaySection,
+  /entries\.some\(\(entry\) => entry\.cells !== undefined\)/,
+);
+assert.match(
+  displaySection,
+  /entries\.some\(\(entry\) => entry\.value !== undefined\)/,
+);
+assert.match(displaySection, /rowKey\.startsWith\("sanity-"\)/);
+assert.match(displaySection, /formatDisplayValue/);
+assert.doesNotMatch(displaySection, /muted|emphasis|row\.icon/);
 assert.match(displaySection, /<SimulatorDisplaySection/);
 assert.match(displaySection, /:nested="true"|nested/);
 
 assert.match(displayCard, /class="simulator-step-column-empty"/);
 assert.match(displayCard, /class="simulator-step-content"/);
 assert.match(displayCard, /class="simulator-step-empty"/);
+assert.match(displayCard, /:sanity-icon="props\.sanityIcon"/);
 
 assert.match(displayTile, /class="simulator-daily-output-item"/);
 assert.match(displayTile, /'simulator-daily-output-item--net'/);
@@ -182,9 +203,16 @@ assert.match(
 );
 assert.match(displayTile, /--simulator-daily-output-accent/);
 assert.match(displayTile, /line\.key === 'sanity'/);
+assert.match(displayTile, /props\.tile\.main\.raws\?\.\[0\]\?\.signed === true/);
+assert.match(displayTile, /props\.tile\.product/);
+assert.doesNotMatch(displayTile, /netOnly|tile\.icon|muted/);
 
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);
 assert.match(resultBlock, /show-icon/);
+assert.match(resultBlock, /class="simulator-eyebrow">DAILY OUTPUT</);
+assert.match(resultBlock, /class="simulator-eyebrow">DRONE ACCELERATION</);
+assert.match(resultBlock, /class="simulator-eyebrow">CALCULATION STEPS</);
+assert.match(resultBlock, /:sanity-icon="sanityIconUrl\(\)"/);
 assert.equal((resultBlock.match(/type="warning"/g) ?? []).length, 1);
 assert.equal((resultBlock.match(/type="error"/g) ?? []).length, 1);
 assert.equal((resultBlock.match(/:image="undefined"/g) ?? []).length, 2);

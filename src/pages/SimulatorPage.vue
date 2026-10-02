@@ -1030,7 +1030,7 @@ function dailyOutputSourceFacility(product: string): RoomKey | undefined {
 }
 
 function displayTileAccent(tile: DisplayTile): string | undefined {
-  const productColor = productAccent(tile.icon ?? "");
+  const productColor = productAccent(tile.product ?? "");
   if (productColor) {
     return productColor;
   }
@@ -1045,7 +1045,7 @@ function displayTileIconUrl(tile: DisplayTile): string | undefined {
   if (tile.key === "daily-sanity-total") {
     return sanityIconUrl();
   }
-  return tile.icon ? dailyOutputIconUrl(tile.icon) : undefined;
+  return tile.product ? dailyOutputIconUrl(tile.product) : undefined;
 }
 
 const lmdDroneFacilityExists = computed(() => {
@@ -7202,9 +7202,7 @@ defineExpose({ prepareScheduleReferenceImage });
             <div class="simulator-daily-output">
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">{{
-                    resultDisplay.dailyOutput.eyebrow
-                  }}</span>
+                  <span class="simulator-eyebrow">DAILY OUTPUT</span>
                   <h3>{{ resultDisplay.dailyOutput.label }}</h3>
                 </div>
                 <a-tag color="blue"
@@ -7259,9 +7257,7 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">{{
-                    resultDisplay.droneStrategy.eyebrow
-                  }}</span>
+                  <span class="simulator-eyebrow">DRONE ACCELERATION</span>
                   <h3>{{ resultDisplay.droneStrategy.label }}</h3>
                 </div>
               </div>
@@ -7344,9 +7340,7 @@ defineExpose({ prepareScheduleReferenceImage });
             <div class="simulator-calculation-steps">
               <div class="simulator-result-section-heading">
                 <div>
-                  <span class="simulator-eyebrow">{{
-                    resultDisplay.calculationSteps.eyebrow
-                  }}</span>
+                  <span class="simulator-eyebrow">CALCULATION STEPS</span>
                   <h3>{{ resultDisplay.calculationSteps.label }}</h3>
                 </div>
                 <span class="simulator-result-hint">{{
@@ -7392,6 +7386,7 @@ defineExpose({ prepareScheduleReferenceImage });
                       <SimulatorDisplayCard
                         :card="card"
                         :icon-url="dailyOutputIconUrl"
+                        :sanity-icon="sanityIconUrl()"
                       />
                     </div>
                   </div>
@@ -7438,6 +7433,7 @@ defineExpose({ prepareScheduleReferenceImage });
                       <SimulatorDisplayCard
                         :card="card"
                         :icon-url="dailyOutputIconUrl"
+                        :sanity-icon="sanityIconUrl()"
                       />
                     </div>
                   </div>
@@ -7490,7 +7486,7 @@ defineExpose({ prepareScheduleReferenceImage });
                                 class="simulator-base-point-source"
                               >
                                 <span>
-                                  <SimulatorDisplayValue :value="source.text" />
+                                  <SimulatorDisplayValue :value="source.label" />
                                 </span>
                                 <strong>
                                   <SimulatorDisplayValue

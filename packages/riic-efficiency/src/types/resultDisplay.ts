@@ -3,36 +3,20 @@ import type { SanityResourceAmounts, SanityValues } from "../utils/sanity";
 import type { BasePointSource, FacilityEfficiencyResult } from "./efficiency";
 import type { RoomKey } from "./schedule";
 
-export type DisplayNumberFormat =
-  "number" | "production" | "efficiency" | "signed";
-
-export interface DisplayValuePartText {
-  text: string;
-  muted?: boolean;
-}
-
-export interface DisplayValuePartNumber {
+export interface DisplayRawNumber {
   value: number;
-  format?: DisplayNumberFormat;
-  unit?: string;
-  muted?: boolean;
+  signed?: boolean;
 }
-
-export type DisplayValuePart =
-  string | DisplayValuePartText | DisplayValuePartNumber;
 
 export interface DisplayValue {
-  text: string;
-  parts: DisplayValuePart[];
+  template: string;
+  raws?: DisplayRawNumber[];
 }
 
 export interface DisplayRow {
   key: string;
   label?: DisplayValue;
   value?: DisplayValue;
-  emphasis?: boolean;
-  icon?: string;
-  muted?: boolean;
 }
 
 export interface DisplayLine {
@@ -48,13 +32,9 @@ export interface DisplayEntry {
   cells?: DisplayValue[];
 }
 
-export type DisplaySectionKind =
-  "grid" | "skill-list" | "mood-list" | "candidate-list";
-
 export interface DisplaySection {
   key: string;
   label?: string;
-  kind?: DisplaySectionKind;
   rows: DisplayRow[];
   entries?: DisplayEntry[];
   sections?: DisplaySection[];
@@ -80,16 +60,14 @@ export interface DisplayPane {
 
 export interface DisplayTile {
   key: string;
-  icon?: string;
+  product?: string;
   sourceFacility?: RoomKey;
-  netOnly?: boolean;
   main: DisplayValue;
   lines: DisplayLine[];
 }
 
 export interface DailyOutputDisplay {
   key: string;
-  eyebrow: string;
   label: string;
   cycleHours: DisplayValue;
   tiles: DisplayTile[];
@@ -99,7 +77,6 @@ export interface DailyOutputDisplay {
 }
 
 export interface DroneStrategyDisplay {
-  eyebrow: string;
   label: string;
   inputLabel: string;
   placeholder: string;
@@ -118,7 +95,7 @@ export interface DroneScenarioView {
 
 export interface BasePointSourceView {
   key: string;
-  text: DisplayValue;
+  label: DisplayValue;
   value: DisplayValue;
 }
 
@@ -166,7 +143,6 @@ export interface FacilityStepsDisplay {
 }
 
 export interface CalculationStepsDisplay {
-  eyebrow: string;
   label: string;
   hint: string;
   maaDrone?: DisplayPane;
@@ -180,6 +156,13 @@ export interface ResultDisplay {
   droneStrategy: DroneStrategyDisplay;
   droneScenarios: DroneScenarioView[];
   calculationSteps: CalculationStepsDisplay;
+}
+
+export interface DisplayFlatLine {
+  level: number;
+  key: string;
+  label?: string;
+  text: string;
 }
 
 export interface ResultDisplayOptions {

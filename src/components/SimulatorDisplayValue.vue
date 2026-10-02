@@ -1,43 +1,61 @@
 <script setup lang="ts">
-import type {
-  DisplayValue,
-  DisplayValuePart,
-} from "@arknights/riic-efficiency";
+import { computed } from "vue";
+
+import type { DisplayValue } from "@arknights/riic-efficiency";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 
 const props = defineProps<{ value: DisplayValue }>();
 
-function isNumericPart(
-  part: DisplayValuePart,
-): part is Exclude<DisplayValuePart, string | { text: string }> {
-  return typeof part !== "string" && !("text" in part);
+interface DisplaySegment {
+  key: string;
+  text: string;
+  raw?: { value: number; signed: boolean };
+  unit?: string;
 }
 
-function partText(part: DisplayValuePart): string {
-  if (typeof part === "string") {
-    return part;
+const segments = computed<DisplaySegment[]>(() => {
+  const template = props.value.template;
+  const raws = props.value.raws ?? [];
+  const result: DisplaySegment[] = [];
+  const matches = [...template.matchAll(/\{(\d+)\}/g)];
+  let cursor = 0;
+  matches.forEach((match, order) => {
+    const index = match.index ?? cursor;
+    if (index > cursor) {
+      result.push({
+        key: `text-${order}`,
+        text: template.slice(cursor, index),
+      });
+    }
+    const rawIndex = Number(match[1]);
+    cursor = index + match[0].length;
+    const rest = template.slice(cursor);
+    const nextIndex = rest.search(/\{(\d+)\}/);
+    const following = nextIndex < 0 ? rest : rest.slice(0, nextIndex);
+    const raw = raws[rawIndex];
+    result.push({
+      key: `raw-${rawIndex}-${order}`,
+      text: "",
+      ...(raw === undefined
+        ? {}
+        : { raw: { value: raw.value, signed: raw.signed === true } }),
+      unit: following.trimStart().split(/\s+/)[0] ?? "",
+    });
+  });
+  if (cursor < template.length) {
+    result.push({ key: "text-end", text: template.slice(cursor) });
   }
-  return "text" in part ? part.text : "";
-}
+  return result;
+});
 </script>
 
 <template>
-  <template v-for="(part, index) in props.value.parts" :key="index">
-    <small v-if="typeof part !== 'string' && part.muted === true">
-      <SimulatorNumericValue
-        v-if="isNumericPart(part)"
-        :mode="part.format"
-        :unit="part.unit"
-        :value="part.value"
-      />
-      <template v-else>{{ partText(part) }}</template>
-    </small>
+  <template v-for="segment in segments" :key="segment.key">
     <SimulatorNumericValue
-      v-else-if="isNumericPart(part)"
-      :mode="part.format"
-      :unit="part.unit"
-      :value="part.value"
-    />
-    <template v-else>{{ partText(part) }}</template>
+      v-if="segment.raw"
+      :mode="segment.raw.signed ? 'signed' : 'number'"
+      :unit="segment.unit"
+      :value="segment.raw.value"
+    /><template v-else>{{ segment.text }}</template>
   </template>
 </template>
