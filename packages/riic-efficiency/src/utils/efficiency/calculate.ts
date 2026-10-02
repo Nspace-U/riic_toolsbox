@@ -54,7 +54,6 @@ import { catalogOperator } from "./catalog";
 import {
   canonicalResourceKey,
   analyzeSchedulePeriods,
-  ScheduleError,
   SchedulePeriodError,
   resolveRoomAssignment,
   roomSlotCount,
@@ -5116,13 +5115,10 @@ function resolveCalculationDocument(
   if (Array.isArray(document.layout) && document.layout.length > 0) {
     return { document, layoutSource: "document" };
   }
-  const layout = inferScheduleLayout(
-    Array.isArray(document.plans) ? document.plans : [],
-  );
-  if (layout.length === 0) {
-    throw new ScheduleError("无法从 plans 推断出设施布局");
-  }
-  return { document: { ...document, layout }, layoutSource: "inferred" };
+  return {
+    document: { ...document, layout: inferScheduleLayout(document.plans) },
+    layoutSource: "inferred",
+  };
 }
 
 export function calculateEfficiency(
