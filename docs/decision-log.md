@@ -1036,3 +1036,11 @@
 - **影响范围**：`DisplayValue.parts` 成为唯一渲染来源，数值部件保留 `value/format/unit` 供宿主继续实现原始精度悬停，`muted` 部件由宿主渲染为 `<small>`；区块种类为 `grid`、`skill-list`、`mood-list`、`candidate-list`，基地点数保留独立的列结构。不修改计算逻辑与 `EfficiencyResult` 结构。
 - **状态**：已实施。
 - **验证**：用 Vue 编译器编译旧结果区模板与新模板/组件后逐条比对旧文案与样式类：旧文案 226 条中 15 条差异全部可解释（已删除组件名、迁入脚本映射的类名、运行时拼接的复合标签、旧折叠 key），58 个 `simulator-*` 样式类全部保留；新增 `scripts/result-display-regression.mjs` 与 `scripts/fixtures/result-display-golden.json` 固定 192 行成品输出；`npm run test:result-display`、`test:simulator-result`、`test:efficiency`、`test:sanity`、`test:riic-efficiency-package`、`test:simulator-layout`、`test:operator-progression`、`npm run lint`、定向 Prettier、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
+
+## 2026-10-02：开发服务器与 IDE、agent 进程隔离
+
+- **决定**：`npm run dev` 改为启动 `scripts/dev-server.cmd`，用 `Start-Process -WindowStyle Hidden` 脱离启动 `scripts/dev-server.mjs` 后立即返回终端；前台阻塞的原始行为保留为 `npm run dev:blocking`。新增 `scripts/stop-dev-server.cmd`，按 5173 端口反查并停止。
+- **原因**：`vite` 作为终端子进程运行时，VS Code 窗口重载或扩展宿主重启会连带结束它；同时 agent 在同一仓库跑 `build:riic-efficiency` 与回归脚本时，多个 Vite 实例会争抢同一份依赖优化缓存。实测 08:02:44 启动的 dev server 在 08:13:20 随并发构建消失，两个 node 进程同秒终止、包装 shell 仍存活。
+- **影响范围**：`scripts/dev-server.mjs` 用 `createServer` 启动，把 `cacheDir` 指向独立的 `node_modules/.vite-dev`，并自行写 `.dev-server.log`、不继承父进程标准输出句柄，因此启动器退出后服务仍存活；固定 5173 端口且 `strictPort`，端口被占用时直接失败而不顺延。`.dev-server.log` 与 `.dev-server.pid` 不进入版本库。
+- **状态**：已实施。
+- **验证**：`npm run dev` 0.39 秒返回；随后运行 `npm run test:result-display`（含 `build:riic-efficiency`），30 个采样点间隔 2 秒监测 5173，owner 恒为 18808、无掉线，回归通过；`http://localhost:5173/` 返回 200；`node_modules/.vite-dev` 生成而 `node_modules/.vite` 时间戳保持 09-30 未变；启动器进程随后消失，服务仍存活且 `ppid` 已不存在（确认脱离）。
