@@ -11,15 +11,25 @@ function log(message) {
   appendFileSync(logPath, `${new Date().toISOString()} ${message}\n`, "utf8");
 }
 
-process.on("uncaughtException", (error) => {
-  log(`uncaughtException: ${error?.stack ?? error}`);
-  process.exit(1);
-});
+const WATCHER_ERROR_CODES = new Set(["EBUSY", "EPERM", "ENOENT"]);
 
-process.on("unhandledRejection", (reason) => {
-  log(`unhandledRejection: ${reason?.stack ?? reason}`);
+function isTransientWatcherError(error) {
+  const code = error?.code;
+  const message = String(error?.message ?? "");
+  return WATCHER_ERROR_CODES.has(code) && message.includes("watch '");
+}
+
+function handleFailure(error) {
+  if (isTransientWatcherError(error)) {
+    log(`transient watcher error, server kept alive: ${error?.message}`);
+    return;
+  }
+  log(`fatal: ${error?.stack ?? error}`);
   process.exit(1);
-});
+}
+
+process.on("uncaughtException", handleFailure);
+process.on("unhandledRejection", handleFailure);
 
 const server = await createServer({
   root: projectRoot,

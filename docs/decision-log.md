@@ -1052,3 +1052,11 @@
 - **影响范围**：显示决策全部移到调用方——区块布局按结构推导、净量卡按 `main.raws[0].signed` 判定、图标按 `product` 查表、装饰标题由宿主写死；弱化与加粗差异被删除，容量括号与心情“计算过程”行的样式随之变化；模板里没有紧跟字面量的数值（每日产出主数值、无人机额外产出、队列时长总产出、队列等效理智数值）在悬停提示中不再带单位。
 - **状态**：已实施。
 - **验证**：`npm run test:result-display`（195 行 golden，同时固定成品文本与 `template`／`raws` 形状）、`test:simulator-result`、`test:riic-efficiency-package`、`test:sanity`、`test:efficiency`、`test:simulator-layout`、`test:operator-progression`、`test:schedule-import`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-avatar`、`test:operator-skill-generation`、`npm run lint`、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
+
+## 2026-10-02：用忽略函数修掉 chokidar 原子写临时文件导致的 dev server 崩溃
+
+- **决定**：`vite.config.ts` 的 `server.watch.ignored` 使用函数 `(path) => path.split(/[\\/]/).some((segment) => segment.endsWith("-tmpdir"))`，忽略一切以 `-tmpdir` 结尾的路径段；`scripts/dev-server.mjs` 同时只对文件监视器的 `EBUSY`、`EPERM`、`ENOENT`（消息含 `watch '`）跳过退出，其余错误照旧终止进程。
+- **原因**：工具改写源文件采用「先写 `.<文件名>.<pid>.<uuid>-tmpdir/` 下的临时文件再改名」的原子写；chokidar 会在临时文件仍被占用时对它调用 `fs.watch`，抛出无人接管的 `EBUSY: resource busy or locked`，`NodeFsHandler._handleFile` 处直接让整个 dev server 退出。实测崩溃 3 次，签名一致（08:49:09、08:53:13 由脚本触发，09:05:16 由真实 agent 写入触发），每次都是 `unhandledRejection: Error: EBUSY ... watch '...-tmpdir\\<file>.tmp'`。
+- **影响范围**：只影响开发服务器监视范围，构建、类型检查、回归与生产产物不变。既有 `server.watch.ignored` 写法若依赖 glob 字符串必须改成函数或正则：chokidar v5 的 `createPattern` 对字符串做精确相等比较，不展开 glob；传给忽略函数的路径不带尾部斜杠，目录自身即 `...-tmpdir`。
+- **状态**：已实施。
+- **验证**：用 chokidar 直接做对照实验，同一 harness 下「不忽略」产生 101 次临时路径询问与 32 个事件，「用该函数」降为 16 次询问与 0 个临时目录事件，正常文件事件保持 16 个不变；40 次带锁临时目录的 watch 会话零崩溃。真实环境重启后跨多次 agent 写入与一次 `npm run test:result-display`（含 `build:riic-efficiency`）全程 5173 owner 不变、无 EBUSY 记录；`npm run type-check`、定向 ESLint、Prettier 与 `test:result-display` 通过。
