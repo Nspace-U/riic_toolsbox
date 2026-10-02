@@ -3129,10 +3129,6 @@ a {
   white-space: nowrap;
 }
 
-.simulator-step-detail-grid > span:nth-child(odd) {
-  color: #72807f;
-}
-
 .simulator-step-detail-grid > strong,
 .simulator-step-detail-grid > span:nth-child(even) {
   color: #344447;
@@ -3298,14 +3294,11 @@ a {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
+  row-gap: 4px;
 }
 
 .simulator-skill-detail-row > span {
   padding-block: 2px;
-}
-
-.simulator-skill-detail-row > span:first-child {
-  color: #72807f;
 }
 
 .simulator-skill-detail-row > span:nth-child(2) {
@@ -3317,7 +3310,7 @@ a {
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
-  gap: 2px 12px;
+  gap: 4px 12px;
   color: #344447;
   font-size: 12px;
   white-space: nowrap;
@@ -3327,9 +3320,12 @@ a {
   display: contents;
 }
 
+.simulator-skill-detail-calculation-row > span {
+  padding-block: 2px;
+}
+
 .simulator-skill-detail-calculation-label {
   padding-inline-start: 1em;
-  color: #72807f;
 }
 
 .simulator-skill-detail-calculation-row > span:last-child {
@@ -3343,10 +3339,6 @@ a {
   grid-template-columns: subgrid;
   gap: 4px 12px;
   align-items: start;
-}
-
-.simulator-mood-detail-row > span {
-  color: #72807f;
 }
 
 .simulator-mood-detail-row > strong {

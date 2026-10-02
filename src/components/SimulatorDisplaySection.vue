@@ -74,7 +74,9 @@ function rowIconUrl(rowKey: string): string | undefined {
           />
           <SimulatorDisplayValue v-if="row.label" :value="row.label" />
         </span>
-        <SimulatorDisplayValue v-else-if="row.label" :value="row.label" />
+        <span v-else-if="row.label">
+          <SimulatorDisplayValue :value="row.label" />
+        </span>
         <span v-else aria-hidden="true"></span>
         <strong>
           <SimulatorDisplayValue v-if="row.value" :value="row.value" />

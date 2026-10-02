@@ -975,8 +975,8 @@ function productionSection(
         production.itemRate === undefined
           ? displayText("")
           : displayValue(
-              numberPart(production.itemRate, "production", " / 小时"),
-              " / 小时",
+              numberPart(production.itemRate, "production", "/小时"),
+              "/小时",
             ),
       ),
     );

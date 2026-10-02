@@ -1043,3 +1043,11 @@
 - **影响范围**：显示决策全部移到调用方——区块布局按结构推导、净量卡按 `main.raws[0].signed` 判定、图标按 `product` 查表、装饰标题由宿主写死；弱化与加粗差异被删除，容量括号与心情“计算过程”行的样式随之变化；模板里没有紧跟字面量的数值（每日产出主数值、无人机额外产出、队列时长总产出、队列等效理智数值）在悬停提示中不再带单位。
 - **状态**：已实施。
 - **验证**：`npm run test:result-display`（195 行 golden，同时固定成品文本与 `template`／`raws` 形状）、`test:simulator-result`、`test:riic-efficiency-package`、`test:sanity`、`test:efficiency`、`test:simulator-layout`、`test:operator-progression`、`test:schedule-import`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-avatar`、`test:operator-skill-generation`、`npm run lint`、`npm run type-check`、`npm run build` 全部通过。未做浏览器回放验证。
+
+## 2026-10-02：两列明细标签补齐包裹元素并统一配色
+
+- **决定**：`SimulatorDisplaySection.vue` 的 `grid` 分区把标签由裸 `SimulatorDisplayValue` 改为 `<span>` 包裹；`main.css` 删除 `.simulator-step-detail-grid > span:nth-child(odd)`、`.simulator-skill-detail-row > span:first-child`、`.simulator-skill-detail-calculation-label`、`.simulator-mood-detail-row > span` 的 `color: #72807f`，明细标签与数值统一 `#344447`，只用字重区分（标签 400、数值 600）；缩进行补 `padding-block: 2px`，`.simulator-skill-detail-row` 与 `.simulator-skill-detail-calculation` 的行间距统一为 4px；`容量消耗速率` 的单位由 `" / 小时"` 改为 `"/小时"`。
+- **原因**：`SimulatorDisplayValue` 的根是 `v-for` 片段、没有包裹元素，纯文本标签在 grid 里会变成匿名网格项，标签自身含数值或百分号的 `DisplayValue`（`2贵金属订单 · 15%`、动态容量时间段）会被拆到多个网格单元格，`%` 落到下一行并与数值错位；同一条 `> span:nth-child(odd)` 匹配不到元素而失效，使标签颜色按分区分裂（grid 分区继承深色、技能与心情分区为灰色）；技能缩进行缺少单元格内边距，行距比同列表其他行小 4px。
+- **影响范围**：只改展示层组件与样式，外加一处单位文案；`EfficiencyResult` 与 `buildResultDisplay` 的数据结构、效率计算不变，`scripts/fixtures/result-display-golden.json` 同步 2 行。跨分区的列宽保持各自 `max-content` 对齐，本次不做统一。
+- **状态**：已实施。
+- **验证**：`npm run test:result-display`（195 行 golden）、`test:simulator-result`、`test:simulator-layout`、定向 ESLint、定向 Prettier 通过；用无头 Edge 渲染引用真实 `main.css` 的复现页：修复前 `2贵金属订单 · 15%` 的标签被拆成 4 个网格项、`%` 落到第二行且数值错位，修复后标签与数值同处一行（x=44 / x=154，y 相同）；标签计算色 `rgb(52, 68, 71)`、数值 `rgb(52, 68, 71)` 字重 600；技能明细各行 top 差值均为 25px。未做整页浏览器回放。
