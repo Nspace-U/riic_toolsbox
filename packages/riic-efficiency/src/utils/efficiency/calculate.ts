@@ -245,7 +245,6 @@ function createContexts(
           moodRateDetails: [],
           working: true,
           workHoursBefore: 0,
-          owned: profile ? progression.owned : true,
           fiammettaForced: false,
         });
       });
@@ -2324,7 +2323,6 @@ function createDormitoryRestPlacement(
     moodRateDetails: [],
     working: true,
     workHoursBefore: 0,
-    owned: progression.owned,
     fiammettaForced: false,
   };
 }

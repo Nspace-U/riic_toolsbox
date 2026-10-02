@@ -103,7 +103,6 @@ export interface Placement {
   moodRateDetails: MoodRateDetail[];
   working: boolean;
   workHoursBefore: number;
-  owned: boolean;
   fiammettaForced: boolean;
 }
 
