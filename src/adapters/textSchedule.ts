@@ -18,7 +18,7 @@ import {
 import {
   completeInferredRooms,
   inferScheduleLayout,
-} from "@/utils/importLayout";
+} from "@arknights/riic-efficiency";
 
 interface ParsedOperator {
   name: string;

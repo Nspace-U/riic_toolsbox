@@ -429,4 +429,61 @@ assert.equal(
   packageModule.buildImportedExtraRoomsNotice(noticeDocument),
   undefined,
 );
+
+const layoutDocument = {
+  layout: [{ type: "trading", level: 3 }],
+  plans: [
+    {
+      duration: 720,
+      rooms: { trading: [{ product: "龙门币", operators: ["陈"] }] },
+    },
+  ],
+};
+const layoutResult = packageModule.calculateEfficiency(layoutDocument, {
+  catalog,
+});
+assert.equal(layoutResult.layoutSource, "document");
+assert.equal(layoutResult.document, layoutDocument);
+
+const inferredDocument = {
+  plans: [
+    {
+      duration: 720,
+      rooms: { trading: [{ product: "龙门币", operators: ["陈"] }] },
+    },
+  ],
+};
+const inferredResult = packageModule.calculateEfficiency(inferredDocument, {
+  catalog,
+});
+assert.equal(inferredResult.layoutSource, "inferred");
+assert.notEqual(inferredResult.document, inferredDocument);
+assert.equal("layout" in inferredDocument, false);
+assert.ok(inferredResult.document.layout.length > 0);
+assert.ok(
+  packageModule
+    .buildEfficiencyNotices({
+      document: inferredDocument,
+      result: inferredResult,
+    })
+    .map(({ code }) => code)
+    .includes("layout-inferred"),
+);
+
+const emptyRoomsResult = packageModule.calculateEfficiency(
+  { plans: [{ duration: 720, rooms: {} }] },
+  { catalog },
+);
+assert.equal(emptyRoomsResult.layoutSource, "inferred");
+assert.ok(emptyRoomsResult.document.layout.length > 0);
+
+assert.deepEqual(
+  packageModule
+    .inferScheduleLayout([
+      { rooms: { trading: [{ operators: ["甲", "乙", "丙"] }] } },
+    ])
+    .filter((entry) => entry.type === "trading")
+    .map(({ level }) => level),
+  [3],
+);
 console.log("riic efficiency package regression: passed");

@@ -53,6 +53,13 @@ export {
 } from "./utils/schedule";
 export type { SchedulePeriodAnalysis } from "./utils/schedule";
 export {
+  completeInferredRooms,
+  dormitoryLevels,
+  importPowerSummary,
+  inferScheduleLayout,
+  resizeImportedRooms,
+} from "./utils/importLayout";
+export {
   buildEfficiencyNotices,
   buildImportedExtraRoomsNotice,
 } from "./utils/notices";
@@ -188,6 +195,7 @@ export type {
   MaaDroneWarning,
   MaaDroneWarningCode,
   ProductionValue,
+  ScheduleLayoutSource,
   TradeOrderSummary,
   OperatorEfficiencyCalculation,
 } from "./types/efficiency";

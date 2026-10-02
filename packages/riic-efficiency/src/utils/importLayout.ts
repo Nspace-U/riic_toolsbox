@@ -3,15 +3,15 @@ import type {
   Plan,
   RoomAssignment,
   RoomKey,
-} from "@/types/schedule";
+} from "../types/schedule";
 import {
   ROOM_LIMITS,
   ROOM_ORDER,
   ROOM_POWER_VALUES,
   roomSlotCount,
   createDefaultRoomAssignment,
-} from "@/utils/schedule";
-import { ROOM_KEYS } from "@/types/schedule";
+} from "./schedule";
+import { ROOM_KEYS } from "../types/schedule";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

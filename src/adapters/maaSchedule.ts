@@ -17,13 +17,11 @@ import {
 } from "@/utils/schedule";
 import type { ScheduleAdapter } from "@/adapters";
 import type { EfficiencyCatalog } from "@arknights/riic-efficiency";
-import {
-  completeInferredRooms,
-  inferScheduleLayout,
-} from "@/utils/importLayout";
 import { percentageMappingFor } from "@/utils/percentageOperatorMappings";
 import {
   analyzeSchedulePeriods,
+  completeInferredRooms,
+  inferScheduleLayout,
   isPercentageOperator,
   isTermOperator,
   specialOperatorTermMembers,

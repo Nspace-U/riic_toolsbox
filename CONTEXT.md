@@ -52,7 +52,8 @@
 - 会客室基础产出按 1 条线索/20 小时计算，每条线索折算 40 信用，线索上限为 11 条；计算结果以线索为主单位并提供信用折算值。
 - 已将效率计算接入排班模拟器：设施队列小卡片展示不含心情效率的干员效率与设施最终效率，独立结果区展示按产物拆分的每日产出与可核对的计算步骤。
 - 模拟器设施大卡片与队列小卡片的右键菜单使用一致的产物和无人机加速文案；大卡片仍对当前设施的全部队列执行批量修改，但菜单不额外显示“所有队列”。
-- 模拟器页面的布局规则与结果展示格式化已拆到 `src/utils/simulator/`；效率计算模型、规则、结果聚合、练度和特殊干员逻辑均由 `packages/riic-efficiency` 公共 API 提供。
+- 模拟器页面的布局编辑规则与结果展示格式化已拆到 `src/utils/simulator/`；效率计算模型、规则、结果聚合、练度、特殊干员和排班表布局推测（`inferScheduleLayout`、`completeInferredRooms`、`resizeImportedRooms`、`importPowerSummary`、`dormitoryLevels`）均由 `packages/riic-efficiency` 公共 API 提供，宿主不再持有布局推测实现。
+- `calculateEfficiency` 在传入文档缺少布局时按 `plans` 自动推测布局，推测结果只用于本次计算：不修改入参文档、不写回排班表，返回结果以 `layoutSource: "inferred"` 标记，并由 `buildEfficiencyNotices` 输出「本次计算使用了推测布局」的 Info 提示；传入文档包含布局时严格使用传入布局并标记 `layoutSource: "document"`。
 - 结果区结构与文案由 `buildResultDisplay(result, options)` 统一产出：`dailyOutput` 给出每日产出格子与总理智，`droneStrategy` 与 `droneScenarios` 给出无人机策略文案和场景格子，`calculationSteps` 给出 MAA 无人机、队列计算明细、基地点数和设施步骤四种分区，基地点数保留独立列结构。返回值里不含任何显示指令：文本以 `{ template, raws }` 给出（`template` 含 `{n}` 占位，`raws[n].signed` 表示有符号增量），单位与符号都在模板文本里。
 - 设施步骤只保存一份队列 × 设施数据 `facilitySteps.{plans,steps}`，按队列与按设施两种排列分别由 `buildFacilityStepCards` 和 `buildFacilityStepPanes` 按需拼接；模拟器按当前展开方式只构建一种，不再同时持有两套排列。
 - 结果区渲染由 `SimulatorDisplayValue`、`SimulatorDisplaySection`、`SimulatorDisplayCard`、`SimulatorDisplayTile` 承担，旧 `SimulatorCalculationStepContent.vue` 已删除；宿主按 `template` 切分渲染，占位符交给 `SimulatorNumericValue`（`signed` 决定是否带符号），因此逐数字的原始精度悬停保留。区块布局种类由宿主按结构推导，每日产出净量卡按 `main.raws[0].signed` 判定，格子图标按 `product` 查表，`eyebrow` 装饰标题由宿主写死；弱化（`muted`）与加粗差异已移除，容量括号和心情“计算过程”行改用默认行样式。

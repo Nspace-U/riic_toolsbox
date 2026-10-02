@@ -28,6 +28,7 @@ import type {
   OperatorEfficiencyDetail,
   OperatorSkillFile,
   ProductionValue,
+  ScheduleLayoutSource,
   TradeOrderSummary,
 } from "../../types/efficiency";
 import type { OperatorProgressionProfile } from "../../types/operatorProgression";
@@ -53,10 +54,12 @@ import { catalogOperator } from "./catalog";
 import {
   canonicalResourceKey,
   analyzeSchedulePeriods,
+  ScheduleError,
   SchedulePeriodError,
   resolveRoomAssignment,
   roomSlotCount,
 } from "../schedule";
+import { inferScheduleLayout } from "../importLayout";
 import { compareBasePointDetails, compareBasePointSources } from "./basePoints";
 import {
   groupIncludesOperator,
@@ -5037,7 +5040,7 @@ function calculateEfficiencyInternal(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
   options: EfficiencyCalculationOptions = {},
-): EfficiencyResult {
+): Omit<EfficiencyResult, "layoutSource"> {
   const contexts = createContexts(
     document,
     catalog,
@@ -5102,23 +5105,47 @@ function calculateEfficiencyInternal(
   };
 }
 
+interface ResolvedCalculationDocument {
+  document: ScheduleDocument;
+  layoutSource: ScheduleLayoutSource;
+}
+
+function resolveCalculationDocument(
+  document: ScheduleDocument,
+): ResolvedCalculationDocument {
+  if (Array.isArray(document.layout) && document.layout.length > 0) {
+    return { document, layoutSource: "document" };
+  }
+  const layout = inferScheduleLayout(
+    Array.isArray(document.plans) ? document.plans : [],
+  );
+  if (layout.length === 0) {
+    throw new ScheduleError("无法从 plans 推断出设施布局");
+  }
+  return { document: { ...document, layout }, layoutSource: "inferred" };
+}
+
 export function calculateEfficiency(
   document: ScheduleDocument,
   input: EfficiencyCalculationInput,
 ): EfficiencyResult {
-  const settings = document.settings ?? {};
+  const resolved = resolveCalculationDocument(document);
+  const settings = resolved.document.settings ?? {};
   const catalog: EfficiencyCatalog = {
     ...input.catalog,
     ruleset: input.ruleset ?? input.catalog.ruleset ?? DEFAULT_RULESET,
   };
-  const periodAnalysis = analyzeSchedulePeriods(document);
+  const periodAnalysis = analyzeSchedulePeriods(resolved.document);
   if (periodAnalysis.errors.length > 0) {
     throw new SchedulePeriodError(periodAnalysis.errors);
   }
-  return calculateEfficiencyInternal(document, catalog, {
-    progressionProfile: settings.progressionProfile,
-    treatSkillsAsUnlocked: settings.treatSkillsAsUnlocked,
-    dormitoryDefaultIncludesMoodRecovery:
-      settings.dormitoryDefaultIncludesMoodRecovery,
-  });
+  return {
+    ...calculateEfficiencyInternal(resolved.document, catalog, {
+      progressionProfile: settings.progressionProfile,
+      treatSkillsAsUnlocked: settings.treatSkillsAsUnlocked,
+      dormitoryDefaultIncludesMoodRecovery:
+        settings.dormitoryDefaultIncludesMoodRecovery,
+    }),
+    layoutSource: resolved.layoutSource,
+  };
 }

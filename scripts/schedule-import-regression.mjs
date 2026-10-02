@@ -36,13 +36,12 @@ const vite = await createServer({
 });
 
 try {
-  const [textModule, maaModule, importLayoutModule, scheduleModule] =
-    await Promise.all([
-      vite.ssrLoadModule("/src/adapters/textSchedule.ts"),
-      vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
-      vite.ssrLoadModule("/src/utils/importLayout.ts"),
-      vite.ssrLoadModule("/src/utils/schedule.ts"),
-    ]);
+  const [textModule, maaModule, scheduleModule] = await Promise.all([
+    vite.ssrLoadModule("/src/adapters/textSchedule.ts"),
+    vite.ssrLoadModule("/src/adapters/maaSchedule.ts"),
+    vite.ssrLoadModule("/src/utils/schedule.ts"),
+  ]);
+  const importLayoutModule = packageModule;
   const specialOperatorsModule = packageModule;
   const rawText = `满血 252
 一天三换

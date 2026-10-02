@@ -1052,3 +1052,11 @@
 - **影响范围**：只改展示层组件与样式，外加一处单位文案；`EfficiencyResult` 与 `buildResultDisplay` 的数据结构、效率计算不变，`scripts/fixtures/result-display-golden.json` 同步 2 行。跨分区的列宽保持各自 `max-content` 对齐，本次不做统一。
 - **状态**：已实施。
 - **验证**：`npm run test:result-display`（195 行 golden）、`test:simulator-result`、`test:simulator-layout`、定向 ESLint、定向 Prettier 通过；用无头 Edge 渲染引用真实 `main.css` 的复现页：修复前 `2贵金属订单 · 15%` 的标签被拆成 4 个网格项、`%` 落到第二行且数值错位，修复后标签与数值同处一行；行距统一后技能明细行距由 27px 收到与效率汇总/产出与容量/心情消耗相同的 23px；逐角色读取计算样式：字段标签 `rgb(114, 128, 127)`/400、数值与干员名 `rgb(52, 68, 71)`/600、缩进 `1em`，各列 x 位置（grid 36/120、技能 36/144、心情 36/120、订单 36/146、理智行 36/120）在改动前后完全一致。未做整页浏览器回放。
+
+## 2026-10-02：布局推测迁入效率包并在缺布局时自动兜底
+
+- **决定**：把 `inferScheduleLayout`、`dormitoryLevels`、`completeInferredRooms`、`resizeImportedRooms`、`importPowerSummary` 从宿主 `src/utils/importLayout.ts` 原样迁入 `packages/riic-efficiency/src/utils/importLayout.ts` 并从包入口再导出，宿主该文件删除，两个导入适配器、`SimulatorPage.vue` 与 `scripts/schedule-import-regression.mjs` 改为从包导入；`calculateEfficiency` 在 `document.layout` 缺失或为空时按 `document.plans` 自动推测布局，推测结果只参与本次计算，不修改入参文档，返回结果新增必填字段 `layoutSource: "document" | "inferred"`，`buildEfficiencyNotices` 对 `inferred` 输出 `layout-inferred` Info 提示。
+- **原因**：布局推测是排班表构造语义的一部分，留在宿主会让包在收到缺布局文档时只能抛错；迁入包后外部调用方无需自己实现推测。宿主侧 `src/utils/importLayout.ts` 与 `src/utils/simulator/layout.ts` 本就存在同类逻辑，收敛到包内可避免继续分叉。
+- **影响范围**：`packages/riic-efficiency` 公开新增 5 个导出与 1 个类型（`ScheduleLayoutSource`），`EfficiencyResult` 新增必填字段，属于对外契约变更；导入路径仍把推测结果写入新建文档并保留 `inferredLayout` 标记，计算路径不写回。`buildEfficiencyNotices` 的电力摘要改为可选链访问 `document?.layout?.reduce`，缺失布局不再抛错。
+- **状态**：已实施。
+- **验证**：`npm run type-check`、`test:schedule-import`、`test:efficiency`、`test:result-display`、`test:sanity`、`test:simulator-layout`、`test:simulator-result`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-progression`、`test:operator-skill-generation`、`test:riic-efficiency-package`、定向 ESLint、定向 Prettier 通过；`scripts/riic-efficiency-package-regression.mjs` 固定了含布局时 `layoutSource === "document"`、缺布局时 `layoutSource === "inferred"` 且入参未被写入 `layout`、`buildEfficiencyNotices` 产出 `layout-inferred`。未做浏览器回放验证。

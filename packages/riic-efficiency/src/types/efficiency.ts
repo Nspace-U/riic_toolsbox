@@ -521,8 +521,11 @@ export interface EfficiencyPlanResult {
   droneAccelerations: DroneAccelerationDetail[];
 }
 
+export type ScheduleLayoutSource = "document" | "inferred";
+
 export interface EfficiencyResult {
   document: ScheduleDocument;
+  layoutSource: ScheduleLayoutSource;
   plans: EfficiencyPlanResult[];
   dailyHours: number;
   dailyFacilities: FacilityEfficiencyResult[];

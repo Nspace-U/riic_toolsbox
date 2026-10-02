@@ -95,9 +95,11 @@ import {
   schedulePeriodMinute,
   createSpecialOperatorAvatarLabelResolver,
   facilityId,
+  importPowerSummary,
   nodesForOperator,
   progressionNodesForFacility,
   resolveOperatorProgression,
+  resizeImportedRooms,
   formatBasePointLabel,
   formatBasePointSource,
   formatFacilityResultLabel,
@@ -126,7 +128,6 @@ import {
   scheduleTags,
   validateSchedule,
 } from "@/utils/schedule";
-import { importPowerSummary, resizeImportedRooms } from "@/utils/importLayout";
 import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
