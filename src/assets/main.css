@@ -3130,8 +3130,8 @@ a {
 
 .simulator-drone-candidate-list {
   display: grid;
-  grid-template-columns: minmax(0, max-content);
-  gap: 4px;
+  grid-template-columns: repeat(4, minmax(0, max-content));
+  gap: 4px 8px;
   width: max-content;
   min-width: 100%;
   color: #344447;
@@ -3140,24 +3140,22 @@ a {
 }
 
 .simulator-drone-candidate-row {
-  display: flex;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: baseline;
-  gap: 8px;
 }
 
 .simulator-drone-candidate-facility {
-  flex: 0 0 auto;
   color: #344447;
   font-weight: 600;
 }
 
 .simulator-drone-candidate-product {
-  flex: 0 0 auto;
   color: #72807f;
 }
 
 .simulator-drone-candidate-value {
-  flex: 0 0 auto;
   color: #344447;
 }
 

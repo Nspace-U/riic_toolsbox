@@ -588,7 +588,7 @@ function buildMaaDronePane(result: EfficiencyResult): DisplayPane | undefined {
               ),
               ...Object.entries(candidate.extraMaterial).flatMap(
                 ([material, amount]) => [
-                  "/ ",
+                  " · ",
                   resourceLabel(material),
                   " ",
                   numberPart(amount, "signed", resourceLabel(material)),
