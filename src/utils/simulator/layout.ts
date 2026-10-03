@@ -1,8 +1,9 @@
-import type {
-  LayoutEntry,
-  Plan,
-  RoomAssignment,
-  RoomKey,
+import {
+  ROOM_KEYS,
+  type LayoutEntry,
+  type Plan,
+  type RoomAssignment,
+  type RoomKey,
 } from "@/types/schedule";
 import {
   BUILD_CHAIN_REQUIRED,
@@ -187,14 +188,7 @@ export function validateAddedLayout(layout: LayoutEntry[]): LayoutEntry[] {
 }
 
 export function cascadeLayoutTypes(type: RoomKey): RoomKey[] {
-  if (type === "meeting") {
-    return ["processing", "hire", "training"];
-  }
-  if (type === "processing") {
-    return ["hire", "training"];
-  }
-  if (type === "hire") {
-    return ["training"];
-  }
-  return [];
+  return ROOM_KEYS.filter((candidate) =>
+    layoutBuildChain(candidate).slice(0, -1).includes(type),
+  );
 }

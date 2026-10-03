@@ -97,7 +97,6 @@ export const ROOM_LIMITS: Record<RoomKey, number> = {
 };
 
 export const BUILD_CHAIN_REQUIRED: Partial<Record<RoomKey, RoomKey>> = {
-  processing: "meeting",
   hire: "processing",
   training: "hire",
 };
