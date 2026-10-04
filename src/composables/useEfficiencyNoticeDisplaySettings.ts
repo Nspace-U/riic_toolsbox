@@ -56,12 +56,21 @@ function isEfficiencyNoticeVisible(code: string): boolean {
 }
 
 function setEfficiencyNoticeVisible(code: string, visible: boolean): void {
+  setEfficiencyNoticesVisible([code], visible);
+}
+
+function setEfficiencyNoticesVisible(
+  codes: readonly string[],
+  visible: boolean,
+): void {
   const hiddenCodes = new Set(hiddenNoticeCodes.value);
-  if (visible) {
-    hiddenCodes.delete(code);
-  } else {
-    hiddenCodes.add(code);
-  }
+  codes.forEach((code) => {
+    if (visible) {
+      hiddenCodes.delete(code);
+    } else {
+      hiddenCodes.add(code);
+    }
+  });
   hiddenNoticeCodes.value = [...hiddenCodes];
   persistNoticeDisplaySettings();
 }
@@ -77,6 +86,7 @@ export function useEfficiencyNoticeDisplaySettings() {
   return {
     isEfficiencyNoticeVisible,
     setEfficiencyNoticeVisible,
+    setEfficiencyNoticesVisible,
     setAllEfficiencyNoticesVisible,
   };
 }

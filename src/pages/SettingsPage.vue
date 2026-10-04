@@ -37,6 +37,7 @@ import {
   type OperatorProgressionEntry,
   type OperatorProgressionNode,
 } from "@arknights/riic-efficiency";
+import type { EfficiencyNoticeLevel } from "@arknights/riic-efficiency";
 import type { RoomKey } from "@/types/schedule";
 import type { SanitySettings } from "@/utils/sanity";
 import type { LmdDroneStrategyLevel } from "@arknights/riic-efficiency";
@@ -65,6 +66,7 @@ const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
 const {
   isEfficiencyNoticeVisible,
   setEfficiencyNoticeVisible,
+  setEfficiencyNoticesVisible,
   setAllEfficiencyNoticesVisible,
 } = useEfficiencyNoticeDisplaySettings();
 const {
@@ -160,6 +162,29 @@ const visibleEfficiencyNoticeCount = computed(
     EFFICIENCY_NOTICE_DISPLAY_OPTIONS.filter((option) =>
       isEfficiencyNoticeVisible(option.code),
     ).length,
+);
+const efficiencyNoticeDisplayLevels: Array<{
+  level: EfficiencyNoticeLevel;
+  label: string;
+}> = [
+  { level: "error", label: "Error" },
+  { level: "warning", label: "Warning" },
+  { level: "info", label: "Info" },
+];
+const efficiencyNoticeDisplayGroups = computed(() =>
+  efficiencyNoticeDisplayLevels.map(({ level, label }) => {
+    const options = EFFICIENCY_NOTICE_DISPLAY_OPTIONS.filter(
+      (option) => option.level === level,
+    );
+    return {
+      level,
+      label,
+      options,
+      visibleCount: options.filter((option) =>
+        isEfficiencyNoticeVisible(option.code),
+      ).length,
+    };
+  }),
 );
 const deleteProfileConfirmationTitle = computed(() =>
   pendingDeleteProfile.value
@@ -1257,18 +1282,48 @@ watch(
         >
           全部显示
         </a-checkbox>
-        <div class="settings-notice-options">
-          <a-checkbox
-            v-for="option in EFFICIENCY_NOTICE_DISPLAY_OPTIONS"
-            :key="option.code"
-            :checked="isEfficiencyNoticeVisible(option.code)"
-            @change="
-              (event: { target: { checked: boolean } }) =>
-                setEfficiencyNoticeVisible(option.code, event.target.checked)
-            "
+        <div class="settings-notice-groups">
+          <section
+            v-for="group in efficiencyNoticeDisplayGroups"
+            :key="group.level"
+            class="settings-notice-group"
           >
-            {{ option.label }}
-          </a-checkbox>
+            <div class="settings-notice-group-heading">
+              <h4 class="settings-notice-group-title">{{ group.label }}</h4>
+              <a-checkbox
+                :checked="group.visibleCount === group.options.length"
+                :indeterminate="
+                  group.visibleCount > 0 &&
+                  group.visibleCount < group.options.length
+                "
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    setEfficiencyNoticesVisible(
+                      group.options.map((option) => option.code),
+                      event.target.checked,
+                    )
+                "
+              >
+                全部显示
+              </a-checkbox>
+            </div>
+            <div class="settings-notice-options">
+              <a-checkbox
+                v-for="option in group.options"
+                :key="option.code"
+                :checked="isEfficiencyNoticeVisible(option.code)"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    setEfficiencyNoticeVisible(
+                      option.code,
+                      event.target.checked,
+                    )
+                "
+              >
+                {{ option.label }}
+              </a-checkbox>
+            </div>
+          </section>
         </div>
       </section>
 

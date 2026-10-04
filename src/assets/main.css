@@ -137,12 +137,16 @@ a {
 
 .app-menu > .ant-menu-submenu {
   width: auto;
-  margin-block: 4px;
-  margin-inline: 12px;
+  margin: 0;
 }
 
 .app-menu > .ant-menu-submenu > .ant-menu-submenu-title {
-  margin: 0;
+  box-sizing: border-box;
+  width: auto;
+  height: 40px;
+  margin-block: 4px;
+  margin-inline: 12px;
+  line-height: 40px;
   border-radius: 5px;
   color: #bcc7c6;
 }
@@ -2865,12 +2869,59 @@ a {
   gap: 8px;
 }
 
-.settings-base-point-options,
-.settings-notice-options {
+.settings-base-point-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px 16px;
   margin-block-start: 16px;
+}
+
+.settings-notice-groups {
+  display: grid;
+  gap: 16px;
+  margin-block-start: 16px;
+}
+
+.settings-notice-group {
+  padding-block-start: 12px;
+  border-block-start: 1px solid #e8edec;
+}
+
+.settings-notice-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 8px;
+}
+
+.settings-notice-group-title {
+  margin: 0;
+  color: #344447;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.settings-notice-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+  gap: 8px 16px;
+}
+
+.settings-notice-options .ant-checkbox-wrapper {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.settings-notice-options .ant-checkbox-wrapper > span:last-child {
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .settings-notice-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .settings-sanity-form {
