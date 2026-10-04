@@ -19,6 +19,31 @@ import { mapSpecialOperators } from "./specialOperatorMappings";
 import { formatDurationHours, formatNumber } from "./presentation";
 import { formatFacilityResultLabel } from "./resultPresentation";
 
+export interface EfficiencyNoticeDisplayOption {
+  code: string;
+  label: string;
+}
+
+export const EFFICIENCY_NOTICE_DISPLAY_OPTIONS: EfficiencyNoticeDisplayOption[] =
+  [
+    { code: "negative-power", label: "电力不足" },
+    { code: "efficiency-data-error", label: "效率数据读取失败" },
+    { code: "schedule-period-error", label: "定时换班时间无效" },
+    { code: "schedule-period-gap", label: "定时换班存在时间空档" },
+    { code: "layout-inferred", label: "本次计算使用了推测布局" },
+    { code: "duplicate-operator", label: "同一队列存在重复干员" },
+    { code: "special-operator-mapping", label: "特殊干员没有可用的映射干员" },
+    { code: "maa-drone-overflow", label: "发现无人机爆仓风险" },
+    { code: "maa-drone-target", label: "无人机加速目标无效" },
+    { code: "missing-skill-data", label: "找不到干员技能数据" },
+    { code: "mood-inheritance", label: "发现心情继承异常" },
+    { code: "mood-work-zero", label: "有干员在工作后心情降至 0" },
+    { code: "mood-auto-rest-no-space", label: "宿舍槽位不足，无法自动休整" },
+    { code: "mood-auto-rest-not-recovered", label: "自动休整后心情未达到预期" },
+    { code: "fiammetta-mood", label: "菲亚梅塔心情恢复提示" },
+    { code: "overflow-risk", label: "发现爆仓风险" },
+  ];
+
 export interface EfficiencyNoticeInput {
   catalog?: EfficiencyCatalog;
   document?: ScheduleDocument;

@@ -499,6 +499,36 @@ function operatorNameText(
     .join(" + ");
 }
 
+function compareOperatorImplementationOrder(
+  first: BasicCalculatorRowView,
+  second: BasicCalculatorRowView,
+): number {
+  const firstOperators = rowVisibleOperators(first.group, first.row);
+  const secondOperators = rowVisibleOperators(second.group, second.row);
+
+  for (const [index, firstOperator] of firstOperators.entries()) {
+    const secondOperator = secondOperators[index];
+    if (!secondOperator) break;
+    const firstOrder = operatorByName.value.get(
+      firstOperator.name,
+    )?.implementationOrder;
+    const secondOrder = operatorByName.value.get(
+      secondOperator.name,
+    )?.implementationOrder;
+    if (firstOrder === undefined || secondOrder === undefined) {
+      if (firstOrder !== secondOrder) {
+        return firstOrder === undefined ? -1 : 1;
+      }
+      continue;
+    }
+    if (firstOrder !== secondOrder) {
+      return secondOrder - firstOrder;
+    }
+  }
+
+  return 0;
+}
+
 function productAccent(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
@@ -587,6 +617,11 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
         const valueComparison = compareValues(firstValue, secondValue);
         if (valueComparison !== 0) return valueComparison * direction;
       }
+      const implementationComparison = compareOperatorImplementationOrder(
+        first,
+        second,
+      );
+      if (implementationComparison !== 0) return implementationComparison;
       return compareValues(
         operatorNameText(first.group, first.row),
         operatorNameText(second.group, second.row),

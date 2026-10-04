@@ -135,6 +135,22 @@ a {
   color: #bcc7c6;
 }
 
+.app-menu > .ant-menu-submenu {
+  width: auto;
+  margin-block: 4px;
+  margin-inline: 12px;
+}
+
+.app-menu > .ant-menu-submenu > .ant-menu-submenu-title {
+  margin: 0;
+  border-radius: 5px;
+  color: #bcc7c6;
+}
+
+.app-menu > .ant-menu-submenu > .ant-menu-submenu-title:hover {
+  color: #ffffff;
+}
+
 .app-menu .ant-menu-item-selected {
   color: #fff5e9;
   background: #2f605c !important;
@@ -630,6 +646,10 @@ a {
 
 .settings-colors-section {
   order: 7;
+}
+
+.settings-notice-section {
+  order: 8;
 }
 
 .settings-progression-toolbar {
@@ -2845,7 +2865,8 @@ a {
   gap: 8px;
 }
 
-.settings-base-point-options {
+.settings-base-point-options,
+.settings-notice-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px 16px;

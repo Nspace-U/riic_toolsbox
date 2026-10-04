@@ -29,6 +29,7 @@ import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
+import { useEfficiencyNoticeDisplaySettings } from "@/composables/useEfficiencyNoticeDisplaySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import {
   isProductColorKey,
@@ -363,6 +364,8 @@ const specialOperatorAvatarLabelResolver = computed(() =>
   createSpecialOperatorAvatarLabelResolver(getRiicEfficiencyCatalog().terms),
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
+const { isEfficiencyNoticeVisible } =
+  useEfficiencyNoticeDisplaySettings();
 const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
@@ -986,7 +989,8 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
 const simulatorNotices = computed<EfficiencyNotice[]>(() => {
   const notices = efficiencyNotices.value.filter(
     (notice) =>
-      !efficiencyError.value || notice.code !== "efficiency-data-error",
+      (!efficiencyError.value || notice.code !== "efficiency-data-error") &&
+      isEfficiencyNoticeVisible(notice.code),
   );
   if (importedScheduleNotice.value) {
     notices.push(importedScheduleNotice.value);
@@ -7255,7 +7259,10 @@ defineExpose({ prepareScheduleReferenceImage });
             </div>
           </template>
           <a-alert
-            v-if="efficiencyError"
+            v-if="
+              efficiencyError &&
+              isEfficiencyNoticeVisible('efficiency-data-error')
+            "
             :description="efficiencyError"
             message="效率数据读取失败"
             show-icon

@@ -6,8 +6,6 @@ import {
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
-  PictureOutlined,
-  ReadOutlined,
   ToolOutlined,
   SettingOutlined,
 } from "@ant-design/icons-vue";
@@ -27,7 +25,6 @@ interface NavigationItem {
 interface NavigationChildItem {
   key: string;
   label: string;
-  icon: Component;
 }
 
 const navigationItems: NavigationItem[] = [
@@ -42,12 +39,10 @@ const navigationItems: NavigationItem[] = [
       {
         key: "/calculators/combination",
         label: "组合计算器",
-        icon: CalculatorOutlined,
       },
       {
         key: "/calculators/efficiency",
         label: "效率计算器",
-        icon: CalculatorOutlined,
       },
     ],
   },
@@ -56,8 +51,8 @@ const navigationItems: NavigationItem[] = [
     label: "工具箱",
     icon: ToolOutlined,
     children: [
-      { key: "/toolbox/avatar", label: "头像生成器", icon: PictureOutlined },
-      { key: "/toolbox/skill", label: "技能生成器", icon: ReadOutlined },
+      { key: "/toolbox/avatar", label: "头像生成器" },
+      { key: "/toolbox/skill", label: "技能生成器" },
     ],
   },
   { key: "/settings", label: "通用设置", icon: SettingOutlined },
@@ -191,9 +186,6 @@ watch(currentPath, handleRouteChange, { immediate: true });
             </template>
             <template #title>{{ item.label }}</template>
             <a-menu-item v-for="child in item.children" :key="child.key">
-              <template #icon>
-                <component :is="child.icon" />
-              </template>
               <span>{{ child.label }}</span>
             </a-menu-item>
           </a-sub-menu>
@@ -280,9 +272,6 @@ watch(currentPath, handleRouteChange, { immediate: true });
           </template>
           <template #title>{{ item.label }}</template>
           <a-menu-item v-for="child in item.children" :key="child.key">
-            <template #icon>
-              <component :is="child.icon" />
-            </template>
             <span>{{ child.label }}</span>
           </a-menu-item>
         </a-sub-menu>

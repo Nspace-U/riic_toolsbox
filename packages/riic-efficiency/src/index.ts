@@ -60,10 +60,14 @@ export {
   resizeImportedRooms,
 } from "./utils/importLayout";
 export {
+  EFFICIENCY_NOTICE_DISPLAY_OPTIONS,
   buildEfficiencyNotices,
   buildImportedExtraRoomsNotice,
 } from "./utils/notices";
-export type { EfficiencyNoticeInput } from "./utils/notices";
+export type {
+  EfficiencyNoticeDisplayOption,
+  EfficiencyNoticeInput,
+} from "./utils/notices";
 export {
   cloneProgressionEntries,
   entryHasNode,

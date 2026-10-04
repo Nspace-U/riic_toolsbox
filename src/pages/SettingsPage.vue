@@ -13,6 +13,7 @@ import { useBaseData } from "@/composables/useBaseData";
 import { useBasePointDisplaySettings } from "@/composables/useBasePointDisplaySettings";
 import { useCalculationStepDisplaySettings } from "@/composables/useCalculationStepDisplaySettings";
 import { useDroneStrategySettings } from "@/composables/useDroneStrategySettings";
+import { useEfficiencyNoticeDisplaySettings } from "@/composables/useEfficiencyNoticeDisplaySettings";
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useNumericTooltipSettings } from "@/composables/useNumericTooltipSettings";
@@ -29,6 +30,7 @@ import {
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
 import {
+  EFFICIENCY_NOTICE_DISPLAY_OPTIONS,
   basePointTermOptions,
   fixedProgressionNodes,
   nodesForOperator,
@@ -60,6 +62,11 @@ const {
 const { operators, ready: baseDataReady } = useBaseData();
 const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
   useBasePointDisplaySettings();
+const {
+  isEfficiencyNoticeVisible,
+  setEfficiencyNoticeVisible,
+  setAllEfficiencyNoticesVisible,
+} = useEfficiencyNoticeDisplaySettings();
 const {
   calculationStepDisplayMode,
   calculationStepDisplayModeOptions,
@@ -146,6 +153,12 @@ const visibleBasePointTermCount = computed(
   () =>
     basePointDisplayOptions.value.filter((option) =>
       isBasePointVisible(option.key),
+    ).length,
+);
+const visibleEfficiencyNoticeCount = computed(
+  () =>
+    EFFICIENCY_NOTICE_DISPLAY_OPTIONS.filter((option) =>
+      isEfficiencyNoticeVisible(option.code),
     ).length,
 );
 const deleteProfileConfirmationTitle = computed(() =>
@@ -1220,6 +1233,43 @@ watch(
           :image="undefined"
           description="当前没有可用的基地点数"
         />
+      </section>
+
+      <section class="settings-simulator-section settings-notice-section">
+        <h3 class="settings-section-title">计算提示</h3>
+        <p class="settings-panel-description">
+          选择排班模拟器中需要显示的计算提示，设置仅影响显示，不改变计算结果。
+        </p>
+        <a-checkbox
+          :checked="
+            visibleEfficiencyNoticeCount ===
+            EFFICIENCY_NOTICE_DISPLAY_OPTIONS.length
+          "
+          :indeterminate="
+            visibleEfficiencyNoticeCount > 0 &&
+            visibleEfficiencyNoticeCount <
+              EFFICIENCY_NOTICE_DISPLAY_OPTIONS.length
+          "
+          @change="
+            (event: { target: { checked: boolean } }) =>
+              setAllEfficiencyNoticesVisible(event.target.checked)
+          "
+        >
+          全部显示
+        </a-checkbox>
+        <div class="settings-notice-options">
+          <a-checkbox
+            v-for="option in EFFICIENCY_NOTICE_DISPLAY_OPTIONS"
+            :key="option.code"
+            :checked="isEfficiencyNoticeVisible(option.code)"
+            @change="
+              (event: { target: { checked: boolean } }) =>
+                setEfficiencyNoticeVisible(option.code, event.target.checked)
+            "
+          >
+            {{ option.label }}
+          </a-checkbox>
+        </div>
       </section>
 
       <section
