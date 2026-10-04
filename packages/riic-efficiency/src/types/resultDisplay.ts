@@ -1,4 +1,5 @@
 import type { DroneAccelerationResult } from "../utils/efficiency/drone";
+import type { EfficiencyRuleset } from "../utils/efficiency/baseRules";
 import type { SanityResourceAmounts, SanityValues } from "../utils/sanity";
 import type { BasePointSource, FacilityEfficiencyResult } from "./efficiency";
 import type { RoomKey } from "./schedule";
@@ -169,6 +170,7 @@ export interface ResultDisplayOptions {
   sanityValues: SanityValues;
   dailyAmounts?: SanityResourceAmounts;
   droneAcceleration?: DroneAccelerationResult;
+  ruleset?: EfficiencyRuleset;
   lmdDroneFacilityExists?: boolean;
   simulateOverflow?: boolean;
   facilityLabel?: (facility: FacilityEfficiencyResult) => string;

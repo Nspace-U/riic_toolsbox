@@ -1125,6 +1125,7 @@ const resultDisplay = computed<ResultDisplay | undefined>(() => {
     sanityValues: sanityValues.value,
     dailyAmounts: dailySanityAmounts.value,
     droneAcceleration: droneAcceleration.value,
+    ruleset: efficiencyCatalog.value?.ruleset,
     simulateOverflow: currentEfficiencySettings.value.simulateOverflow,
     facilityLabel: (facility) => facilityResultLabel(facility),
     basePointLabel: (term) => basePointLabel(term),

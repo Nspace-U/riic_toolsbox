@@ -54,6 +54,10 @@ import {
   signedNumber,
 } from "./presentation";
 import {
+  DEFAULT_RULESET,
+  type EfficiencyRuleset,
+} from "./efficiency/baseRules";
+import {
   buildBasePointQueueDetails,
   buildCalculationSteps,
   buildDailyOutputCards,
@@ -1141,6 +1145,97 @@ function productionSection(
   return displaySection("production-capacity", "产出与容量", rows, sections);
 }
 
+function tradeBaseRates(
+  ruleset: EfficiencyRuleset,
+  level: number,
+): { lmdPerHour: number; goldPerHour: number } | undefined {
+  const orders =
+    ruleset.tradeOrdersByLevel[level] ?? ruleset.tradeOrdersByLevel[1] ?? [];
+  let lmd = 0;
+  let gold = 0;
+  let hours = 0;
+  for (const order of orders) {
+    lmd += order.probability * order.gold;
+    gold += order.probability * order.amount;
+    hours += order.probability * order.hours;
+  }
+  if (hours <= 0 || gold <= 0) {
+    return undefined;
+  }
+  return { lmdPerHour: lmd / hours, goldPerHour: gold / hours };
+}
+
+function tradeEquivalentRows(
+  facility: FacilityEfficiencyResult,
+  ruleset: EfficiencyRuleset,
+): DisplayRow[] {
+  const production = facility.production;
+  if (
+    facility.facility.type !== "trading" ||
+    production?.product !== "龙门币" ||
+    production.orderRule === undefined ||
+    production.orderRule === "龙门商法"
+  ) {
+    return [];
+  }
+  const currentBase = tradeBaseRates(ruleset, facility.facility.level);
+  const levelThreeBase = tradeBaseRates(ruleset, 3);
+  if (!currentBase || currentBase.lmdPerHour <= 0) {
+    return [];
+  }
+  const rows = [
+    displayRow(
+      "equivalent-current-trade-efficiency",
+      displayText("等效当前站贸易效率"),
+      displayUnit(
+        (production.amountPerHour / currentBase.lmdPerHour) * 100,
+        "number",
+        "%",
+      ),
+    ),
+  ];
+  if (
+    facility.facility.level !== 3 &&
+    levelThreeBase !== undefined &&
+    levelThreeBase.lmdPerHour > 0
+  ) {
+    rows.push(
+      displayRow(
+        "equivalent-level-three-trade-efficiency",
+        displayText("等效3级站贸易效率"),
+        displayUnit(
+          (production.amountPerHour / levelThreeBase.lmdPerHour) * 100,
+          "number",
+          "%",
+        ),
+      ),
+    );
+  }
+  const goldRule = ruleset.manufactureRules["赤金"];
+  if (!goldRule || goldRule.hours <= 0) {
+    return rows;
+  }
+  const lmdPerGold = currentBase.lmdPerHour / currentBase.goldPerHour;
+  const goldManufactureRate = goldRule.amount / goldRule.hours;
+  const extraGoldPerHour =
+    production.amountPerHour / lmdPerGold +
+    (production.materialPerHour?.["赤金"] ?? 0);
+  if (goldManufactureRate > 0 && extraGoldPerHour > 0.000001) {
+    rows.push(
+      displayRow(
+        "equivalent-manufacture-efficiency",
+        displayText("等效制造效率"),
+        displayUnit(
+          (extraGoldPerHour / goldManufactureRate) * 100,
+          "number",
+          "%",
+        ),
+      ),
+    );
+  }
+  return rows;
+}
+
 function facilityStepSections(
   step: EfficiencyCalculationStepView,
   result: EfficiencyResult,
@@ -1194,6 +1289,7 @@ function facilityStepSections(
         displayText("整体效率"),
         displayUnit(facility.efficiency, "number", "%"),
       ),
+      ...tradeEquivalentRows(facility, options.ruleset ?? DEFAULT_RULESET),
     ]),
   );
   if (facility.capacity || facility.production) {
