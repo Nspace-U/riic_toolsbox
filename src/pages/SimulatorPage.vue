@@ -129,6 +129,10 @@ import {
   validateSchedule,
 } from "@/utils/schedule";
 import {
+  parseScheduleBackup,
+  serializeScheduleBackup,
+} from "@/utils/scheduleBackup";
+import {
   getOperatorAvatarNameFontSize,
   getOperatorAvatarNameMinBandMetrics,
   getOperatorAvatarSkippedLabelFontSize,
@@ -337,6 +341,7 @@ const {
   documents,
   activeDocumentId,
   createDocument,
+  appendDocuments,
   getActiveDocument,
   setActiveDocument,
   updateDocument,
@@ -5277,6 +5282,26 @@ async function handleFileChange(event: Event): Promise<void> {
   clearImportedScheduleNotice();
   try {
     const text = await file.text();
+    const backup = parseScheduleBackup(text);
+    if (backup) {
+      const idMap = appendDocuments(
+        backup.documents,
+        backup.activeDocumentId,
+      );
+      const nextSettings = { ...simulatorEditSettings.value };
+      backup.documents.forEach((document) => {
+        const id = idMap.get(document.id);
+        const settings = backup.editSettings[document.id];
+        if (id && settings) {
+          nextSettings[id] = { ...settings };
+        }
+      });
+      simulatorEditSettings.value = nextSettings;
+      persistSimulatorEditSettings(nextSettings);
+      message.success(`已导入 ${backup.documents.length} 张排班表。`);
+      return;
+    }
+
     const parsed = parseScheduleImport(text, getRiicEfficiencyTerms());
     importDraft.value = {
       parsed,
@@ -5362,6 +5387,39 @@ function handleExport(documentId?: string): void {
     if (duplicateWarning) {
       message.warning(`导出文件中存在重复干员配置：${duplicateWarning}`);
     }
+  } catch (error: unknown) {
+    setError(error);
+  }
+}
+
+function handleExportAll(): void {
+  if (documents.value.length === 0) {
+    return;
+  }
+
+  try {
+    const editSettings = Object.fromEntries(
+      documents.value.map((document) => [
+        document.id,
+        simulatorEditSettings.value[document.id] ??
+          DEFAULT_SIMULATOR_EDIT_SETTINGS,
+      ]),
+    );
+    const json = serializeScheduleBackup({
+      format: "riic-tools-schedule-backup",
+      version: 1,
+      activeDocumentId: activeDocumentId.value,
+      documents: documents.value,
+      editSettings,
+    });
+    const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = "排班模拟器-全部排班表.json";
+    link.click();
+    URL.revokeObjectURL(url);
+    message.success(`已导出 ${documents.value.length} 张排班表。`);
   } catch (error: unknown) {
     setError(error);
   }
@@ -6055,6 +6113,15 @@ defineExpose({ prepareScheduleReferenceImage });
               @click="openFilePicker"
             >
               <template #icon><UploadOutlined /></template>
+            </a-button>
+            <a-button
+              aria-label="导出所有排班表"
+              :disabled="!documents.length"
+              title="导出所有排班表"
+              type="text"
+              @click="handleExportAll"
+            >
+              <template #icon><DownloadOutlined /></template>
             </a-button>
             <a-button
               aria-label="隐藏排班表"

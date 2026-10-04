@@ -165,6 +165,31 @@ function createDocument(
   return stored;
 }
 
+function appendDocuments(
+  sourceDocuments: readonly StoredDocument[],
+  activeSourceId: string,
+): Map<string, string> {
+  const usedIds = new Set(documents.value.map((document) => document.id));
+  const idMap = new Map<string, string>();
+  const importedDocuments = sourceDocuments.map((source) => {
+    const imported = JSON.parse(JSON.stringify(source)) as StoredDocument;
+    let id = createId();
+    while (usedIds.has(id)) {
+      id = createId();
+    }
+    usedIds.add(id);
+    idMap.set(source.id, id);
+    imported.id = id;
+    return imported;
+  });
+
+  documents.value.push(...importedDocuments);
+  activeDocumentId.value =
+    idMap.get(activeSourceId) ?? importedDocuments[0]?.id ?? "";
+  persist();
+  return idMap;
+}
+
 function getDocument(id: string): StoredDocument | undefined {
   return documents.value.find((document) => document.id === id);
 }
@@ -278,6 +303,7 @@ export function useScheduleDocuments() {
     documents,
     activeDocumentId,
     createDocument,
+    appendDocuments,
     getDocument,
     getActiveDocument,
     setActiveDocument,
