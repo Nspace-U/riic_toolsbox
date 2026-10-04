@@ -1,10 +1,5 @@
 [
   {
-    "room": "trading",
-    "percentage": "裁缝",
-    "operators": ["柏喙", "卡夫卡", "明椒", "折光"]
-  },
-  {
     "room": "manufacture",
     "product": "中级作战记录",
     "percentage": "35%",
