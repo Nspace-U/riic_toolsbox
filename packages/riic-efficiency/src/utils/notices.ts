@@ -1,4 +1,8 @@
-import type { EfficiencyNotice, EfficiencyResult } from "../types/efficiency";
+import type {
+  EfficiencyCatalog,
+  EfficiencyNotice,
+  EfficiencyResult,
+} from "../types/efficiency";
 import type {
   RoomAssignment,
   RoomKey,
@@ -7,13 +11,16 @@ import type {
 import {
   analyzeSchedulePeriods,
   facilityPower,
+  findDuplicateOperators,
   ROOM_LABELS,
   ROOM_ORDER,
 } from "./schedule";
+import { mapSpecialOperators } from "./specialOperatorMappings";
 import { formatDurationHours, formatNumber } from "./presentation";
 import { formatFacilityResultLabel } from "./resultPresentation";
 
 export interface EfficiencyNoticeInput {
+  catalog?: EfficiencyCatalog;
   document?: ScheduleDocument;
   result?: EfficiencyResult;
   efficiencyError?: string;
@@ -99,6 +106,38 @@ export function buildEfficiencyNotices(
       details: ["排班表未包含布局，已按队列中的设施自动推测"],
     });
   }
+
+  if (document) {
+    const duplicateDetails = findDuplicateOperators(
+      document,
+      input.catalog?.terms ?? {},
+    ).map(({ planIndex, name, locations }) => {
+      const plan = document.plans[planIndex];
+      return `${plan?.name?.trim() || `队列${planIndex + 1}`}：${name}（${locations.join("、")}）`;
+    });
+    if (duplicateDetails.length > 0) {
+      notices.push({
+        code: "duplicate-operator",
+        level: "warning",
+        message: "同一队列存在重复干员",
+        details: duplicateDetails,
+      });
+    }
+
+    const mappingIssues = mapSpecialOperators(document, input.catalog).issues;
+    if (mappingIssues.length > 0) {
+      notices.push({
+        code: "special-operator-mapping",
+        level: "warning",
+        message: "特殊干员没有可用的映射干员",
+        details: mappingIssues.map((issue) => {
+          const plan = document.plans[issue.planIndex];
+          return `${plan?.name?.trim() || `队列${issue.planIndex + 1}`} · ${ROOM_LABELS[issue.room]} ${issue.roomIndex + 1} 槽位${issue.slotIndex + 1} · ${issue.name}：${issue.errorMessage}`;
+        }),
+      });
+    }
+  }
+
   const maaDroneWarnings = result.maaDroneAcceleration?.warnings ?? [];
   const droneOverflowDetails = maaDroneWarnings
     .filter((warning) => warning.code === "overflow")

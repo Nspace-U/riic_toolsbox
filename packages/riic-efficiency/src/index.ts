@@ -91,6 +91,14 @@ export {
   specialOperatorTermMembers,
   termKeysForSpecialOperator,
 } from "./utils/specialOperators";
+export {
+  mapSpecialOperators,
+  percentageMappingFor,
+} from "./utils/specialOperatorMappings";
+export type {
+  PercentageOperatorMapping,
+  SpecialOperatorMappingIssue,
+} from "./utils/specialOperatorMappings";
 export { DRONE_ACCELERATION_MINUTES } from "./utils/sanity";
 export {
   BATTLE_RECORD_EXPERIENCE,

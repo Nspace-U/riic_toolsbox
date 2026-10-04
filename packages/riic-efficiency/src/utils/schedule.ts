@@ -10,6 +10,7 @@ import {
   type ScheduleDocument,
 } from "../types/schedule";
 import type { BaseSkillTerms } from "../types/baseData";
+import type { EfficiencyCatalog } from "../types/efficiency";
 import { isKnownSpecialOperator } from "./specialOperators";
 
 export interface SchedulePeriodAnalysis {
@@ -1012,7 +1013,7 @@ export interface DuplicateOperatorWarning {
 
 export function findDuplicateOperators(
   document: ScheduleDocument,
-  terms: BaseSkillTerms = {},
+  terms: BaseSkillTerms | EfficiencyCatalog["terms"] = {},
 ): DuplicateOperatorWarning[] {
   return document.plans.flatMap((plan, planIndex) => {
     const occurrences = new Map<string, string[]>();

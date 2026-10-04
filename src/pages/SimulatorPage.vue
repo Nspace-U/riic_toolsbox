@@ -971,6 +971,7 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
 
 const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
   buildEfficiencyNotices({
+    catalog: efficiencyCatalog.value,
     document: currentDocument.value,
     result: efficiencyResult.value,
     efficiencyError: efficiencyError.value,
