@@ -116,6 +116,7 @@ export interface PlanContext {
   durationHours: number;
   facilities: EfficiencyFacility[];
   placements: Placement[];
+  runOrderPlacements: Placement[];
   active: ActiveEffect[];
   basePoints: Record<string, number>;
   basePointDetails: BasePointDetail[];

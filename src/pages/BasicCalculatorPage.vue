@@ -54,6 +54,7 @@ import {
   createBasicCalculatorConfig,
   createBasicCalculatorPatch,
   createBasicCalculatorSchedule,
+  createEfficiencyCalculatorAsset,
   operatorFieldOptions,
   operatorFieldValues,
   synchronizeBasicCalculatorGroupSchedule,
@@ -88,6 +89,8 @@ interface BasicCalculatorRowView {
   sourceRows: BasicCalculatorRow[];
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
   numeric: Record<string, number | undefined>;
+  tradeOrderRule?: string;
+  tradeOrders?: BasicCalculatorRowCalculation["tradeOrders"];
   backgroundColor?: string;
 }
 
@@ -106,7 +109,18 @@ interface GroupDraft {
   rows: BasicCalculatorRow[];
 }
 
-const STORAGE_KEY = "riic-tools:basic-calculator:v5";
+const STORAGE_KEYS = {
+  combination: "riic-tools:basic-calculator:v5",
+  efficiency: "riic-tools:efficiency-calculator:v1",
+} as const;
+const props = withDefaults(
+  defineProps<{ mode?: "combination" | "efficiency" }>(),
+  { mode: "combination" },
+);
+const calculatorTitle = computed(() =>
+  props.mode === "efficiency" ? "效率计算器" : "组合计算器",
+);
+const storageKey = computed(() => STORAGE_KEYS[props.mode]);
 const { operators, ready, errorMessage } = useBaseData();
 const { facilityColors, productColors } = useFacilityColors();
 const {
@@ -223,11 +237,11 @@ interface DraftHiddenOperatorOption {
   label: string;
 }
 
-function readStoredPatch(): BasicCalculatorPatch | undefined {
+function readStoredPatch(key: string): BasicCalculatorPatch | undefined {
   if (typeof window === "undefined") return undefined;
   try {
     const value: unknown = JSON.parse(
-      window.localStorage.getItem(STORAGE_KEY) ?? "null",
+      window.localStorage.getItem(key) ?? "null",
     );
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       return undefined;
@@ -245,10 +259,10 @@ function persistConfig(): void {
   try {
     const patch = createBasicCalculatorPatch(defaults.value, config.value);
     if (Object.keys(patch).length === 1) {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(storageKey.value);
       return;
     }
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(patch));
+    window.localStorage.setItem(storageKey.value, JSON.stringify(patch));
   } catch {}
 }
 
@@ -268,19 +282,27 @@ async function loadResources(): Promise<void> {
     );
     if (!defaultResponse.ok) {
       throw new Error(
-        `基础计算器配置读取失败（HTTP ${defaultResponse.status}）`,
+        `${calculatorTitle.value}配置读取失败（HTTP ${defaultResponse.status}）`,
       );
     }
+    const asset = (await defaultResponse.json()) as BasicCalculatorAsset;
     const nextDefaults = createBasicCalculatorConfig(
-      (await defaultResponse.json()) as BasicCalculatorAsset,
+      props.mode === "efficiency"
+        ? createEfficiencyCalculatorAsset(asset)
+        : asset,
     );
     defaults.value = nextDefaults;
-    config.value = applyBasicCalculatorPatch(nextDefaults, readStoredPatch());
+    config.value = applyBasicCalculatorPatch(
+      nextDefaults,
+      readStoredPatch(storageKey.value),
+    );
     catalog.value = getRiicEfficiencyCatalog();
     loadError.value = "";
   } catch (error: unknown) {
     loadError.value =
-      error instanceof Error ? error.message : "基础计算器读取失败";
+      error instanceof Error
+        ? error.message
+        : `${calculatorTitle.value}读取失败`;
   } finally {
     loading.value = false;
   }
@@ -309,7 +331,7 @@ onMounted(() => {
   };
   calculatorWorker.value.onerror = () => {
     calculationLoading.value = false;
-    calculationError.value = "基础计算器后台计算失败";
+    calculationError.value = `${calculatorTitle.value}后台计算失败`;
   };
   void loadResources();
   requestCalculations();
@@ -520,6 +542,8 @@ function rowView(
       numeric[column.id] = calculation?.storageDelta;
     } else if (column.kind === "orderDelta") {
       numeric[column.id] = calculation?.orderDelta;
+    } else if (column.kind === "tradeBaseEfficiency") {
+      numeric[column.id] = calculation?.tradeBaseEfficiency;
     } else if (column.kind === "efficiency") {
       numeric[column.id] =
         calculation?.efficiency[String(column.hours ?? 24)]?.second;
@@ -540,6 +564,8 @@ function rowView(
     sourceRows: [row],
     efficiency: calculation?.efficiency ?? {},
     numeric,
+    tradeOrderRule: calculation?.tradeOrderRule,
+    tradeOrders: calculation?.tradeOrders,
     backgroundColor: productAccent(group, row),
   };
 }
@@ -591,6 +617,24 @@ function efficiencyText(
   return `${first} / ${second}`;
 }
 
+function tradeOrderText(view: BasicCalculatorRowView): string {
+  if (view.tradeOrderRule?.startsWith("固定订单：")) {
+    return view.tradeOrderRule;
+  }
+  return (
+    view.tradeOrders
+      ?.map((order) => {
+        const probability =
+          order.probability < 1
+            ? ` ${formatEfficiencyNumber(order.probability * 100)}%`
+            : "";
+        const note = order.note ? ` · ${order.note}` : "";
+        return `${order.name}${probability}${note}`;
+      })
+      .join(" / ") ?? "—"
+  );
+}
+
 function sortValue(
   view: BasicCalculatorRowView,
   column: BasicCalculatorColumn,
@@ -601,6 +645,7 @@ function sortValue(
   if (column.kind === "operatorNames") {
     return operatorNameText(view.group, view.row);
   }
+  if (column.kind === "tradeOrders") return tradeOrderText(view);
   if (column.kind === "note")
     return view.row.schedule.plans[0]?.description ?? "";
   if (
@@ -626,6 +671,12 @@ function mergeRowViews(
   views.forEach((view) => {
     const key = JSON.stringify([
       view.backgroundColor ?? null,
+      view.row.schedule.settings?.runOrderEnabled === true,
+      view.row.schedule.settings?.runOrderEnabled === true
+        ? rowVisibleOperators(view.group, view.row)
+            .filter((operator) => operator.runOrder)
+            .map((operator) => operator.name)
+        : [],
       groupColumns(view.group)
         .filter(
           (column) =>
@@ -650,15 +701,22 @@ function viewOperatorNameText(view: BasicCalculatorRowView): string {
     .join(" / ");
 }
 
-function viewVisibleOperators(
-  view: BasicCalculatorRowView,
-): Array<{ rowId: string; operator: BasicCalculatorOperator }> {
-  return view.sourceRows.flatMap((row) =>
-    rowVisibleOperators(view.group, row).map((operator) => ({
+function viewVisibleOperators(view: BasicCalculatorRowView): Array<{
+  rowId: string;
+  operator: BasicCalculatorOperator;
+  dividerBefore: boolean;
+}> {
+  return view.sourceRows.flatMap((row) => {
+    const visible = rowVisibleOperators(view.group, row);
+    return visible.map((operator, index) => ({
       rowId: row.id,
       operator,
-    })),
-  );
+      dividerBefore:
+        operator.runOrder === true &&
+        index > 0 &&
+        visible[index - 1]?.runOrder !== true,
+    }));
+  });
 }
 
 function viewVisibleOperatorNameParts(view: BasicCalculatorRowView): Array<{
@@ -666,21 +724,35 @@ function viewVisibleOperatorNameParts(view: BasicCalculatorRowView): Array<{
   label: string;
   operator: Operator | undefined;
   separator: string;
+  dividerBefore: boolean;
 }> {
   const parts: Array<{
     key: string;
     label: string;
     operator: Operator | undefined;
     separator: string;
+    dividerBefore: boolean;
   }> = [];
 
   view.sourceRows.forEach((row) => {
-    rowVisibleOperators(view.group, row).forEach((operator, index) => {
+    const visible = rowVisibleOperators(view.group, row);
+    visible.forEach((operator, index) => {
+      const dividerBefore =
+        operator.runOrder === true &&
+        index > 0 &&
+        visible[index - 1]?.runOrder !== true;
       parts.push({
         key: `${row.id}-${index}-${operator.name}`,
         label: displayOperatorNameLabel(view.group, operator),
         operator: operatorFor(operator.name),
-        separator: index === 0 ? (parts.length > 0 ? " / " : "") : " + ",
+        separator: dividerBefore
+          ? ""
+          : index === 0
+            ? parts.length > 0
+              ? " / "
+              : ""
+            : " + ",
+        dividerBefore,
       });
     });
   });
@@ -694,6 +766,13 @@ function columnText(
 ): string {
   if (column.kind === "operatorNames") {
     return viewOperatorNameText(view);
+  }
+  if (column.kind === "tradeOrders") return tradeOrderText(view);
+  if (column.kind === "tradeBaseEfficiency") {
+    const value = view.numeric[column.id];
+    return value === undefined
+      ? "—"
+      : `${formatNumber(value)} ${column.unit ?? ""}`.trim();
   }
   if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
@@ -1015,10 +1094,17 @@ function addColumn(): void {
       columnDraft.label.trim() ||
       (columnDraft.kind === "efficiency"
         ? `${formatNumber(columnDraft.hours)}小时效率`
-        : "自定义列"),
+        : columnDraft.kind === "tradeOrders"
+          ? "订单类型"
+          : columnDraft.kind === "tradeBaseEfficiency"
+            ? "基础效率"
+            : "自定义列"),
     kind: columnDraft.kind,
     ...(columnDraft.kind === "efficiency"
       ? { hours: Math.max(0.01, columnDraft.hours), unit: "%" }
+      : {}),
+    ...(columnDraft.kind === "tradeBaseEfficiency"
+      ? { unit: "龙门币/小时" }
       : {}),
     ...(columnDraft.kind === "operatorField"
       ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
@@ -1174,7 +1260,24 @@ function resetDefaults(): void {
   if (!defaults.value) return;
   config.value = cloneBasicCalculatorConfig(defaults.value);
   if (typeof window !== "undefined")
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(storageKey.value);
+}
+
+function setRunOrderEnabled(
+  groupId: string,
+  rowId: string,
+  enabled: boolean,
+): void {
+  updateConfig((draft) => {
+    const row = draft.groups
+      .find((group) => group.id === groupId)
+      ?.rows.find((item) => item.id === rowId);
+    if (!row) return;
+    row.schedule.settings = {
+      ...row.schedule.settings,
+      runOrderEnabled: enabled,
+    };
+  });
 }
 
 function operatorFor(name: string): Operator | undefined {
@@ -1275,7 +1378,7 @@ function toggleGroupColumn(
       <div class="basic-calculator-header-content">
         <div>
           <span class="page-kicker">RIIC EFFICIENCY</span>
-          <h1>基建组合计算器</h1>
+          <h1>{{ calculatorTitle }}</h1>
           <p>按组合、产物和工作时长比较基建技能效果。</p>
         </div>
         <a-space wrap>
@@ -1494,6 +1597,22 @@ function toggleGroupColumn(
                       v-if="view.sourceRows.length === 1"
                       class="basic-calculator-row-actions"
                     >
+                      <a-tooltip title="跑单开关">
+                        <a-switch
+                          :aria-label="
+                            view.row.schedule.settings?.runOrderEnabled === true
+                              ? '关闭跑单'
+                              : '开启跑单'
+                          "
+                          :checked="
+                            view.row.schedule.settings?.runOrderEnabled === true
+                          "
+                          size="small"
+                          @change="
+                            setRunOrderEnabled(group.id, view.row.id, $event)
+                          "
+                        />
+                      </a-tooltip>
                       <a-button
                         :icon="h(EditOutlined)"
                         aria-label="编辑行"
@@ -1541,6 +1660,28 @@ function toggleGroupColumn(
                                   `未显示干员 ${index + 1}`
                                 }}
                               </span>
+                              <a-tooltip title="跑单开关">
+                                <a-switch
+                                  :aria-label="
+                                    sourceRow.schedule.settings
+                                      ?.runOrderEnabled === true
+                                      ? '关闭跑单'
+                                      : '开启跑单'
+                                  "
+                                  :checked="
+                                    sourceRow.schedule.settings
+                                      ?.runOrderEnabled === true
+                                  "
+                                  size="small"
+                                  @change="
+                                    setRunOrderEnabled(
+                                      group.id,
+                                      sourceRow.id,
+                                      $event,
+                                    )
+                                  "
+                                />
+                              </a-tooltip>
                               <a-button
                                 :icon="h(EditOutlined)"
                                 :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
@@ -1590,28 +1731,38 @@ function toggleGroupColumn(
                       v-if="cell.column.kind === 'operators'"
                       class="basic-calculator-avatars"
                     >
-                      <OperatorAvatarDisplay
+                      <template
                         v-for="entry in viewVisibleOperators(view)"
                         :key="`${entry.rowId}-${entry.operator.name}`"
-                        :display-name="entry.operator.name"
-                        :elite-level="
-                          operatorEliteLevel(view.group, entry.operator)
-                        "
-                        :operator="operatorFor(entry.operator.name)"
-                        :plain="true"
-                        :proportional-layout="true"
-                        :show-elite-level="
-                          config.settings.avatar.showEliteLevel
-                        "
-                        :show-profession="config.settings.avatar.showProfession"
-                        :show-rarity="config.settings.avatar.showRarity"
-                        :size="58"
-                        :special-label="
-                          operatorFor(entry.operator.name)
-                            ? undefined
-                            : entry.operator.name.slice(0, 2)
-                        "
-                      />
+                      >
+                        <span
+                          v-if="entry.dividerBefore"
+                          class="calculator-run-order-divider basic-calculator-run-order-divider"
+                          title="跑单槽"
+                        />
+                        <OperatorAvatarDisplay
+                          :display-name="entry.operator.name"
+                          :elite-level="
+                            operatorEliteLevel(view.group, entry.operator)
+                          "
+                          :operator="operatorFor(entry.operator.name)"
+                          :plain="true"
+                          :proportional-layout="true"
+                          :show-elite-level="
+                            config.settings.avatar.showEliteLevel
+                          "
+                          :show-profession="
+                            config.settings.avatar.showProfession
+                          "
+                          :show-rarity="config.settings.avatar.showRarity"
+                          :size="58"
+                          :special-label="
+                            operatorFor(entry.operator.name)
+                              ? undefined
+                              : entry.operator.name.slice(0, 2)
+                          "
+                        />
+                      </template>
                     </div>
                     <span
                       v-else-if="cell.column.kind === 'operatorNames'"
@@ -1622,6 +1773,11 @@ function toggleGroupColumn(
                         :key="part.key"
                       >
                         <span>{{ part.separator }}</span>
+                        <span
+                          v-if="part.dividerBefore"
+                          class="calculator-run-order-divider basic-calculator-run-order-divider"
+                          title="跑单槽"
+                        />
                         <OperatorSkillTooltip
                           :operator="part.operator"
                           target-tag="span"
@@ -1730,6 +1886,16 @@ function toggleGroupColumn(
         <a-form-item label="新列类型" name="kind">
           <a-select v-model:value="columnDraft.kind">
             <a-select-option value="efficiency">工作时间效率</a-select-option>
+            <a-select-option
+              v-if="props.mode === 'efficiency'"
+              value="tradeOrders"
+              >订单类型</a-select-option
+            >
+            <a-select-option
+              v-if="props.mode === 'efficiency'"
+              value="tradeBaseEfficiency"
+              >基础效率</a-select-option
+            >
             <a-select-option value="operatorField"
               >干员 JSON 数值</a-select-option
             >
@@ -2004,6 +2170,15 @@ function toggleGroupColumn(
   display: flex;
   flex-wrap: nowrap;
   gap: 4px;
+}
+.basic-calculator-avatars .basic-calculator-run-order-divider {
+  height: 58px;
+}
+.basic-calculator-operator-name-list .basic-calculator-run-order-divider {
+  display: inline-block;
+  height: 14px;
+  margin-inline: 4px;
+  vertical-align: middle;
 }
 .basic-calculator-actions-column {
   padding-inline: 4px !important;

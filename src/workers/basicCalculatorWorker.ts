@@ -35,7 +35,7 @@ self.onmessage = (event: MessageEvent<BasicCalculatorWorkerRequest>) => {
     self.postMessage(response);
   } catch (error: unknown) {
     self.postMessage({
-      error: error instanceof Error ? error.message : "基础计算器计算失败",
+      error: error instanceof Error ? error.message : "计算器计算失败",
       requestId: request.requestId,
     } satisfies BasicCalculatorWorkerResponse);
   }

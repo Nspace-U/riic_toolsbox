@@ -195,13 +195,15 @@ function createContexts(
       ) / 60,
     );
     const placements: Placement[] = [];
+    const runOrderPlacements: Placement[] = [];
     const warnings: string[] = [];
     facilities.forEach((facility) => {
       const assignment = roomAssignments(document, index, facility);
-      if (!assignment.operators?.some(Boolean)) {
-        return;
-      }
-      (assignment.operators ?? []).forEach((name, operatorIndex) => {
+      const addPlacement = (
+        name: string,
+        operatorIndex: number,
+        orderOnly: boolean,
+      ): void => {
         if (!name) {
           return;
         }
@@ -225,7 +227,7 @@ function createContexts(
           elite: progression.elite,
           level: progression.level,
         };
-        placements.push({
+        const placement: Placement = {
           name,
           facility,
           assignment,
@@ -238,18 +240,36 @@ function createContexts(
             profile?.skillFile,
             facility.type,
             effectiveState,
+          ).filter(
+            ({ effect }) =>
+              !orderOnly ||
+              (effect.stat === "tradeOrder" && effect.order?.type !== "tailor"),
           ),
           explicitMood:
-            !special && Object.prototype.hasOwnProperty.call(state, "mood"),
-          moodStart: special ? 24 : clampMood(state.mood ?? 24),
-          moodEnd: special ? 24 : clampMood(state.mood ?? 24),
+            !orderOnly &&
+            !special &&
+            Object.prototype.hasOwnProperty.call(state, "mood"),
+          moodStart: orderOnly || special ? 24 : clampMood(state.mood ?? 24),
+          moodEnd: orderOnly || special ? 24 : clampMood(state.mood ?? 24),
           costRate: 0,
           moodRateDetails: [],
           working: true,
           workHoursBefore: 0,
           fiammettaForced: false,
-        });
-      });
+        };
+        (orderOnly ? runOrderPlacements : placements).push(placement);
+      };
+      (assignment.operators ?? []).forEach((name, operatorIndex) =>
+        addPlacement(name, operatorIndex, false),
+      );
+      const runOrderEnabled = document.settings?.runOrderEnabled === true;
+      const runsLongmenOrders =
+        canonicalResourceKey(assignment.product ?? "龙门币") === "龙门币";
+      if (runOrderEnabled && facility.type === "trading" && runsLongmenOrders) {
+        (assignment.runOrderOperators ?? []).forEach((name, operatorIndex) =>
+          addPlacement(name, operatorIndex, true),
+        );
+      }
     });
     return {
       catalog,
@@ -261,6 +281,7 @@ function createContexts(
       durationHours,
       facilities,
       placements,
+      runOrderPlacements,
       active: [],
       basePoints: {},
       basePointDetails: [],
@@ -1451,32 +1472,45 @@ function collectActive(
   ignoreStatCmp = false,
 ): ActiveEffect[] {
   const active: ActiveEffect[] = [];
-  context.placements
-    .filter((placement) => isCurrentlyWorking(placement))
-    .forEach((owner) => {
-      owner.selected.forEach(({ skill, effect }) => {
-        if (ignoreStatCmp && effect.condition?.type === "statCmp") return;
-        const targets = facilityTargets(effect, owner, context.facilities);
-        targets.forEach((target) => {
-          if (
-            !(
-              effect.condition?.type === "moodDrop" &&
-              (EFFICIENCY_STATS.has(effect.stat) ||
-                ATTRIBUTE_STATS.has(effect.stat))
-            ) &&
-            !conditionSatisfied(
-              effect.condition,
-              owner,
-              target,
-              context,
-              catalog,
-            )
+  const collectFor = (
+    owner: Placement,
+    conditionContext: PlanContext,
+  ): void => {
+    if (!isCurrentlyWorking(owner)) return;
+    owner.selected.forEach(({ skill, effect }) => {
+      if (ignoreStatCmp && effect.condition?.type === "statCmp") return;
+      const targets = facilityTargets(effect, owner, context.facilities);
+      targets.forEach((target) => {
+        if (
+          !(
+            effect.condition?.type === "moodDrop" &&
+            (EFFICIENCY_STATS.has(effect.stat) ||
+              ATTRIBUTE_STATS.has(effect.stat))
+          ) &&
+          !conditionSatisfied(
+            effect.condition,
+            owner,
+            target,
+            conditionContext,
+            catalog,
           )
-            return;
-          active.push({ owner, effect, skill, target });
-        });
+        )
+          return;
+        active.push({ owner, effect, skill, target });
       });
     });
+  };
+  context.placements.forEach((owner) => collectFor(owner, context));
+  const orderContext =
+    context.runOrderPlacements.length > 0
+      ? {
+          ...context,
+          placements: [...context.placements, ...context.runOrderPlacements],
+        }
+      : context;
+  context.runOrderPlacements.forEach((owner) =>
+    collectFor(owner, orderContext),
+  );
   return active;
 }
 

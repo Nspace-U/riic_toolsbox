@@ -704,6 +704,26 @@ function validateOperators(room: RoomAssignment, path: string): string[] {
   return names;
 }
 
+function validateRunOrderOperators(
+  room: RoomAssignment,
+  type: RoomKey,
+  path: string,
+): string[] {
+  if (!hasOwn(room, "runOrderOperators")) return [];
+  if (type !== "trading") {
+    fail(`${path}.runOrderOperators`, "只支持贸易站跑单槽位");
+  }
+  if (!Array.isArray(room.runOrderOperators)) {
+    fail(`${path}.runOrderOperators`, "必须是干员名称字符串数组");
+  }
+  return room.runOrderOperators.map((operator, index) => {
+    if (typeof operator !== "string" || (operator !== "" && !operator.trim())) {
+      fail(`${path}.runOrderOperators[${index}]`, "必须是干员名称字符串");
+    }
+    return operator;
+  });
+}
+
 function validateRoomCapacity(
   room: RoomAssignment,
   type: RoomKey,
@@ -714,6 +734,9 @@ function validateRoomCapacity(
   const capacity = roomSlotCount(type, level);
   if (names.length > capacity) {
     fail(`${path}.operators`, `超过该设施 ${capacity} 个槽位上限`);
+  }
+  if ((room.runOrderOperators?.length ?? 0) > capacity) {
+    fail(`${path}.runOrderOperators`, `超过该设施 ${capacity} 个跑单槽位上限`);
   }
 }
 
@@ -820,6 +843,12 @@ function validateSettings(settings: unknown): ScheduleSettings {
     fail("settings.preferMaxJieEfficiency", "必须是布尔值");
   }
   if (
+    hasOwn(settings, "runOrderEnabled") &&
+    typeof settings.runOrderEnabled !== "boolean"
+  ) {
+    fail("settings.runOrderEnabled", "必须是布尔值");
+  }
+  if (
     hasOwn(settings, "lmdDroneStrategy") &&
     typeof settings.lmdDroneStrategy !== "string"
   ) {
@@ -918,7 +947,10 @@ function validateRoom(
   ) {
     fail(`${path}.sourceMaterial`, "必须是字符串");
   }
-  const names = validateOperators(room as RoomAssignment, path);
+  const names = [
+    ...validateOperators(room as RoomAssignment, path),
+    ...validateRunOrderOperators(room as RoomAssignment, type, path),
+  ];
   validateOperatorStates(room as RoomAssignment, names, path);
   return room as RoomAssignment;
 }

@@ -66,12 +66,14 @@ interface FacilityRow {
 interface SlotRef {
   entry: FacilityEntry;
   slotIndex: number;
+  runOrder?: boolean;
 }
 interface SlotAddress {
   type: RoomKey;
   position: number;
   slotIndex: number;
   key: string;
+  runOrder?: boolean;
 }
 interface OperatorProgressionInfo {
   nodes: OperatorProgressionNode[];
@@ -561,7 +563,9 @@ function facilityStyle(row: FacilityRow): Record<string, string> {
   };
 }
 function facilityWidth(row: FacilityRow): string {
-  return Math.max(1, slotRefs(row).length) * 76 + 29 + "px";
+  const slots = slotRefs(row).length + runSlotRefs(row).length;
+  const divider = runSlotRefs(row).length > 0 ? 17 : 0;
+  return Math.max(1, slots) * 76 + divider + 29 + "px";
 }
 function fixedLevel(type: RoomKey): number {
   return props.fixedRoomLevels?.[type] ?? layoutEntryLevelMax(type);
@@ -664,6 +668,30 @@ function slotRefs(row: FacilityRow): SlotRef[] {
     ),
   );
 }
+function runSlotRefs(row: FacilityRow): SlotRef[] {
+  if (
+    row.type !== "trading" ||
+    props.modelValue.settings?.runOrderEnabled !== true
+  ) {
+    return [];
+  }
+  return row.entries.flatMap((entry) => {
+    const assignment = roomAt(
+      props.modelValue,
+      row.type,
+      entry.position,
+      false,
+    );
+    if (assignment?.product === "合成玉") return [];
+    return Array.from(
+      { length: roomSlotCount(row.type, entry.entry.level) },
+      (_, slotIndex) => ({ entry, slotIndex, runOrder: true }),
+    );
+  });
+}
+function slotsForRender(row: FacilityRow): SlotRef[] {
+  return [...slotRefs(row), ...runSlotRefs(row)];
+}
 function roomAt(
   document: ScheduleDocument,
   type: RoomKey,
@@ -689,12 +717,18 @@ function slotAddress(slot: SlotRef, type: RoomKey): SlotAddress {
     type,
     position: slot.entry.position,
     slotIndex: slot.slotIndex,
-    key: type + "-" + slot.entry.position + "-" + slot.slotIndex,
+    key:
+      type +
+      "-" +
+      slot.entry.position +
+      (slot.runOrder ? "-run-" : "-") +
+      slot.slotIndex,
+    ...(slot.runOrder ? { runOrder: true } : {}),
   };
 }
 function allSlotAddresses(): SlotAddress[] {
   return facilityRows.value.flatMap((row) =>
-    slotRefs(row).map((slot) => slotAddress(slot, row.type)),
+    slotsForRender(row).map((slot) => slotAddress(slot, row.type)),
   );
 }
 function transferFacilityRow(address: SlotAddress): FacilityRow | undefined {
@@ -713,7 +747,7 @@ function transferFacilityKey(address: SlotAddress): string {
 function transferFacilityAddresses(address: SlotAddress): SlotAddress[] {
   const row = transferFacilityRow(address);
   return row
-    ? slotRefs(row).map((slot) => slotAddress(slot, row.type))
+    ? slotsForRender(row).map((slot) => slotAddress(slot, row.type))
     : addressesInScope(address);
 }
 function transferFacilitySlotIndex(address: SlotAddress): number {
@@ -736,9 +770,11 @@ function clipboardAddress(address: SlotAddress): ClipboardAddress {
   };
 }
 function slotName(address: SlotAddress): string {
+  const room = roomAt(props.modelValue, address.type, address.position, false);
   return (
-    roomAt(props.modelValue, address.type, address.position, false)
-      ?.operators?.[address.slotIndex] ?? ""
+    (address.runOrder
+      ? room?.runOrderOperators?.[address.slotIndex]
+      : room?.operators?.[address.slotIndex]) ?? ""
   );
 }
 function sameAddress(
@@ -766,24 +802,28 @@ function trimOperatorSlots(names: string[]): string[] {
 function setRoomOperators(
   room: RoomAssignment,
   names: string[],
+  runOrder: boolean,
   overrides: Map<string, OperatorState | undefined> = new Map(),
 ): void {
   const normalizedNames = trimOperatorSlots(names);
+  const otherNames = runOrder
+    ? (room.operators ?? [])
+    : (room.runOrderOperators ?? []);
+  const allNames = [...normalizedNames, ...otherNames];
   const nextStates: Record<string, OperatorState> = {};
-  normalizedNames.forEach((name) => {
+  allNames.forEach((name) => {
     if (!name) return;
-    const state = overrides.has(name)
-      ? overrides.get(name)
-      : room.operatorStates?.[name];
+    const state = overrides.get(name) ?? room.operatorStates?.[name];
     if (state) nextStates[name] = clone(state);
   });
-  if (!normalizedNames.length) {
-    delete room.operators;
-    delete room.operatorStates;
-    return;
+  if (runOrder) {
+    if (normalizedNames.length) room.runOrderOperators = normalizedNames;
+    else delete room.runOrderOperators;
+  } else {
+    if (normalizedNames.length) room.operators = normalizedNames;
+    else delete room.operators;
+    if (normalizedNames.length) delete room.skip;
   }
-  room.operators = normalizedNames;
-  delete room.skip;
   if (Object.keys(nextStates).length) room.operatorStates = nextStates;
   else delete room.operatorStates;
 }
@@ -792,7 +832,10 @@ function snapshotAt(
   address: SlotAddress,
 ): ClipboardEntry {
   const room = roomAt(document, address.type, address.position, false);
-  const name = room?.operators?.[address.slotIndex] ?? "";
+  const name =
+    (address.runOrder
+      ? room?.runOrderOperators?.[address.slotIndex]
+      : room?.operators?.[address.slotIndex]) ?? "";
   const state = name ? room?.operatorStates?.[name] : undefined;
   return { name, ...(state ? { state: clone(state) } : {}) };
 }
@@ -805,7 +848,11 @@ function applySnapshots(
     Array<{ address: SlotAddress; entry: ClipboardEntry }>
   >();
   assignments.forEach((change) => {
-    const key = change.address.type + "-" + change.address.position;
+    const key =
+      change.address.type +
+      "-" +
+      change.address.position +
+      (change.address.runOrder ? "-run" : "-regular");
     changes.set(key, [...(changes.get(key) ?? []), change]);
   });
   changes.forEach((items) => {
@@ -826,14 +873,19 @@ function applySnapshots(
       : first.address.slotIndex + 1;
     const names = Array.from(
       { length: capacity },
-      (_, index) => room.operators?.[index] ?? "",
+      (_, index) =>
+        (first.address.runOrder
+          ? room.runOrderOperators?.[index]
+          : room.operators?.[index]) ?? "",
     );
     const states = new Map<string, OperatorState | undefined>();
     items.forEach(({ address, entry: snapshot }) => {
-      names[address.slotIndex] = snapshot.name;
+      if (address.runOrder === first.address.runOrder) {
+        names[address.slotIndex] = snapshot.name;
+      }
       states.set(snapshot.name, snapshot.state);
     });
-    setRoomOperators(room, names, states);
+    setRoomOperators(room, names, Boolean(first.address.runOrder), states);
   });
 }
 function setSlotName(address: SlotAddress, name: string): void {
@@ -849,13 +901,16 @@ function setSlotName(address: SlotAddress, name: string): void {
       : address.slotIndex + 1;
     const names = Array.from(
       { length: capacity },
-      (_, index) => room.operators?.[index] ?? "",
+      (_, index) =>
+        (address.runOrder
+          ? room.runOrderOperators?.[index]
+          : room.operators?.[index]) ?? "",
     );
     const oldName = names[address.slotIndex];
     names[address.slotIndex] = name;
     const states = new Map<string, OperatorState | undefined>();
     if (oldName && oldName !== name) states.set(oldName, undefined);
-    setRoomOperators(room, names, states);
+    setRoomOperators(room, names, Boolean(address.runOrder), states);
   });
 }
 function clearEditing(): void {
@@ -971,8 +1026,15 @@ function slotFromTarget(target: EventTarget | null): SlotAddress | undefined {
   const type = slot.dataset.type as RoomKey | undefined;
   const position = Number(slot.dataset.position);
   const slotIndex = Number(slot.dataset.slotIndex);
+  const runOrder = slot.dataset.runOrder === "true";
   return type && Number.isInteger(position) && Number.isInteger(slotIndex)
-    ? { type, position, slotIndex, key: slot.dataset.key ?? "" }
+    ? {
+        type,
+        position,
+        slotIndex,
+        key: slot.dataset.key ?? "",
+        ...(runOrder ? { runOrder: true } : {}),
+      }
     : undefined;
 }
 function addressesAtPoint(x: number, y: number): SlotAddress | undefined {
@@ -1527,7 +1589,9 @@ function updateOperatorProgression(node: OperatorProgressionNode): void {
   if (!menu) return;
   updateDocument((document) => {
     const room = roomAt(document, menu.type, menu.position, true);
-    const name = room?.operators?.[menu.slotIndex];
+    const name = menu.runOrder
+      ? room?.runOrderOperators?.[menu.slotIndex]
+      : room?.operators?.[menu.slotIndex];
     if (!room || !name) return;
     const states = room.operatorStates ?? {};
     const state = states[name] ?? {};
@@ -1548,7 +1612,9 @@ function resetOperatorProgression(): void {
   if (!menu) return;
   updateDocument((document) => {
     const room = roomAt(document, menu.type, menu.position, false);
-    const name = room?.operators?.[menu.slotIndex];
+    const name = menu.runOrder
+      ? room?.runOrderOperators?.[menu.slotIndex]
+      : room?.operators?.[menu.slotIndex];
     const state = name ? room?.operatorStates?.[name] : undefined;
     if (!room || !name || !state) return;
     delete state.elite;
@@ -1634,87 +1700,100 @@ defineExpose({ clearInteractionState });
                 @contextmenu.stop.prevent="openRoomContextMenu($event, row)"
               >
                 <div class="simulator-slot-grid" :style="slotStyle()">
-                  <ScheduleOperatorSlot
-                    v-for="slot in slotRefs(row)"
-                    :key="
-                      row.type +
-                      '-' +
-                      slot.entry.position +
-                      '-' +
-                      slot.slotIndex
-                    "
-                    class="basic-calculator-schedule-slot"
-                    :clipboard="
-                      clipboard?.sourceAddresses.some(
-                        (address) =>
-                          address.key === slotAddress(slot, row.type).key,
-                      )
-                    "
-                    :display-name="slotDisplayName(slotAddress(slot, row.type))"
-                    :elite-level="
-                      operatorEliteLevel(
-                        slotDisplayName(slotAddress(slot, row.type)),
-                        row.type,
-                      )
-                    "
-                    :name-input-pending="
-                      slotIsSelected(slotAddress(slot, row.type)) &&
-                      !slotIsEditing(slotAddress(slot, row.type)) &&
-                      !isFixedOperator(slotAddress(slot, row.type))
-                    "
-                    :name-input-value="
-                      slotDisplayName(slotAddress(slot, row.type))
-                    "
-                    :name-input-visible="
-                      slotIsSelected(slotAddress(slot, row.type)) &&
-                      !isFixedOperator(slotAddress(slot, row.type))
-                    "
-                    :name-editing="
-                      slotIsEditing(slotAddress(slot, row.type)) &&
-                      !isFixedOperator(slotAddress(slot, row.type))
-                    "
-                    :operator="
-                      operatorFor(slotDisplayName(slotAddress(slot, row.type)))
-                    "
-                    :paste-highlighted="
-                      pasteHighlightKeys.has(slotAddress(slot, row.type).key)
-                    "
-                    :selected="slotIsSelected(slotAddress(slot, row.type))"
-                    :size="76"
-                    :slot-key="slotAddress(slot, row.type).key"
-                    :special-label="
-                      specialLabel(slotDisplayName(slotAddress(slot, row.type)))
-                    "
-                    :title="
-                      slotDisplayName(slotAddress(slot, row.type)) ||
-                      '点击选择干员，双击编辑'
-                    "
-                    :hovered="dragTargetKey === slotAddress(slot, row.type).key"
-                    :room-label="row.label"
-                    :room-type="row.type"
-                    :position="slot.entry.position"
-                    :slot-index="slot.slotIndex"
-                    @blur="commitSlotEdit"
-                    @click="selectSlot($event, slotAddress(slot, row.type))"
-                    @contextmenu="
-                      openSlotContextMenu($event, slotAddress(slot, row.type))
-                    "
-                    @dblclick="
-                      handleSlotDoubleClick(slotAddress(slot, row.type))
-                    "
-                    @input="
-                      handleSlotInput($event, slotAddress(slot, row.type))
-                    "
-                    @input-click="
-                      handleSlotInputClick(slotAddress(slot, row.type))
-                    "
-                    @focus="handlePickerSelection"
-                    @keyup="handlePickerSelection"
-                    @mouseenter="setHoveredAddress(slotAddress(slot, row.type))"
-                    @mouseleave="setHoveredAddress(undefined)"
-                    @mouseup="handlePickerSelection"
-                    @select="handlePickerSelection"
-                  />
+                  <template
+                    v-for="slot in slotsForRender(row)"
+                    :key="slotAddress(slot, row.type).key"
+                  >
+                    <span
+                      v-if="slot.runOrder && slot.slotIndex === 0"
+                      class="calculator-run-order-divider basic-calculator-run-order-divider"
+                      title="跑单槽"
+                    />
+                    <ScheduleOperatorSlot
+                      :data-run-order="slot.runOrder ? 'true' : undefined"
+                      class="basic-calculator-schedule-slot"
+                      :clipboard="
+                        clipboard?.sourceAddresses.some(
+                          (address) =>
+                            address.key === slotAddress(slot, row.type).key,
+                        )
+                      "
+                      :display-name="
+                        slotDisplayName(slotAddress(slot, row.type))
+                      "
+                      :elite-level="
+                        operatorEliteLevel(
+                          slotDisplayName(slotAddress(slot, row.type)),
+                          row.type,
+                        )
+                      "
+                      :name-input-pending="
+                        slotIsSelected(slotAddress(slot, row.type)) &&
+                        !slotIsEditing(slotAddress(slot, row.type)) &&
+                        !isFixedOperator(slotAddress(slot, row.type))
+                      "
+                      :name-input-value="
+                        slotDisplayName(slotAddress(slot, row.type))
+                      "
+                      :name-input-visible="
+                        slotIsSelected(slotAddress(slot, row.type)) &&
+                        !isFixedOperator(slotAddress(slot, row.type))
+                      "
+                      :name-editing="
+                        slotIsEditing(slotAddress(slot, row.type)) &&
+                        !isFixedOperator(slotAddress(slot, row.type))
+                      "
+                      :operator="
+                        operatorFor(
+                          slotDisplayName(slotAddress(slot, row.type)),
+                        )
+                      "
+                      :paste-highlighted="
+                        pasteHighlightKeys.has(slotAddress(slot, row.type).key)
+                      "
+                      :selected="slotIsSelected(slotAddress(slot, row.type))"
+                      :size="76"
+                      :slot-key="slotAddress(slot, row.type).key"
+                      :special-label="
+                        specialLabel(
+                          slotDisplayName(slotAddress(slot, row.type)),
+                        )
+                      "
+                      :title="
+                        slotDisplayName(slotAddress(slot, row.type)) ||
+                        '点击选择干员，双击编辑'
+                      "
+                      :hovered="
+                        dragTargetKey === slotAddress(slot, row.type).key
+                      "
+                      :room-label="row.label"
+                      :room-type="row.type"
+                      :position="slot.entry.position"
+                      :slot-index="slot.slotIndex"
+                      @blur="commitSlotEdit"
+                      @click="selectSlot($event, slotAddress(slot, row.type))"
+                      @contextmenu="
+                        openSlotContextMenu($event, slotAddress(slot, row.type))
+                      "
+                      @dblclick="
+                        handleSlotDoubleClick(slotAddress(slot, row.type))
+                      "
+                      @input="
+                        handleSlotInput($event, slotAddress(slot, row.type))
+                      "
+                      @input-click="
+                        handleSlotInputClick(slotAddress(slot, row.type))
+                      "
+                      @focus="handlePickerSelection"
+                      @keyup="handlePickerSelection"
+                      @mouseenter="
+                        setHoveredAddress(slotAddress(slot, row.type))
+                      "
+                      @mouseleave="setHoveredAddress(undefined)"
+                      @mouseup="handlePickerSelection"
+                      @select="handlePickerSelection"
+                    />
+                  </template>
                 </div>
               </div>
             </a-card>
@@ -1904,6 +1983,9 @@ defineExpose({ clearInteractionState });
 }
 .basic-calculator-schedule-slot {
   touch-action: none;
+}
+.basic-calculator-run-order-divider {
+  height: 76px;
 }
 .basic-calculator-schedule-slot :deep(.simulator-empty-slot-frame) {
   width: 76px;

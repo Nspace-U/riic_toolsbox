@@ -2232,6 +2232,14 @@ a {
   min-width: max-content;
 }
 
+.calculator-run-order-divider {
+  align-self: center;
+  flex: 0 0 1px;
+  height: 40px;
+  margin-inline: 8px;
+  border-inline-start: 1px solid #b7c6c2;
+}
+
 .simulator-slot {
   position: relative;
   display: flex;

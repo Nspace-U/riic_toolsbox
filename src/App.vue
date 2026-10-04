@@ -33,8 +33,24 @@ interface NavigationChildItem {
 const navigationItems: NavigationItem[] = [
   { key: "/simulator", label: "排班模拟器", icon: ClusterOutlined },
   { key: "/schedule-reference", label: "排班表参考", icon: BookOutlined },
-  { key: "/basic-calculator", label: "基础计算器", icon: CalculatorOutlined },
   { key: "/operator-skills", label: "基建技能一览", icon: BookOutlined },
+  {
+    key: "/calculators",
+    label: "计算器",
+    icon: CalculatorOutlined,
+    children: [
+      {
+        key: "/calculators/combination",
+        label: "组合计算器",
+        icon: CalculatorOutlined,
+      },
+      {
+        key: "/calculators/efficiency",
+        label: "效率计算器",
+        icon: CalculatorOutlined,
+      },
+    ],
+  },
   {
     key: "/toolbox",
     label: "工具箱",
@@ -119,6 +135,10 @@ function handleNavigationOpenChange(keys: string[]): void {
 }
 
 function handleRouteChange(path: string): void {
+  if (path.startsWith("/calculators/")) {
+    openNavigationKeys.value = ["/calculators"];
+    return;
+  }
   if (path === "/toolbox" || path.startsWith("/toolbox/")) {
     openNavigationKeys.value = ["/toolbox"];
   }

@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import type { RouteLocationNormalizedLoaded } from "vue-router";
 
 import BasicCalculatorPage from "@/pages/BasicCalculatorPage.vue";
+import EfficiencyCalculatorPage from "@/pages/EfficiencyCalculatorPage.vue";
 import OperatorSkillsPage from "@/pages/OperatorSkillsPage.vue";
 import ScheduleReferencePage from "@/pages/ScheduleReferencePage.vue";
 import SettingsPage from "@/pages/SettingsPage.vue";
@@ -40,10 +41,16 @@ const router = createRouter({
       meta: { title: "排班表参考" },
     },
     {
-      path: "/basic-calculator",
-      name: "basic-calculator",
+      path: "/calculators/combination",
+      name: "combination-calculator",
       component: BasicCalculatorPage,
-      meta: { title: "基础计算器" },
+      meta: { title: "组合计算器" },
+    },
+    {
+      path: "/calculators/efficiency",
+      name: "efficiency-calculator",
+      component: EfficiencyCalculatorPage,
+      meta: { title: "效率计算器" },
     },
     {
       path: "/operator-skills",

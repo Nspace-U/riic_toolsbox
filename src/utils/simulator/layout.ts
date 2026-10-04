@@ -41,16 +41,19 @@ export function normalizeRoomCapacity(
   level: number,
 ): RoomAssignment {
   const capacity = roomSlotCount(type, level);
-  if (!room.operators || room.operators.length <= capacity) {
-    return room;
+  if (room.operators && room.operators.length > capacity) {
+    room.operators = room.operators.slice(0, capacity);
   }
-
-  room.operators = room.operators.slice(0, capacity);
+  if (room.runOrderOperators && room.runOrderOperators.length > capacity) {
+    room.runOrderOperators = room.runOrderOperators.slice(0, capacity);
+  }
   if (room.operatorStates) {
+    const names = new Set([
+      ...(room.operators ?? []),
+      ...(room.runOrderOperators ?? []),
+    ]);
     room.operatorStates = Object.fromEntries(
-      Object.entries(room.operatorStates).filter(([name]) =>
-        room.operators?.includes(name),
-      ),
+      Object.entries(room.operatorStates).filter(([name]) => names.has(name)),
     );
     if (Object.keys(room.operatorStates).length === 0) {
       delete room.operatorStates;

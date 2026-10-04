@@ -32,6 +32,7 @@ export interface OperatorState {
 
 export interface RoomAssignment {
   operators?: string[];
+  runOrderOperators?: string[];
   skip?: boolean;
   product?: string;
   sourceMaterial?: string;
@@ -93,6 +94,7 @@ export interface ScheduleSettings {
   progressionProfile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
+  runOrderEnabled?: boolean;
 }
 
 export interface ScheduleDocument {

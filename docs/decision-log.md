@@ -1060,3 +1060,11 @@
 - **影响范围**：`packages/riic-efficiency` 公开新增 5 个导出与 1 个类型（`ScheduleLayoutSource`），`EfficiencyResult` 新增必填字段，属于对外契约变更；导入路径仍把推测结果写入新建文档并保留 `inferredLayout` 标记，计算路径不写回。`buildEfficiencyNotices` 的电力摘要改为可选链访问 `document?.layout?.reduce`，缺失布局不再抛错。
 - **状态**：已实施。
 - **验证**：`npm run type-check`、`test:schedule-import`、`test:efficiency`、`test:result-display`、`test:sanity`、`test:simulator-layout`、`test:simulator-result`、`test:schedule-list`、`test:simulator-clipboard`、`test:operator-progression`、`test:operator-skill-generation`、`test:riic-efficiency-package`、定向 ESLint、定向 Prettier 通过；`scripts/riic-efficiency-package-regression.mjs` 固定了含布局时 `layoutSource === "document"`、缺布局时 `layoutSource === "inferred"` 且入参未被写入 `layout`、`buildEfficiencyNotices` 产出 `layout-inferred`。未做浏览器回放验证。
+
+## 2026-10-04：跑单订单效果与常规进驻分离
+
+- **决定**：排班房间用 `runOrderOperators` 保存额外跑单槽，排班设置用 `runOrderEnabled` 开关；效率组件将其构造成独立的跑单效果来源，只收集非裁缝 `tradeOrder` 效果，再与常规订单效果一起交给现有贸易规则计算。
+- **原因**：跑单干员只修改订单类型和订单基础效率，不应参与普通效率、心情或其他技能效果；跑单订单技能的条件仍按同设施常规槽与跑单槽判定。独立 placement 集合可供其他调用方复用。
+- **影响范围**：效率组件公开排班类型和校验扩展；开关和跑单槽 UI 仅接入组合计算器与效率计算器，效率计算器增加订单类型和基础龙门币速率列。固定订单优先级沿用既有规则。
+- **状态**：已实施。
+- **验证**：`npm run lint`、`npm run type-check`、`npm run build`、`npm run build:riic-efficiency`、改动文件 Prettier 检查通过。全仓 `npm run format:check` 仍报告 20 个既有未格式化文件，均不属于本次修改。

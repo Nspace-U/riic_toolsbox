@@ -3,6 +3,7 @@ import type {
   EfficiencyResult,
   FacilityEfficiencyResult,
   OperatorProgressionProfile,
+  TradeOrderSummary,
 } from "@arknights/riic-efficiency";
 import type {
   RoomAssignment,
@@ -16,6 +17,8 @@ export type BasicCalculatorColumnKind =
   | "operatorNames"
   | "storageDelta"
   | "orderDelta"
+  | "tradeOrders"
+  | "tradeBaseEfficiency"
   | "efficiency"
   | "note"
   | "operatorField";
@@ -36,6 +39,7 @@ export interface BasicCalculatorColumn {
 export interface BasicCalculatorOperator {
   name: string;
   room?: RoomKey;
+  runOrder?: boolean;
   mood?: number;
   elite?: number;
   level?: number;
@@ -143,6 +147,9 @@ export interface BasicCalculatorRowCalculation {
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
   storageDelta?: number;
   orderDelta?: number;
+  tradeOrderRule?: string;
+  tradeOrders?: TradeOrderSummary[];
+  tradeBaseEfficiency?: number;
 }
 
 export interface BasicCalculatorWorkerRequest {
@@ -222,6 +229,75 @@ export function createBasicCalculatorConfig(
     ...clone(asset),
     settings: clone(DEFAULT_BASIC_CALCULATOR_SETTINGS),
   });
+}
+
+export function createEfficiencyCalculatorAsset(
+  asset: BasicCalculatorAsset,
+): BasicCalculatorAsset {
+  const columns = [
+    ...clone(asset.columns),
+    { id: "trade-orders", label: "订单类型", kind: "tradeOrders" as const },
+    {
+      id: "trade-base-efficiency",
+      label: "基础效率",
+      kind: "tradeBaseEfficiency" as const,
+      unit: "龙门币/小时",
+    },
+  ];
+  const columnIds = columns.map((column) => column.id);
+  const presets = [
+    { id: "level-1-butshu", name: "1级站但书", level: 1, runners: ["但书"] },
+    { id: "level-2-butshu", name: "2级站但书", level: 2, runners: ["但书"] },
+    { id: "level-3-butshu", name: "3级站但书", level: 3, runners: ["但书"] },
+    { id: "closur", name: "可露希尔", level: 3, runners: ["可露希尔"] },
+    {
+      id: "vodfox-butshu-takila",
+      name: "巫恋+但书+龙舌兰",
+      level: 3,
+      operators: ["巫恋"],
+      runners: ["但书", "龙舌兰"],
+    },
+    {
+      id: "vodfox-bibeak-takila",
+      name: "巫恋+柏喙+龙舌兰",
+      level: 3,
+      operators: ["巫恋", "柏喙"],
+      runners: ["龙舌兰"],
+    },
+  ];
+
+  return {
+    version: 1,
+    columns,
+    groups: presets.map((preset) => ({
+      id: preset.id,
+      name: preset.name,
+      facility: "trading",
+      facilityLevel: preset.level,
+      columnIds: [...columnIds],
+      rows: [
+        {
+          id: `${preset.id}-row-1`,
+          schedule: {
+            layout: [{ type: "trading", level: preset.level }],
+            plans: [
+              {
+                rooms: {
+                  trading: [
+                    {
+                      operators: [...(preset.operators ?? [])],
+                      runOrderOperators: [...preset.runners],
+                    },
+                  ],
+                },
+              },
+            ],
+            settings: { runOrderEnabled: false },
+          },
+        },
+      ],
+    })),
+  };
 }
 
 export function applyBasicCalculatorPatch(
@@ -487,11 +563,24 @@ export function basicCalculatorScheduleOperators(
     const position = positions.get(type) ?? 0;
     positions.set(type, position + 1);
     const assignment = basicCalculatorRoomAssignment(document, type, position);
-    return (assignment?.operators ?? []).map((name) => ({
-      name,
-      room: type,
-      ...(assignment?.operatorStates?.[name] ?? {}),
-    }));
+    return [
+      ...(assignment?.operators ?? []).map((name) => ({
+        name,
+        room: type,
+        ...(assignment?.operatorStates?.[name] ?? {}),
+      })),
+      ...(document.settings?.runOrderEnabled === true &&
+      type === "trading" &&
+      assignment !== undefined &&
+      assignment.product !== "合成玉"
+        ? (assignment.runOrderOperators ?? []).map((name) => ({
+            name,
+            room: type,
+            runOrder: true,
+            ...(assignment.operatorStates?.[name] ?? {}),
+          }))
+        : []),
+    ];
   });
   return uniqueOperators(operators);
 }
@@ -863,13 +952,24 @@ export function calculateBasicCalculatorRowValues(
     if (duration === 24) evaluation24 = evaluation;
     efficiency[String(duration)] = basicCalculatorEfficiencyValue(evaluation);
   });
-  const facility = evaluation24
+  const visibleFacility = evaluation24
     ? visibleFacilityResultOf(evaluation24)
     : undefined;
+  const targetFacility = evaluation24
+    ? facilityResultOf(evaluation24)
+    : undefined;
+  const production = targetFacility?.production;
   return {
     efficiency,
-    storageDelta: facility?.attributes.storageCap?.skill ?? 0,
-    orderDelta: facility?.attributes.orderLimit?.skill ?? 0,
+    storageDelta: visibleFacility?.attributes.storageCap?.skill ?? 0,
+    orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
+    ...(production?.product === "龙门币"
+      ? {
+          tradeOrderRule: production.orderRule,
+          tradeOrders: production.orders,
+          tradeBaseEfficiency: production.baseAmountPerHour,
+        }
+      : {}),
   };
 }
 
