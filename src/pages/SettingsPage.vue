@@ -1290,6 +1290,8 @@ watch(
           >
             <div class="settings-notice-group-heading">
               <h4 class="settings-notice-group-title">{{ group.label }}</h4>
+            </div>
+            <div class="settings-notice-group-toggle">
               <a-checkbox
                 :checked="group.visibleCount === group.options.length"
                 :indeterminate="

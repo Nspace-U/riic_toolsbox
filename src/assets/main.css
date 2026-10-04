@@ -2888,11 +2888,7 @@ a {
 }
 
 .settings-notice-group-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-block-end: 8px;
+  margin-block-end: 6px;
 }
 
 .settings-notice-group-title {
@@ -2900,6 +2896,10 @@ a {
   color: #344447;
   font-size: 14px;
   font-weight: 650;
+}
+
+.settings-notice-group-toggle {
+  margin-block-end: 8px;
 }
 
 .settings-notice-options {
