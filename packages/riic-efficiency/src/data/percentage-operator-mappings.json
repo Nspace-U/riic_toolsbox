@@ -2,7 +2,7 @@
   {
     "room": "trading",
     "percentage": "裁缝",
-    "operators": ["柏喙", "折光", "明椒", "卡夫卡"]
+    "operators": ["柏喙", "卡夫卡", "明椒", "折光"]
   },
   {
     "room": "manufacture",
