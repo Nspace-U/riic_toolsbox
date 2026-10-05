@@ -159,6 +159,14 @@ const rowDraftNote = computed({
     else delete plan.description;
   },
 });
+const rowDraftRunOrderEnabled = computed({
+  get: () => rowDraftSchedule.value?.settings?.runOrderEnabled === true,
+  set(enabled: boolean) {
+    const schedule = rowDraftSchedule.value;
+    if (!schedule) return;
+    schedule.settings = { ...schedule.settings, runOrderEnabled: enabled };
+  },
+});
 const rowDraftGroupId = ref("");
 const rowEditor = ref<InstanceType<typeof BasicCalculatorScheduleEditor>>();
 const calculatorWorker = ref<Worker>();
@@ -1298,23 +1306,6 @@ function resetDefaults(): void {
     window.localStorage.removeItem(storageKey.value);
 }
 
-function setRunOrderEnabled(
-  groupId: string,
-  rowId: string,
-  enabled: boolean,
-): void {
-  updateConfig((draft) => {
-    const row = draft.groups
-      .find((group) => group.id === groupId)
-      ?.rows.find((item) => item.id === rowId);
-    if (!row) return;
-    row.schedule.settings = {
-      ...row.schedule.settings,
-      runOrderEnabled: enabled,
-    };
-  });
-}
-
 function operatorFor(name: string): Operator | undefined {
   return operatorByName.value.get(name);
 }
@@ -1632,22 +1623,6 @@ function toggleGroupColumn(
                       v-if="view.sourceRows.length === 1"
                       class="basic-calculator-row-actions"
                     >
-                      <a-tooltip title="跑单开关">
-                        <a-switch
-                          :aria-label="
-                            view.row.schedule.settings?.runOrderEnabled === true
-                              ? '关闭跑单'
-                              : '开启跑单'
-                          "
-                          :checked="
-                            view.row.schedule.settings?.runOrderEnabled === true
-                          "
-                          size="small"
-                          @change="
-                            setRunOrderEnabled(group.id, view.row.id, $event)
-                          "
-                        />
-                      </a-tooltip>
                       <a-button
                         :icon="h(EditOutlined)"
                         aria-label="编辑行"
@@ -1695,28 +1670,6 @@ function toggleGroupColumn(
                                   `未显示干员 ${index + 1}`
                                 }}
                               </span>
-                              <a-tooltip title="跑单开关">
-                                <a-switch
-                                  :aria-label="
-                                    sourceRow.schedule.settings
-                                      ?.runOrderEnabled === true
-                                      ? '关闭跑单'
-                                      : '开启跑单'
-                                  "
-                                  :checked="
-                                    sourceRow.schedule.settings
-                                      ?.runOrderEnabled === true
-                                  "
-                                  size="small"
-                                  @change="
-                                    setRunOrderEnabled(
-                                      group.id,
-                                      sourceRow.id,
-                                      $event,
-                                    )
-                                  "
-                                />
-                              </a-tooltip>
                               <a-button
                                 :icon="h(EditOutlined)"
                                 :aria-label="`编辑${operatorNameText(group, sourceRow) || `第 ${index + 1} 行`}`"
@@ -2038,6 +1991,14 @@ function toggleGroupColumn(
         v-if="rowDraft && rowDraftGroup && rowDraftSchedule"
         class="basic-calculator-row-editor"
       >
+        <a-space align="center">
+          <span>开启跑单</span>
+          <a-switch
+            v-model:checked="rowDraftRunOrderEnabled"
+            aria-label="开启跑单"
+            size="small"
+          />
+        </a-space>
         <BasicCalculatorScheduleEditor
           ref="rowEditor"
           v-model:model-value="rowDraftSchedule"
