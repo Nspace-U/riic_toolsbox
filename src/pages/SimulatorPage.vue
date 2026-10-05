@@ -7380,8 +7380,12 @@ defineExpose({ prepareScheduleReferenceImage });
                     <span>
                       <SimulatorDisplayValue :value="entry.meta" />
                     </span>
-                    <span>
-                      <SimulatorDisplayValue :value="entry.baseRate" />
+                    <span
+                      v-for="(rate, index) in entry.baseRateLines ?? [entry.baseRate]"
+                      :key="index"
+                      class="simulator-drone-scenario-rate"
+                    >
+                      <SimulatorDisplayValue :value="rate" />
                     </span>
                   </div>
                   <div

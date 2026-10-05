@@ -2788,6 +2788,10 @@ a {
   white-space: nowrap;
 }
 
+.simulator-drone-scenario-heading .simulator-drone-scenario-rate {
+  font-size: 11px;
+}
+
 .simulator-drone-view {
   display: grid;
   align-content: center;
@@ -2799,11 +2803,6 @@ a {
   grid-template-columns: none;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-}
-
-.simulator-drone-output-net-resource {
-  color: #8c6b35;
-  font-size: 11px;
 }
 
 .simulator-base-point-value {
@@ -3008,6 +3007,26 @@ a {
   font-size: 16px;
   line-height: 1.2;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-daily-output-main-value--unit {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.simulator-daily-output-main-number {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.simulator-daily-output-main-unit {
+  flex: 0 0 auto;
+  font-size: 12px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 

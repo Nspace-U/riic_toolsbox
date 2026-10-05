@@ -372,7 +372,7 @@ const result = {
 const sanityValues = packageModule.calculateSanityValues(
   packageModule.DEFAULT_SANITY_SETTINGS,
 );
-const display = packageModule.buildResultDisplay(result, {
+const displayOptions = {
   sanityValues,
   droneAcceleration: {
     dailyDrones: 300,
@@ -400,7 +400,190 @@ const display = packageModule.buildResultDisplay(result, {
   visibleBasePointTerms: new Set(["term_pure_gold"]),
   sourceFacilityForProduct: (product) =>
     packageModule.resultPresentationSourceFacility(product, result),
-});
+};
+const display = packageModule.buildResultDisplay(result, displayOptions);
+const modeDailyAmounts = Object.fromEntries(
+  result.dailyOutputs.map((output) => [output.product, output.amountPerDay]),
+);
+modeDailyAmounts.赤金 = 44.2;
+const modeDroneAcceleration = {
+  ...displayOptions.droneAcceleration,
+  scenarios: [
+    ...displayOptions.droneAcceleration.scenarios,
+    {
+      key: "赤金",
+      product: "赤金",
+      sourceLabel: "早班 · 制造站2",
+      baseAmountPerHour: 0.83,
+      baseMaterialPerHour: {},
+      droneAmount: 300,
+      acceleratedHours: 15,
+      extraFlow: { 赤金: 12.45 },
+    },
+  ],
+};
+const displaysByMode = new Map(
+  ["raw", "points", "both"].map((mode) => [
+    mode,
+    packageModule.buildResultDisplay(result, {
+      ...displayOptions,
+      dailyAmounts: modeDailyAmounts,
+      droneAcceleration: modeDroneAcceleration,
+      resourceAmountDisplayMode: mode,
+    }),
+  ]),
+);
+
+function displayText(value) {
+  return packageModule.formatDisplayValue(value);
+}
+
+function displayForMode(mode) {
+  const modeDisplay = displaysByMode.get(mode);
+  assert.ok(modeDisplay, `missing display mode: ${mode}`);
+  return modeDisplay;
+}
+
+for (const mode of ["raw", "points", "both"]) {
+  const modeDisplay = displayForMode(mode);
+  const dailyGold = modeDisplay.dailyOutput.tiles.find(
+    (tile) => tile.product === "赤金",
+  );
+  const dailyBattleRecords = modeDisplay.dailyOutput.tiles.find(
+    (tile) => tile.product === "中级作战记录",
+  );
+  const goldGrossPoints = dailyGold.lines.find(
+    (line) => line.key === "gross-points",
+  );
+  const goldNetLines = dailyGold.lines.filter((line) =>
+    ["net", "net-points"].includes(line.key),
+  );
+  assert.ok(dailyGold);
+  assert.ok(dailyBattleRecords);
+  if (mode === "raw") {
+    assert.equal(displayText(dailyGold.main), "27.12");
+    assert.equal(dailyGold.mainUnit, "赤金");
+    assert.equal(goldGrossPoints, undefined);
+    assert.deepEqual(
+      goldNetLines.map((line) => displayText(line.value)),
+      ["净收入 +44.2 赤金"],
+    );
+  } else if (mode === "points") {
+    assert.equal(displayText(dailyGold.main), "13560");
+    assert.equal(dailyGold.mainUnit, "赤金点数");
+    assert.equal(goldGrossPoints, undefined);
+    assert.deepEqual(
+      goldNetLines.map((line) => displayText(line.value)),
+      ["净收入 +22100 赤金点数"],
+    );
+  } else {
+    assert.equal(displayText(dailyGold.main), "27.12");
+    assert.equal(dailyGold.mainUnit, "赤金");
+    assert.equal(displayText(goldGrossPoints.value), "13560 赤金点数");
+    assert.deepEqual(
+      goldNetLines.map((line) => displayText(line.value)),
+      ["净收入 +44.2 赤金", "+22100 赤金点数"],
+    );
+  }
+  assert.equal(
+    displayText(dailyBattleRecords.main),
+    mode === "points" ? "+1234560" : "+1234.56",
+  );
+  assert.equal(
+    dailyBattleRecords.mainUnit,
+    mode === "points" ? "经验点数" : "中级作战记录",
+  );
+
+  const tradingStep = modeDisplay.calculationSteps.facilitySteps.steps.find(
+    (step) => step.facilityId === "trading-0",
+  );
+  const productionSection = tradingStep.sections.find(
+    (section) => section.key === "production-capacity",
+  );
+  const goldMaterialRate = productionSection.rows.find(
+    (row) => row.key === "facility-material-赤金-0-rate",
+  );
+  const orderSummary = productionSection.sections.find(
+    (section) => section.key === "production-orders",
+  );
+  const goldOrder = orderSummary.rows.find((row) =>
+    displayText(row.label).includes("2贵金属订单"),
+  );
+  const dailyOutputCard = modeDisplay.calculationSteps.dailyOutput.cards[0];
+  const dailyGoldSection = dailyOutputCard.sections.find(
+    (section) => section.key === "product-赤金",
+  );
+  const dailyGoldRate = dailyGoldSection.rows.find(
+    (row) => row.key === "赤金-base-output",
+  );
+  const dailyLmdSection = dailyOutputCard.sections.find(
+    (section) => section.key === "product-龙门币",
+  );
+  const queueGoldMaterial = dailyLmdSection.sections
+    .find((section) => section.key === "龙门币-materials")
+    .rows.find((row) => row.key === "龙门币-material-赤金-base");
+  if (mode === "raw") {
+    assert.equal(displayText(goldMaterialRate.value), "赤金 -1.17/小时");
+    assert.ok(displayText(goldOrder.value).includes("赤金 × 2"));
+    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金/小时"));
+    assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金 -"));
+  } else if (mode === "points") {
+    assert.equal(displayText(goldMaterialRate.value), "赤金点数 -585/小时");
+    assert.ok(displayText(goldOrder.value).includes("赤金点数 × 1000"));
+    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金点数/小时"));
+    assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金点数 -"));
+  } else {
+    assert.equal(
+      displayText(goldMaterialRate.value),
+      "赤金 -1.17/小时（赤金点数 -585/小时）",
+    );
+    assert.ok(
+      displayText(goldOrder.value).includes("赤金 × 2（1000 赤金点数）"),
+    );
+    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金/小时（"));
+    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金点数/小时）"));
+    assert.ok(displayText(queueGoldMaterial.value).includes("赤金点数 -"));
+  }
+
+  const maaDetails =
+    modeDisplay.calculationSteps.maaDrone.cards[0].sections.find(
+      (section) => section.key === "maa-0-details",
+    );
+  const maaGoldMaterial = maaDetails.rows.find(
+    (row) => row.key === "drone-trading-0-pre-material-赤金",
+  );
+  assert.equal(
+    displayText(maaGoldMaterial.value),
+    mode === "raw"
+      ? "赤金 -14.06"
+      : mode === "points"
+        ? "赤金点数 -7030"
+        : "赤金 -14.06（赤金点数 -7030）",
+  );
+
+  const redGoldScenario = modeDisplay.droneScenarios.find(
+    (scenario) => scenario.key === "赤金",
+  );
+  assert.deepEqual(
+    redGoldScenario.baseRateLines.map(displayText),
+    mode === "raw"
+      ? ["基础 0.83 赤金/小时"]
+      : mode === "points"
+        ? ["基础 415 赤金点数/小时"]
+        : ["基础 0.83 赤金/小时", "折算 415 赤金点数/小时"],
+  );
+
+  for (const scenario of modeDisplay.droneScenarios) {
+    for (const view of scenario.views) {
+      for (const tile of view.tiles) {
+        assert.equal(
+          tile.lines.some((line) => line.key === "net-resource"),
+          false,
+        );
+      }
+    }
+  }
+}
 
 function flatten(entries) {
   const lines = [];

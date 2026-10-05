@@ -151,7 +151,10 @@ assert.match(
   displayValue,
   /:mode="segment\.raw\.signed \? 'signed' : 'number'"/,
 );
-assert.match(displayValue, /unit: following\.trimStart\(\)\.split/);
+assert.match(
+  displayValue,
+  /unit: props\.unit \?\? following\.trimStart\(\)\.split/,
+);
 assert.doesNotMatch(displayValue, /muted|<small/);
 
 assert.match(
@@ -193,10 +196,7 @@ assert.match(
   displayTile,
   /"gross-points": "simulator-daily-output-gross-points"/,
 );
-assert.match(
-  displayTile,
-  /"net-resource": "simulator-drone-output-net-resource"/,
-);
+assert.doesNotMatch(displayTile, /net-resource/);
 assert.match(
   displayTile,
   /"sanity-missing": "simulator-daily-output-sanity-missing"/,
@@ -208,6 +208,8 @@ assert.match(
   /props\.tile\.main\.raws\?\.\[0\]\?\.signed === true/,
 );
 assert.match(displayTile, /props\.tile\.product/);
+assert.match(displayTile, /props\.tile\.mainUnit/);
+assert.match(displayTile, /simulator-daily-output-main-number/);
 assert.doesNotMatch(displayTile, /netOnly|tile\.icon|muted/);
 
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);

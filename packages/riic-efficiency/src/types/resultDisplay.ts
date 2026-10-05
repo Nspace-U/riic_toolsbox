@@ -64,6 +64,7 @@ export interface DisplayTile {
   product?: string;
   sourceFacility?: RoomKey;
   main: DisplayValue;
+  mainUnit?: string;
   lines: DisplayLine[];
 }
 
@@ -91,6 +92,7 @@ export interface DroneScenarioView {
   title: DisplayValue;
   meta: DisplayValue;
   baseRate: DisplayValue;
+  baseRateLines?: DisplayValue[];
   views: Array<{ key: string; label: string; tiles: DisplayTile[] }>;
 }
 

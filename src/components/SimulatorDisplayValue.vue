@@ -4,7 +4,7 @@ import { computed } from "vue";
 import type { DisplayValue } from "@arknights/riic-efficiency";
 import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 
-const props = defineProps<{ value: DisplayValue }>();
+const props = defineProps<{ value: DisplayValue; unit?: string }>();
 
 interface DisplaySegment {
   key: string;
@@ -39,7 +39,7 @@ const segments = computed<DisplaySegment[]>(() => {
       ...(raw === undefined
         ? {}
         : { raw: { value: raw.value, signed: raw.signed === true } }),
-      unit: following.trimStart().split(/\s+/)[0] ?? "",
+      unit: props.unit ?? following.trimStart().split(/\s+/)[0] ?? "",
     });
   });
   if (cursor < template.length) {

@@ -18,7 +18,6 @@ const props = withDefaults(
 const LINE_CLASSES: Record<string, string> = {
   "gross-points": "simulator-daily-output-gross-points",
   net: "simulator-daily-output-net",
-  "net-resource": "simulator-drone-output-net-resource",
   "sanity-missing": "simulator-daily-output-sanity-missing",
 };
 
@@ -51,8 +50,29 @@ function isNetTile(): boolean {
       class="simulator-daily-output-icon"
     />
     <div class="simulator-daily-output-content">
-      <strong class="simulator-daily-output-main-value">
-        <SimulatorDisplayValue :value="props.tile.main" />
+      <strong
+        :class="{
+          'simulator-daily-output-main-value--unit':
+            props.tile.mainUnit !== undefined,
+        }"
+        class="simulator-daily-output-main-value"
+      >
+        <span
+          v-if="props.tile.mainUnit"
+          class="simulator-daily-output-main-number"
+        >
+          <SimulatorDisplayValue
+            :unit="props.tile.mainUnit"
+            :value="props.tile.main"
+          />
+        </span>
+        <SimulatorDisplayValue v-else :value="props.tile.main" />
+        <small
+          v-if="props.tile.mainUnit"
+          class="simulator-daily-output-main-unit"
+        >
+          {{ props.tile.mainUnit }}
+        </small>
       </strong>
       <div class="simulator-daily-output-card-copy">
         <template v-for="line in props.tile.lines" :key="line.key">
