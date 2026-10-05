@@ -17,6 +17,7 @@ import { useEfficiencyNoticeDisplaySettings } from "@/composables/useEfficiencyN
 import { useFacilityCardSettings } from "@/composables/useFacilityCardSettings";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useNumericTooltipSettings } from "@/composables/useNumericTooltipSettings";
+import { useResultResourceDisplaySettings } from "@/composables/useResultResourceDisplaySettings";
 import {
   DEFAULT_OPERATOR_PICKER_COLUMNS,
   useOperatorPickerSettings,
@@ -75,6 +76,12 @@ const {
   setCalculationStepDisplayMode,
   resetCalculationStepDisplayMode,
 } = useCalculationStepDisplaySettings();
+const {
+  resultResourceDisplayMode,
+  resultResourceDisplayModeOptions,
+  setResultResourceDisplayMode,
+  resetResultResourceDisplayMode,
+} = useResultResourceDisplaySettings();
 const {
   numericTooltipEnabled,
   setNumericTooltipEnabled,
@@ -1327,6 +1334,52 @@ watch(
             </div>
           </section>
         </div>
+      </section>
+
+      <section
+        class="settings-simulator-section settings-result-resource-section"
+      >
+        <h3 class="settings-section-title">结果产物数值</h3>
+        <p class="settings-panel-description">
+          排班模拟器结果中的赤金和中级作战记录使用同一显示口径。
+        </p>
+        <a-form layout="vertical">
+          <a-form-item label="显示方式">
+            <div class="settings-control-row settings-control-row--start">
+              <a-radio-group
+                :value="resultResourceDisplayMode"
+                button-style="solid"
+                option-type="button"
+                @change="
+                  (event: { target: { value: unknown } }) =>
+                    setResultResourceDisplayMode(event.target.value)
+                "
+              >
+                <a-radio-button
+                  v-for="(option, key) in resultResourceDisplayModeOptions"
+                  :key="key"
+                  :value="key"
+                >
+                  {{ option.label }}
+                </a-radio-button>
+              </a-radio-group>
+              <a-button
+                aria-label="恢复结果产物数值默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetResultResourceDisplayMode"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+            <p class="settings-panel-hint">
+              {{
+                resultResourceDisplayModeOptions[resultResourceDisplayMode]
+                  .description
+              }}
+            </p>
+          </a-form-item>
+        </a-form>
       </section>
 
       <section

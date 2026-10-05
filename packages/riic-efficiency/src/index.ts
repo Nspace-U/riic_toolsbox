@@ -303,5 +303,6 @@ export type {
   FacilityStepView,
   ResultDisplay,
   ResultDisplayOptions,
+  ResourceAmountDisplayMode,
 } from "./types/resultDisplay";
 export type { OperatorCalculationRow } from "./utils/presentation";

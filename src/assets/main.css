@@ -645,15 +645,19 @@ a {
 }
 
 .settings-calculation-step-section {
+  order: 7;
+}
+
+.settings-result-resource-section {
   order: 6;
 }
 
 .settings-colors-section {
-  order: 7;
+  order: 8;
 }
 
 .settings-notice-section {
-  order: 8;
+  order: 9;
 }
 
 .settings-progression-toolbar {

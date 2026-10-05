@@ -166,8 +166,11 @@ export interface DisplayFlatLine {
   text: string;
 }
 
+export type ResourceAmountDisplayMode = "raw" | "points" | "both";
+
 export interface ResultDisplayOptions {
   sanityValues: SanityValues;
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode;
   dailyAmounts?: SanityResourceAmounts;
   droneAcceleration?: DroneAccelerationResult;
   ruleset?: EfficiencyRuleset;

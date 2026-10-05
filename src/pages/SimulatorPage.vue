@@ -38,6 +38,7 @@ import {
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
+import { useResultResourceDisplaySettings } from "@/composables/useResultResourceDisplaySettings";
 import { useSanitySettings } from "@/composables/useSanitySettings";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
@@ -367,6 +368,7 @@ const { isBasePointVisible } = useBasePointDisplaySettings();
 const { isEfficiencyNoticeVisible } =
   useEfficiencyNoticeDisplaySettings();
 const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
+const { resultResourceDisplayMode } = useResultResourceDisplaySettings();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
 const { facilityColors, productColors, fiammettaColor } = useFacilityColors();
@@ -1123,6 +1125,7 @@ const resultDisplay = computed<ResultDisplay | undefined>(() => {
   );
   return buildResultDisplay(result, {
     sanityValues: sanityValues.value,
+    resourceAmountDisplayMode: resultResourceDisplayMode.value,
     dailyAmounts: dailySanityAmounts.value,
     droneAcceleration: droneAcceleration.value,
     ruleset: efficiencyCatalog.value?.ruleset,

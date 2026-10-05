@@ -12,6 +12,8 @@ import type {
   DroneAccelerationScenario,
 } from "./efficiency/drone";
 import {
+  BATTLE_RECORD_EXPERIENCE,
+  PURE_GOLD_POINTS,
   addProductionFlow,
   calculateSanityResult,
   type SanityResourceAmounts,
@@ -293,10 +295,10 @@ function dailyOutputPointInfo(
   product: string,
 ): { factor: number; label: string } | undefined {
   if (product === "赤金") {
-    return { factor: 500, label: "赤金点数" };
+    return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
   }
   if (product === "中级作战记录") {
-    return { factor: 1000, label: "经验点数" };
+    return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
   }
   return undefined;
 }

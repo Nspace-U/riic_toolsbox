@@ -29,6 +29,7 @@ import type {
   FacilityStepView,
   ResultDisplay,
   ResultDisplayOptions,
+  ResourceAmountDisplayMode,
 } from "../types/resultDisplay";
 import type {
   DailyOutputCard,
@@ -71,7 +72,11 @@ import {
   formatInheritedSourceLabel,
 } from "./resultPresentation";
 import { ROOM_LABELS } from "./schedule";
-import { calculateSanityResult } from "./sanity";
+import {
+  BATTLE_RECORD_EXPERIENCE,
+  calculateSanityResult,
+  PURE_GOLD_POINTS,
+} from "./sanity";
 
 const GROSS_POINTS_KEY = "gross-points";
 const NET_KEY = "net";
@@ -166,6 +171,80 @@ function numberPart(
   return unit === undefined ? { value, format } : { value, format, unit };
 }
 
+interface ResourceAmountDisplayPartsOptions {
+  unitSuffix?: string;
+  rawPrefix?: string;
+  pointPrefix?: string;
+  bothPrefix?: string;
+  includeResourceUnit?: boolean;
+}
+
+function resourcePointInfo(
+  resource: string,
+): { factor: number; label: string } | undefined {
+  if (resource === "赤金") {
+    return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
+  }
+  if (resource === "中级作战记录") {
+    return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
+  }
+  return undefined;
+}
+
+function resourceAmountParts(
+  value: number,
+  resource: string,
+  mode: ResourceAmountDisplayMode | undefined,
+  format: BuildNumberFormat,
+  options: ResourceAmountDisplayPartsOptions = {},
+): BuildPart[] | undefined {
+  const pointInfo = resourcePointInfo(resource);
+  if (pointInfo === undefined || mode === undefined) {
+    return undefined;
+  }
+
+  const unitSuffix = options.unitSuffix ?? "";
+  const rawPrefix = options.rawPrefix ?? "";
+  const pointPrefix = options.pointPrefix ?? "";
+  const bothPrefix = options.bothPrefix ?? rawPrefix;
+  const rawUnit = `${options.includeResourceUnit ? resource : ""}${unitSuffix}`;
+  const pointUnit = `${pointInfo.label}${unitSuffix}`;
+  if (mode === "raw") {
+    return [
+      rawPrefix,
+      numberPart(value, format, rawUnit),
+      rawUnit ? ` ${rawUnit}` : "",
+    ];
+  }
+  if (mode === "points") {
+    return [
+      pointPrefix,
+      numberPart(value * pointInfo.factor, format, pointUnit),
+      ` ${pointUnit}`,
+    ];
+  }
+  const rawUnitWithResource = `${resource}${unitSuffix}`;
+  return [
+    bothPrefix,
+    numberPart(value, format, rawUnitWithResource),
+    ` ${rawUnitWithResource}（`,
+    numberPart(value * pointInfo.factor, format, pointUnit),
+    ` ${pointUnit}）`,
+  ];
+}
+
+function resourceAmountDisplay(
+  value: number,
+  resource: string,
+  mode: ResourceAmountDisplayMode | undefined,
+  format: BuildNumberFormat,
+  legacyValue: DisplayValue,
+  options: ResourceAmountDisplayPartsOptions = {},
+): DisplayValue {
+  const parts = resourceAmountParts(value, resource, mode, format, options);
+  return parts === undefined ? legacyValue : displayValue(...parts);
+}
+
 function mutedText(text: string): BuildPart {
   return { text, muted: true };
 }
@@ -241,25 +320,41 @@ function outputTileLines(
   card: DailyOutputCard,
   extraLines: readonly DisplayLine[],
   includeSanity: boolean,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayLine[] {
   const lines: DisplayLine[] = [];
-  if (card.grossPoints !== undefined && card.grossPointsLabel !== undefined) {
+  if (
+    resourceAmountDisplayMode !== "raw" &&
+    card.grossPoints !== undefined &&
+    card.grossPointsLabel !== undefined
+  ) {
     lines.push({
       key: GROSS_POINTS_KEY,
-      value: displayValue(
-        numberPart(card.grossPoints, "production", card.grossPointsLabel),
-        ` ${card.grossPointsLabel}`,
-      ),
+      value:
+        resourceAmountDisplayMode === "points"
+          ? displayText(card.grossPointsLabel)
+          : displayValue(
+              numberPart(card.grossPoints, "production", card.grossPointsLabel),
+              ` ${card.grossPointsLabel}`,
+            ),
     });
   }
   if (card.showNet) {
+    const rawNet = resourceAmountDisplayMode === "raw";
     lines.push({
       key: NET_KEY,
-      value: displayValue(
-        "净收入 ",
-        numberPart(card.netAmount, "signed", card.netUnit),
-        ` ${card.netUnit}`,
-      ),
+      value:
+        resourceAmountDisplayMode === "points" && card.grossAmount === undefined
+          ? displayText(`净收入 · ${card.netUnit}`)
+          : displayValue(
+              "净收入 ",
+              numberPart(
+                rawNet ? card.netResourceAmount : card.netAmount,
+                "signed",
+                rawNet ? resourceLabel(card.product) : card.netUnit,
+              ),
+              ` ${rawNet ? resourceLabel(card.product) : card.netUnit}`,
+            ),
     });
   }
   lines.push(...extraLines);
@@ -284,19 +379,33 @@ function outputTile(
   card: DailyOutputCard,
   includeSanity: boolean,
   extraLines: readonly DisplayLine[] = [],
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayTile {
   const gross = card.grossAmount;
+  const amount =
+    resourceAmountDisplayMode === undefined
+      ? (gross ?? card.netAmount)
+      : (gross ?? card.netResourceAmount);
+  const pointInfo = resourcePointInfo(card.product);
+  const main = displayNumber(
+    resourceAmountDisplayMode === "points" && pointInfo
+      ? amount * pointInfo.factor
+      : amount,
+    gross === undefined ? "signed" : "production",
+  );
   return {
     key,
     product: card.product,
     ...(card.sourceFacility === undefined
       ? {}
       : { sourceFacility: card.sourceFacility }),
-    main: displayNumber(
-      gross ?? card.netAmount,
-      gross === undefined ? "signed" : "production",
+    main,
+    lines: outputTileLines(
+      card,
+      extraLines,
+      includeSanity,
+      resourceAmountDisplayMode,
     ),
-    lines: outputTileLines(card, extraLines, includeSanity),
   };
 }
 
@@ -324,7 +433,15 @@ export function buildDailyOutputDisplay(
       numberPart(result.dailyHours, "number", "小时"),
       " 小时",
     ),
-    tiles: cards.map((card) => outputTile(`daily-${card.product}`, card, true)),
+    tiles: cards.map((card) =>
+      outputTile(
+        `daily-${card.product}`,
+        card,
+        true,
+        [],
+        options.resourceAmountDisplayMode,
+      ),
+    ),
     ...(sanity
       ? {
           totalTile: {
@@ -382,10 +499,22 @@ export function buildDroneScenarioViews(
         numberPart(scenario.acceleratedHours, "number", "小时"),
         "小时",
       ),
-      baseRate: displayValue(
-        "基础 ",
-        numberPart(scenario.baseAmountPerHour, "production", "/小时"),
-        "/小时",
+      baseRate: resourceAmountDisplay(
+        scenario.baseAmountPerHour,
+        scenario.product,
+        options.resourceAmountDisplayMode,
+        "production",
+        displayValue(
+          "基础 ",
+          numberPart(scenario.baseAmountPerHour, "production", "/小时"),
+          "/小时",
+        ),
+        {
+          unitSuffix: "/小时",
+          rawPrefix: "基础 ",
+          pointPrefix: "基础 ",
+          includeResourceUnit: true,
+        },
       ),
       views: entry.views.map((view) => ({
         key: view.key,
@@ -401,17 +530,29 @@ export function buildDroneScenarioViews(
               ? [
                   {
                     key: NET_RESOURCE_KEY,
-                    value: displayValue(
-                      `净${resourceLabel(card.product)} `,
-                      numberPart(
-                        card.netResourceAmount,
-                        "signed",
-                        resourceLabel(card.product),
+                    value: resourceAmountDisplay(
+                      card.netResourceAmount,
+                      card.product,
+                      options.resourceAmountDisplayMode,
+                      "signed",
+                      displayValue(
+                        `净${resourceLabel(card.product)} `,
+                        numberPart(
+                          card.netResourceAmount,
+                          "signed",
+                          resourceLabel(card.product),
+                        ),
                       ),
+                      {
+                        rawPrefix: "净",
+                        pointPrefix: "净 ",
+                        includeResourceUnit: true,
+                      },
                     ),
                   },
                 ]
               : [],
+            options.resourceAmountDisplayMode,
           ),
         ),
       })),
@@ -422,15 +563,23 @@ export function buildDroneScenarioViews(
 function droneMaterialRows(
   detail: DroneAccelerationDetail,
   keyPrefix: string,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayRow[] {
   return Object.entries(detail.extraMaterial).map(([material, amount]) =>
     displayRow(
       `${keyPrefix}-material-${material}`,
       displayText("无人机额外材料"),
-      displayValue(
-        resourceLabel(material),
-        " ",
-        numberPart(amount, "signed", resourceLabel(material)),
+      resourceAmountDisplay(
+        amount,
+        material,
+        resourceAmountDisplayMode,
+        "signed",
+        displayValue(
+          resourceLabel(material),
+          " ",
+          numberPart(amount, "signed", resourceLabel(material)),
+        ),
+        { includeResourceUnit: true },
       ),
     ),
   );
@@ -458,12 +607,23 @@ function droneOverflowRow(
 function droneCommonRows(
   detail: DroneAccelerationDetail,
   keyPrefix: string,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayRow[] {
   return [
     displayRow(
       `${keyPrefix}-base`,
       displayText("基础速率"),
-      displayUnit(detail.baseAmountPerHour, "production", "/小时"),
+      resourceAmountDisplay(
+        detail.baseAmountPerHour,
+        detail.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayUnit(detail.baseAmountPerHour, "production", "/小时"),
+        {
+          unitSuffix: "/小时",
+          includeResourceUnit: true,
+        },
+      ),
     ),
     displayRow(
       `${keyPrefix}-amount`,
@@ -481,9 +641,16 @@ function droneCommonRows(
     displayRow(
       `${keyPrefix}-extra`,
       displayText("无人机额外产出"),
-      displayNumber(detail.extraAmount, "production"),
+      resourceAmountDisplay(
+        detail.extraAmount,
+        detail.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayNumber(detail.extraAmount, "production"),
+        { includeResourceUnit: true },
+      ),
     ),
-    ...droneMaterialRows(detail, keyPrefix),
+    ...droneMaterialRows(detail, keyPrefix, resourceAmountDisplayMode),
     ...droneOverflowRow(detail, keyPrefix),
   ];
 }
@@ -491,6 +658,7 @@ function droneCommonRows(
 function maaDroneRows(
   result: EfficiencyResult,
   details: readonly DroneAccelerationDetail[],
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayRow[] {
   return details.flatMap((detail) => {
     const keyPrefix = `drone-${detail.facilityId}-${detail.order}`;
@@ -520,13 +688,14 @@ function maaDroneRows(
         displayText("产物"),
         displayText(resourceLabel(detail.product)),
       ),
-      ...droneCommonRows(detail, keyPrefix),
+      ...droneCommonRows(detail, keyPrefix, resourceAmountDisplayMode),
     ];
   });
 }
 
 function facilityDroneRows(
   details: readonly DroneAccelerationDetail[],
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayRow[] {
   return details.flatMap((detail) => {
     const keyPrefix = `facility-drone-${detail.facilityId}-${detail.order}`;
@@ -541,12 +710,15 @@ function facilityDroneRows(
         displayText("加速产物"),
         displayText(resourceLabel(detail.product)),
       ),
-      ...droneCommonRows(detail, keyPrefix),
+      ...droneCommonRows(detail, keyPrefix, resourceAmountDisplayMode),
     ];
   });
 }
 
-function buildMaaDronePane(result: EfficiencyResult): DisplayPane | undefined {
+function buildMaaDronePane(
+  result: EfficiencyResult,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+): DisplayPane | undefined {
   const acceleration = result.maaDroneAcceleration;
   if (!acceleration?.enabled) {
     return undefined;
@@ -561,7 +733,7 @@ function buildMaaDronePane(result: EfficiencyResult): DisplayPane | undefined {
         displaySection(
           `maa-${queue.planIndex}-details`,
           undefined,
-          maaDroneRows(result, queue.details),
+          maaDroneRows(result, queue.details, resourceAmountDisplayMode),
         ),
       );
     }
@@ -578,24 +750,52 @@ function buildMaaDronePane(result: EfficiencyResult): DisplayPane | undefined {
               `${ROOM_LABELS[candidate.room]}${candidate.facilityIndex + 1}`,
             ),
             displayText(resourceLabel(candidate.product)),
-            displayValue(
-              "基础 ",
-              numberPart(candidate.baseAmountPerHour, "production", "/小时"),
-              "/小时",
+            resourceAmountDisplay(
+              candidate.baseAmountPerHour,
+              candidate.product,
+              resourceAmountDisplayMode,
+              "production",
+              displayValue(
+                "基础 ",
+                numberPart(candidate.baseAmountPerHour, "production", "/小时"),
+                "/小时",
+              ),
+              {
+                unitSuffix: "/小时",
+                rawPrefix: "基础 ",
+                pointPrefix: "基础 ",
+                includeResourceUnit: true,
+              },
             ),
             displayValue(
               "额外 ",
-              numberPart(
+              ...(resourceAmountParts(
                 candidate.extraAmount,
+                candidate.product,
+                resourceAmountDisplayMode,
                 "production",
-                resourceLabel(candidate.product),
-              ),
+                { includeResourceUnit: true },
+              ) ?? [
+                numberPart(
+                  candidate.extraAmount,
+                  "production",
+                  resourceLabel(candidate.product),
+                ),
+              ]),
               ...Object.entries(candidate.extraMaterial).flatMap(
                 ([material, amount]) => [
                   " · ",
-                  resourceLabel(material),
-                  " ",
-                  numberPart(amount, "signed", resourceLabel(material)),
+                  ...(resourceAmountParts(
+                    amount,
+                    material,
+                    resourceAmountDisplayMode,
+                    "signed",
+                    { includeResourceUnit: true },
+                  ) ?? [
+                    resourceLabel(material),
+                    " ",
+                    numberPart(amount, "signed", resourceLabel(material)),
+                  ]),
                 ],
               ),
             ),
@@ -635,6 +835,7 @@ function materialRows(
     dailyAmount: number;
     queueTotal: number;
   }[],
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
 ): DisplayRow[] {
   return materials.flatMap((material) => {
     const label = resourceLabel(material.material);
@@ -642,30 +843,62 @@ function materialRows(
       displayRow(
         `${keyPrefix}-${material.material}-base`,
         displayText(`${labelPrefix}材料消耗 · 基础速率`),
-        displayValue(
-          label,
-          " ",
-          numberPart(material.baseAmountPerHour, "signed", "/小时"),
-          "/小时",
+        resourceAmountDisplay(
+          material.baseAmountPerHour,
+          material.material,
+          resourceAmountDisplayMode,
+          "signed",
+          displayValue(
+            label,
+            " ",
+            numberPart(material.baseAmountPerHour, "signed", "/小时"),
+            "/小时",
+          ),
+          {
+            unitSuffix: "/小时",
+            rawPrefix: `${label} `,
+            bothPrefix: "",
+          },
         ),
       ),
       displayRow(
         `${keyPrefix}-${material.material}-daily`,
         displayText(`${labelPrefix}材料消耗 · 队列折算`),
-        displayValue(
-          label,
-          " ",
-          numberPart(material.dailyAmount, "signed", "/日"),
-          "/日",
+        resourceAmountDisplay(
+          material.dailyAmount,
+          material.material,
+          resourceAmountDisplayMode,
+          "signed",
+          displayValue(
+            label,
+            " ",
+            numberPart(material.dailyAmount, "signed", "/日"),
+            "/日",
+          ),
+          {
+            unitSuffix: "/日",
+            rawPrefix: `${label} `,
+            bothPrefix: "",
+          },
         ),
       ),
       displayRow(
         `${keyPrefix}-${material.material}-total`,
         displayText(`${labelPrefix}材料消耗 · 队列时长总消耗`),
-        displayValue(
-          label,
-          " ",
-          numberPart(material.queueTotal, "signed", label),
+        resourceAmountDisplay(
+          material.queueTotal,
+          material.material,
+          resourceAmountDisplayMode,
+          "signed",
+          displayValue(
+            label,
+            " ",
+            numberPart(material.queueTotal, "signed", label),
+          ),
+          {
+            rawPrefix: `${label} `,
+            bothPrefix: "",
+          },
         ),
       ),
     ];
@@ -693,7 +926,10 @@ function orderRows(facility: DailyOutputFacilityDetail): DisplayRow[] {
   );
 }
 
-function productSection(product: DailyOutputProductDetail): DisplaySection {
+function productSection(
+  product: DailyOutputProductDetail,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+): DisplaySection {
   const rows: DisplayRow[] = [
     displayRow(
       `${product.product}-efficiency`,
@@ -703,25 +939,52 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
     displayRow(
       `${product.product}-base-output`,
       displayText("基础效率产出"),
-      displayUnit(product.baseOutputPerHour, "production", "/小时"),
+      resourceAmountDisplay(
+        product.baseOutputPerHour,
+        product.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayUnit(product.baseOutputPerHour, "production", "/小时"),
+        { unitSuffix: "/小时" },
+      ),
     ),
     displayRow(
       `${product.product}-total-output`,
       displayText("总效率产出"),
-      displayUnit(product.totalOutputPerHour, "production", "/小时"),
+      resourceAmountDisplay(
+        product.totalOutputPerHour,
+        product.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayUnit(product.totalOutputPerHour, "production", "/小时"),
+        { unitSuffix: "/小时" },
+      ),
     ),
     displayRow(
       `${product.product}-daily`,
       displayText("队列折算"),
-      displayValue(
-        numberPart(product.dailyContribution, "production", "/日"),
-        "/日",
+      resourceAmountDisplay(
+        product.dailyContribution,
+        product.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayValue(
+          numberPart(product.dailyContribution, "production", "/日"),
+          "/日",
+        ),
+        { unitSuffix: "/日" },
       ),
     ),
     displayRow(
       `${product.product}-queue-total`,
       displayText("队列时长总产出"),
-      displayNumber(product.queueTotal, "production"),
+      resourceAmountDisplay(
+        product.queueTotal,
+        product.product,
+        resourceAmountDisplayMode,
+        "production",
+        displayNumber(product.queueTotal, "production"),
+      ),
     ),
   ];
   const sections: DisplaySection[] = [];
@@ -729,7 +992,12 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
     sections.push({
       key: `${product.product}-materials`,
       label: "材料消耗合计",
-      rows: materialRows(`${product.product}-material`, "", product.materials),
+      rows: materialRows(
+        `${product.product}-material`,
+        "",
+        product.materials,
+        resourceAmountDisplayMode,
+      ),
     });
   }
   if (product.facilities.length) {
@@ -745,17 +1013,32 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
         displayRow(
           `${facility.label}-base`,
           displayText(`${facility.label} · 基础产出`),
-          displayUnit(facility.baseOutputPerHour, "production", "/小时"),
+          resourceAmountDisplay(
+            facility.baseOutputPerHour,
+            product.product,
+            resourceAmountDisplayMode,
+            "production",
+            displayUnit(facility.baseOutputPerHour, "production", "/小时"),
+            { unitSuffix: "/小时" },
+          ),
         ),
         displayRow(
           `${facility.label}-total`,
           displayText(`${facility.label} · 总产出`),
-          displayUnit(facility.totalOutputPerHour, "production", "/小时"),
+          resourceAmountDisplay(
+            facility.totalOutputPerHour,
+            product.product,
+            resourceAmountDisplayMode,
+            "production",
+            displayUnit(facility.totalOutputPerHour, "production", "/小时"),
+            { unitSuffix: "/小时" },
+          ),
         ),
         ...materialRows(
           `${facility.label}-material`,
           `${facility.label} · `,
           facility.materials,
+          resourceAmountDisplayMode,
         ),
         ...orderRows(facility),
       ]),
@@ -769,16 +1052,26 @@ function productSection(product: DailyOutputProductDetail): DisplaySection {
   };
 }
 
-function queueSanitySection(queue: DailyOutputQueueDetail): DisplaySection {
+function queueSanitySection(
+  queue: DailyOutputQueueDetail,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+): DisplaySection {
   const rows: DisplayRow[] = queue.sanity.items.map((item) => ({
     key: `sanity-${item.resource}`,
-    label: displayValue(
-      item.label,
-      " · ",
-      numberPart(item.amount, "signed", item.amountUnit),
-      " ",
-      item.amountUnit,
-      "/日",
+    label: resourceAmountDisplay(
+      item.amount / (resourcePointInfo(item.resource)?.factor ?? 1),
+      item.resource,
+      resourceAmountDisplayMode,
+      "signed",
+      displayValue(
+        item.label,
+        " · ",
+        numberPart(item.amount, "signed", item.amountUnit),
+        " ",
+        item.amountUnit,
+        "/日",
+      ),
+      { unitSuffix: "/日", includeResourceUnit: true },
     ),
     ...(item.contribution === undefined
       ? { value: displayText("未计入") }
@@ -824,8 +1117,10 @@ function buildDailyOutputBreakdownPane(
       subtitle: durationSubtitle(queue.plan.durationHours),
       badge: displayText(`${queue.products.length} 种产物`),
       sections: [
-        ...queue.products.map(productSection),
-        queueSanitySection(queue),
+        ...queue.products.map((product) =>
+          productSection(product, options.resourceAmountDisplayMode),
+        ),
+        queueSanitySection(queue, options.resourceAmountDisplayMode),
       ],
     })),
   };
@@ -966,21 +1261,42 @@ function productionSection(
       displayRow(
         "production-base-rate",
         displayText("基础速率"),
-        displayUnit(production.baseAmountPerHour, "production", "/小时"),
+        resourceAmountDisplay(
+          production.baseAmountPerHour,
+          production.product,
+          options.resourceAmountDisplayMode,
+          "production",
+          displayUnit(production.baseAmountPerHour, "production", "/小时"),
+          { unitSuffix: "/小时", includeResourceUnit: true },
+        ),
       ),
       displayRow(
         "production-rate",
         displayText("实际速率"),
-        displayUnit(production.amountPerHour, "production", "/小时"),
+        resourceAmountDisplay(
+          production.amountPerHour,
+          production.product,
+          options.resourceAmountDisplayMode,
+          "production",
+          displayUnit(production.amountPerHour, "production", "/小时"),
+          { unitSuffix: "/小时", includeResourceUnit: true },
+        ),
       ),
       displayRow(
         "production-item-rate",
         displayText("容量消耗速率"),
         production.itemRate === undefined
           ? displayText("")
-          : displayValue(
-              numberPart(production.itemRate, "production", "/小时"),
-              "/小时",
+          : resourceAmountDisplay(
+              production.itemRate,
+              production.product,
+              options.resourceAmountDisplayMode,
+              "production",
+              displayValue(
+                numberPart(production.itemRate, "production", "/小时"),
+                "/小时",
+              ),
+              { unitSuffix: "/小时", includeResourceUnit: true },
             ),
       ),
     );
@@ -998,21 +1314,43 @@ function productionSection(
           displayRow(
             `facility-material-${material.material}-${index}-base`,
             displayText("基础材料消耗速率"),
-            displayValue(
-              resourceLabel(material.material),
-              " ",
-              numberPart(material.baseAmount, "signed", "/小时"),
-              "/小时",
+            resourceAmountDisplay(
+              material.baseAmount,
+              material.material,
+              options.resourceAmountDisplayMode,
+              "signed",
+              displayValue(
+                resourceLabel(material.material),
+                " ",
+                numberPart(material.baseAmount, "signed", "/小时"),
+                "/小时",
+              ),
+              {
+                unitSuffix: "/小时",
+                rawPrefix: `${resourceLabel(material.material)} `,
+                bothPrefix: "",
+              },
             ),
           ),
           displayRow(
             `facility-material-${material.material}-${index}-rate`,
             displayText("材料消耗速率"),
-            displayValue(
-              resourceLabel(material.material),
-              " ",
-              numberPart(material.amount, "signed", "/小时"),
-              "/小时",
+            resourceAmountDisplay(
+              material.amount,
+              material.material,
+              options.resourceAmountDisplayMode,
+              "signed",
+              displayValue(
+                resourceLabel(material.material),
+                " ",
+                numberPart(material.amount, "signed", "/小时"),
+                "/小时",
+              ),
+              {
+                unitSuffix: "/小时",
+                rawPrefix: `${resourceLabel(material.material)} `,
+                bothPrefix: "",
+              },
             ),
           ),
         );
@@ -1038,10 +1376,17 @@ function productionSection(
         displayRow(
           "production-conversion-rate",
           displayText("折算实际速率"),
-          displayUnit(
+          resourceAmountDisplay(
             convertedProductionAmount(production, production.amountPerHour),
+            production.product,
+            options.resourceAmountDisplayMode,
             "production",
-            "/小时",
+            displayUnit(
+              convertedProductionAmount(production, production.amountPerHour),
+              "production",
+              "/小时",
+            ),
+            { unitSuffix: "/小时", includeResourceUnit: true },
           ),
         ),
       );
@@ -1133,9 +1478,21 @@ function productionSection(
           ...(order.material
             ? [
                 " · ",
-                resourceLabel(order.material),
-                " × ",
-                numberPart(order.amount ?? 0),
+                ...(resourceAmountParts(
+                  order.amount ?? 0,
+                  order.material,
+                  options.resourceAmountDisplayMode,
+                  "number",
+                  {
+                    rawPrefix: "× ",
+                    pointPrefix: "× ",
+                    includeResourceUnit: true,
+                  },
+                ) ?? [
+                  resourceLabel(order.material),
+                  " × ",
+                  numberPart(order.amount ?? 0),
+                ]),
               ]
             : []),
         ),
@@ -1303,7 +1660,10 @@ function facilityStepSections(
       displaySection(
         "drone-acceleration",
         "无人机加速",
-        facilityDroneRows(step.droneAccelerations),
+        facilityDroneRows(
+          step.droneAccelerations,
+          options.resourceAmountDisplayMode,
+        ),
       ),
     );
   }
@@ -1431,7 +1791,7 @@ export function buildResultDisplay(
   result: EfficiencyResult,
   options: ResultDisplayOptions,
 ): ResultDisplay {
-  const maaDrone = buildMaaDronePane(result);
+  const maaDrone = buildMaaDronePane(result, options.resourceAmountDisplayMode);
   const dailyOutput = buildDailyOutputBreakdownPane(result, options);
   const basePoints = buildBasePointDisplay(result, options);
   return {
