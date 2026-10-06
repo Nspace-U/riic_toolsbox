@@ -120,16 +120,14 @@ export function buildCalculationStepGroups(
 
 function dailyOutputOrderDetail(
   order: NonNullable<ProductionValue["orders"]>[number],
-  efficiency: number,
 ): DailyOutputOrderDetail {
-  const baseOrderRate = order.time > 0 ? order.quantity / order.time : 0;
-  const orderMultiplier = order.ignoreEfficiency ? 1 : efficiency / 100;
   return {
     name: order.name,
     probability: order.probability,
-    baseRate: baseOrderRate,
-    totalRate: baseOrderRate * orderMultiplier,
-    ...(order.ignoreEfficiency ? { ignoreEfficiency: true } : {}),
+    quantity: order.quantity,
+    time: order.time,
+    ...(order.material === undefined ? {} : { material: order.material }),
+    ...(order.amount === undefined ? {} : { amount: order.amount }),
   };
 }
 
@@ -241,7 +239,7 @@ export function buildDailyOutputQueueDetails(
           selectedOutputPerHour,
           materials,
           orders: (production.orders ?? []).map((order) =>
-            dailyOutputOrderDetail(order, facility.efficiency),
+            dailyOutputOrderDetail(order),
           ),
         });
         products.set(production.product, current);

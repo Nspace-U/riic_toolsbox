@@ -936,22 +936,37 @@ function materialRows(
   });
 }
 
-function orderRows(facility: DailyOutputFacilityDetail): DisplayRow[] {
+function orderRows(
+  facility: DailyOutputFacilityDetail,
+  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+): DisplayRow[] {
   return facility.orders.map((order: DailyOutputOrderDetail) =>
     displayRow(
       `${facility.label}-order-${order.name}-name`,
       displayValue(
-        `${facility.label} · 订单产出 · ${order.name} · `,
+        `${facility.label} · 订单摘要 · ${order.name} · `,
         numberPart(order.probability * 100, "number"),
         "%",
       ),
       displayValue(
-        "基础 ",
-        numberPart(order.baseRate, "number"),
-        "/小时 · 总 ",
-        numberPart(order.totalRate, "number"),
-        "/小时",
-        ...(order.ignoreEfficiency ? [" · 固定订单"] : []),
+        numberPart(order.quantity),
+        " / ",
+        numberPart(order.time, "number"),
+        " 小时",
+        ...(order.material
+          ? [
+              " · ",
+              ...(resourceOrderParts(
+                order.amount ?? 0,
+                order.material,
+                resourceAmountDisplayMode,
+              ) ?? [
+                resourceLabel(order.material),
+                " × ",
+                numberPart(order.amount ?? 0),
+              ]),
+            ]
+          : []),
       ),
     ),
   );
@@ -1071,7 +1086,7 @@ function productSection(
           facility.materials,
           resourceAmountDisplayMode,
         ),
-        ...orderRows(facility),
+        ...orderRows(facility, resourceAmountDisplayMode),
       ]),
     });
   }

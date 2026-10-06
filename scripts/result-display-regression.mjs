@@ -457,6 +457,28 @@ function displayForMode(mode) {
   return modeDisplay;
 }
 
+function findDailyOrderSummary(display) {
+  return display.calculationSteps.dailyOutput.cards[0].sections
+    .find((section) => section.key === "product-龙门币")
+    .sections.find((section) => section.key === "龙门币-facilities")
+    .rows.find((row) => displayText(row.label).includes("2贵金属订单"));
+}
+
+const indexedDisplay = packageModule.buildResultDisplay(result, {
+  ...displayOptions,
+  facilityLabel: (facility) =>
+    facility.facility.type === "trading"
+      ? `贸易站 ${facility.facility.index + 1}`
+      : packageModule.formatFacilityResultLabel(
+          facility,
+          result.document.layout,
+        ),
+});
+assert.equal(
+  displayText(findDailyOrderSummary(indexedDisplay).label),
+  "贸易站 1 · 订单摘要 · 2贵金属订单 · 30%",
+);
+
 for (const mode of ["raw", "points", "both"]) {
   const modeDisplay = displayForMode(mode);
   const dailyGold = modeDisplay.dailyOutput.tiles.find(
@@ -531,6 +553,15 @@ for (const mode of ["raw", "points", "both"]) {
   );
   const dailyLmdSection = dailyOutputCard.sections.find(
     (section) => section.key === "product-龙门币",
+  );
+  const dailyOrderSummary = findDailyOrderSummary(modeDisplay);
+  assert.equal(
+    displayText(dailyOrderSummary.label),
+    "贸易站 · 订单摘要 · 2贵金属订单 · 30%",
+  );
+  assert.equal(
+    displayText(dailyOrderSummary.value),
+    displayText(goldOrder.value),
   );
   const queueGoldMaterial = dailyLmdSection.sections
     .find((section) => section.key === "龙门币-materials")

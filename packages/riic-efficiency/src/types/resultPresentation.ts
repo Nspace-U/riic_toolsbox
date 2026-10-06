@@ -34,9 +34,10 @@ export interface EfficiencyCalculationStepGroup {
 export interface DailyOutputOrderDetail {
   name: string;
   probability: number;
-  baseRate: number;
-  totalRate: number;
-  ignoreEfficiency?: boolean;
+  quantity: number;
+  time: number;
+  material?: string | null;
+  amount?: number;
 }
 
 export interface DailyOutputMaterialDetail {
