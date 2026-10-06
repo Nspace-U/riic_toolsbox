@@ -2,6 +2,7 @@ import type {
   EfficiencyCatalog,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  EfficiencyRuleset,
   OperatorProgressionProfile,
   TradeOrderSummary,
 } from "@arknights/riic-efficiency";
@@ -19,6 +20,13 @@ export type BasicCalculatorColumnKind =
   | "orderDelta"
   | "tradeOrders"
   | "tradeBaseEfficiency"
+  | "operatorEfficiency"
+  | "facilityEfficiency"
+  | "equivalentCurrentTradeEfficiency"
+  | "equivalentLevelThreeTradeEfficiency"
+  | "equivalentManufactureEfficiency"
+  | "baseProductionRate"
+  | "actualProductionRate"
   | "efficiency"
   | "note"
   | "operatorField";
@@ -150,6 +158,14 @@ export interface BasicCalculatorRowCalculation {
   tradeOrderRule?: string;
   tradeOrders?: TradeOrderSummary[];
   tradeBaseEfficiency?: number;
+  operatorEfficiency?: number;
+  facilityEfficiency?: number;
+  equivalentCurrentTradeEfficiency?: number;
+  equivalentLevelThreeTradeEfficiency?: number;
+  equivalentManufactureEfficiency?: number;
+  baseProductionRate?: number;
+  actualProductionRate?: number;
+  productionProduct?: string;
 }
 
 export interface BasicCalculatorWorkerRequest {
@@ -229,75 +245,6 @@ export function createBasicCalculatorConfig(
     ...clone(asset),
     settings: clone(DEFAULT_BASIC_CALCULATOR_SETTINGS),
   });
-}
-
-export function createEfficiencyCalculatorAsset(
-  asset: BasicCalculatorAsset,
-): BasicCalculatorAsset {
-  const columns = [
-    ...clone(asset.columns),
-    { id: "trade-orders", label: "订单类型", kind: "tradeOrders" as const },
-    {
-      id: "trade-base-efficiency",
-      label: "基础效率",
-      kind: "tradeBaseEfficiency" as const,
-      unit: "龙门币/小时",
-    },
-  ];
-  const columnIds = columns.map((column) => column.id);
-  const presets = [
-    { id: "level-1-butshu", name: "1级站但书", level: 1, runners: ["但书"] },
-    { id: "level-2-butshu", name: "2级站但书", level: 2, runners: ["但书"] },
-    { id: "level-3-butshu", name: "3级站但书", level: 3, runners: ["但书"] },
-    { id: "closur", name: "可露希尔", level: 3, runners: ["可露希尔"] },
-    {
-      id: "vodfox-butshu-takila",
-      name: "巫恋+但书+龙舌兰",
-      level: 3,
-      operators: ["巫恋"],
-      runners: ["但书", "龙舌兰"],
-    },
-    {
-      id: "vodfox-bibeak-takila",
-      name: "巫恋+柏喙+龙舌兰",
-      level: 3,
-      operators: ["巫恋", "柏喙"],
-      runners: ["龙舌兰"],
-    },
-  ];
-
-  return {
-    version: 1,
-    columns,
-    groups: presets.map((preset) => ({
-      id: preset.id,
-      name: preset.name,
-      facility: "trading",
-      facilityLevel: preset.level,
-      columnIds: [...columnIds],
-      rows: [
-        {
-          id: `${preset.id}-row-1`,
-          schedule: {
-            layout: [{ type: "trading", level: preset.level }],
-            plans: [
-              {
-                rooms: {
-                  trading: [
-                    {
-                      operators: [...(preset.operators ?? [])],
-                      runOrderOperators: [...preset.runners],
-                    },
-                  ],
-                },
-              },
-            ],
-            settings: { runOrderEnabled: false },
-          },
-        },
-      ],
-    })),
-  };
 }
 
 export function applyBasicCalculatorPatch(
@@ -959,10 +906,25 @@ export function calculateBasicCalculatorRowValues(
     ? facilityResultOf(evaluation24)
     : undefined;
   const production = targetFacility?.production;
+  const equivalentValues = basicCalculatorTradeEquivalentValues(
+    targetFacility,
+    catalog.ruleset,
+  );
   return {
     efficiency,
     storageDelta: visibleFacility?.attributes.storageCap?.skill ?? 0,
     orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
+    operatorEfficiency: targetFacility?.operatorSkillEfficiency,
+    facilityEfficiency: targetFacility?.efficiency,
+    ...equivalentValues,
+    ...(production
+      ? {
+          baseProductionRate: production.baseAmountPerHour,
+          actualProductionRate:
+            production.effectiveAmountPerHour ?? production.amountPerHour,
+          productionProduct: production.product,
+        }
+      : {}),
     ...(production?.product === "龙门币"
       ? {
           tradeOrderRule: production.orderRule,
@@ -971,6 +933,73 @@ export function calculateBasicCalculatorRowValues(
         }
       : {}),
   };
+}
+
+function basicCalculatorTradeEquivalentValues(
+  facility: FacilityEfficiencyResult | undefined,
+  ruleset: EfficiencyRuleset | undefined,
+): Pick<
+  BasicCalculatorRowCalculation,
+  | "equivalentCurrentTradeEfficiency"
+  | "equivalentLevelThreeTradeEfficiency"
+  | "equivalentManufactureEfficiency"
+> {
+  const production = facility?.production;
+  if (
+    !facility ||
+    !ruleset ||
+    facility.facility.type !== "trading" ||
+    production?.product !== "龙门币" ||
+    !production.orderRule ||
+    production.orderRule === "龙门商法"
+  ) {
+    return {};
+  }
+
+  const currentBase = basicCalculatorTradeBaseRates(
+    ruleset,
+    facility.facility.level,
+  );
+  const levelThreeBase = basicCalculatorTradeBaseRates(ruleset, 3);
+  if (!currentBase || !levelThreeBase) return {};
+
+  const goldRule = ruleset.manufactureRules["赤金"];
+  const lmdPerGold = currentBase.lmdPerHour / currentBase.goldPerHour;
+  const goldManufactureRate = goldRule ? goldRule.amount / goldRule.hours : 0;
+  const extraGoldPerHour =
+    production.amountPerHour / lmdPerGold +
+    (production.materialPerHour?.["赤金"] ?? 0);
+
+  return {
+    equivalentCurrentTradeEfficiency:
+      (production.amountPerHour / currentBase.lmdPerHour) * 100,
+    equivalentLevelThreeTradeEfficiency:
+      (production.amountPerHour / levelThreeBase.lmdPerHour) * 100,
+    ...(goldManufactureRate > 0 && extraGoldPerHour > 0.000001
+      ? {
+          equivalentManufactureEfficiency:
+            (extraGoldPerHour / goldManufactureRate) * 100,
+        }
+      : {}),
+  };
+}
+
+function basicCalculatorTradeBaseRates(
+  ruleset: EfficiencyRuleset,
+  level: number,
+): { lmdPerHour: number; goldPerHour: number } | undefined {
+  const orders =
+    ruleset.tradeOrdersByLevel[level] ?? ruleset.tradeOrdersByLevel[1] ?? [];
+  let lmd = 0;
+  let gold = 0;
+  let hours = 0;
+  for (const order of orders) {
+    lmd += order.probability * order.gold;
+    gold += order.probability * order.amount;
+    hours += order.probability * order.hours;
+  }
+  if (hours <= 0 || lmd <= 0 || gold <= 0) return undefined;
+  return { lmdPerHour: lmd / hours, goldPerHour: gold / hours };
 }
 
 function calculateEfficiencyForBasicCalculator(

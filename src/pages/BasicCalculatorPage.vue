@@ -54,7 +54,6 @@ import {
   createBasicCalculatorConfig,
   createBasicCalculatorPatch,
   createBasicCalculatorSchedule,
-  createEfficiencyCalculatorAsset,
   operatorFieldOptions,
   operatorFieldValues,
   synchronizeBasicCalculatorGroupSchedule,
@@ -89,6 +88,7 @@ interface BasicCalculatorRowView {
   sourceRows: BasicCalculatorRow[];
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
   numeric: Record<string, number | undefined>;
+  productionProduct?: string;
   tradeOrderRule?: string;
   tradeOrders?: BasicCalculatorRowCalculation["tradeOrders"];
   backgroundColor?: string;
@@ -98,6 +98,18 @@ interface BasicCalculatorSortState {
   column: BasicCalculatorColumn | undefined;
   direction: "asc" | "desc";
 }
+
+const EFFICIENCY_COLUMN_LABELS: Partial<
+  Record<BasicCalculatorColumnKind, string>
+> = {
+  operatorEfficiency: "干员效率",
+  facilityEfficiency: "整站效率",
+  equivalentCurrentTradeEfficiency: "等效当前贸易效率",
+  equivalentLevelThreeTradeEfficiency: "等效3级贸易效率",
+  equivalentManufactureEfficiency: "等效制造效率",
+  baseProductionRate: "基础产出速率",
+  actualProductionRate: "实际产出速率",
+};
 
 interface GroupDraft {
   id: string;
@@ -111,7 +123,7 @@ interface GroupDraft {
 
 const STORAGE_KEYS = {
   combination: "riic-tools:basic-calculator:v5",
-  efficiency: "riic-tools:efficiency-calculator:v1",
+  efficiency: "riic-tools:efficiency-calculator:v2",
 } as const;
 const props = withDefaults(
   defineProps<{ mode?: "combination" | "efficiency" }>(),
@@ -285,8 +297,12 @@ function updateConfig(update: (draft: BasicCalculatorConfig) => void): void {
 async function loadResources(): Promise<void> {
   if (!ready.value || defaults.value) return;
   try {
+    const assetPath =
+      props.mode === "efficiency"
+        ? "assets/efficiency-calculator.json"
+        : "assets/basic-calculator.json";
     const defaultResponse = await fetch(
-      `${import.meta.env.BASE_URL}assets/basic-calculator.json`,
+      `${import.meta.env.BASE_URL}${assetPath}`,
     );
     if (!defaultResponse.ok) {
       throw new Error(
@@ -294,11 +310,7 @@ async function loadResources(): Promise<void> {
       );
     }
     const asset = (await defaultResponse.json()) as BasicCalculatorAsset;
-    const nextDefaults = createBasicCalculatorConfig(
-      props.mode === "efficiency"
-        ? createEfficiencyCalculatorAsset(asset)
-        : asset,
-    );
+    const nextDefaults = createBasicCalculatorConfig(asset);
     defaults.value = nextDefaults;
     config.value = applyBasicCalculatorPatch(
       nextDefaults,
@@ -421,6 +433,15 @@ function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
     return {
       column: selectedColumn,
       direction: settings?.sortDirection ?? "desc",
+    };
+  }
+
+  if (props.mode === "efficiency") {
+    return {
+      column:
+        columns.find((column) => column.kind === "operatorEfficiency") ??
+        columns.find((column) => column.kind === "operatorNames"),
+      direction: "desc",
     };
   }
 
@@ -582,6 +603,20 @@ function rowView(
       numeric[column.id] = calculation?.orderDelta;
     } else if (column.kind === "tradeBaseEfficiency") {
       numeric[column.id] = calculation?.tradeBaseEfficiency;
+    } else if (column.kind === "operatorEfficiency") {
+      numeric[column.id] = calculation?.operatorEfficiency;
+    } else if (column.kind === "facilityEfficiency") {
+      numeric[column.id] = calculation?.facilityEfficiency;
+    } else if (column.kind === "equivalentCurrentTradeEfficiency") {
+      numeric[column.id] = calculation?.equivalentCurrentTradeEfficiency;
+    } else if (column.kind === "equivalentLevelThreeTradeEfficiency") {
+      numeric[column.id] = calculation?.equivalentLevelThreeTradeEfficiency;
+    } else if (column.kind === "equivalentManufactureEfficiency") {
+      numeric[column.id] = calculation?.equivalentManufactureEfficiency;
+    } else if (column.kind === "baseProductionRate") {
+      numeric[column.id] = calculation?.baseProductionRate;
+    } else if (column.kind === "actualProductionRate") {
+      numeric[column.id] = calculation?.actualProductionRate;
     } else if (column.kind === "efficiency") {
       numeric[column.id] =
         calculation?.efficiency[String(column.hours ?? 24)]?.second;
@@ -602,6 +637,7 @@ function rowView(
     sourceRows: [row],
     efficiency: calculation?.efficiency ?? {},
     numeric,
+    productionProduct: calculation?.productionProduct,
     tradeOrderRule: calculation?.tradeOrderRule,
     tradeOrders: calculation?.tradeOrders,
     backgroundColor: productAccent(group, row),
@@ -636,7 +672,7 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
       );
     });
     result[group.id] =
-      group.coreOperator &&
+      (props.mode === "efficiency" || group.coreOperator) &&
       config.value?.settings.mergeIdenticalRows &&
       calculationsReadyForMerge.value
         ? mergeRowViews(views)
@@ -817,6 +853,30 @@ function columnText(
       ? "—"
       : `${formatNumber(value)} ${column.unit ?? ""}`.trim();
   }
+  if (
+    column.kind === "operatorEfficiency" ||
+    column.kind === "facilityEfficiency" ||
+    column.kind === "equivalentCurrentTradeEfficiency" ||
+    column.kind === "equivalentLevelThreeTradeEfficiency" ||
+    column.kind === "equivalentManufactureEfficiency"
+  ) {
+    const value = view.numeric[column.id];
+    return value === undefined
+      ? "—"
+      : `${formatEfficiencyNumber(value)}${column.unit ?? "%"}`;
+  }
+  if (
+    column.kind === "baseProductionRate" ||
+    column.kind === "actualProductionRate"
+  ) {
+    const value = view.numeric[column.id];
+    const unit = view.productionProduct
+      ? `${view.productionProduct}/小时`
+      : column.unit;
+    return value === undefined
+      ? "—"
+      : `${formatNumber(value)} ${unit ?? ""}`.trim();
+  }
   if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
     return value === undefined ? "—" : formatNumber(value);
@@ -867,6 +927,24 @@ function tableCellColumns(view: BasicCalculatorRowView): Array<{
         if (
           !nextColumn ||
           nextColumn.kind !== "efficiency" ||
+          columnText(view, nextColumn) !== text
+        ) {
+          break;
+        }
+        colspan += 1;
+      }
+    } else if (
+      shouldMergeCells &&
+      (column.kind === "equivalentCurrentTradeEfficiency" ||
+        column.kind === "equivalentLevelThreeTradeEfficiency")
+    ) {
+      const text = columnText(view, column);
+      while (index + colspan < columns.length) {
+        const nextColumn = columns[index + colspan];
+        if (
+          !nextColumn ||
+          (nextColumn.kind !== "equivalentCurrentTradeEfficiency" &&
+            nextColumn.kind !== "equivalentLevelThreeTradeEfficiency") ||
           columnText(view, nextColumn) !== text
         ) {
           break;
@@ -993,7 +1071,8 @@ function removeColumn(id: string): void {
 }
 
 function resetColumnDraft(): void {
-  columnDraft.kind = "efficiency";
+  columnDraft.kind =
+    props.mode === "efficiency" ? "operatorEfficiency" : "efficiency";
   columnDraft.label = "";
   columnDraft.hours = 12;
   columnDraft.path = fieldOptions.value[0]?.value ?? "";
@@ -1135,6 +1214,7 @@ function addColumn(): void {
     id,
     label:
       columnDraft.label.trim() ||
+      EFFICIENCY_COLUMN_LABELS[columnDraft.kind] ||
       (columnDraft.kind === "efficiency"
         ? `${formatNumber(columnDraft.hours)}小时效率`
         : columnDraft.kind === "tradeOrders"
@@ -1147,6 +1227,10 @@ function addColumn(): void {
       ? { hours: Math.max(0.01, columnDraft.hours), unit: "%" }
       : {}),
     ...(columnDraft.kind === "tradeBaseEfficiency"
+      ? { unit: "龙门币/小时" }
+      : {}),
+    ...(columnDraft.kind === "baseProductionRate" ||
+    columnDraft.kind === "actualProductionRate"
       ? { unit: "龙门币/小时" }
       : {}),
     ...(columnDraft.kind === "operatorField"
@@ -1238,13 +1322,19 @@ function openGroupEditor(group?: BasicCalculatorGroup): void {
     ? (JSON.parse(JSON.stringify(group)) as GroupDraft)
     : {
         id: `group-${Date.now().toString(36)}`,
-        name: "新组合组",
-        facility: "manufacture",
+        name: props.mode === "efficiency" ? "新效率组" : "新组合组",
+        facility: props.mode === "efficiency" ? "trading" : "manufacture",
         facilityLevel: 3,
-        coreOperator: { name: operators.value[0]?.name ?? "红云" },
+        ...(props.mode === "combination"
+          ? { coreOperator: { name: operators.value[0]?.name ?? "红云" } }
+          : {}),
         columnIds: config.value?.groups[0]?.columnIds ?? [],
         rows: [],
       };
+  if (props.mode === "efficiency" && groupDraft.value) {
+    delete groupDraft.value.coreOperator;
+    groupDraft.value.facility = "trading";
+  }
   groupModalOpen.value = true;
 }
 
@@ -1262,6 +1352,10 @@ function saveGroup(): void {
   updateConfig((next) => {
     const index = next.groups.findIndex((group) => group.id === draft.id);
     const group = JSON.parse(JSON.stringify(draft)) as BasicCalculatorGroup;
+    if (props.mode === "efficiency") {
+      delete group.coreOperator;
+      group.facility = "trading";
+    }
     if (index >= 0) {
       const previousGroup = next.groups[index]!;
       const previousCoreOperator = previousGroup.coreOperator;
@@ -1405,7 +1499,9 @@ function toggleGroupColumn(
         <div>
           <span class="page-kicker">RIIC EFFICIENCY</span>
           <h1>{{ calculatorTitle }}</h1>
-          <p>按组合、产物和工作时长比较基建技能效果。</p>
+          <p v-if="props.mode === 'combination'">
+            按组合、产物和工作时长比较基建技能效果。
+          </p>
         </div>
         <a-space wrap>
           <a-button :icon="h(SettingOutlined)" @click="openColumnEditor"
@@ -1415,12 +1511,14 @@ function toggleGroupColumn(
             :icon="h(PlusOutlined)"
             type="primary"
             @click="openGroupEditor()"
-            >新建组合组</a-button
+            >{{
+              props.mode === "efficiency" ? "新建效率组" : "新建组合组"
+            }}</a-button
           >
           <a-popconfirm
             cancel-text="取消"
             ok-text="恢复"
-            title="恢复默认组合、列和页面设置？"
+            :title="`恢复默认${calculatorTitle}、列和页面设置？`"
             @confirm="resetDefaults"
           >
             <a-button :icon="h(ReloadOutlined)">恢复默认</a-button>
@@ -1485,7 +1583,7 @@ function toggleGroupColumn(
             </a-checkbox>
           </a-space>
         </a-form-item>
-        <a-form-item label="效率显示">
+        <a-form-item v-if="props.mode === 'combination'" label="效率显示">
           <a-space wrap>
             <a-radio-group
               :value="config.settings.efficiencyDisplay"
@@ -1508,6 +1606,19 @@ function toggleGroupColumn(
             </a-checkbox>
           </a-space>
         </a-form-item>
+        <a-form-item v-else label="效率单元格">
+          <a-checkbox
+            :checked="config.settings.mergeIdenticalEfficiencyCells"
+            @change="
+              updateSetting(
+                'mergeIdenticalEfficiencyCells',
+                $event.target.checked,
+              )
+            "
+          >
+            合并相同效率单元格
+          </a-checkbox>
+        </a-form-item>
       </a-form>
     </a-card>
 
@@ -1521,7 +1632,11 @@ function toggleGroupColumn(
           <template #header>
             <div class="basic-calculator-group-header">
               <strong>{{ group.name }}</strong>
-              <span v-if="group.coreOperator && group.facility">
+              <span v-if="props.mode === 'efficiency' && group.facility">
+                {{ ROOM_LABELS[group.facility] }} ·
+                {{ group.facilityLevel ?? 1 }}级
+              </span>
+              <span v-else-if="group.coreOperator && group.facility">
                 {{ group.coreOperator.name }} ·
                 {{ ROOM_LABELS[group.facility] }}
               </span>
@@ -1535,7 +1650,7 @@ function toggleGroupColumn(
                 <a-popconfirm
                   cancel-text="取消"
                   ok-text="删除"
-                  title="删除这个组合组？"
+                  :title="`删除这个${props.mode === 'efficiency' ? '效率' : '组合'}组？`"
                   @confirm="deleteGroup(group.id)"
                 >
                   <a-button :icon="h(DeleteOutlined)" danger type="text" />
@@ -1545,7 +1660,11 @@ function toggleGroupColumn(
           </template>
           <div class="basic-calculator-group-toolbar">
             <span
-              v-if="group.coreOperator && group.facilityLevel !== undefined"
+              v-if="
+                props.mode === 'combination' &&
+                group.coreOperator &&
+                group.facilityLevel !== undefined
+              "
             >
               核心：{{ group.coreOperator.name }} · {{ group.facilityLevel }}级
             </span>
@@ -1873,23 +1992,40 @@ function toggleGroupColumn(
       <a-form :model="columnDraft" layout="vertical" @finish="addColumn">
         <a-form-item label="新列类型" name="kind">
           <a-select v-model:value="columnDraft.kind">
-            <a-select-option value="efficiency">工作时间效率</a-select-option>
-            <a-select-option
-              v-if="props.mode === 'efficiency'"
-              value="tradeOrders"
-              >订单类型</a-select-option
-            >
-            <a-select-option
-              v-if="props.mode === 'efficiency'"
-              value="tradeBaseEfficiency"
-              >基础效率</a-select-option
-            >
-            <a-select-option value="operatorField"
-              >干员 JSON 数值</a-select-option
-            >
-            <a-select-option value="storageDelta">仓库容量差值</a-select-option>
-            <a-select-option value="orderDelta">订单上限差值</a-select-option>
-            <a-select-option value="note">备注</a-select-option>
+            <template v-if="props.mode === 'combination'">
+              <a-select-option value="efficiency">工作时间效率</a-select-option>
+              <a-select-option value="operatorField"
+                >干员 JSON 数值</a-select-option
+              >
+              <a-select-option value="storageDelta"
+                >仓库容量差值</a-select-option
+              >
+              <a-select-option value="orderDelta">订单上限差值</a-select-option>
+              <a-select-option value="note">备注</a-select-option>
+            </template>
+            <template v-else>
+              <a-select-option value="operatorEfficiency"
+                >干员效率</a-select-option
+              >
+              <a-select-option value="facilityEfficiency"
+                >整站效率</a-select-option
+              >
+              <a-select-option value="equivalentCurrentTradeEfficiency"
+                >等效当前贸易效率</a-select-option
+              >
+              <a-select-option value="equivalentLevelThreeTradeEfficiency"
+                >等效3级贸易效率</a-select-option
+              >
+              <a-select-option value="equivalentManufactureEfficiency"
+                >等效制造效率</a-select-option
+              >
+              <a-select-option value="baseProductionRate"
+                >基础产出速率</a-select-option
+              >
+              <a-select-option value="actualProductionRate"
+                >实际产出速率</a-select-option
+              >
+            </template>
           </a-select>
         </a-form-item>
         <a-form-item label="列名称" name="label">
@@ -1942,39 +2078,44 @@ function toggleGroupColumn(
       :open="groupModalOpen"
       cancel-text="取消"
       ok-text="保存"
-      title="组合组设置"
+      :title="`${props.mode === 'efficiency' ? '效率' : '组合'}组设置`"
       @cancel="groupModalOpen = false"
       @ok="saveGroup"
     >
       <a-form v-if="groupDraft" layout="vertical">
-        <a-form-item label="组合组名称"
+        <a-form-item
+          :label="props.mode === 'efficiency' ? '效率组名称' : '组合组名称'"
           ><a-input v-model:value="groupDraft.name"
         /></a-form-item>
-        <template v-if="groupDraft.coreOperator">
-          <a-form-item label="核心干员">
-            <a-select v-model:value="groupDraft.coreOperator.name" show-search>
-              <a-select-option
-                v-for="option in operatorOptions"
-                :key="option.value"
-                :value="option.value"
-                >{{ option.label }}</a-select-option
-              >
-            </a-select>
-          </a-form-item>
-          <a-form-item label="工作设施">
-            <a-select v-model:value="groupDraft.facility">
-              <a-select-option value="manufacture">制造站</a-select-option>
-              <a-select-option value="trading">贸易站</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="设施等级">
-            <a-input-number
-              v-model:value="groupDraft.facilityLevel"
-              :max="3"
-              :min="1"
-            />
-          </a-form-item>
-        </template>
+        <a-form-item v-if="groupDraft.coreOperator" label="核心干员">
+          <a-select v-model:value="groupDraft.coreOperator.name" show-search>
+            <a-select-option
+              v-for="option in operatorOptions"
+              :key="option.value"
+              :value="option.value"
+              >{{ option.label }}</a-select-option
+            >
+          </a-select>
+        </a-form-item>
+        <a-form-item v-if="props.mode === 'efficiency'" label="工作设施">
+          <a-input value="贸易站" disabled />
+        </a-form-item>
+        <a-form-item v-else-if="groupDraft.coreOperator" label="工作设施">
+          <a-select v-model:value="groupDraft.facility">
+            <a-select-option value="manufacture">制造站</a-select-option>
+            <a-select-option value="trading">贸易站</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item
+          v-if="props.mode === 'efficiency' || groupDraft.coreOperator"
+          label="设施等级"
+        >
+          <a-input-number
+            v-model:value="groupDraft.facilityLevel"
+            :max="3"
+            :min="1"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
 

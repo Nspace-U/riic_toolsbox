@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "columns": [
+    {
+      "id": "operators",
+      "label": "干员",
+      "kind": "operators"
+    },
+    {
+      "id": "operator-names",
+      "label": "干员名称",
+      "kind": "operatorNames"
+    },
+    {
+      "id": "operator-efficiency",
+      "label": "干员效率",
+      "kind": "operatorEfficiency",
+      "unit": "%"
+    },
+    {
+      "id": "facility-efficiency",
+      "label": "整站效率",
+      "kind": "facilityEfficiency",
+      "unit": "%"
+    },
+    {
+      "id": "equivalent-current-trade-efficiency",
+      "label": "等效当前贸易效率",
+      "kind": "equivalentCurrentTradeEfficiency",
+      "unit": "%"
+    },
+    {
+      "id": "equivalent-level-three-trade-efficiency",
+      "label": "等效3级贸易效率",
+      "kind": "equivalentLevelThreeTradeEfficiency",
+      "unit": "%"
+    },
+    {
+      "id": "equivalent-manufacture-efficiency",
+      "label": "等效制造效率",
+      "kind": "equivalentManufactureEfficiency",
+      "unit": "%"
+    },
+    {
+      "id": "base-production-rate",
+      "label": "基础产出速率",
+      "kind": "baseProductionRate",
+      "unit": "龙门币/小时"
+    },
+    {
+      "id": "actual-production-rate",
+      "label": "实际产出速率",
+      "kind": "actualProductionRate",
+      "unit": "龙门币/小时"
+    }
+  ],
+  "groups": [
+    {
+      "id": "level-1-butshu",
+      "name": "1级站但书",
+      "facility": "trading",
+      "facilityLevel": 1,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "level-1-butshu-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 1
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": [],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "level-2-butshu",
+      "name": "2级站但书",
+      "facility": "trading",
+      "facilityLevel": 2,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "level-2-butshu-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": [],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "level-3-butshu",
+      "name": "3级站但书",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "level-3-butshu-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": [],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "closur",
+      "name": "可露希尔",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "closur-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": [],
+                      "runOrderOperators": ["可露希尔"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "vodfox-butshu-takila",
+      "name": "巫恋+但书+龙舌兰",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "vodfox-butshu-takila-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["巫恋"],
+                      "runOrderOperators": ["但书", "龙舌兰"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "vodfox-bibeak-takila",
+      "name": "巫恋+柏喙+龙舌兰",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "operator-efficiency",
+        "facility-efficiency",
+        "equivalent-current-trade-efficiency",
+        "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
+        "base-production-rate",
+        "actual-production-rate"
+      ],
+      "rows": [
+        {
+          "id": "vodfox-bibeak-takila-row-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["巫恋", "柏喙"],
+                      "runOrderOperators": ["龙舌兰"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
