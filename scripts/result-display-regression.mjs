@@ -541,6 +541,13 @@ for (const mode of ["raw", "points", "both"]) {
     dailyBattleRecords.mainUnit,
     mode === "points" ? "经验点数" : "中级作战记录",
   );
+  assert.equal(
+    dailyBattleRecords.lines.some(
+      (line) =>
+        line.key === "net" && displayText(line.value) === "净收入",
+    ),
+    false,
+  );
 
   const tradingStep = modeDisplay.calculationSteps.facilitySteps.steps.find(
     (step) => step.facilityId === "trading-0",
@@ -690,6 +697,13 @@ for (const mode of ["raw", "points", "both"]) {
       for (const tile of view.tiles) {
         assert.equal(
           tile.lines.some((line) => line.key === "net-resource"),
+          false,
+        );
+        assert.equal(
+          tile.lines.some(
+            (line) =>
+              line.key === "net" && displayText(line.value) === "净收入",
+          ),
           false,
         );
       }

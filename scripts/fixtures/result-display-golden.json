@@ -7,7 +7,6 @@
   "tile:无人机:240|{0}#240",
   "tile-line:daily-无人机:sanity-missing:未计入|",
   "tile:中级作战记录:+0|{0}#0s",
-  "tile-line:daily-中级作战记录:net:净收入|",
   "tile-line:daily-中级作战记录:sanity-missing:未计入|",
   "tile:信用:+759.1|{0}#759.1s",
   "tile-line:daily-信用:net:净收入 +759.1 信用|净收入 {0} 信用#759.1s",

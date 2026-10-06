@@ -382,9 +382,7 @@ function outputTileLines(
           ` ${pointInfo.label}`,
         ),
       });
-    } else if (card.grossAmount === undefined) {
-      lines.push({ key: NET_KEY, value: displayText("净收入") });
-    } else {
+    } else if (card.grossAmount !== undefined) {
       const isRaw = mode === "raw";
       const unit = isRaw ? resourceLabel(card.product) : pointInfo.label;
       lines.push({
