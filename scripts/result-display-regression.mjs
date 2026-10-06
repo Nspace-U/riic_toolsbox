@@ -458,10 +458,19 @@ function displayForMode(mode) {
 }
 
 function findDailyOrderSummary(display) {
-  return display.calculationSteps.dailyOutput.cards[0].sections
+  const facilitySection = display.calculationSteps.dailyOutput.cards[0].sections
     .find((section) => section.key === "product-龙门币")
-    .sections.find((section) => section.key === "龙门币-facilities")
-    .rows.find((row) => displayText(row.label).includes("2贵金属订单"));
+    .sections.find((section) => section.key === "龙门币-facilities");
+  const entry = facilitySection.entries.find((entry) =>
+    entry.rows.some((row) => displayText(row.label).includes("2贵金属订单")),
+  );
+  return {
+    entry,
+    row: entry.rows.find((row) =>
+      displayText(row.label).includes("2贵金属订单"),
+    ),
+    facilitySection,
+  };
 }
 
 const indexedDisplay = packageModule.buildResultDisplay(result, {
@@ -475,8 +484,12 @@ const indexedDisplay = packageModule.buildResultDisplay(result, {
         ),
 });
 assert.equal(
-  displayText(findDailyOrderSummary(indexedDisplay).label),
-  "贸易站 1 · 订单摘要 · 2贵金属订单 · 30%",
+  displayText(findDailyOrderSummary(indexedDisplay).entry.title),
+  "贸易站 1",
+);
+assert.equal(
+  displayText(findDailyOrderSummary(indexedDisplay).row.label),
+  "订单摘要 · 2贵金属订单 · 30%",
 );
 
 for (const mode of ["raw", "points", "both"]) {
@@ -548,33 +561,84 @@ for (const mode of ["raw", "points", "both"]) {
   const dailyGoldSection = dailyOutputCard.sections.find(
     (section) => section.key === "product-赤金",
   );
-  const dailyGoldRate = dailyGoldSection.rows.find(
+  const dailyGoldBaseRate = dailyGoldSection.rows.find(
     (row) => row.key === "赤金-base-output",
+  );
+  const dailyGoldRate = dailyGoldSection.rows.find(
+    (row) => row.key === "赤金-total-output",
+  );
+  const dailyGoldQueueOutput = dailyGoldSection.rows.find(
+    (row) => row.key === "赤金-daily",
   );
   const dailyLmdSection = dailyOutputCard.sections.find(
     (section) => section.key === "product-龙门币",
   );
   const dailyOrderSummary = findDailyOrderSummary(modeDisplay);
-  assert.equal(
-    displayText(dailyOrderSummary.label),
-    "贸易站 · 订单摘要 · 2贵金属订单 · 30%",
+  const tradeStation = dailyOrderSummary.facilitySection.entries.find(
+    (entry) => displayText(entry.title) === "贸易站",
   );
   assert.equal(
-    displayText(dailyOrderSummary.value),
+    displayText(dailyOrderSummary.entry.title),
+    "贸易站",
+  );
+  assert.equal(
+    displayText(dailyOrderSummary.row.label),
+    "订单摘要 · 2贵金属订单 · 30%",
+  );
+  assert.equal(
+    displayText(dailyOrderSummary.row.value),
     displayText(goldOrder.value),
   );
-  const queueGoldMaterial = dailyLmdSection.sections
-    .find((section) => section.key === "龙门币-materials")
-    .rows.find((row) => row.key === "龙门币-material-赤金-base");
+  assert.deepEqual(
+    tradeStation.rows.slice(0, 3).map((row) => displayText(row.label)),
+    ["整体效率", "基础产出速率", "实际产出速率"],
+  );
+  assert.equal(
+    displayText(
+      tradeStation.rows.find((row) => row.key.endsWith("-赤金-base")).label,
+    ),
+    "材料消耗 · 基础速率",
+  );
+  assert.equal(
+    displayText(
+      tradeStation.rows.find((row) => row.key.endsWith("-赤金-daily")).label,
+    ),
+    "材料消耗 · 队列折算总消耗",
+  );
+  const dailyLmdMaterials = dailyLmdSection.sections.find(
+    (section) => section.key === "龙门币-materials",
+  );
+  const queueGoldMaterialBase = dailyLmdMaterials.rows.find(
+    (row) => row.key === "龙门币-material-赤金-base",
+  );
+  const queueGoldMaterial = dailyLmdMaterials.rows.find(
+    (row) => row.key === "龙门币-material-赤金-daily",
+  );
+  assert.equal(dailyGoldBaseRate, undefined);
+  assert.equal(queueGoldMaterialBase, undefined);
+  assert.equal(displayText(dailyGoldRate.label), "总产出速率");
+  assert.equal(displayText(dailyGoldQueueOutput.label), "队列折算总产出");
+  assert.equal(
+    displayText(queueGoldMaterial.label),
+    "队列折算总消耗",
+  );
+  assert.equal(
+    displayText(
+      dailyLmdMaterials.rows.find(
+        (row) => row.key === "龙门币-material-赤金-total",
+      ).label,
+    ),
+    "队列时长总消耗",
+  );
   if (mode === "raw") {
     assert.equal(displayText(goldMaterialRate.value), "赤金 -1.17/小时");
     assert.ok(displayText(goldOrder.value).includes("赤金 × 2"));
-    assert.equal(displayText(dailyGoldRate.value), "0.83/小时");
+    assert.equal(displayText(dailyGoldRate.value), "0.84/小时");
     assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金 -"));
   } else if (mode === "points") {
     assert.equal(displayText(goldMaterialRate.value), "赤金点数 -585/小时");
     assert.ok(displayText(goldOrder.value).includes("赤金点数 × 1000"));
-    assert.equal(displayText(dailyGoldRate.value), "415/小时");
+    assert.equal(displayText(dailyGoldRate.value), "420/小时");
     assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金点数 -"));
   } else {
     assert.equal(
@@ -584,7 +648,7 @@ for (const mode of ["raw", "points", "both"]) {
     assert.ok(
       displayText(goldOrder.value).includes("赤金 × 2（1000）"),
     );
-    assert.equal(displayText(dailyGoldRate.value), "0.83/小时（415）");
+    assert.equal(displayText(dailyGoldRate.value), "0.84/小时（420）");
     assert.ok(displayText(queueGoldMaterial.value).includes("赤金 -"));
   }
 
@@ -726,12 +790,28 @@ function flatten(entries) {
             `row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
           );
         }
+        for (const entry of section.entries ?? []) {
+          lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
+          for (const row of entry.rows) {
+            lines.push(
+              `entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+            );
+          }
+        }
         for (const child of section.sections ?? []) {
           lines.push(`subsection:${child.label ?? ""}`);
           for (const row of child.rows) {
             lines.push(
               `subrow:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
             );
+          }
+          for (const entry of child.entries ?? []) {
+            lines.push(`entry:${value(entry.title)}|${value(entry.value)}`);
+            for (const row of entry.rows) {
+              lines.push(
+                `entry-row:${value(row.label)}|${value(row.value)}|${raws(row.value)}`,
+              );
+            }
           }
         }
       }

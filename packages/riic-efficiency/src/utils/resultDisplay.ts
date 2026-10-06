@@ -862,7 +862,6 @@ function buildMaaDronePane(
 
 function materialRows(
   keyPrefix: string,
-  labelPrefix: string,
   materials: readonly {
     material: string;
     baseAmountPerHour: number;
@@ -870,33 +869,41 @@ function materialRows(
     queueTotal: number;
   }[],
   resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+  options: { includeBaseRate?: boolean; includeMaterialLabel?: boolean } = {},
 ): DisplayRow[] {
+  const includeBaseRate = options.includeBaseRate ?? true;
+  const labelPrefix =
+    options.includeMaterialLabel === false ? "" : "材料消耗 · ";
   return materials.flatMap((material) => {
     const label = resourceLabel(material.material);
     return [
-      displayRow(
-        `${keyPrefix}-${material.material}-base`,
-        displayText(`${labelPrefix}材料消耗 · 基础速率`),
-        resourceAmountDisplay(
-          material.baseAmountPerHour,
-          material.material,
-          resourceAmountDisplayMode,
-          "signed",
-          displayValue(
-            label,
-            " ",
-            numberPart(material.baseAmountPerHour, "signed"),
-            "/小时",
-          ),
-          {
-            unitSuffix: "/小时",
-            resourceFirst: true,
-          },
-        ),
-      ),
+      ...(includeBaseRate
+        ? [
+            displayRow(
+              `${keyPrefix}-${material.material}-base`,
+              displayText(`${labelPrefix}基础速率`),
+              resourceAmountDisplay(
+                material.baseAmountPerHour,
+                material.material,
+                resourceAmountDisplayMode,
+                "signed",
+                displayValue(
+                  label,
+                  " ",
+                  numberPart(material.baseAmountPerHour, "signed"),
+                  "/小时",
+                ),
+                {
+                  unitSuffix: "/小时",
+                  resourceFirst: true,
+                },
+              ),
+            ),
+          ]
+        : []),
       displayRow(
         `${keyPrefix}-${material.material}-daily`,
-        displayText(`${labelPrefix}材料消耗 · 队列折算`),
+        displayText(`${labelPrefix}队列折算总消耗`),
         resourceAmountDisplay(
           material.dailyAmount,
           material.material,
@@ -916,7 +923,7 @@ function materialRows(
       ),
       displayRow(
         `${keyPrefix}-${material.material}-total`,
-        displayText(`${labelPrefix}材料消耗 · 队列时长总消耗`),
+        displayText(`${labelPrefix}队列时长总消耗`),
         resourceAmountDisplay(
           material.queueTotal,
           material.material,
@@ -944,7 +951,7 @@ function orderRows(
     displayRow(
       `${facility.label}-order-${order.name}-name`,
       displayValue(
-        `${facility.label} · 订单摘要 · ${order.name} · `,
+        `订单摘要 · ${order.name} · `,
         numberPart(order.probability * 100, "number"),
         "%",
       ),
@@ -983,20 +990,8 @@ function productSection(
       displayUnit(product.totalEfficiency, "number", "%"),
     ),
     displayRow(
-      `${product.product}-base-output`,
-      displayText("基础效率产出"),
-      resourceAmountDisplay(
-        product.baseOutputPerHour,
-        product.product,
-        resourceAmountDisplayMode,
-        "number",
-        displayUnit(product.baseOutputPerHour, "number", "/小时"),
-        { unitSuffix: "/小时" },
-      ),
-    ),
-    displayRow(
       `${product.product}-total-output`,
-      displayText("总效率产出"),
+      displayText("总产出速率"),
       resourceAmountDisplay(
         product.totalOutputPerHour,
         product.product,
@@ -1008,7 +1003,7 @@ function productSection(
     ),
     displayRow(
       `${product.product}-daily`,
-      displayText("队列折算"),
+      displayText("队列折算总产出"),
       resourceAmountDisplay(
         product.dailyContribution,
         product.product,
@@ -1040,9 +1035,9 @@ function productSection(
       label: "材料消耗合计",
       rows: materialRows(
         `${product.product}-material`,
-        "",
         product.materials,
         resourceAmountDisplayMode,
+        { includeBaseRate: false, includeMaterialLabel: false },
       ),
     });
   }
@@ -1050,44 +1045,48 @@ function productSection(
     sections.push({
       key: `${product.product}-facilities`,
       label: "设施明细",
-      rows: product.facilities.flatMap((facility) => [
-        displayRow(
-          `${facility.label}-eff`,
-          displayText(`${facility.label} · 总效率`),
-          displayUnit(facility.totalEfficiency, "number", "%"),
-        ),
-        displayRow(
-          `${facility.label}-base`,
-          displayText(`${facility.label} · 基础产出`),
-          resourceAmountDisplay(
-            facility.baseOutputPerHour,
-            product.product,
-            resourceAmountDisplayMode,
-            "number",
-            displayUnit(facility.baseOutputPerHour, "number", "/小时"),
-            { unitSuffix: "/小时" },
+      rows: [],
+      entries: product.facilities.map((facility) => ({
+        key: `${product.product}-${facility.label}`,
+        title: displayText(facility.label),
+        rows: [
+          displayRow(
+            `${facility.label}-eff`,
+            displayText("整体效率"),
+            displayUnit(facility.totalEfficiency, "number", "%"),
           ),
-        ),
-        displayRow(
-          `${facility.label}-total`,
-          displayText(`${facility.label} · 总产出`),
-          resourceAmountDisplay(
-            facility.totalOutputPerHour,
-            product.product,
-            resourceAmountDisplayMode,
-            "number",
-            displayUnit(facility.totalOutputPerHour, "number", "/小时"),
-            { unitSuffix: "/小时" },
+          displayRow(
+            `${facility.label}-base`,
+            displayText("基础产出速率"),
+            resourceAmountDisplay(
+              facility.baseOutputPerHour,
+              product.product,
+              resourceAmountDisplayMode,
+              "number",
+              displayUnit(facility.baseOutputPerHour, "number", "/小时"),
+              { unitSuffix: "/小时" },
+            ),
           ),
-        ),
-        ...materialRows(
-          `${facility.label}-material`,
-          `${facility.label} · `,
-          facility.materials,
-          resourceAmountDisplayMode,
-        ),
-        ...orderRows(facility, resourceAmountDisplayMode),
-      ]),
+          displayRow(
+            `${facility.label}-total`,
+            displayText("实际产出速率"),
+            resourceAmountDisplay(
+              facility.totalOutputPerHour,
+              product.product,
+              resourceAmountDisplayMode,
+              "number",
+              displayUnit(facility.totalOutputPerHour, "number", "/小时"),
+              { unitSuffix: "/小时" },
+            ),
+          ),
+          ...materialRows(
+            `${facility.label}-material`,
+            facility.materials,
+            resourceAmountDisplayMode,
+          ),
+          ...orderRows(facility, resourceAmountDisplayMode),
+        ],
+      })),
     });
   }
   return {
