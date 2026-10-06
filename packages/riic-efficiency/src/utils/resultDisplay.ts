@@ -80,6 +80,8 @@ const NET_KEY = "net";
 const NET_POINTS_KEY = "net-points";
 const SANITY_KEY = "sanity";
 const SANITY_MISSING_KEY = "sanity-missing";
+const DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE: ResourceAmountDisplayMode =
+  "points";
 
 type BuildNumberFormat = "number" | "signed";
 
@@ -164,10 +166,10 @@ interface ResourceAmountDisplayPartsOptions {
 function resourceOrderParts(
   amount: number,
   resource: string,
-  mode: ResourceAmountDisplayMode | undefined,
+  mode: ResourceAmountDisplayMode = DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE,
 ): BuildPart[] | undefined {
   const pointInfo = resourcePointInfo(resource);
-  if (pointInfo === undefined || mode === undefined) {
+  if (pointInfo === undefined) {
     return undefined;
   }
   if (mode === "raw") {
@@ -194,13 +196,14 @@ function resourceAmountParts(
   options: ResourceAmountDisplayPartsOptions = {},
 ): BuildPart[] | undefined {
   const pointInfo = resourcePointInfo(resource);
-  if (pointInfo === undefined || mode === undefined) {
+  if (pointInfo === undefined) {
     return undefined;
   }
 
+  const displayMode = mode ?? DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE;
   const unitSuffix = options.unitSuffix ?? "";
   const prefix = options.prefix ?? "";
-  if (mode === "raw") {
+  if (displayMode === "raw") {
     if (options.resourceFirst) {
       return [
         prefix,
@@ -212,7 +215,7 @@ function resourceAmountParts(
     }
     return [prefix, numberPart(value, format), unitSuffix];
   }
-  if (mode === "points") {
+  if (displayMode === "points") {
     if (options.resourceFirst) {
       return [
         prefix,
@@ -255,11 +258,11 @@ function resourceAmountDisplay(
   resource: string,
   mode: ResourceAmountDisplayMode | undefined,
   format: BuildNumberFormat,
-  legacyValue: DisplayValue,
+  fallbackValue: DisplayValue,
   options: ResourceAmountDisplayPartsOptions = {},
 ): DisplayValue {
   const parts = resourceAmountParts(value, resource, mode, format, options);
-  return parts === undefined ? legacyValue : displayValue(...parts);
+  return parts === undefined ? fallbackValue : displayValue(...parts);
 }
 
 function displayRow(
@@ -320,13 +323,13 @@ function outputTileLines(
   card: DailyOutputCard,
   extraLines: readonly DisplayLine[],
   includeSanity: boolean,
-  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+  resourceAmountDisplayMode: ResourceAmountDisplayMode =
+    DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE,
 ): DisplayLine[] {
   const lines: DisplayLine[] = [];
   const pointInfo = resourcePointInfo(card.product);
   if (
-    (resourceAmountDisplayMode === undefined ||
-      resourceAmountDisplayMode === "both") &&
+    resourceAmountDisplayMode === "both" &&
     card.grossPoints !== undefined &&
     card.grossPointsLabel !== undefined
   ) {
@@ -340,7 +343,7 @@ function outputTileLines(
   }
   if (card.showNet) {
     const mode = resourceAmountDisplayMode;
-    if (pointInfo === undefined || mode === undefined) {
+    if (pointInfo === undefined) {
       lines.push({
         key: NET_KEY,
         value: displayValue(
@@ -419,17 +422,14 @@ function outputTile(
   card: DailyOutputCard,
   includeSanity: boolean,
   extraLines: readonly DisplayLine[] = [],
-  resourceAmountDisplayMode?: ResourceAmountDisplayMode,
+  resourceAmountDisplayMode: ResourceAmountDisplayMode =
+    DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE,
 ): DisplayTile {
   const gross = card.grossAmount;
-  const amount =
-    resourceAmountDisplayMode === undefined
-      ? (gross ?? card.netAmount)
-      : (gross ?? card.netResourceAmount);
+  const amount = gross ?? card.netResourceAmount;
   const pointInfo = resourcePointInfo(card.product);
   const format = gross === undefined ? "signed" : "number";
-  const hasResourceUnit =
-    resourceAmountDisplayMode !== undefined && pointInfo !== undefined;
+  const hasResourceUnit = pointInfo !== undefined;
   const unit =
     resourceAmountDisplayMode === "points"
       ? pointInfo?.label
@@ -536,7 +536,8 @@ export function buildDroneScenarioViews(
     sourceFacilityForProduct: options.sourceFacilityForProduct,
   }).map((entry) => {
     const scenario = entry.scenario;
-    const resourceAmountDisplayMode = options.resourceAmountDisplayMode;
+    const resourceAmountDisplayMode =
+      options.resourceAmountDisplayMode ?? DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE;
     const pointInfo = resourcePointInfo(scenario.product);
     const baseRate = resourceAmountDisplay(
       scenario.baseAmountPerHour,

@@ -20,7 +20,7 @@ export const RESULT_RESOURCE_DISPLAY_MODE_OPTIONS: Record<
     description: "赤金与中级作战记录按道具数量显示。",
   },
   points: {
-    label: "点数/经验点数",
+    label: "点数",
     description: "赤金按 500 点/个、中级作战记录按 1000 经验点数/本换算。",
   },
   both: {

@@ -402,6 +402,19 @@ const displayOptions = {
     packageModule.resultPresentationSourceFacility(product, result),
 };
 const display = packageModule.buildResultDisplay(result, displayOptions);
+const pointsDisplay = packageModule.buildResultDisplay(result, {
+  ...displayOptions,
+  resourceAmountDisplayMode: "points",
+});
+assert.deepEqual(display, pointsDisplay);
+assert.deepEqual(
+  packageModule.buildDailyOutputDisplay(result, displayOptions),
+  display.dailyOutput,
+);
+assert.deepEqual(
+  packageModule.buildDroneScenarioViews(result, displayOptions),
+  display.droneScenarios,
+);
 const modeDailyAmounts = Object.fromEntries(
   result.dailyOutputs.map((output) => [output.product, output.amountPerDay]),
 );
