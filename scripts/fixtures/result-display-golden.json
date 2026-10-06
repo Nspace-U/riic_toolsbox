@@ -17,7 +17,7 @@
   "daily-warning:总理智不完整：未设置固源岩价值",
   "strategy:无人机使用策略",
   "strategy-hint:输入一行：贸易站等级，后接干员；干员名末尾的 0、1、2 表示精 0、精 1、精 2。留空时按通用设置中的最低贸易站等级自动选择。",
-  "scenario:龙门币 · 早班 · 贸易站1:300架 · 15小时",
+  "scenario:龙门币:300架 · 15小时",
   "scenario-base:基础 427.73/小时",
   "scenario-view:extra:无人机额外产出与消耗:2",
   "scenario-tile:extra-龙门币:6415.95|{0}#6415.95",

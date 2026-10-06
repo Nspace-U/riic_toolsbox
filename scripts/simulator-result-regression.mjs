@@ -208,8 +208,8 @@ assert.match(
   /props\.tile\.main\.raws\?\.\[0\]\?\.signed === true/,
 );
 assert.match(displayTile, /props\.tile\.product/);
-assert.match(displayTile, /props\.tile\.mainUnit/);
-assert.match(displayTile, /simulator-daily-output-main-number/);
+assert.match(displayTile, /:unit="props\.tile\.mainUnit"/);
+assert.doesNotMatch(displayTile, /simulator-daily-output-main-unit/);
 assert.doesNotMatch(displayTile, /netOnly|tile\.icon|muted/);
 
 assert.doesNotMatch(template, /class="simulator-daily-output-breakdown"/);

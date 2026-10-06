@@ -70,13 +70,10 @@ import {
   formatBasePointSource,
   formatFacilityResultLabel,
   formatInheritedSourceLabel,
+  resourcePointInfo,
 } from "./resultPresentation";
 import { ROOM_LABELS } from "./schedule";
-import {
-  BATTLE_RECORD_EXPERIENCE,
-  calculateSanityResult,
-  PURE_GOLD_POINTS,
-} from "./sanity";
+import { calculateSanityResult } from "./sanity";
 
 const GROSS_POINTS_KEY = "gross-points";
 const NET_KEY = "net";
@@ -84,17 +81,9 @@ const NET_POINTS_KEY = "net-points";
 const SANITY_KEY = "sanity";
 const SANITY_MISSING_KEY = "sanity-missing";
 
-type BuildNumberFormat = "number" | "production" | "efficiency" | "signed";
+type BuildNumberFormat = "number" | "signed";
 
-type BuildPart =
-  | string
-  | {
-      value: number;
-      format?: BuildNumberFormat;
-      unit?: string;
-      muted?: boolean;
-    }
-  | { text: string; muted?: boolean };
+type BuildPart = string | { value: number; format?: BuildNumberFormat };
 
 function composeParts(parts: readonly BuildPart[]): DisplayValue {
   let template = "";
@@ -102,10 +91,6 @@ function composeParts(parts: readonly BuildPart[]): DisplayValue {
   for (const part of parts) {
     if (typeof part === "string") {
       template += part;
-      continue;
-    }
-    if ("text" in part) {
-      template += part.text;
       continue;
     }
     template += `{${raws.length}}`;
@@ -166,30 +151,14 @@ function displayUnit(
 function numberPart(
   value: number,
   format: BuildNumberFormat = "number",
-  unit?: string,
 ): BuildPart {
-  return unit === undefined ? { value, format } : { value, format, unit };
+  return { value, format };
 }
 
 interface ResourceAmountDisplayPartsOptions {
   unitSuffix?: string;
-  rawPrefix?: string;
-  pointPrefix?: string;
-  bothPrefix?: string;
-  includeResourceUnit?: boolean;
+  prefix?: string;
   resourceFirst?: boolean;
-}
-
-function resourcePointInfo(
-  resource: string,
-): { factor: number; label: string } | undefined {
-  if (resource === "赤金") {
-    return { factor: PURE_GOLD_POINTS, label: "赤金点数" };
-  }
-  if (resource === "中级作战记录") {
-    return { factor: BATTLE_RECORD_EXPERIENCE, label: "经验点数" };
-  }
-  return undefined;
 }
 
 function resourceOrderParts(
@@ -213,7 +182,7 @@ function resourceOrderParts(
     numberPart(amount),
     "（",
     numberPart(amount * pointInfo.factor),
-    ` ${pointInfo.label}）`,
+    "）",
   ];
 }
 
@@ -230,65 +199,54 @@ function resourceAmountParts(
   }
 
   const unitSuffix = options.unitSuffix ?? "";
-  const rawPrefix = options.rawPrefix ?? "";
-  const pointPrefix = options.pointPrefix ?? "";
-  const bothPrefix = options.bothPrefix ?? rawPrefix;
-  const rawUnit = `${options.includeResourceUnit ? resource : ""}${unitSuffix}`;
-  const pointUnit = `${pointInfo.label}${unitSuffix}`;
+  const prefix = options.prefix ?? "";
   if (mode === "raw") {
     if (options.resourceFirst) {
       return [
-        rawPrefix,
+        prefix,
         resource,
         " ",
-        numberPart(value, format, unitSuffix),
+        numberPart(value, format),
         unitSuffix,
       ];
     }
-    return [
-      rawPrefix,
-      numberPart(value, format, rawUnit),
-      rawUnit ? ` ${rawUnit}` : "",
-    ];
+    return [prefix, numberPart(value, format), unitSuffix];
   }
   if (mode === "points") {
     if (options.resourceFirst) {
       return [
-        pointPrefix,
+        prefix,
         pointInfo.label,
         " ",
-        numberPart(value * pointInfo.factor, format, unitSuffix),
+        numberPart(value * pointInfo.factor, format),
         unitSuffix,
       ];
     }
     return [
-      pointPrefix,
-      numberPart(value * pointInfo.factor, format, pointUnit),
-      ` ${pointUnit}`,
+      prefix,
+      numberPart(value * pointInfo.factor, format),
+      unitSuffix,
     ];
   }
   if (options.resourceFirst) {
     return [
-      bothPrefix,
+      prefix,
       resource,
       " ",
-      numberPart(value, format, unitSuffix),
+      numberPart(value, format),
       unitSuffix,
       "（",
-      pointInfo.label,
-      " ",
-      numberPart(value * pointInfo.factor, format, unitSuffix),
-      unitSuffix,
+      numberPart(value * pointInfo.factor, format),
       "）",
     ];
   }
-  const rawUnitWithResource = `${resource}${unitSuffix}`;
   return [
-    bothPrefix,
-    numberPart(value, format, rawUnitWithResource),
-    ` ${rawUnitWithResource}（`,
-    numberPart(value * pointInfo.factor, format, pointUnit),
-    ` ${pointUnit}）`,
+    prefix,
+    numberPart(value, format),
+    unitSuffix,
+    "（",
+    numberPart(value * pointInfo.factor, format),
+    "）",
   ];
 }
 
@@ -302,23 +260,6 @@ function resourceAmountDisplay(
 ): DisplayValue {
   const parts = resourceAmountParts(value, resource, mode, format, options);
   return parts === undefined ? legacyValue : displayValue(...parts);
-}
-
-function mutedText(text: string): BuildPart {
-  return { text, muted: true };
-}
-
-function mutedNumber(
-  value: number,
-  format: BuildNumberFormat = "number",
-  unit?: string,
-): BuildPart {
-  return {
-    value,
-    format,
-    ...(unit === undefined ? {} : { unit }),
-    muted: true,
-  };
 }
 
 function displayRow(
@@ -352,7 +293,7 @@ function planLabel(plan: EfficiencyPlanResult, planIndex: number): string {
 }
 
 function durationSubtitle(hours: number): DisplayValue {
-  return displayValue(" · ", numberPart(hours, "number", "小时"), " 小时");
+  return displayValue(" · ", numberPart(hours, "number"), " 小时");
 }
 
 function inheritedStepLabel(
@@ -369,7 +310,7 @@ function facilityStepSubtitle(
 ): DisplayValue {
   return displayValue(
     " · ",
-    numberPart(plan.durationHours, "number", "小时"),
+    numberPart(plan.durationHours, "number"),
     " 小时",
     ...(step.inheritedLabel ? ["· ", step.inheritedLabel] : []),
   );
@@ -392,7 +333,7 @@ function outputTileLines(
     lines.push({
       key: GROSS_POINTS_KEY,
       value: displayValue(
-        numberPart(card.grossPoints, "production", card.grossPointsLabel),
+        numberPart(card.grossPoints, "number"),
         ` ${card.grossPointsLabel}`,
       ),
     });
@@ -404,7 +345,7 @@ function outputTileLines(
         key: NET_KEY,
         value: displayValue(
           "净收入 ",
-          numberPart(card.netAmount, "signed", card.netUnit),
+          numberPart(card.netAmount, "signed"),
           ` ${card.netUnit}`,
         ),
       });
@@ -417,7 +358,6 @@ function outputTileLines(
             numberPart(
               card.netResourceAmount,
               "signed",
-              resourceLabel(card.product),
             ),
             ` ${resourceLabel(card.product)}`,
           ),
@@ -425,7 +365,7 @@ function outputTileLines(
         {
           key: NET_POINTS_KEY,
           value: displayValue(
-            numberPart(card.netAmount, "signed", pointInfo.label),
+            numberPart(card.netAmount, "signed"),
             ` ${pointInfo.label}`,
           ),
         },
@@ -435,7 +375,7 @@ function outputTileLines(
         key: NET_POINTS_KEY,
         value: displayValue(
           "净收入 ",
-          numberPart(card.netAmount, "signed", pointInfo.label),
+          numberPart(card.netAmount, "signed"),
           ` ${pointInfo.label}`,
         ),
       });
@@ -451,7 +391,6 @@ function outputTileLines(
           numberPart(
             isRaw ? card.netResourceAmount : card.netAmount,
             "signed",
-            unit,
           ),
           ` ${unit}`,
         ),
@@ -466,7 +405,7 @@ function outputTileLines(
         : {
             key: SANITY_KEY,
             value: displayValue(
-              numberPart(card.netContribution, "signed", "理智"),
+              numberPart(card.netContribution, "signed"),
               " 理智",
             ),
           },
@@ -488,7 +427,7 @@ function outputTile(
       ? (gross ?? card.netAmount)
       : (gross ?? card.netResourceAmount);
   const pointInfo = resourcePointInfo(card.product);
-  const format = gross === undefined ? "signed" : "production";
+  const format = gross === undefined ? "signed" : "number";
   const hasResourceUnit =
     resourceAmountDisplayMode !== undefined && pointInfo !== undefined;
   const unit =
@@ -540,7 +479,7 @@ export function buildDailyOutputDisplay(
     key: "daily-output",
     label: "每日产出",
     cycleHours: displayValue(
-      numberPart(result.dailyHours, "number", "小时"),
+      numberPart(result.dailyHours, "number"),
       " 小时",
     ),
     tiles: cards.map((card) =>
@@ -603,54 +542,42 @@ export function buildDroneScenarioViews(
       scenario.baseAmountPerHour,
       scenario.product,
       resourceAmountDisplayMode,
-      "production",
+      "number",
       displayValue(
         "基础 ",
-        numberPart(scenario.baseAmountPerHour, "production", "/小时"),
+        numberPart(scenario.baseAmountPerHour, "number"),
         "/小时",
       ),
       {
         unitSuffix: "/小时",
-        rawPrefix: "基础 ",
-        pointPrefix: "基础 ",
-        includeResourceUnit: true,
+        prefix: "基础 ",
       },
     );
     const baseRateLines =
-      resourceAmountDisplayMode === undefined || pointInfo === undefined
-        ? undefined
-        : resourceAmountDisplayMode === "both"
-          ? [
-              displayValue(
-                "基础 ",
-                numberPart(
-                  scenario.baseAmountPerHour,
-                  "production",
-                  scenario.product,
-                ),
-                ` ${scenario.product}/小时`,
+      resourceAmountDisplayMode === "both" && pointInfo !== undefined
+        ? [
+            displayValue(
+              "基础 ",
+              numberPart(scenario.baseAmountPerHour, "number"),
+              "/小时",
+            ),
+            displayValue(
+              "折算 ",
+              numberPart(
+                scenario.baseAmountPerHour * pointInfo.factor,
+                "number",
               ),
-              displayValue(
-                "折算 ",
-                numberPart(
-                  scenario.baseAmountPerHour * pointInfo.factor,
-                  "production",
-                  pointInfo.label,
-                ),
-                ` ${pointInfo.label}/小时`,
-              ),
-            ]
-          : [baseRate];
+              "/小时",
+            ),
+          ]
+        : undefined;
     return {
       key: scenario.key,
-      title: displayValue(
-        resourceLabel(scenario.product),
-        ...(scenario.sourceLabel ? [" · ", scenario.sourceLabel] : []),
-      ),
+      title: displayText(resourceLabel(scenario.product)),
       meta: displayValue(
-        numberPart(scenario.droneAmount, "number", "架"),
+        numberPart(scenario.droneAmount, "number"),
         "架 · ",
-        numberPart(scenario.acceleratedHours, "number", "小时"),
+        numberPart(scenario.acceleratedHours, "number"),
         "小时",
       ),
       baseRate,
@@ -689,9 +616,9 @@ function droneMaterialRows(
         displayValue(
           resourceLabel(material),
           " ",
-          numberPart(amount, "signed", resourceLabel(material)),
+          numberPart(amount, "signed"),
         ),
-        { includeResourceUnit: true, resourceFirst: true },
+        { resourceFirst: true },
       ),
     ),
   );
@@ -708,7 +635,7 @@ function droneOverflowRow(
           displayText("无人机爆仓"),
           displayValue(
             "超出 ",
-            numberPart(detail.overflowAmount, "number", "架"),
+            numberPart(detail.overflowAmount, "number"),
             "架",
           ),
         ),
@@ -729,24 +656,23 @@ function droneCommonRows(
         detail.baseAmountPerHour,
         detail.product,
         resourceAmountDisplayMode,
-        "production",
-        displayUnit(detail.baseAmountPerHour, "production", "/小时"),
+        "number",
+        displayUnit(detail.baseAmountPerHour, "number", "/小时"),
         {
           unitSuffix: "/小时",
-          includeResourceUnit: true,
         },
       ),
     ),
     displayRow(
       `${keyPrefix}-amount`,
       displayText("消耗无人机"),
-      displayValue(numberPart(detail.droneAmount, "number", "架"), "架"),
+      displayValue(numberPart(detail.droneAmount, "number"), "架"),
     ),
     displayRow(
       `${keyPrefix}-hours`,
       displayText("加速时长"),
       displayValue(
-        numberPart(detail.acceleratedHours, "number", "小时"),
+        numberPart(detail.acceleratedHours, "number"),
         "小时",
       ),
     ),
@@ -757,9 +683,8 @@ function droneCommonRows(
         detail.extraAmount,
         detail.product,
         resourceAmountDisplayMode,
-        "production",
-        displayNumber(detail.extraAmount, "production"),
-        { includeResourceUnit: true },
+        "number",
+        displayNumber(detail.extraAmount, "number"),
       ),
     ),
     ...droneMaterialRows(detail, keyPrefix, resourceAmountDisplayMode),
@@ -866,17 +791,15 @@ function buildMaaDronePane(
               candidate.baseAmountPerHour,
               candidate.product,
               resourceAmountDisplayMode,
-              "production",
+              "number",
               displayValue(
                 "基础 ",
-                numberPart(candidate.baseAmountPerHour, "production", "/小时"),
+                numberPart(candidate.baseAmountPerHour, "number"),
                 "/小时",
               ),
               {
                 unitSuffix: "/小时",
-                rawPrefix: "基础 ",
-                pointPrefix: "基础 ",
-                includeResourceUnit: true,
+                prefix: "基础 ",
               },
             ),
             displayValue(
@@ -885,13 +808,11 @@ function buildMaaDronePane(
                 candidate.extraAmount,
                 candidate.product,
                 resourceAmountDisplayMode,
-                "production",
-                { includeResourceUnit: true },
+                "number",
               ) ?? [
                 numberPart(
                   candidate.extraAmount,
-                  "production",
-                  resourceLabel(candidate.product),
+                  "number",
                 ),
               ]),
               ...Object.entries(candidate.extraMaterial).flatMap(
@@ -902,11 +823,11 @@ function buildMaaDronePane(
                     material,
                     resourceAmountDisplayMode,
                     "signed",
-                    { includeResourceUnit: true, resourceFirst: true },
+                    { resourceFirst: true },
                   ) ?? [
                     resourceLabel(material),
                     " ",
-                    numberPart(amount, "signed", resourceLabel(material)),
+                    numberPart(amount, "signed"),
                   ]),
                 ],
               ),
@@ -931,7 +852,7 @@ function buildMaaDronePane(
     label: "MAA 换班式无人机加速",
     hint: displayValue(
       "消耗 ",
-      numberPart(acceleration.usedDrones, "number", "架"),
+      numberPart(acceleration.usedDrones, "number"),
       " 架",
     ),
     cards,
@@ -963,7 +884,7 @@ function materialRows(
           displayValue(
             label,
             " ",
-            numberPart(material.baseAmountPerHour, "signed", "/小时"),
+            numberPart(material.baseAmountPerHour, "signed"),
             "/小时",
           ),
           {
@@ -983,7 +904,7 @@ function materialRows(
           displayValue(
             label,
             " ",
-            numberPart(material.dailyAmount, "signed", "/日"),
+            numberPart(material.dailyAmount, "signed"),
             "/日",
           ),
           {
@@ -1003,7 +924,7 @@ function materialRows(
           displayValue(
             label,
             " ",
-            numberPart(material.queueTotal, "signed", label),
+            numberPart(material.queueTotal, "signed"),
           ),
           {
             resourceFirst: true,
@@ -1020,14 +941,14 @@ function orderRows(facility: DailyOutputFacilityDetail): DisplayRow[] {
       `${facility.label}-order-${order.name}-name`,
       displayValue(
         `${facility.label} · 订单产出 · ${order.name} · `,
-        numberPart(order.probability * 100, "number", "%"),
+        numberPart(order.probability * 100, "number"),
         "%",
       ),
       displayValue(
         "基础 ",
-        numberPart(order.baseRate, "production", "/小时"),
+        numberPart(order.baseRate, "number"),
         "/小时 · 总 ",
-        numberPart(order.totalRate, "production", "/小时"),
+        numberPart(order.totalRate, "number"),
         "/小时",
         ...(order.ignoreEfficiency ? [" · 固定订单"] : []),
       ),
@@ -1043,7 +964,7 @@ function productSection(
     displayRow(
       `${product.product}-efficiency`,
       displayText("总效率"),
-      displayUnit(product.totalEfficiency, "efficiency", "%"),
+      displayUnit(product.totalEfficiency, "number", "%"),
     ),
     displayRow(
       `${product.product}-base-output`,
@@ -1052,9 +973,9 @@ function productSection(
         product.baseOutputPerHour,
         product.product,
         resourceAmountDisplayMode,
-        "production",
-        displayUnit(product.baseOutputPerHour, "production", "/小时"),
-        { unitSuffix: "/小时", includeResourceUnit: true },
+        "number",
+        displayUnit(product.baseOutputPerHour, "number", "/小时"),
+        { unitSuffix: "/小时" },
       ),
     ),
     displayRow(
@@ -1064,9 +985,9 @@ function productSection(
         product.totalOutputPerHour,
         product.product,
         resourceAmountDisplayMode,
-        "production",
-        displayUnit(product.totalOutputPerHour, "production", "/小时"),
-        { unitSuffix: "/小时", includeResourceUnit: true },
+        "number",
+        displayUnit(product.totalOutputPerHour, "number", "/小时"),
+        { unitSuffix: "/小时" },
       ),
     ),
     displayRow(
@@ -1076,12 +997,12 @@ function productSection(
         product.dailyContribution,
         product.product,
         resourceAmountDisplayMode,
-        "production",
+        "number",
         displayValue(
-          numberPart(product.dailyContribution, "production", "/日"),
+          numberPart(product.dailyContribution, "number"),
           "/日",
         ),
-        { unitSuffix: "/日", includeResourceUnit: true },
+        { unitSuffix: "/日" },
       ),
     ),
     displayRow(
@@ -1091,9 +1012,8 @@ function productSection(
         product.queueTotal,
         product.product,
         resourceAmountDisplayMode,
-        "production",
-        displayNumber(product.queueTotal, "production"),
-        { includeResourceUnit: true },
+        "number",
+        displayNumber(product.queueTotal, "number"),
       ),
     ),
   ];
@@ -1118,7 +1038,7 @@ function productSection(
         displayRow(
           `${facility.label}-eff`,
           displayText(`${facility.label} · 总效率`),
-          displayUnit(facility.totalEfficiency, "efficiency", "%"),
+          displayUnit(facility.totalEfficiency, "number", "%"),
         ),
         displayRow(
           `${facility.label}-base`,
@@ -1127,9 +1047,9 @@ function productSection(
             facility.baseOutputPerHour,
             product.product,
             resourceAmountDisplayMode,
-            "production",
-            displayUnit(facility.baseOutputPerHour, "production", "/小时"),
-            { unitSuffix: "/小时", includeResourceUnit: true },
+            "number",
+            displayUnit(facility.baseOutputPerHour, "number", "/小时"),
+            { unitSuffix: "/小时" },
           ),
         ),
         displayRow(
@@ -1139,9 +1059,9 @@ function productSection(
             facility.totalOutputPerHour,
             product.product,
             resourceAmountDisplayMode,
-            "production",
-            displayUnit(facility.totalOutputPerHour, "production", "/小时"),
-            { unitSuffix: "/小时", includeResourceUnit: true },
+            "number",
+            displayUnit(facility.totalOutputPerHour, "number", "/小时"),
+            { unitSuffix: "/小时" },
           ),
         ),
         ...materialRows(
@@ -1176,22 +1096,21 @@ function queueSanitySection(
       displayValue(
         item.label,
         " · ",
-        numberPart(item.amount, "signed", item.amountUnit),
+        numberPart(item.amount, "signed"),
         " ",
         item.amountUnit,
         "/日",
       ),
       {
         unitSuffix: "/日",
-        includeResourceUnit: true,
-        resourceFirst: item.amount < 0,
+        resourceFirst: true,
       },
     ),
     ...(item.contribution === undefined
       ? { value: displayText("未计入") }
       : {
           value: displayValue(
-            numberPart(item.contribution, "signed", "理智"),
+            numberPart(item.contribution, "signed"),
             " 理智",
           ),
         }),
@@ -1202,7 +1121,7 @@ function queueSanitySection(
       queue.sanity.complete ? "队列等效理智合计" : "队列等效理智合计（部分）",
     ),
     value: displayValue(
-      numberPart(queue.sanity.total, "signed", "理智"),
+      numberPart(queue.sanity.total, "signed"),
       "理智/日",
     ),
   });
@@ -1293,7 +1212,7 @@ function skillSection(
         ),
         value: displayValue(
           `${efficiencyStatLabel(detail.stat)} `,
-          numberPart(detail.value, "signed", unit),
+          numberPart(detail.value, "signed"),
           unit,
         ),
         rows: operatorCalculationRows(detail).map((line, lineIndex) => ({
@@ -1379,9 +1298,9 @@ function productionSection(
           production.baseAmountPerHour,
           production.product,
           options.resourceAmountDisplayMode,
-          "production",
-          displayUnit(production.baseAmountPerHour, "production", "/小时"),
-          { unitSuffix: "/小时", includeResourceUnit: true },
+          "number",
+          displayUnit(production.baseAmountPerHour, "number", "/小时"),
+          { unitSuffix: "/小时" },
         ),
       ),
       displayRow(
@@ -1391,9 +1310,9 @@ function productionSection(
           production.amountPerHour,
           production.product,
           options.resourceAmountDisplayMode,
-          "production",
-          displayUnit(production.amountPerHour, "production", "/小时"),
-          { unitSuffix: "/小时", includeResourceUnit: true },
+          "number",
+          displayUnit(production.amountPerHour, "number", "/小时"),
+          { unitSuffix: "/小时" },
         ),
       ),
       displayRow(
@@ -1405,15 +1324,13 @@ function productionSection(
               production.itemRate,
               production.product,
               options.resourceAmountDisplayMode,
-              "production",
+              "number",
               displayValue(
-                numberPart(production.itemRate, "production", "/小时"),
+                numberPart(production.itemRate, "number"),
                 "/小时",
               ),
               {
                 unitSuffix: "/小时",
-                includeResourceUnit: true,
-                resourceFirst: true,
               },
             ),
       ),
@@ -1440,7 +1357,7 @@ function productionSection(
               displayValue(
                 resourceLabel(material.material),
                 " ",
-                numberPart(material.baseAmount, "signed", "/小时"),
+                numberPart(material.baseAmount, "signed"),
                 "/小时",
               ),
               {
@@ -1460,7 +1377,7 @@ function productionSection(
               displayValue(
                 resourceLabel(material.material),
                 " ",
-                numberPart(material.amount, "signed", "/小时"),
+                numberPart(material.amount, "signed"),
                 "/小时",
               ),
               {
@@ -1496,13 +1413,13 @@ function productionSection(
             convertedProductionAmount(production, production.amountPerHour),
             production.product,
             options.resourceAmountDisplayMode,
-            "production",
+            "number",
             displayUnit(
               convertedProductionAmount(production, production.amountPerHour),
-              "production",
+              "number",
               "/小时",
             ),
-            { unitSuffix: "/小时", includeResourceUnit: true },
+            { unitSuffix: "/小时" },
           ),
         ),
       );
@@ -1524,14 +1441,14 @@ function productionSection(
         "capacity-total",
         displayText(capacity.label),
         displayValue(
-          numberPart(capacity.total, "number", capacity.unit),
+          numberPart(capacity.total, "number"),
           " ",
           capacity.unit,
-          mutedText(" （基础 "),
-          mutedNumber(capacity.base, "number", capacity.unit),
-          mutedText("，技能 "),
-          mutedNumber(capacity.skill, "signed", capacity.unit),
-          mutedText("）"),
+          " （基础 ",
+          numberPart(capacity.base, "number"),
+          "，技能 ",
+          numberPart(capacity.skill, "signed"),
+          "）",
         ),
       ),
     );
@@ -1543,7 +1460,7 @@ function productionSection(
         displayText("爆仓"),
         displayValue(
           `${facilityOverflowLabel(production)} · `,
-          numberPart(production.breachTime, "number", "小时"),
+          numberPart(production.breachTime, "number"),
           " 小时",
         ),
       ),
@@ -1557,20 +1474,20 @@ function productionSection(
       rows: capacity.segments.map((segment) => ({
         key: `capacity-segment-${segment.startHours}-${segment.endHours}`,
         label: displayValue(
-          numberPart(segment.startHours, "number", "小时"),
+          numberPart(segment.startHours, "number"),
           " 小时 - ",
-          numberPart(segment.endHours, "number", "小时"),
+          numberPart(segment.endHours, "number"),
           " 小时",
         ),
         value: displayValue(
-          numberPart(segment.total, "number", capacity.unit),
+          numberPart(segment.total, "number"),
           " ",
           capacity.unit,
-          mutedText(" （基础 "),
-          mutedNumber(segment.base, "number", capacity.unit),
-          mutedText("，技能 "),
-          mutedNumber(segment.skill, "signed", capacity.unit),
-          mutedText("）"),
+          " （基础 ",
+          numberPart(segment.base, "number"),
+          "，技能 ",
+          numberPart(segment.skill, "signed"),
+          "）",
         ),
       })),
     });
@@ -1583,13 +1500,13 @@ function productionSection(
         key: `order-${order.name}-${order.time}-${order.quantity}-${index}`,
         label: displayValue(
           `${order.name} · `,
-          numberPart(order.probability * 100, "number", "%"),
+          numberPart(order.probability * 100, "number"),
           "%",
         ),
         value: displayValue(
           numberPart(order.quantity),
           " / ",
-          numberPart(order.time, "number", "小时"),
+          numberPart(order.time, "number"),
           " 小时",
           ...(order.material
             ? [

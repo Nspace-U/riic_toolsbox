@@ -3010,26 +3010,6 @@ a {
   white-space: nowrap;
 }
 
-.simulator-daily-output-main-value--unit {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.simulator-daily-output-main-number {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.simulator-daily-output-main-unit {
-  flex: 0 0 auto;
-  font-size: 12px;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
 .simulator-daily-output-item--net .simulator-daily-output-main-value {
   color: #a06b27;
 }

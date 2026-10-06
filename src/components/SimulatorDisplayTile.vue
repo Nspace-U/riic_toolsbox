@@ -50,29 +50,11 @@ function isNetTile(): boolean {
       class="simulator-daily-output-icon"
     />
     <div class="simulator-daily-output-content">
-      <strong
-        :class="{
-          'simulator-daily-output-main-value--unit':
-            props.tile.mainUnit !== undefined,
-        }"
-        class="simulator-daily-output-main-value"
-      >
-        <span
-          v-if="props.tile.mainUnit"
-          class="simulator-daily-output-main-number"
-        >
-          <SimulatorDisplayValue
-            :unit="props.tile.mainUnit"
-            :value="props.tile.main"
-          />
-        </span>
-        <SimulatorDisplayValue v-else :value="props.tile.main" />
-        <small
-          v-if="props.tile.mainUnit"
-          class="simulator-daily-output-main-unit"
-        >
-          {{ props.tile.mainUnit }}
-        </small>
+      <strong class="simulator-daily-output-main-value">
+        <SimulatorDisplayValue
+          :unit="props.tile.mainUnit"
+          :value="props.tile.main"
+        />
       </strong>
       <div class="simulator-daily-output-card-copy">
         <template v-for="line in props.tile.lines" :key="line.key">

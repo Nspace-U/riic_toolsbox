@@ -525,24 +525,23 @@ for (const mode of ["raw", "points", "both"]) {
   if (mode === "raw") {
     assert.equal(displayText(goldMaterialRate.value), "赤金 -1.17/小时");
     assert.ok(displayText(goldOrder.value).includes("赤金 × 2"));
-    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金/小时"));
+    assert.equal(displayText(dailyGoldRate.value), "0.83/小时");
     assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金 -"));
   } else if (mode === "points") {
     assert.equal(displayText(goldMaterialRate.value), "赤金点数 -585/小时");
     assert.ok(displayText(goldOrder.value).includes("赤金点数 × 1000"));
-    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金点数/小时"));
+    assert.equal(displayText(dailyGoldRate.value), "415/小时");
     assert.ok(displayText(queueGoldMaterial.value).startsWith("赤金点数 -"));
   } else {
     assert.equal(
       displayText(goldMaterialRate.value),
-      "赤金 -1.17/小时（赤金点数 -585/小时）",
+      "赤金 -1.17/小时（-585）",
     );
     assert.ok(
-      displayText(goldOrder.value).includes("赤金 × 2（1000 赤金点数）"),
+      displayText(goldOrder.value).includes("赤金 × 2（1000）"),
     );
-    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金/小时（"));
-    assert.ok(displayText(dailyGoldRate.value).includes(" 赤金点数/小时）"));
-    assert.ok(displayText(queueGoldMaterial.value).includes("赤金点数 -"));
+    assert.equal(displayText(dailyGoldRate.value), "0.83/小时（415）");
+    assert.ok(displayText(queueGoldMaterial.value).includes("赤金 -"));
   }
 
   const maaDetails =
@@ -558,20 +557,25 @@ for (const mode of ["raw", "points", "both"]) {
       ? "赤金 -14.06"
       : mode === "points"
         ? "赤金点数 -7030"
-        : "赤金 -14.06（赤金点数 -7030）",
+        : "赤金 -14.06（-7030）",
   );
 
   const redGoldScenario = modeDisplay.droneScenarios.find(
     (scenario) => scenario.key === "赤金",
   );
-  assert.deepEqual(
-    redGoldScenario.baseRateLines.map(displayText),
-    mode === "raw"
-      ? ["基础 0.83 赤金/小时"]
-      : mode === "points"
-        ? ["基础 415 赤金点数/小时"]
-        : ["基础 0.83 赤金/小时", "折算 415 赤金点数/小时"],
-  );
+  assert.equal(displayText(redGoldScenario.title), "赤金");
+  if (mode === "both") {
+    assert.deepEqual(redGoldScenario.baseRateLines.map(displayText), [
+      "基础 0.83/小时",
+      "折算 415/小时",
+    ]);
+  } else {
+    assert.equal(redGoldScenario.baseRateLines, undefined);
+    assert.equal(
+      displayText(redGoldScenario.baseRate),
+      mode === "raw" ? "基础 0.83/小时" : "基础 415/小时",
+    );
+  }
 
   for (const scenario of modeDisplay.droneScenarios) {
     for (const view of scenario.views) {

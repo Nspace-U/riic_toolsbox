@@ -291,7 +291,7 @@ export function buildDailySanityAmounts(
   return amounts;
 }
 
-function dailyOutputPointInfo(
+export function resourcePointInfo(
   product: string,
 ): { factor: number; label: string } | undefined {
   if (product === "赤金") {
@@ -317,7 +317,7 @@ function createDailyOutputCard(
   grossAmount?: number,
   sourceFacility?: RoomKey,
 ): DailyOutputCard {
-  const pointInfo = dailyOutputPointInfo(product);
+  const pointInfo = resourcePointInfo(product);
   const sanityItem = sanity?.items.find((item) => item.resource === product);
   const rawNetAmount =
     (amounts as Record<string, number | undefined>)[product] ??
