@@ -2149,8 +2149,15 @@ a {
 }
 
 .simulator-facility-grid > .ant-col.simulator-facility-column {
-  flex: 0 0 var(--simulator-column-width);
-  max-width: var(--simulator-column-width);
+  flex: 0 0 auto;
+  inline-size: max-content;
+  max-inline-size: none;
+}
+
+.simulator-facility-grid
+  > .ant-col.simulator-facility-column
+  > .simulator-facility-card {
+  inline-size: max-content;
 }
 
 .simulator-facility-grid > .ant-col.simulator-queue-column {

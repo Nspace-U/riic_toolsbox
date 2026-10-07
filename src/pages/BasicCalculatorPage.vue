@@ -1606,7 +1606,7 @@ function toggleGroupColumn(
             </a-checkbox>
           </a-space>
         </a-form-item>
-        <a-form-item v-else label="效率单元格">
+        <a-form-item v-else label="效率显示">
           <a-checkbox
             :checked="config.settings.mergeIdenticalEfficiencyCells"
             @change="

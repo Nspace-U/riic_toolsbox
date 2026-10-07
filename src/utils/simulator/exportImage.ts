@@ -649,13 +649,15 @@ function fitFacilityTitles(grid: HTMLElement): void {
         return;
       }
 
-      const cardWidth =
-        Number.parseFloat(
-          column.style.getPropertyValue("--simulator-column-width"),
-        ) || column.getBoundingClientRect().width;
+      const contentWidth = Math.max(
+        0,
+        ...Array.from(
+          column.querySelectorAll<HTMLElement>(".simulator-slot-grid"),
+        ).map((slotGrid) => slotGrid.getBoundingClientRect().width),
+      );
       const tagCount = title.querySelectorAll(".ant-tag").length;
       Object.entries(
-        facilityTitleStyle(label.textContent ?? "", cardWidth, tagCount),
+        facilityTitleStyle(label.textContent ?? "", contentWidth, tagCount),
       ).forEach(([property, value]) =>
         title.style.setProperty(property, value),
       );

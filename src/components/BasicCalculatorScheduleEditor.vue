@@ -562,11 +562,6 @@ function facilityStyle(row: FacilityRow): Record<string, string> {
       ROOM_REPRESENTATIVE_COLORS[row.type],
   };
 }
-function facilityWidth(row: FacilityRow): string {
-  const slots = slotRefs(row).length + runSlotRefs(row).length;
-  const divider = runSlotRefs(row).length > 0 ? 17 : 0;
-  return Math.max(1, slots) * 76 + divider + 29 + "px";
-}
 function fixedLevel(type: RoomKey): number {
   return props.fixedRoomLevels?.[type] ?? layoutEntryLevelMax(type);
 }
@@ -1667,7 +1662,6 @@ defineExpose({ clearInteractionState });
         v-for="row in facilityRows"
         :key="row.key"
         class="basic-calculator-facility-column"
-        :style="{ '--basic-calculator-facility-width': facilityWidth(row) }"
       >
         <a-card
           :bordered="false"
@@ -1963,12 +1957,12 @@ defineExpose({ clearInteractionState });
   overflow-x: auto;
 }
 .basic-calculator-facility-column {
-  flex: 0 0 var(--basic-calculator-facility-width);
-  max-width: var(--basic-calculator-facility-width);
-  min-width: 0;
+  flex: 0 0 auto;
+  inline-size: max-content;
+  min-inline-size: 0;
 }
 .basic-calculator-facility-column :deep(.simulator-facility-card) {
-  min-width: 0;
+  inline-size: max-content;
 }
 .basic-calculator-facility-column :deep(.simulator-facility-title) {
   min-width: 0;

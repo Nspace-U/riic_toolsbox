@@ -2728,7 +2728,6 @@ function slotRefs(row: FacilityRow): FacilitySlotRef[] {
   );
 }
 
-const FACILITY_CARD_HORIZONTAL_OVERHEAD = 29;
 const QUEUE_MIN_HEIGHT_EXTRA = 30;
 const FACILITY_ICON_URL_BASE = "assets/raw/item_icon/";
 const LABOR_ICON_URL = `${import.meta.env.BASE_URL}assets/icons/icon_labor.png`;
@@ -2737,20 +2736,6 @@ const EFFICIENCY_SUMMARY_TEXT_SAFETY_RATIO = 0.9;
 
 function slotRefCount(row: FacilityRow): number {
   return Math.max(1, slotRefs(row).length);
-}
-
-function facilityCardWidthValue(row: FacilityRow): number {
-  return (
-    slotRefCount(row) * simulatorSlotSize + FACILITY_CARD_HORIZONTAL_OVERHEAD
-  );
-}
-
-function facilityCardWidth(row: FacilityRow): string {
-  return `${facilityCardWidthValue(row)}px`;
-}
-
-function facilityColumnStyle(row: FacilityRow): Record<string, string> {
-  return { "--simulator-column-width": facilityCardWidth(row) };
 }
 
 const facilityGridStyle = computed(() => ({
@@ -2770,7 +2755,7 @@ function facilityTitleStyle(row: FacilityRow): Record<string, string> {
       : 0;
   return facilityTitleStyleForWidth(
     row.label,
-    facilityCardWidthValue(row),
+    slotRefCount(row) * simulatorSlotSize,
     tagCount,
   );
 }
@@ -6502,7 +6487,6 @@ defineExpose({ prepareScheduleReferenceImage });
             :data-facility-key="row.key"
             :data-facility-type="row.type"
             :data-fiammetta="row.isFiammetta ? 'true' : undefined"
-            :style="facilityColumnStyle(row)"
             class="simulator-facility-column"
           >
             <a-card

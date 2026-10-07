@@ -3,7 +3,6 @@ interface FacilityTitleTagPreset {
   padding: number;
 }
 
-const FACILITY_TITLE_HEAD_SPACE = 34;
 const FACILITY_TITLE_TAG_TEXT = "Lv 9";
 const FACILITY_TITLE_TAG_GAP = 4;
 const FACILITY_TITLE_MAX_FONT_SIZE = 14;
@@ -45,10 +44,10 @@ function facilityTitleTagWidth(
 
 export function facilityTitleStyle(
   label: string,
-  cardWidth: number,
+  contentWidth: number,
   tagCount: number,
 ): Record<string, string> {
-  const availableWidth = Math.max(24, cardWidth - FACILITY_TITLE_HEAD_SPACE);
+  const availableWidth = Math.max(24, contentWidth);
   const titleEm = estimateTextEm(label);
   const tagTextEm = estimateTextEm(FACILITY_TITLE_TAG_TEXT);
 
