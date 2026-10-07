@@ -258,3 +258,6 @@ const displayedSkills = computed(() => allSkills.value.filter(isSkillVisible));
     </div>
   </a-card>
 </template>
+
+<style scoped src="./styles/operator-skill-card.css"></style>
+<style scoped src="../assets/term-content.css"></style>

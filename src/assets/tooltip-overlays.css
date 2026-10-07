@@ -1,0 +1,17 @@
+.operator-skill-tooltip-overlay .ant-popover-inner-content {
+  padding: 0;
+}
+
+.operator-skill-tooltip-overlay .ant-popover-inner {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.operator-skill-tooltip-overlay .ant-popover-arrow {
+  display: none;
+}
+
+.term-tooltip .ant-tooltip-inner {
+  max-width: min(360px, calc(100vw - 32px));
+}

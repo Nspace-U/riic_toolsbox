@@ -1715,3 +1715,6 @@ watch(
     </a-modal>
   </div>
 </template>
+
+<style scoped src="../assets/page-layout.css"></style>
+<style scoped src="./styles/settings.css"></style>

@@ -1931,7 +1931,17 @@ defineExpose({ clearInteractionState });
   </div>
 </template>
 
+<style scoped src="../assets/schedule-editor.css"></style>
+
 <style scoped>
+.calculator-run-order-divider {
+  align-self: center;
+  flex: 0 0 1px;
+  height: 40px;
+  margin-inline: 8px;
+  border-inline-start: 1px solid #b7c6c2;
+}
+
 .basic-calculator-schedule-editor {
   display: grid;
   gap: 14px;

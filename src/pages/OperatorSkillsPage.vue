@@ -468,3 +468,6 @@ onBeforeUnmount(() => {
     </a-spin>
   </div>
 </template>
+
+<style scoped src="../assets/page-layout.css"></style>
+<style scoped src="./styles/operator-skills.css"></style>

@@ -132,3 +132,6 @@ const parts = computed(() => {
     </template>
   </span>
 </template>
+
+<style scoped src="./styles/rich-text-description.css"></style>
+<style scoped src="../assets/term-content.css"></style>

@@ -556,3 +556,7 @@ onBeforeUnmount(() => {
     </a-spin>
   </div>
 </template>
+
+<style scoped src="../assets/page-layout.css"></style>
+<style scoped src="../assets/generator-panels.css"></style>
+<style scoped src="./styles/avatar-generator.css"></style>

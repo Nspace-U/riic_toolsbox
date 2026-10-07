@@ -1,0 +1,10 @@
+:deep(.operator-skill-tooltip-content) {
+  width: min(760px, calc(100vw - 56px));
+  max-height: min(72vh, 760px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.operator-skill-tooltip-content :deep(.operator-card) {
+  margin: 0;
+}

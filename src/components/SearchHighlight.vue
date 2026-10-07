@@ -49,3 +49,5 @@ const parts = computed(() => {
     <template v-else>{{ part.text }}</template>
   </template>
 </template>
+
+<style scoped src="../assets/search-highlight.css"></style>

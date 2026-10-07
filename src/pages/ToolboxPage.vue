@@ -85,6 +85,8 @@ function openSkillGenerator(): void {
   </div>
 </template>
 
+<style scoped src="../assets/page-layout.css"></style>
+
 <style scoped>
 .toolbox-page {
   padding-block-end: 32px;

@@ -150,3 +150,6 @@ onBeforeUnmount(cleanup);
     </component>
   </a-popover>
 </template>
+
+<style scoped src="./styles/operator-skill-tooltip.css"></style>
+<style src="../assets/tooltip-overlays.css"></style>

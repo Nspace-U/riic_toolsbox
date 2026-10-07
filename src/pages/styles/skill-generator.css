@@ -1,0 +1,141 @@
+:deep(.skill-generator-alert) {
+  margin-block-end: 16px;
+}
+
+:deep(.skill-generator-layout) {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.92fr) minmax(320px, 1.08fr);
+  align-items: start;
+  gap: 18px;
+}
+
+:deep(.skill-operator-select) {
+  width: 100%;
+}
+
+:deep(.skill-generator-checkboxes) {
+  display: grid;
+  gap: 12px;
+}
+
+:deep(.skill-generator-warning) {
+  margin-block-start: 16px;
+}
+
+:deep(.skill-preview-stage) {
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  padding: 20px;
+  overflow: auto;
+  background: #eef2f1;
+  border: 1px solid #e0e8e5;
+}
+
+:deep(.skill-generated-image) {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+:deep(.skill-preview-empty) {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  color: #879294;
+  text-align: center;
+}
+
+:deep(.skill-preview-empty .anticon) {
+  color: #aac5bd;
+  font-size: 40px;
+}
+
+:deep(.skill-preview-empty strong) {
+  color: #647275;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+:deep(.skill-preview-empty span) {
+  max-width: 280px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+:deep(.skill-preview-footer) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block-start: 18px;
+}
+
+:deep(.skill-preview-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+:deep(.skill-preview-meta) {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: #879294;
+  font-size: 12px;
+}
+
+:deep(.skill-preview-meta span:first-child) {
+  overflow: hidden;
+  color: #38504e;
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.skill-generator-render-source) {
+  position: fixed;
+  z-index: -1;
+  inset-block-start: 0;
+  inset-inline-start: -10000px;
+  width: 900px;
+  pointer-events: none;
+}
+
+@media (max-width: 991px) {
+  :deep(.skill-generator-layout) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :deep(.skill-preview-stage) {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 600px) {
+  :deep(.skill-preview-stage) {
+    min-height: 280px;
+    padding: 12px;
+  }
+
+  :deep(.skill-preview-footer) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :deep(.skill-preview-footer .ant-btn) {
+    width: 100%;
+  }
+
+  :deep(.skill-preview-actions) {
+    flex-direction: column;
+  }
+
+  :deep(.skill-preview-actions .ant-btn) {
+    width: 100%;
+  }
+}

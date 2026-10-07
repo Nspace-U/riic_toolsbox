@@ -1,0 +1,488 @@
+:deep(.settings-panel) {
+  border: 1px solid #e3e8e7;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+:deep(.settings-panel) {
+  width: min(100%, 720px);
+}
+
+:deep(.settings-panel .ant-card-head) {
+  min-height: 64px;
+  padding-inline: 24px;
+  border-block-end-color: #e8edec;
+}
+
+:deep(.settings-panel .ant-card-head-title) {
+  color: #253238;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+:deep(.settings-panel .ant-card-body) {
+  padding: 24px;
+}
+
+:deep(.settings-panel + .settings-panel) {
+  margin-block-start: 16px;
+}
+
+:deep(.settings-progression-alert) {
+  margin-block-start: 12px;
+}
+
+:deep(.settings-simulator-panel .ant-card-body) {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+:deep(.settings-simulator-section) {
+  order: 8;
+  padding-block-start: 24px;
+  border-block-start: 1px solid #e8edec;
+}
+
+:deep(.settings-simulator-section .settings-panel-description) {
+  max-width: 640px;
+}
+
+:deep(.settings-section-title) {
+  margin: 0 0 16px;
+  color: #344447;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+:deep(.settings-control-row) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+:deep(.settings-control-row--start) {
+  align-items: flex-start;
+}
+
+:deep(.settings-control-row > :first-child) {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+:deep(.settings-control-row > .ant-btn) {
+  flex: 0 0 auto;
+}
+
+:deep(.settings-drone-strategy-section) {
+  order: 1;
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+:deep(.settings-sanity-section) {
+  order: 2;
+}
+
+:deep(.settings-facility-card-section) {
+  order: 3;
+}
+
+:deep(.settings-operator-picker-section) {
+  order: 4;
+}
+
+:deep(.settings-base-point-section) {
+  order: 5;
+}
+
+:deep(.settings-calculation-step-section) {
+  order: 7;
+}
+
+:deep(.settings-result-resource-section) {
+  order: 6;
+}
+
+:deep(.settings-colors-section) {
+  order: 8;
+}
+
+:deep(.settings-notice-section) {
+  order: 9;
+}
+
+:deep(.settings-progression-toolbar) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-block-end: 12px;
+}
+
+:deep(.settings-progression-profile-select) {
+  width: min(100%, 320px);
+}
+
+:deep(.settings-progression-options) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-block-end: 12px;
+}
+
+:deep(.settings-progression-filters) {
+  margin-block-end: 8px;
+}
+
+:deep(.settings-progression-filter-groups) {
+  display: grid;
+  gap: 8px;
+  margin-block-end: 12px;
+}
+
+:deep(.settings-progression-filter-group) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+:deep(.settings-progression-filter-label) {
+  flex: 0 0 36px;
+  padding-block: 4px;
+  color: #647275;
+  font-size: 12px;
+  line-height: 24px;
+}
+
+:deep(.settings-progression-filter-options) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+:deep(.settings-progression-filter-options .ant-btn) {
+  height: 28px;
+  padding-inline: 10px;
+  font-size: 12px;
+}
+
+:deep(.settings-progression-filter-button--selected) {
+  font-weight: 600;
+}
+
+:deep(.ant-btn.settings-progression-facility-filter-button) {
+  border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
+:deep(.ant-btn.settings-progression-facility-filter-button:hover),
+:deep(.ant-btn.settings-progression-facility-filter-button:focus) {
+  border-color: var(--facility-filter-color, #d9e2df) !important;
+}
+
+:deep(
+  .ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected
+),
+:deep(
+  .ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected:hover
+),
+:deep(
+  .ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected:focus
+) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  background-color: var(--facility-filter-color, #ffffff) !important;
+  box-shadow: inset 0 0 0 100vmax var(--facility-filter-color, #ffffff) !important;
+}
+
+:deep(
+  .ant-btn.settings-progression-facility-filter-button.settings-progression-filter-button--selected
+    > span
+) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+:deep(.settings-progression-list) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-height: 680px;
+  overflow: auto;
+  gap: 6px;
+  padding-inline-end: 4px;
+}
+
+:deep(.settings-progression-item) {
+  border: 1px solid #e3e8e7;
+  border-radius: 5px;
+  background: #fbfdfc;
+}
+
+:deep(.settings-progression-item .ant-card-body) {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+}
+
+:deep(.settings-progression-item-heading) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+:deep(.settings-progression-item-heading .operator-avatar-display) {
+  flex: 0 0 auto;
+}
+
+:deep(.settings-progression-item-copy) {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-content: center;
+  gap: 2px;
+}
+
+:deep(.settings-progression-item-copy strong) {
+  overflow: hidden;
+  color: #253238;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.settings-progression-item-copy span),
+:deep(.settings-progression-no-node) {
+  overflow: hidden;
+  color: #879294;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.settings-progression-current) {
+  color: #49645f !important;
+}
+
+:deep(.settings-progression-node-editor-row) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+:deep(.settings-progression-nodes) {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+:deep(.settings-progression-node-editor-row > .ant-btn) {
+  flex: 0 0 auto;
+  padding-inline: 7px;
+}
+
+:deep(.settings-progression-node--current) {
+  color: #245f59 !important;
+  border-color: #72a99e !important;
+  background: #e3f0ed !important;
+}
+
+:deep(.settings-panel-description) {
+  margin-block: 0 16px;
+  color: #647275;
+  font-size: 13px;
+}
+
+:deep(.settings-panel-hint) {
+  margin-block: 6px 0;
+  color: #8a9698;
+  font-size: 12px;
+}
+
+:deep(.facility-color-list) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+}
+
+:deep(.facility-color-item) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding-block: 8px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+:deep(.facility-color-name),
+:deep(.facility-color-controls) {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+:deep(.facility-color-name) {
+  color: #344447;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+:deep(.facility-color-swatch) {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(37, 50, 56, 0.2);
+  border-radius: 4px;
+}
+
+:deep(.facility-color-picker) {
+  width: 32px;
+  height: 28px;
+  padding: 2px;
+  border: 1px solid #d9e2df;
+  border-radius: 5px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+:deep(.facility-color-value) {
+  width: 88px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+:deep(.settings-base-point-options) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
+  margin-block-start: 16px;
+}
+
+:deep(.settings-notice-groups) {
+  display: grid;
+  gap: 16px;
+  margin-block-start: 16px;
+}
+
+:deep(.settings-notice-group) {
+  padding-block-start: 12px;
+  border-block-start: 1px solid #e8edec;
+}
+
+:deep(.settings-notice-group-heading) {
+  margin-block-end: 6px;
+}
+
+:deep(.settings-notice-group-title) {
+  margin: 0;
+  color: #344447;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+:deep(.settings-notice-group-toggle) {
+  margin-block-end: 8px;
+}
+
+:deep(.settings-notice-options) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
+  gap: 8px 16px;
+}
+
+:deep(.settings-notice-options .ant-checkbox-wrapper) {
+  min-width: 0;
+  align-items: flex-start;
+}
+
+:deep(.settings-notice-options .ant-checkbox-wrapper > span:last-child) {
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  :deep(.settings-notice-options) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+:deep(.settings-sanity-form) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+:deep(.settings-sanity-form .ant-form-item) {
+  min-width: 0;
+}
+
+:deep(.settings-sanity-values) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+  margin-block: 4px 18px;
+}
+
+:deep(.settings-sanity-value) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: baseline;
+  padding-block: 8px;
+  border-block-end: 1px solid #edf1f0;
+}
+
+:deep(.settings-sanity-value span) {
+  color: #344447;
+  font-weight: 600;
+}
+
+:deep(.settings-sanity-value strong) {
+  color: #176b68;
+  font-size: 15px;
+}
+
+:deep(.settings-sanity-value small) {
+  grid-column: 1 / -1;
+  color: #879294;
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  :deep(.settings-panel .ant-card-head),
+  :deep(.settings-panel .ant-card-body) {
+    padding-inline: 18px;
+  }
+
+  :deep(.settings-progression-toolbar) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :deep(.settings-sanity-form),
+  :deep(.settings-sanity-values) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :deep(.settings-progression-profile-select) {
+    width: 100%;
+  }
+
+  :deep(.settings-progression-filter-group) {
+    align-items: flex-start;
+  }
+
+  :deep(.settings-progression-filter-label) {
+    flex-basis: 32px;
+  }
+
+  :deep(.settings-progression-list) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

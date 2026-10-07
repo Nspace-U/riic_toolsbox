@@ -2195,6 +2195,14 @@ function toggleGroupColumn(
 </template>
 
 <style scoped>
+.calculator-run-order-divider {
+  align-self: center;
+  flex: 0 0 1px;
+  height: 40px;
+  margin-inline: 8px;
+  border-inline-start: 1px solid #b7c6c2;
+}
+
 .basic-calculator-page {
   display: flex;
   flex-direction: column;

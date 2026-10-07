@@ -7665,3 +7665,8 @@ defineExpose({ prepareScheduleReferenceImage });
     </div>
   </div>
 </template>
+
+<style scoped src="../assets/page-layout.css"></style>
+<style scoped src="../assets/simulator.css"></style>
+<style scoped src="../assets/schedule-editor.css"></style>
+<style src="./styles/simulator-export.css"></style>

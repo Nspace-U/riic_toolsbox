@@ -1,0 +1,46 @@
+:deep(.avatar-generator-panel),
+:deep(.avatar-preview-panel),
+:deep(.skill-generator-panel),
+:deep(.skill-preview-panel) {
+  border: 1px solid #e3e8e7;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+:deep(.avatar-generator-panel .ant-card-head),
+:deep(.avatar-preview-panel .ant-card-head),
+:deep(.skill-generator-panel .ant-card-head),
+:deep(.skill-preview-panel .ant-card-head) {
+  min-height: 64px;
+  padding-inline: 24px;
+  border-block-end-color: #e8edec;
+}
+
+:deep(.avatar-generator-panel .ant-card-head-title),
+:deep(.avatar-preview-panel .ant-card-head-title),
+:deep(.skill-generator-panel .ant-card-head-title),
+:deep(.skill-preview-panel .ant-card-head-title) {
+  color: #253238;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+:deep(.avatar-generator-panel .ant-card-body),
+:deep(.avatar-preview-panel .ant-card-body),
+:deep(.skill-generator-panel .ant-card-body),
+:deep(.skill-preview-panel .ant-card-body) {
+  padding: 24px;
+}
+
+@media (max-width: 600px) {
+  :deep(.avatar-generator-panel .ant-card-head),
+  :deep(.avatar-generator-panel .ant-card-body),
+  :deep(.avatar-preview-panel .ant-card-head),
+  :deep(.avatar-preview-panel .ant-card-body),
+  :deep(.skill-generator-panel .ant-card-head),
+  :deep(.skill-generator-panel .ant-card-body),
+  :deep(.skill-preview-panel .ant-card-head),
+  :deep(.skill-preview-panel .ant-card-body) {
+    padding-inline: 18px;
+  }
+}

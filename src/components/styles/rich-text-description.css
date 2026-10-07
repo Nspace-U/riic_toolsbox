@@ -1,0 +1,7 @@
+:deep(.rich-description) {
+  display: inline;
+  color: #4e5d60;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}

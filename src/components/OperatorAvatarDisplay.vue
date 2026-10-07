@@ -380,3 +380,5 @@ onMounted(updateNameFontSize);
     >
   </div>
 </template>
+
+<style scoped src="./styles/operator-avatar.css"></style>

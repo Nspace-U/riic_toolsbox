@@ -1,0 +1,19 @@
+:deep(.placeholder-panel) {
+  border: 1px solid #e3e8e7;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+:deep(.placeholder-panel) {
+  min-height: 420px;
+}
+
+:deep(.placeholder-panel .ant-card-body) {
+  display: grid;
+  min-height: 418px;
+  place-items: center;
+}
+
+:deep(.placeholder-panel .ant-empty) {
+  margin-block: 0;
+}
