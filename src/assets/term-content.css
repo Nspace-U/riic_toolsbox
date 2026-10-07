@@ -1,27 +1,27 @@
-:deep(.term-text) {
+.term-text {
   color: #16756d;
   border-block-end: 1px dashed currentColor;
   cursor: help;
 }
 
-:deep(.term-tooltip-title) {
+.term-tooltip-title {
   margin-block-end: 4px;
   font-weight: 650;
 }
 
-:deep(.term-tooltip-definition) {
+.term-tooltip-definition {
   max-width: min(360px, calc(100vw - 32px));
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-:deep(.term-tooltip-definition .rich-description) {
+.term-tooltip-definition :deep(.rich-description) {
   color: inherit;
   font-size: inherit;
   line-height: inherit;
 }
 
-:deep(.term-tooltip-definition .rich-description) {
+.term-tooltip-definition :deep(.rich-description) {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

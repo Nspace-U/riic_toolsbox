@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { compileStyle } from "@vue/compiler-sfc";
 import { createServer } from "vite";
 import { createSSRApp, h } from "vue";
 import { renderToString } from "@vue/server-renderer";
@@ -46,6 +48,22 @@ try {
   const specialHtml = await renderToString(specialAvatar);
   assert.match(specialHtml, /operator-avatar-special-label/);
   assert.doesNotMatch(specialHtml, /operator-avatar-base/);
+
+  const operatorAvatarStyles = compileStyle({
+    source: readFileSync(
+      new URL("../src/components/styles/operator-avatar.css", import.meta.url),
+      "utf8",
+    ),
+    filename: "OperatorAvatarDisplay.vue",
+    id: "data-v-operator-avatar-regression",
+    scoped: true,
+  }).code;
+  const plainNameRule = operatorAvatarStyles.match(
+    /\.operator-avatar-display--plain \.operator-avatar-display-name\[data-v-operator-avatar-regression\]\s*\{([^}]*)\}/,
+  );
+  assert.ok(plainNameRule);
+  assert.match(plainNameRule[1], /display:\s*block/);
+  assert.match(plainNameRule[1], /text-align:\s*center/);
   console.log("operator avatar regression: passed");
 } finally {
   await vite.close();
