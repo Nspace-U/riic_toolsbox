@@ -308,6 +308,135 @@ function isMoodContinuityPlacement(
   );
 }
 
+function fiammettaDormPlacement(context: PlanContext): Placement | undefined {
+  return context.placements.find(
+    (placement) =>
+      placement.name === FIAMMETTA_NAME &&
+      placement.facility.type === "dormitory",
+  );
+}
+
+function createVirtualFiammettaPlacement(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+  slotIndex: number,
+): Placement {
+  const assignment: RoomAssignment = {};
+  const state = stateOf(assignment, FIAMMETTA_NAME);
+  const progression = progressionOf(
+    context.settings.progressionProfile,
+    FIAMMETTA_NAME,
+    context.catalog,
+    facility,
+    state,
+    context.settings.treatSkillsAsUnlocked ?? false,
+    context.settings.dormitoryDefaultIncludesMoodRecovery ?? false,
+  );
+  const effectiveState = {
+    ...state,
+    elite: progression.elite,
+    level: progression.level,
+  };
+  const profile = catalogOperator(context.catalog, FIAMMETTA_NAME);
+  return {
+    name: FIAMMETTA_NAME,
+    facility,
+    assignment,
+    index: slotIndex,
+    state: effectiveState,
+    profile,
+    skillFile: profile?.skillFile,
+    selected: selectedSkills(
+      FIAMMETTA_NAME,
+      profile?.skillFile,
+      "dormitory",
+      effectiveState,
+    ),
+    explicitMood: false,
+    moodStart: 24,
+    moodEnd: 24,
+    costRate: 0,
+    moodRateDetails: [],
+    working: true,
+    workHoursBefore: 0,
+    fiammettaForced: false,
+  };
+}
+
+function firstFreeDormitorySlot(
+  context: PlanContext,
+  mode: "queue" | "direct",
+  preferred?: { facilityId: string; slotIndex: number },
+): { facility: EfficiencyFacility; slotIndex: number } | undefined {
+  const isFree = (facility: EfficiencyFacility, slotIndex: number): boolean =>
+    !context.placements.some(
+      (placement) =>
+        placement.facility.id === facility.id && placement.index === slotIndex,
+    );
+  const preferredFacility = context.facilities.find(
+    (facility) => facility.id === preferred?.facilityId,
+  );
+  if (
+    mode === "queue" &&
+    preferredFacility?.type === "dormitory" &&
+    preferred &&
+    isFree(preferredFacility, preferred.slotIndex)
+  ) {
+    return { facility: preferredFacility, slotIndex: preferred.slotIndex };
+  }
+  const dormitories = context.facilities
+    .filter((facility) => facility.type === "dormitory")
+    .sort((left, right) =>
+      mode === "direct"
+        ? left.level - right.level || left.index - right.index
+        : right.level - left.level || left.index - right.index,
+    );
+  for (const facility of dormitories) {
+    const slotIndex = Array.from(
+      { length: roomSlotCount("dormitory", facility.level) },
+      (_, index) => index,
+    ).find((index) => isFree(facility, index));
+    if (slotIndex !== undefined) return { facility, slotIndex };
+  }
+  return undefined;
+}
+
+function addSimulatorFiammettaPlacements(contexts: PlanContext[]): void {
+  const mode = fiammettaMode(contexts[0]?.settings ?? {});
+  const firstTargetIndex = contexts.findIndex((context, index) =>
+    fiammettaTargetForPlan(context, index),
+  );
+  if (mode === "queue" && firstTargetIndex < 0) return;
+
+  let preferred: { facilityId: string; slotIndex: number } | undefined;
+  const startIndex = mode === "queue" ? firstTargetIndex : 0;
+  contexts.forEach((_, offset) => {
+    const context = contexts[(startIndex + offset) % contexts.length];
+    if (!context) return;
+    const existing = fiammettaDormPlacement(context);
+    if (existing) {
+      preferred = {
+        facilityId: existing.facility.id,
+        slotIndex: existing.index,
+      };
+      return;
+    }
+    const slot = firstFreeDormitorySlot(
+      context,
+      mode,
+      mode === "queue" ? preferred : undefined,
+    );
+    if (!slot) return;
+    context.placements.push(
+      createVirtualFiammettaPlacement(context, slot.facility, slot.slotIndex),
+    );
+    preferred = {
+      facilityId: slot.facility.id,
+      slotIndex: slot.slotIndex,
+    };
+  });
+}
+
 function isCurrentlyWorking(placement: Placement): boolean {
   return (
     placement.working &&
@@ -2041,11 +2170,12 @@ function fiammettaRecoveryRate(
 function resolveFiammetta(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
+  simulateFiammetta = false,
 ): FiammettaCalculation | undefined {
   contexts.forEach((context) => {
     context.fiammettaWarnings = [];
   });
-  if (!hasFiammetta(contexts)) {
+  if (!simulateFiammetta && !hasFiammetta(contexts)) {
     contexts.forEach((context) => {
       context.fiammetta = undefined;
     });
@@ -2064,17 +2194,25 @@ function resolveFiammetta(
             (placement) => placement.name === target,
           )
         : undefined;
-      const targetMood = previousTarget?.moodEnd ?? 24;
+      const targetMood = target
+        ? (previousTarget?.moodEnd ?? 24)
+        : simulateFiammetta
+          ? mood
+          : 24;
       if (target && mood < 24 - EPSILON && contexts.length > 1) {
-        const previousContext = contexts[previousIndex];
-        previousContext?.fiammettaWarnings.push(
-          `菲亚梅塔在${previousIndex + 1}队列结束后无法恢复心情`,
-        );
+        if (simulateFiammetta) {
+          context.fiammettaWarnings.push(
+            `菲亚梅塔在${index + 1}队列使用时心情未满`,
+          );
+        } else {
+          const previousContext = contexts[previousIndex];
+          previousContext?.fiammettaWarnings.push(
+            `菲亚梅塔在${previousIndex + 1}队列结束后无法恢复心情`,
+          );
+        }
       }
+      if (target) mood = targetMood;
       const start = mood;
-      if (target) {
-        mood = targetMood;
-      }
       const recoverRate = fiammettaRecoveryRate(context, catalog);
       const recoverHours =
         recoverRate * context.durationHours > EPSILON
@@ -2563,7 +2701,11 @@ function resolveAutomaticRest(
 function resolveMoods(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
+  simulateFiammetta = false,
 ): FiammettaCalculation | undefined {
+  if (simulateFiammetta) {
+    addSimulatorFiammettaPlacements(contexts);
+  }
   const previousPlacement = (
     index: number,
     matches: (placement: Placement) => boolean,
@@ -2606,7 +2748,7 @@ function resolveMoods(
       (candidate) => candidate.name === placement.name,
     );
   };
-  const fiammettaAvailable = hasFiammetta(contexts);
+  const fiammettaAvailable = simulateFiammetta || hasFiammetta(contexts);
   contexts.forEach((context) => {
     context.placements.forEach((placement) => {
       placement.fiammettaForced = isFiammettaForcedTarget(
@@ -2823,8 +2965,27 @@ function resolveMoods(
       ];
     });
   });
-  const fiammetta = resolveFiammetta(contexts, catalog);
+  const fiammetta = resolveFiammetta(contexts, catalog, simulateFiammetta);
   resolveAutomaticRest(contexts, catalog);
+  if (simulateFiammetta) {
+    const mode = fiammettaMode(contexts[0]?.settings ?? {});
+    const needsDormitory =
+      mode === "direct" ||
+      contexts.some((context, index) => fiammettaTargetForPlan(context, index));
+    if (needsDormitory) {
+      contexts.forEach((context) => {
+        if (fiammettaDormPlacement(context)) return;
+        const mood = context.fiammetta?.end ?? 24;
+        context.autoRestWarnings.push({
+          operator: FIAMMETTA_NAME,
+          reason: "no-space",
+          startMood: mood,
+          endMood: mood,
+          expectedMood: 24,
+        });
+      });
+    }
+  }
   return fiammetta;
 }
 
@@ -5081,7 +5242,11 @@ function calculateEfficiencyInternal(
     options.treatSkillsAsUnlocked,
     options.dormitoryDefaultIncludesMoodRecovery,
   );
-  const fiammetta = resolveMoods(contexts, catalog);
+  const fiammetta = resolveMoods(
+    contexts,
+    catalog,
+    options.simulateFiammetta ?? false,
+  );
   const plans = contexts.map((context) => calculatePlan(context, catalog));
   const facilities = buildFacilities(document.layout);
   const maaDroneAcceleration = calculateMaaDroneAcceleration(
@@ -5158,6 +5323,7 @@ function resolveCalculationDocument(
 export function calculateEfficiency(
   document: ScheduleDocument,
   input: EfficiencyCalculationInput,
+  options: Pick<EfficiencyCalculationOptions, "simulateFiammetta"> = {},
 ): EfficiencyResult {
   const resolved = resolveCalculationDocument(document);
   const settings = resolved.document.settings ?? {};
@@ -5175,6 +5341,7 @@ export function calculateEfficiency(
       treatSkillsAsUnlocked: settings.treatSkillsAsUnlocked,
       dormitoryDefaultIncludesMoodRecovery:
         settings.dormitoryDefaultIncludesMoodRecovery,
+      simulateFiammetta: options.simulateFiammetta,
     }),
     layoutSource: resolved.layoutSource,
   };

@@ -973,10 +973,14 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   if (!document || !catalog || schedulePeriodAnalysis.value.errors.length > 0) {
     return undefined;
   }
-  return calculateEfficiency(efficiencySchedule(document), {
-    catalog,
-    ruleset: catalog.ruleset,
-  });
+  return calculateEfficiency(
+    efficiencySchedule(document),
+    {
+      catalog,
+      ruleset: catalog.ruleset,
+    },
+    { simulateFiammetta: true },
+  );
 });
 
 const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
@@ -1265,18 +1269,6 @@ function fiammettaMode(document: ScheduleDocument): FiammettaMode {
   return document.settings?.fiammettaMode === "queue" ? "queue" : "direct";
 }
 
-function hasFiammettaInDormitory(document: ScheduleDocument): boolean {
-  return document.plans.some((plan) => {
-    const rooms = plan.rooms.dormitory;
-    return (
-      Array.isArray(rooms) &&
-      rooms.some((room) =>
-        (room as RoomAssignment).operators?.includes("菲亚梅塔"),
-      )
-    );
-  });
-}
-
 function fiammettaRoomAtDocument(
   document: ScheduleDocument,
   planIndex: number,
@@ -1360,21 +1352,19 @@ const facilityRows = computed<FacilityRow[]>(() => {
       });
     });
   });
-  if (hasFiammettaInDormitory(document)) {
-    rows.push({
-      key: "fiammetta",
-      type: "dormitory",
-      label: "菲亚梅塔",
-      entries: [
-        {
-          entry: { type: "dormitory", level: 5 },
-          index: -1,
-          position: FIAMMETTA_POSITION,
-        },
-      ],
-      isFiammetta: true,
-    });
-  }
+  rows.push({
+    key: "fiammetta",
+    type: "dormitory",
+    label: "菲亚梅塔",
+    entries: [
+      {
+        entry: { type: "dormitory", level: 5 },
+        index: -1,
+        position: FIAMMETTA_POSITION,
+      },
+    ],
+    isFiammetta: true,
+  });
   return rows;
 });
 
