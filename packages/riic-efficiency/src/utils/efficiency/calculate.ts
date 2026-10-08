@@ -401,7 +401,7 @@ function firstFreeDormitorySlot(
   return undefined;
 }
 
-function addSimulatorFiammettaPlacements(contexts: PlanContext[]): void {
+function addFiammettaPlacements(contexts: PlanContext[]): void {
   const mode = fiammettaMode(contexts[0]?.settings ?? {});
   const firstTargetIndex = contexts.findIndex((context, index) =>
     fiammettaTargetForPlan(context, index),
@@ -2120,22 +2120,11 @@ function isFiammettaMoodSwapTarget(
     : fiammettaDirectTargets(context.document).includes(operator);
 }
 
-function hasFiammetta(contexts: PlanContext[]): boolean {
-  return contexts.some((context) =>
-    context.placements.some(
-      (placement) =>
-        placement.name === FIAMMETTA_NAME &&
-        placement.facility.type === "dormitory",
-    ),
-  );
-}
-
 function isFiammettaForcedTarget(
   context: PlanContext,
   placement: Placement,
-  available: boolean,
 ): boolean {
-  if (!available || placement.name === FIAMMETTA_NAME) {
+  if (placement.name === FIAMMETTA_NAME) {
     return false;
   }
   if (fiammettaMode(context.settings) === "queue") {
@@ -2180,17 +2169,10 @@ function fiammettaRecoveryRate(
 function resolveFiammetta(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
-  simulateFiammetta = false,
 ): FiammettaCalculation | undefined {
   contexts.forEach((context) => {
     context.fiammettaWarnings = [];
   });
-  if (!simulateFiammetta && !hasFiammetta(contexts)) {
-    contexts.forEach((context) => {
-      context.fiammetta = undefined;
-    });
-    return undefined;
-  }
 
   const mode = fiammettaMode(contexts[0]?.settings ?? {});
   const results: Array<FiammettaPlanResult | undefined> = [];
@@ -2204,22 +2186,11 @@ function resolveFiammetta(
             (placement) => placement.name === target,
           )
         : undefined;
-      const targetMood = target
-        ? (previousTarget?.moodEnd ?? 24)
-        : simulateFiammetta
-          ? mood
-          : 24;
+      const targetMood = target ? (previousTarget?.moodEnd ?? 24) : mood;
       if (target && mood < 24 - EPSILON && contexts.length > 1) {
-        if (simulateFiammetta) {
-          context.fiammettaWarnings.push(
-            `菲亚梅塔在${index + 1}队列使用时心情未满`,
-          );
-        } else {
-          const previousContext = contexts[previousIndex];
-          previousContext?.fiammettaWarnings.push(
-            `菲亚梅塔在${previousIndex + 1}队列结束后无法恢复心情`,
-          );
-        }
+        context.fiammettaWarnings.push(
+          `菲亚梅塔在${index + 1}队列使用时心情未满`,
+        );
       }
       if (target) mood = targetMood;
       const start = mood;
@@ -2712,11 +2683,8 @@ function resolveAutomaticRest(
 function resolveMoods(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
-  simulateFiammetta = false,
 ): FiammettaCalculation | undefined {
-  if (simulateFiammetta) {
-    addSimulatorFiammettaPlacements(contexts);
-  }
+  addFiammettaPlacements(contexts);
   const previousPlacement = (
     index: number,
     matches: (placement: Placement) => boolean,
@@ -2759,13 +2727,11 @@ function resolveMoods(
       (candidate) => candidate.name === placement.name,
     );
   };
-  const fiammettaAvailable = simulateFiammetta || hasFiammetta(contexts);
   contexts.forEach((context) => {
     context.placements.forEach((placement) => {
       placement.fiammettaForced = isFiammettaForcedTarget(
         context,
         placement,
-        fiammettaAvailable,
       );
     });
   });
@@ -2976,26 +2942,24 @@ function resolveMoods(
       ];
     });
   });
-  const fiammetta = resolveFiammetta(contexts, catalog, simulateFiammetta);
+  const fiammetta = resolveFiammetta(contexts, catalog);
   resolveAutomaticRest(contexts, catalog);
-  if (simulateFiammetta) {
-    const mode = fiammettaMode(contexts[0]?.settings ?? {});
-    const needsDormitory =
-      mode === "direct" ||
-      contexts.some((context, index) => fiammettaTargetForPlan(context, index));
-    if (needsDormitory) {
-      contexts.forEach((context) => {
-        if (fiammettaDormPlacement(context)) return;
-        const mood = context.fiammetta?.end ?? 24;
-        context.autoRestWarnings.push({
-          operator: FIAMMETTA_NAME,
-          reason: "no-space",
-          startMood: mood,
-          endMood: mood,
-          expectedMood: 24,
-        });
+  const mode = fiammettaMode(contexts[0]?.settings ?? {});
+  const needsDormitory =
+    mode === "direct" ||
+    contexts.some((context, index) => fiammettaTargetForPlan(context, index));
+  if (needsDormitory) {
+    contexts.forEach((context) => {
+      if (fiammettaDormPlacement(context)) return;
+      const mood = context.fiammetta?.end ?? 24;
+      context.autoRestWarnings.push({
+        operator: FIAMMETTA_NAME,
+        reason: "no-space",
+        startMood: mood,
+        endMood: mood,
+        expectedMood: 24,
       });
-    }
+    });
   }
   return fiammetta;
 }
@@ -5253,11 +5217,7 @@ function calculateEfficiencyInternal(
     options.treatSkillsAsUnlocked,
     options.dormitoryDefaultIncludesMoodRecovery,
   );
-  const fiammetta = resolveMoods(
-    contexts,
-    catalog,
-    options.simulateFiammetta ?? false,
-  );
+  const fiammetta = resolveMoods(contexts, catalog);
   const plans = contexts.map((context) => calculatePlan(context, catalog));
   const facilities = buildFacilities(document.layout);
   const maaDroneAcceleration = calculateMaaDroneAcceleration(
@@ -5334,7 +5294,6 @@ function resolveCalculationDocument(
 export function calculateEfficiency(
   document: ScheduleDocument,
   input: EfficiencyCalculationInput,
-  options: Pick<EfficiencyCalculationOptions, "simulateFiammetta"> = {},
 ): EfficiencyResult {
   const resolved = resolveCalculationDocument(document);
   const settings = resolved.document.settings ?? {};
@@ -5352,7 +5311,6 @@ export function calculateEfficiency(
       treatSkillsAsUnlocked: settings.treatSkillsAsUnlocked,
       dormitoryDefaultIncludesMoodRecovery:
         settings.dormitoryDefaultIncludesMoodRecovery,
-      simulateFiammetta: options.simulateFiammetta,
     }),
     layoutSource: resolved.layoutSource,
   };

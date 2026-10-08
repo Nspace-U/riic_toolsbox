@@ -973,14 +973,10 @@ const efficiencyResult = computed<EfficiencyResult | undefined>(() => {
   if (!document || !catalog || schedulePeriodAnalysis.value.errors.length > 0) {
     return undefined;
   }
-  return calculateEfficiency(
-    efficiencySchedule(document),
-    {
-      catalog,
-      ruleset: catalog.ruleset,
-    },
-    { simulateFiammetta: true },
-  );
+  return calculateEfficiency(efficiencySchedule(document), {
+    catalog,
+    ruleset: catalog.ruleset,
+  });
 });
 
 const efficiencyNotices = computed<EfficiencyNotice[]>(() =>

@@ -198,7 +198,6 @@ export interface EfficiencyCalculationOptions {
   progressionProfile?: OperatorProgressionProfile;
   treatSkillsAsUnlocked?: boolean;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
-  simulateFiammetta?: boolean;
 }
 
 export interface EfficiencyTerm {
