@@ -1,18 +1,8 @@
 export const DRONE_ACCELERATION_MINUTES = 3;
 
-export type SanityFlowResource =
-  | "龙门币"
-  | "合成玉"
-  | "赤金"
-  | "中级作战记录"
-  | "源石碎片"
-  | "无人机"
-  | "信用"
-  | "公开招募标签刷新次数"
-  | "固源岩"
-  | "装置";
+export type SanityFlowResource = string;
 
-export type SanityResourceAmounts = Partial<Record<SanityFlowResource, number>>;
+export type SanityResourceAmounts = Record<SanityFlowResource, number>;
 
 import { manufactureRule, ORUNDUM_TRADE_ORDER } from "./efficiency/baseRules";
 import { canonicalResourceKey } from "./schedule";
@@ -53,6 +43,7 @@ export interface SanityValues {
   originiumShard: number;
   solidRock: number | null;
   device: number | null;
+  materials?: Readonly<Record<string, number | null>>;
 }
 
 export interface SanityResultItem {
@@ -72,7 +63,7 @@ export interface SanityResult {
 }
 
 interface SanityItemDefinition {
-  resource: SanityFlowResource;
+  resource: string;
   label: string;
   amountUnit: string;
   amountFactor: number;
@@ -197,11 +188,6 @@ function addFlow(
     return;
   }
   const knownResource = canonicalResourceKey(resource) as SanityFlowResource;
-  if (
-    !SANITY_ITEM_DEFINITIONS.some((item) => item.resource === knownResource)
-  ) {
-    return;
-  }
   amounts[knownResource] = (amounts[knownResource] ?? 0) + amount;
 }
 
@@ -235,7 +221,20 @@ export function calculateSanityResult(
 ): SanityResult {
   const missing: string[] = [];
   let total = 0;
-  const items = SANITY_ITEM_DEFINITIONS.flatMap((definition) => {
+  const materialValues = values.materials ?? {};
+  const definitions = [
+    ...SANITY_ITEM_DEFINITIONS.filter(
+      (definition) => !Object.hasOwn(materialValues, definition.resource),
+    ),
+    ...Object.entries(materialValues).map(([resource, value]) => ({
+      resource,
+      label: resource,
+      amountUnit: resource,
+      amountFactor: 1,
+      value: () => value,
+    })),
+  ];
+  const items = definitions.flatMap((definition) => {
     const rawAmount = amounts[definition.resource] ?? 0;
     if (Math.abs(rawAmount) <= 0.000001) {
       return [];

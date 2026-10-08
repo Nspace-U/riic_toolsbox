@@ -19,6 +19,9 @@ export function torappuItemIconPath(
   resource: string,
   itemTable: TorappuItemTable | undefined,
 ): string | undefined {
-  const itemId = TORAPPU_RESOURCE_ITEM_IDS[resource];
+  const itemId =
+    TORAPPU_RESOURCE_ITEM_IDS[resource] ??
+    Object.values(itemTable?.items ?? {}).find((item) => item.name === resource)
+      ?.itemId;
   return itemId ? itemTable?.items[itemId]?.localIconPath : undefined;
 }

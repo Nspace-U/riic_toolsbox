@@ -422,6 +422,57 @@
   min-width: 0;
 }
 
+:deep(.settings-sanity-materials) {
+  margin-block: 8px 18px;
+  border-block-end: 1px solid #e8edec;
+}
+
+:deep(.settings-sanity-materials .ant-collapse-header) {
+  align-items: center;
+  color: #344447;
+  font-weight: 650;
+}
+
+:deep(.settings-sanity-materials .ant-collapse-content-box) {
+  padding-inline: 0;
+}
+
+:deep(.settings-sanity-material-toolbar) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-block-end: 16px;
+}
+
+:deep(.settings-sanity-material-form) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 20px;
+}
+
+:deep(.settings-sanity-material-form .ant-form-item) {
+  min-width: 0;
+}
+
+:deep(.settings-sanity-material-label) {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+:deep(.settings-sanity-material-label img) {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  object-fit: contain;
+}
+
+:deep(.settings-sanity-material-label > span) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 :deep(.settings-sanity-values) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -466,6 +517,8 @@
   }
 
   :deep(.settings-sanity-form),
+  :deep(.settings-sanity-material-toolbar),
+  :deep(.settings-sanity-material-form),
   :deep(.settings-sanity-values) {
     grid-template-columns: minmax(0, 1fr);
   }

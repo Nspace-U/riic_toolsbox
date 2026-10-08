@@ -379,7 +379,7 @@ const {
   treatSkillsAsUnlocked,
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
-const { sanityValues } = useSanitySettings();
+const { sanityValues } = useSanitySettings(itemTable);
 const { lmdDroneStrategies, droneOverflowTruncationEnabled } =
   useDroneStrategySettings();
 

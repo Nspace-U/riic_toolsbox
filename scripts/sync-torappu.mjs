@@ -39,6 +39,15 @@ const TARGET_ITEM_IDS = [
   "30062",
 ];
 
+function isSanityMaterialItem(item) {
+  return (
+    item.itemType === "MATERIAL" &&
+    item.classifyType === "MATERIAL" &&
+    item.sortId >= 100001 &&
+    item.sortId <= 100060
+  );
+}
+
 const ITEM_TABLE_PATH = "gamedata/latest/excel/item_table.json";
 const ITEM_ICON_SOURCE_PATH = "assets/item_icon";
 const ITEM_ICON_LOCAL_PATH = "raw/item_icon";
@@ -231,8 +240,14 @@ function selectBuildingData(buildingData, operatorIds) {
 }
 
 function selectItemTable(itemTable) {
+  const itemIds = new Set([
+    ...TARGET_ITEM_IDS,
+    ...Object.values(itemTable.items ?? {})
+      .filter(isSanityMaterialItem)
+      .map((item) => item.itemId),
+  ]);
   const items = Object.fromEntries(
-    TARGET_ITEM_IDS.map((itemId) => {
+    [...itemIds].map((itemId) => {
       const item = itemTable.items?.[itemId];
       if (!item) {
         throw new Error(`Torappu 物品 ${itemId} 不存在`);

@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   EditOutlined,
   ReloadOutlined,
+  SearchOutlined,
   SettingOutlined,
   UploadOutlined,
 } from "@ant-design/icons-vue";
@@ -30,6 +31,7 @@ import {
 } from "@/adapters/riicEfficiencyData";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { Operator } from "@/types/baseData";
+import type { TorappuItem } from "@/types/torappu";
 import {
   EFFICIENCY_NOTICE_DISPLAY_OPTIONS,
   basePointTermOptions,
@@ -61,7 +63,7 @@ const {
   resetProductColor,
   resetFiammettaColor,
 } = useFacilityColors();
-const { operators, ready: baseDataReady } = useBaseData();
+const { operators, itemTable, ready: baseDataReady } = useBaseData();
 const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
   useBasePointDisplaySettings();
 const {
@@ -123,8 +125,15 @@ const {
   setTreatSkillsAsUnlocked,
   setDormitoryDefaultIncludesMoodRecovery,
 } = useOperatorProgression();
-const { sanitySettings, sanityValues, setSanitySetting, resetSanitySetting } =
-  useSanitySettings();
+const {
+  materialItems,
+  sanitySettings,
+  sanityValues,
+  setSanitySetting,
+  resetSanitySetting,
+  setSanityMaterialSetting,
+  resetSanityMaterialSetting,
+} = useSanitySettings(itemTable);
 const {
   lmdDroneStrategies,
   droneOverflowTruncationEnabled,
@@ -148,6 +157,10 @@ const pendingResetProfileId = ref<string>();
 const pendingDeleteProfile = ref<{ id: string; name: string }>();
 const progressionSearch = ref("");
 const selectedProgressionFacility = ref<RoomKey | "">("");
+const sanityMaterialSearch = ref("");
+const selectedSanityMaterialRarities = ref<number[]>([]);
+const sanityMaterialPanelKeys = ref<string[]>([]);
+const sanityMaterialDrafts = ref<Record<string, number | null>>({});
 const selectedProgressionProfession = ref("");
 const selectedProgressionBranch = ref("");
 const selectedProgressionRarity = ref<number | "">("");
@@ -531,14 +544,6 @@ function updateRecruitRefresh(value: number | null): void {
   handleSanitySettingChange("recruitRefresh", value);
 }
 
-function updateSolidRock(value: number | null): void {
-  handleSanitySettingChange("solidRock", value);
-}
-
-function updateDevice(value: number | null): void {
-  handleSanitySettingChange("device", value);
-}
-
 function updateLmdDroneStrategy(
   level: LmdDroneStrategyLevel,
   value: string,
@@ -550,6 +555,89 @@ function formatSanityValue(value: number | null): string {
   return value === null
     ? "未设置"
     : value.toLocaleString("zh-CN", { maximumFractionDigits: 8 });
+}
+
+function sanityMaterialRarity(item: TorappuItem): number {
+  return Number(item.rarity?.match(/\d+/)?.[0] ?? 0);
+}
+
+function compareSanityMaterials(left: TorappuItem, right: TorappuItem): number {
+  const rarityDifference =
+    sanityMaterialRarity(right) - sanityMaterialRarity(left);
+  if (rarityDifference !== 0) {
+    return rarityDifference;
+  }
+
+  const leftValue =
+    sanitySettings.value.materialSanityValues[left.itemId] ?? null;
+  const rightValue =
+    sanitySettings.value.materialSanityValues[right.itemId] ?? null;
+  if (leftValue === null && rightValue !== null) {
+    return 1;
+  }
+  if (leftValue !== null && rightValue === null) {
+    return -1;
+  }
+  if (leftValue !== null && rightValue !== null && leftValue !== rightValue) {
+    return rightValue - leftValue;
+  }
+
+  return right.itemId.localeCompare(left.itemId, "en", { numeric: true });
+}
+
+function sanityMaterialIconUrl(item: TorappuItem): string {
+  return `${import.meta.env.BASE_URL}assets/${item.localIconPath}`;
+}
+
+const sanityMaterialRarityOptions = computed(() =>
+  [...new Set(materialItems.value.map(sanityMaterialRarity))]
+    .sort((left, right) => right - left)
+    .map((rarity) => ({ label: `${rarity}星`, value: rarity })),
+);
+
+const sanityMaterialRows = computed(() => {
+  const search = sanityMaterialSearch.value.trim().toLocaleLowerCase("zh-CN");
+  const selectedRarities = new Set(selectedSanityMaterialRarities.value);
+  return [...materialItems.value]
+    .filter((item) => {
+      const matchesName = item.name.toLocaleLowerCase("zh-CN").includes(search);
+      const matchesRarity =
+        selectedRarities.size === 0 ||
+        selectedRarities.has(sanityMaterialRarity(item));
+      return matchesName && matchesRarity;
+    })
+    .sort(compareSanityMaterials);
+});
+
+function updateSanityMaterial(itemId: string, value: number | null): void {
+  sanityMaterialDrafts.value = {
+    ...sanityMaterialDrafts.value,
+    [itemId]: value,
+  };
+}
+
+function sanityMaterialInputValue(itemId: string): number | null {
+  return Object.hasOwn(sanityMaterialDrafts.value, itemId)
+    ? (sanityMaterialDrafts.value[itemId] ?? null)
+    : (sanitySettings.value.materialSanityValues[itemId] ?? null);
+}
+
+function commitSanityMaterial(itemId: string): void {
+  if (!Object.hasOwn(sanityMaterialDrafts.value, itemId)) {
+    return;
+  }
+  const value = sanityMaterialDrafts.value[itemId] ?? null;
+  const drafts = { ...sanityMaterialDrafts.value };
+  delete drafts[itemId];
+  sanityMaterialDrafts.value = drafts;
+  setSanityMaterialSetting(itemId, value);
+}
+
+function resetSanityMaterial(itemId: string): void {
+  const drafts = { ...sanityMaterialDrafts.value };
+  delete drafts[itemId];
+  sanityMaterialDrafts.value = drafts;
+  resetSanityMaterialSetting(itemId);
 }
 
 const sanityDisplayRows = computed(() => [
@@ -600,18 +688,6 @@ const sanityDisplayRows = computed(() => [
     value: sanityValues.value.originiumShard,
     unit: "理智/源石碎片",
     source: "按开采协力订单反推",
-  },
-  {
-    label: "固源岩",
-    value: sanityValues.value.solidRock,
-    unit: "理智/固源岩",
-    source: "用户填写",
-  },
-  {
-    label: "装置",
-    value: sanityValues.value.device,
-    unit: "理智/装置",
-    source: "用户填写",
   },
 ]);
 
@@ -1071,8 +1147,8 @@ watch(
       <section class="settings-simulator-section settings-sanity-section">
         <h3 class="settings-section-title">理智计算</h3>
         <p class="settings-panel-description">
-          设置资源的理智价值。赤金和作战记录按当前效率计算中的基础时间推导，无人机固定按每个加速
-          3 分钟基础时间计算。
+          设置资源的理智价值。赤金和作战记录按当前效率计算中的基础时间推导，无人机按每架加速
+          3 分钟计算；材料默认值取自一图流物品价值表。
         </p>
         <a-form layout="vertical" class="settings-sanity-form">
           <a-form-item extra="每 1 龙门币" label="龙门币理智">
@@ -1165,51 +1241,78 @@ watch(
               </a-button>
             </div>
           </a-form-item>
-          <a-form-item
-            extra="不填写时，相关总理智显示为不完整"
-            label="固源岩理智"
-          >
-            <div class="settings-control-row">
-              <a-input-number
-                :min="0"
-                placeholder="未设置"
-                :step="0.01"
-                :value="sanitySettings.solidRock"
-                @update:value="updateSolidRock"
-              />
-              <a-button
-                aria-label="恢复固源岩理智默认值"
-                size="small"
-                title="恢复默认"
-                @click="resetSanitySetting('solidRock')"
-              >
-                <template #icon><ReloadOutlined /></template>
-              </a-button>
-            </div>
-          </a-form-item>
-          <a-form-item
-            extra="不填写时，相关总理智显示为不完整"
-            label="装置理智"
-          >
-            <div class="settings-control-row">
-              <a-input-number
-                :min="0"
-                placeholder="未设置"
-                :step="0.01"
-                :value="sanitySettings.device"
-                @update:value="updateDevice"
-              />
-              <a-button
-                aria-label="恢复装置理智默认值"
-                size="small"
-                title="恢复默认"
-                @click="resetSanitySetting('device')"
-              >
-                <template #icon><ReloadOutlined /></template>
-              </a-button>
-            </div>
-          </a-form-item>
         </a-form>
+        <a-collapse
+          v-model:active-key="sanityMaterialPanelKeys"
+          :bordered="false"
+          class="settings-sanity-materials"
+        >
+          <a-collapse-panel key="material-items">
+            <template #header>材料道具（{{ materialItems.length }}）</template>
+            <div class="settings-sanity-material-toolbar">
+              <a-input
+                v-model:value="sanityMaterialSearch"
+                allow-clear
+                placeholder="搜索材料名称"
+              >
+                <template #prefix><SearchOutlined /></template>
+              </a-input>
+              <a-select
+                v-model:value="selectedSanityMaterialRarities"
+                allow-clear
+                mode="multiple"
+                :options="sanityMaterialRarityOptions"
+                placeholder="筛选稀有度"
+              />
+            </div>
+            <a-form
+              v-if="sanityMaterialRows.length > 0"
+              layout="vertical"
+              class="settings-sanity-material-form"
+            >
+              <a-form-item
+                v-for="item in sanityMaterialRows"
+                :key="item.itemId"
+                extra="理智/个"
+              >
+                <template #label>
+                  <span class="settings-sanity-material-label">
+                    <img
+                      :alt="''"
+                      aria-hidden="true"
+                      :src="sanityMaterialIconUrl(item)"
+                    />
+                    <span>{{ item.name }}</span>
+                  </span>
+                </template>
+                <div class="settings-control-row">
+                  <a-input-number
+                    :aria-label="`${item.name}等效理智`"
+                    :min="0"
+                    placeholder="未设置"
+                    :step="0.0001"
+                    :value="sanityMaterialInputValue(item.itemId)"
+                    @blur="commitSanityMaterial(item.itemId)"
+                    @press-enter="commitSanityMaterial(item.itemId)"
+                    @update:value="
+                      (value: number | null) =>
+                        updateSanityMaterial(item.itemId, value)
+                    "
+                  />
+                  <a-button
+                    :aria-label="`恢复${item.name}理智默认值`"
+                    size="small"
+                    title="恢复默认"
+                    @click="resetSanityMaterial(item.itemId)"
+                  >
+                    <template #icon><ReloadOutlined /></template>
+                  </a-button>
+                </div>
+              </a-form-item>
+            </a-form>
+            <a-empty v-else :image="undefined" description="没有匹配的道具" />
+          </a-collapse-panel>
+        </a-collapse>
         <div class="settings-sanity-values">
           <div
             v-for="row in sanityDisplayRows"
