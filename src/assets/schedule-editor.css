@@ -48,7 +48,7 @@
   gap: 6px;
 }
 
-:deep(.simulator-layout-card-level) {
+:deep(.ant-input-number-group-wrapper.simulator-layout-card-level) {
   flex: 1 1 auto;
   width: 0;
 }
