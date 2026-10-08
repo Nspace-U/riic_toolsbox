@@ -2110,6 +2110,16 @@ function fiammettaDirectTargets(document: ScheduleDocument): string[] {
   return document.fiammetta?.direct?.operators?.filter(Boolean) ?? [];
 }
 
+function isFiammettaMoodSwapTarget(
+  context: PlanContext,
+  planIndex: number,
+  operator: string,
+): boolean {
+  return fiammettaMode(context.settings) === "queue"
+    ? fiammettaTargetForPlan(context, planIndex) === operator
+    : fiammettaDirectTargets(context.document).includes(operator);
+}
+
 function hasFiammetta(contexts: PlanContext[]): boolean {
   return contexts.some((context) =>
     context.placements.some(
@@ -2522,6 +2532,7 @@ function resolveAutomaticRest(
     }> = [];
     previous.placements.forEach((source, order) => {
       if (!isMoodContinuityPlacement(source, catalog)) return;
+      if (isFiammettaMoodSwapTarget(context, index, source.name)) return;
       const expectedMood = expectedMoodForNextWork(
         contexts,
         index,
