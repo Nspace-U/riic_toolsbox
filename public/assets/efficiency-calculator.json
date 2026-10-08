@@ -67,7 +67,6 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate"
       ],
@@ -86,8 +85,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": [],
-                      "runOrderOperators": ["但书"]
+                      "operators": ["但书"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
@@ -112,7 +111,6 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate"
       ],
@@ -131,8 +129,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": [],
-                      "runOrderOperators": ["但书"]
+                      "operators": ["但书"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
@@ -157,7 +155,6 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate"
       ],
@@ -176,8 +173,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": [],
-                      "runOrderOperators": ["但书"]
+                      "operators": ["但书"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
@@ -221,8 +218,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": [],
-                      "runOrderOperators": ["可露希尔"]
+                      "operators": ["可露希尔"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
@@ -266,8 +263,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["巫恋"],
-                      "runOrderOperators": ["但书", "龙舌兰"]
+                      "operators": ["巫恋", "龙舌兰", "但书"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
@@ -311,8 +308,8 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["巫恋", "柏喙"],
-                      "runOrderOperators": ["龙舌兰"]
+                      "operators": ["巫恋", "柏喙", "龙舌兰"],
+                      "runOrderOperators": []
                     }
                   ]
                 }
