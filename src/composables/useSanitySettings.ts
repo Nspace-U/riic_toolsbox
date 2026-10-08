@@ -69,18 +69,6 @@ function readSanitySettings(): StoredSanitySettings {
         }
       });
     }
-    if (
-      !Object.hasOwn(storedMaterialValues ?? {}, "30012") &&
-      isFiniteNonNegative(candidate.solidRock)
-    ) {
-      materialSanityValues["30012"] = candidate.solidRock;
-    }
-    if (
-      !Object.hasOwn(storedMaterialValues ?? {}, "30062") &&
-      isFiniteNonNegative(candidate.device)
-    ) {
-      materialSanityValues["30062"] = candidate.device;
-    }
     return {
       lmd: isFiniteNonNegative(candidate.lmd)
         ? candidate.lmd
@@ -97,10 +85,6 @@ function readSanitySettings(): StoredSanitySettings {
       recruitRefresh: isFiniteNonNegative(candidate.recruitRefresh)
         ? candidate.recruitRefresh
         : DEFAULT_SANITY_SETTINGS.recruitRefresh,
-      solidRock: isFiniteNonNegative(candidate.solidRock)
-        ? candidate.solidRock
-        : null,
-      device: isFiniteNonNegative(candidate.device) ? candidate.device : null,
       materialSanityValues,
     };
   } catch {
@@ -125,7 +109,7 @@ function setSanitySetting(
   key: keyof SanitySettings,
   value: number | null,
 ): void {
-  if (value === null && key !== "solidRock" && key !== "device") {
+  if (value === null) {
     return;
   }
   if (value !== null && !isFiniteNonNegative(value)) {
@@ -153,8 +137,6 @@ function setSanityMaterialSetting(itemId: string, value: number | null): void {
       ...sanitySettings.value.materialSanityValues,
       [itemId]: value,
     },
-    ...(itemId === "30012" ? { solidRock: value } : {}),
-    ...(itemId === "30062" ? { device: value } : {}),
   };
   persistSanitySettings();
 }

@@ -17,8 +17,6 @@ export interface SanitySettings {
   orundum: number;
   credit: number;
   recruitRefresh: number;
-  solidRock: number | null;
-  device: number | null;
 }
 
 export const DEFAULT_SANITY_SETTINGS: SanitySettings = {
@@ -27,8 +25,6 @@ export const DEFAULT_SANITY_SETTINGS: SanitySettings = {
   orundum: 0.75,
   credit: 5.3271 / 129,
   recruitRefresh: 19.0787820209763,
-  solidRock: null,
-  device: null,
 };
 
 export interface SanityValues {
@@ -41,8 +37,6 @@ export interface SanityValues {
   credit: number;
   recruitRefresh: number;
   originiumShard: number;
-  solidRock: number | null;
-  device: number | null;
   materials?: Readonly<Record<string, number | null>>;
 }
 
@@ -127,20 +121,6 @@ const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
     amountFactor: 1,
     value: (values) => values.originiumShard,
   },
-  {
-    resource: "固源岩",
-    label: "固源岩",
-    amountUnit: "固源岩",
-    amountFactor: 1,
-    value: (values) => values.solidRock,
-  },
-  {
-    resource: "装置",
-    label: "装置",
-    amountUnit: "装置",
-    amountFactor: 1,
-    value: (values) => values.device,
-  },
 ];
 
 function dronesForHours(hours: number): number {
@@ -174,8 +154,6 @@ export function calculateSanityValues(settings: SanitySettings): SanityValues {
     credit: settings.credit,
     recruitRefresh: settings.recruitRefresh,
     originiumShard,
-    solidRock: settings.solidRock,
-    device: settings.device,
   };
 }
 
