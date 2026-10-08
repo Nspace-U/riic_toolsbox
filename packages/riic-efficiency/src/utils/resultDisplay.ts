@@ -75,9 +75,7 @@ import {
 import { ROOM_LABELS } from "./schedule";
 import { calculateSanityResult } from "./sanity";
 
-const GROSS_POINTS_KEY = "gross-points";
 const NET_KEY = "net";
-const NET_POINTS_KEY = "net-points";
 const SANITY_KEY = "sanity";
 const SANITY_MISSING_KEY = "sanity-missing";
 const DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE: ResourceAmountDisplayMode =
@@ -328,19 +326,6 @@ function outputTileLines(
 ): DisplayLine[] {
   const lines: DisplayLine[] = [];
   const pointInfo = resourcePointInfo(card.product);
-  if (
-    resourceAmountDisplayMode === "both" &&
-    card.grossPoints !== undefined &&
-    card.grossPointsLabel !== undefined
-  ) {
-    lines.push({
-      key: GROSS_POINTS_KEY,
-      value: displayValue(
-        numberPart(card.grossPoints, "number"),
-        ` ${card.grossPointsLabel}`,
-      ),
-    });
-  }
   if (card.showNet) {
     const mode = resourceAmountDisplayMode;
     if (pointInfo === undefined) {
@@ -352,34 +337,15 @@ function outputTileLines(
           ` ${card.netUnit}`,
         ),
       });
-    } else if (mode === "both" && card.grossAmount !== undefined) {
-      lines.push(
-        {
-          key: NET_KEY,
-          value: displayValue(
-            "净收入 ",
-            numberPart(
-              card.netResourceAmount,
-              "signed",
-            ),
-            ` ${resourceLabel(card.product)}`,
-          ),
-        },
-        {
-          key: NET_POINTS_KEY,
-          value: displayValue(
-            numberPart(card.netAmount, "signed"),
-            ` ${pointInfo.label}`,
-          ),
-        },
-      );
     } else if (mode === "both") {
       lines.push({
-        key: NET_POINTS_KEY,
+        key: NET_KEY,
         value: displayValue(
           "净收入 ",
+          numberPart(card.netResourceAmount, "signed"),
+          "（",
           numberPart(card.netAmount, "signed"),
-          ` ${pointInfo.label}`,
+          "）",
         ),
       });
     } else if (card.grossAmount !== undefined) {
@@ -431,14 +397,22 @@ function outputTile(
   const unit =
     resourceAmountDisplayMode === "points"
       ? pointInfo?.label
-      : hasResourceUnit
+      : resourceAmountDisplayMode === "raw" && hasResourceUnit
         ? card.product
         : undefined;
   const mainAmount =
     resourceAmountDisplayMode === "points" && pointInfo
       ? amount * pointInfo.factor
       : amount;
-  const main = displayNumber(mainAmount, format);
+  const main =
+    resourceAmountDisplayMode === "both" && pointInfo
+      ? displayValue(
+          numberPart(amount, format),
+          "（",
+          numberPart(amount * pointInfo.factor, format),
+          "）",
+        )
+      : displayNumber(mainAmount, format);
   return {
     key,
     product: card.product,
@@ -537,39 +511,30 @@ export function buildDroneScenarioViews(
     const resourceAmountDisplayMode =
       options.resourceAmountDisplayMode ?? DEFAULT_RESOURCE_AMOUNT_DISPLAY_MODE;
     const pointInfo = resourcePointInfo(scenario.product);
-    const baseRate = resourceAmountDisplay(
-      scenario.baseAmountPerHour,
-      scenario.product,
-      resourceAmountDisplayMode,
-      "number",
-      displayValue(
-        "基础 ",
-        numberPart(scenario.baseAmountPerHour, "number"),
-        "/小时",
-      ),
-      {
-        unitSuffix: "/小时",
-        prefix: "基础 ",
-      },
-    );
-    const baseRateLines =
+    const baseRate =
       resourceAmountDisplayMode === "both" && pointInfo !== undefined
-        ? [
+        ? displayValue(
+            "基础 ",
+            numberPart(scenario.baseAmountPerHour, "number"),
+            "/小时（",
+            numberPart(scenario.baseAmountPerHour * pointInfo.factor, "number"),
+            "）",
+          )
+        : resourceAmountDisplay(
+            scenario.baseAmountPerHour,
+            scenario.product,
+            resourceAmountDisplayMode,
+            "number",
             displayValue(
               "基础 ",
               numberPart(scenario.baseAmountPerHour, "number"),
               "/小时",
             ),
-            displayValue(
-              "折算 ",
-              numberPart(
-                scenario.baseAmountPerHour * pointInfo.factor,
-                "number",
-              ),
-              "/小时",
-            ),
-          ]
-        : undefined;
+            {
+              unitSuffix: "/小时",
+              prefix: "基础 ",
+            },
+          );
     return {
       key: scenario.key,
       title: displayText(resourceLabel(scenario.product)),
@@ -580,7 +545,6 @@ export function buildDroneScenarioViews(
         "小时",
       ),
       baseRate,
-      ...(baseRateLines === undefined ? {} : { baseRateLines }),
       views: entry.views.map((view) => ({
         key: view.key,
         label: view.label,

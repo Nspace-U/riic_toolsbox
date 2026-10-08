@@ -33,13 +33,18 @@ const segments = computed<DisplaySegment[]>(() => {
     const nextIndex = rest.search(/\{(\d+)\}/);
     const following = nextIndex < 0 ? rest : rest.slice(0, nextIndex);
     const raw = raws[rawIndex];
+    const inferredUnit =
+      following
+        .trimStart()
+        .split(/\s+/)[0]
+        ?.replace(/^[（(]|[）)]$/g, "") ?? "";
     result.push({
       key: `raw-${rawIndex}-${order}`,
       text: "",
       ...(raw === undefined
         ? {}
         : { raw: { value: raw.value, signed: raw.signed === true } }),
-      unit: props.unit ?? following.trimStart().split(/\s+/)[0] ?? "",
+      unit: props.unit ?? inferredUnit,
     });
   });
   if (cursor < template.length) {

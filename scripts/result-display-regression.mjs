@@ -525,21 +525,29 @@ for (const mode of ["raw", "points", "both"]) {
       ["净收入 +22100 赤金点数"],
     );
   } else {
-    assert.equal(displayText(dailyGold.main), "27.12");
-    assert.equal(dailyGold.mainUnit, "赤金");
-    assert.equal(displayText(goldGrossPoints.value), "13560 赤金点数");
+    assert.equal(displayText(dailyGold.main), "27.12（13560）");
+    assert.equal(dailyGold.mainUnit, undefined);
+    assert.equal(goldGrossPoints, undefined);
     assert.deepEqual(
       goldNetLines.map((line) => displayText(line.value)),
-      ["净收入 +44.2 赤金", "+22100 赤金点数"],
+      ["净收入 +44.2（+22100）"],
     );
   }
   assert.equal(
     displayText(dailyBattleRecords.main),
-    mode === "points" ? "+1234560" : "+1234.56",
+    mode === "points"
+      ? "+1234560"
+      : mode === "both"
+        ? "+1234.56（+1234560）"
+        : "+1234.56",
   );
   assert.equal(
     dailyBattleRecords.mainUnit,
-    mode === "points" ? "经验点数" : "中级作战记录",
+    mode === "points"
+      ? "经验点数"
+      : mode === "both"
+        ? undefined
+        : "中级作战记录",
   );
   assert.equal(
     dailyBattleRecords.lines.some(
@@ -680,10 +688,11 @@ for (const mode of ["raw", "points", "both"]) {
   );
   assert.equal(displayText(redGoldScenario.title), "赤金");
   if (mode === "both") {
-    assert.deepEqual(redGoldScenario.baseRateLines.map(displayText), [
-      "基础 0.83/小时",
-      "折算 415/小时",
-    ]);
+    assert.equal(redGoldScenario.baseRateLines, undefined);
+    assert.equal(
+      displayText(redGoldScenario.baseRate),
+      "基础 0.83/小时（415）",
+    );
   } else {
     assert.equal(redGoldScenario.baseRateLines, undefined);
     assert.equal(
