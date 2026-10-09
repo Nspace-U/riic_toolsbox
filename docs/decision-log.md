@@ -1081,8 +1081,8 @@
 
 ## 2026-10-09：一图流材料理智值同步到本地资产
 
-- **决定**：新增独立 `sync:yituliu-material-values` 命令，从一图流价值页引用的模块读取 `itemValueAp`，按 Torappu 本地快照筛出的材料 `itemId` 生成 `public/assets/sanity-material-defaults.json`；校验成功后原子替换文件，解析或网络失败时保留现有文件。应用仅从本地 public 资产加载默认值，不在运行时请求一图流。
-- **原因**：一图流没有提供完整材料理智值的独立 JSON/API，页面值表由客户端生成；当前嵌入字段包含 60 个目标道具的理智值。用标准库抓取页面引用的模块避免引入浏览器自动化依赖，并在上游模块格式变化时失败关闭。
-- **影响范围**：`scripts/sync-yituliu-material-values.mjs`、npm 命令、`public/assets/sanity-material-defaults.json` 与理智设置加载；旧的有效材料值先与新默认比较，只将偏离默认的值迁移为用户覆盖，之后默认更新不会覆盖用户覆盖值。
+- **决定**：新增独立 `sync:yituliu-material-values` 命令，用 `playwright-core` 驱动本机 Edge 打开一图流价值页并导出当前计算后的 JSON，读取 `apValue` 后按 Torappu 本地快照筛出的材料 `itemId` 生成 `public/assets/sanity-material-defaults.json`；校验成功后原子替换文件，解析或网络失败时保留现有文件。应用仅从本地 public 资产加载默认值，不在运行时请求一图流。
+- **原因**：一图流没有完整材料理智值的独立 JSON/API，页面显示值会根据阶段数据和页面配置动态计算，模块内嵌的 `itemValueAp` 是计算前初值。复用页面导出结果才能与页面显示值一致；隔离浏览器上下文使用网站默认配置，避免自定义 StageConfig 影响仓库默认值。
+- **影响范围**：`scripts/sync-yituliu-material-values.mjs`、`playwright-core` 开发依赖、npm 命令、`public/assets/sanity-material-defaults.json` 与理智设置加载；同步需要本机已安装 Edge。旧的有效材料值先与新默认比较，只将偏离默认的值迁移为用户覆盖，之后默认更新不会覆盖用户覆盖值。
 - **状态**：已实施。
-- **验证**：同步命令生成 60/60 个道具值；`npm run lint`、`npm run type-check`、`npm run build`、`npm run build:riic-efficiency` 和改动文件 Prettier 检查通过；本地页面从 public 资产加载 60 项值。未运行测试套件。
+- **验证**：同步命令生成 60/60 个道具值；装置 `itemId=30062` 的导出值为 `9.239938662629225`，页面显示为 `9.2399`，与截图一致。`npm run lint`、`npm run type-check`、`npm run build`、`npm run build:riic-efficiency` 和改动文件 Prettier 检查通过；本地页面从 public 资产加载 60 项值。未运行测试套件。

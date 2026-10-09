@@ -2,7 +2,7 @@ import type { TorappuItem, TorappuItemTable } from "@/types/torappu";
 
 interface SanityMaterialDefaultsFile {
   source: "https://ark.yituliu.cn/material/value";
-  field: "itemValueAp";
+  field: "apValue";
   capturedAt: string;
   values: Record<string, number>;
 }
@@ -16,7 +16,7 @@ function parseSanityMaterialDefaults(value: unknown): Record<string, number> {
   const candidate = value as Partial<SanityMaterialDefaultsFile>;
   if (
     candidate.source !== "https://ark.yituliu.cn/material/value" ||
-    candidate.field !== "itemValueAp" ||
+    candidate.field !== "apValue" ||
     typeof candidate.capturedAt !== "string" ||
     typeof candidate.values !== "object" ||
     candidate.values === null ||
