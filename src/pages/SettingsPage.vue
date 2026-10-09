@@ -1154,7 +1154,7 @@ watch(
               setDroneOverflowTruncationEnabled(event.target.checked)
           "
         >
-          模拟 MAA 无人机爆仓时截断至 235 架
+          模拟 MAA 无人机爆仓时截断至 250 架
         </a-checkbox>
         <p class="settings-panel-description">
           无论是否截断，发生无人机爆仓时都会显示警告；此设置不影响其他设施产物的爆仓模拟。

@@ -231,7 +231,7 @@ export const DEFAULT_RULESET: EfficiencyRuleset = {
   creditPerClue: CREDIT_PER_CLUE,
   hireOutputPerHour: 1 / 12,
   hireLimit: 3,
-  droneLimit: 235,
+  droneLimit: 250,
   baseEfficiency: BASE_EFFICIENCY,
   meetingEfficiencyByLevel: MEETING_LEVEL_EFFICIENCY,
   manufactureStorageByLevel: MANUFACTURE_STORAGE,

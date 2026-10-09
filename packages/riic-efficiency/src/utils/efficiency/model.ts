@@ -30,7 +30,7 @@ import { resolveRoomAssignment } from "../schedule";
 
 export const EPSILON = 0.000001;
 export const DEFAULT_DURATION_MINUTES = 720;
-export const DRONE_LIMIT = 235;
+export const DRONE_LIMIT = 250;
 export const POWER_OUTPUT_PER_HOUR = 10;
 export const CLUE_OUTPUT_PER_HOUR = 1 / CLUE_BASE_TIME_HOURS;
 export const HIRE_OUTPUT_PER_HOUR = 1 / 12;

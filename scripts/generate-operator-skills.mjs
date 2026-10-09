@@ -164,7 +164,7 @@ function ruleset() {
     creditPerClue: 40,
     hireOutputPerHour: 1 / 12,
     hireLimit: 3,
-    droneLimit: 235,
+    droneLimit: 250,
     baseEfficiency: {
       trading: 100,
       manufacture: 100,
