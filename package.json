@@ -26,6 +26,7 @@
     "test:sanity": "npm run build:riic-efficiency && node scripts/sanity-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "build:riic-efficiency": "npm --prefix packages/riic-efficiency run build",
+    "sync:yituliu-material-values": "node scripts/sync-yituliu-material-values.mjs",
     "test:riic-efficiency-package": "npm run build:riic-efficiency && node scripts/riic-efficiency-package-regression.mjs",
     "sync:prts": "node scripts/sync-prts-implementation-dates.mjs",
     "sync:torappu": "node scripts/sync-torappu.mjs",

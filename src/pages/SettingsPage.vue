@@ -138,6 +138,7 @@ const {
   materialItems,
   sanitySettings,
   sanityValues,
+  sanityMaterialValue,
   setSanitySetting,
   resetSanitySetting,
   setSanityMaterialSetting,
@@ -577,10 +578,8 @@ function compareSanityMaterials(left: TorappuItem, right: TorappuItem): number {
     return rarityDifference;
   }
 
-  const leftValue =
-    sanitySettings.value.materialSanityValues[left.itemId] ?? null;
-  const rightValue =
-    sanitySettings.value.materialSanityValues[right.itemId] ?? null;
+  const leftValue = sanityMaterialValue(left.itemId);
+  const rightValue = sanityMaterialValue(right.itemId);
   if (leftValue === null && rightValue !== null) {
     return 1;
   }
@@ -628,7 +627,7 @@ function updateSanityMaterial(itemId: string, value: number | null): void {
 function sanityMaterialInputValue(itemId: string): number | null {
   return Object.hasOwn(sanityMaterialDrafts.value, itemId)
     ? (sanityMaterialDrafts.value[itemId] ?? null)
-    : (sanitySettings.value.materialSanityValues[itemId] ?? null);
+    : sanityMaterialValue(itemId);
 }
 
 function commitSanityMaterial(itemId: string): void {
