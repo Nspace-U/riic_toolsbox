@@ -1318,7 +1318,8 @@ function productionSection(
     );
     if (
       (facility.facility.type === "trading" ||
-        facility.facility.type === "manufacture") &&
+        facility.facility.type === "manufacture" ||
+        facility.facility.type === "recycle") &&
       materials.length
     ) {
       materials.forEach((material, index) => {
