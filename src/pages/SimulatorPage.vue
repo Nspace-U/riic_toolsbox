@@ -496,6 +496,7 @@ const lmdDroneStrategyDraft = ref("");
 const deleteScheduleModalOpen = ref(false);
 const recycleOutputDetailsOpen = ref(false);
 const recycleOutputDays = ref(1);
+const recycleOutputGrouping = ref<"rarity" | "material">("rarity");
 const pendingDeleteSchedule = ref<{ id: string; title: string }>();
 const imageExportModalOpen = ref(false);
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
@@ -1035,6 +1036,50 @@ const recycleBoostSelectOptions = computed(() =>
 const recycleOutputItems = computed(
   () => efficiencyResult.value?.recycleOutputs ?? [],
 );
+
+interface RecycleOutputDisplayRow {
+  key: string;
+  label: string;
+  amountPerDay: number;
+  itemName?: string;
+  tierLabel?: string;
+}
+
+const RECYCLE_OUTPUT_GROUP_OPTIONS = [
+  { label: "按稀有度", value: "rarity" },
+  { label: "按材料", value: "material" },
+];
+
+const RECYCLE_OUTPUT_RARITIES = [
+  { key: "TIER_2", label: "T2" },
+  { key: "TIER_3", label: "T3" },
+  { key: "TIER_4", label: "T4" },
+  { key: "TIER_5", label: "T5" },
+];
+
+const recycleOutputDisplayRows = computed<RecycleOutputDisplayRow[]>(() => {
+  if (recycleOutputGrouping.value === "material") {
+    return recycleOutputItems.value.map((item) => ({
+      key: item.itemId,
+      label: item.name,
+      amountPerDay: item.amountPerDay,
+      itemName: item.name,
+    }));
+  }
+
+  return RECYCLE_OUTPUT_RARITIES.map(({ key, label }) => ({
+    key,
+    label: `${label} 材料`,
+    amountPerDay: recycleOutputItems.value.reduce(
+      (total, item) =>
+        itemTable.value?.items[item.itemId]?.rarity === key
+          ? total + item.amountPerDay
+          : total,
+      0,
+    ),
+    tierLabel: label,
+  })).sort((left, right) => right.amountPerDay - left.amountPerDay);
+});
 
 const simulatorNotices = computed<EfficiencyNotice[]>(() => {
   const notices = efficiencyNotices.value.filter(
@@ -1808,6 +1853,7 @@ function recycleOutputAmount(amount: number): string {
 
 function openRecycleOutputDetails(): void {
   recycleOutputDays.value = 1;
+  recycleOutputGrouping.value = "rarity";
   recycleOutputDetailsOpen.value = true;
 }
 
@@ -7340,16 +7386,29 @@ defineExpose({ prepareScheduleReferenceImage });
                 "
               />
             </a-form-item>
+            <a-form-item label="分组方式">
+              <a-segmented
+                v-model:value="recycleOutputGrouping"
+                :options="RECYCLE_OUTPUT_GROUP_OPTIONS"
+              />
+            </a-form-item>
           </a-form>
           <div class="simulator-recycle-output-list">
             <div
-              v-for="item in recycleOutputItems"
-              :key="item.itemId"
+              v-for="item in recycleOutputDisplayRows"
+              :key="item.key"
               class="simulator-recycle-output-row"
             >
-              <img :alt="item.name" :src="dailyOutputIconUrl(item.name)" />
+              <img
+                v-if="item.itemName"
+                :alt="item.itemName"
+                :src="dailyOutputIconUrl(item.itemName)"
+              />
+              <span v-else class="simulator-recycle-output-rarity">
+                {{ item.tierLabel }}
+              </span>
               <div class="simulator-recycle-output-detail">
-                <span>{{ item.name }}</span>
+                <span>{{ item.label }}</span>
                 <div class="simulator-recycle-output-values">
                   <small
                     >{{ recycleOutputAmount(item.amountPerDay) }} 件/天</small

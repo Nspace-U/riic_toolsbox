@@ -13,6 +13,19 @@
   object-fit: contain;
 }
 
+.ant-modal .simulator-recycle-output-rarity {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: #4f625c;
+  background: #edf3f0;
+  border: 1px solid #dbe7e2;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .ant-select-dropdown .simulator-recycle-boost-values,
 .ant-modal .simulator-recycle-output-values {
   display: flex;
@@ -72,7 +85,8 @@
   }
 
   .ant-select-dropdown .simulator-recycle-boost-option img,
-  .ant-modal .simulator-recycle-output-row img {
+  .ant-modal .simulator-recycle-output-row img,
+  .ant-modal .simulator-recycle-output-rarity {
     width: 28px;
     height: 28px;
   }
