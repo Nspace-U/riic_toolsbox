@@ -28,6 +28,7 @@ import type {
   OperatorEfficiencyDetail,
   OperatorSkillFile,
   ProductionValue,
+  RecycleItemDailyOutput,
   ScheduleLayoutSource,
   TradeOrderSummary,
 } from "../../types/efficiency";
@@ -100,6 +101,11 @@ import {
   aggregateDailyOutputs,
   aggregateDailyProductions,
 } from "./aggregate";
+import {
+  expectedRecycleOutputPerDraw,
+  RECYCLE_OUTPUT_PRODUCT,
+  recycleOutputRates,
+} from "./recycling";
 import { DRONE_ACCELERATION_MINUTES } from "../sanity";
 
 function rulesetOf(catalog: EfficiencyCatalog): EfficiencyRuleset {
@@ -1909,7 +1915,8 @@ function preliminaryStatValues(
       "stat",
     );
     const operatorEfficiency = placementsInFacility(context, facility).reduce(
-      (total, placement) => total + operatorBaseEfficiency(facility, placement),
+      (total, placement) =>
+        total + operatorBaseEfficiency(facility, placement, context.ruleset),
       0,
     );
     let facilityEfficiency = facilityBaseEfficiency(
@@ -1924,7 +1931,7 @@ function preliminaryStatValues(
       facilityEfficiency += meetingAtmosphereBonus(atmosphere);
     }
     values.set(
-      `${facility.id}:${facility.type === "hire" ? "hireSpd" : facility.type === "trading" ? "tradeSpd" : facility.type === "manufacture" ? "manuProd" : "clueSpeed"}`,
+      `${facility.id}:${facility.type === "hire" ? "hireSpd" : facility.type === "trading" ? "tradeSpd" : facility.type === "manufacture" ? "manuProd" : facility.type === "recycle" ? "recycleSpd" : "clueSpeed"}`,
       facilityEfficiency +
         base.total +
         operatorEfficiency +
@@ -2729,10 +2736,7 @@ function resolveMoods(
   };
   contexts.forEach((context) => {
     context.placements.forEach((placement) => {
-      placement.fiammettaForced = isFiammettaForcedTarget(
-        context,
-        placement,
-      );
+      placement.fiammettaForced = isFiammettaForcedTarget(context, placement);
     });
   });
   const fiammettaAnchoredOperators = new Set(
@@ -3312,6 +3316,7 @@ function collectBonusByFacility(
     const stats = new Set([
       "tradeSpd",
       "manuProd",
+      "recycleSpd",
       "clueSpeed",
       "hireSpd",
       "droneCharge",
@@ -3693,6 +3698,7 @@ function detailRows(
 function operatorBaseEfficiency(
   facility: EfficiencyFacility,
   placement: Placement,
+  ruleset: EfficiencyRuleset,
 ): number {
   if (facility.type === "meeting") {
     return isCurrentlyWorking(placement) ? 5 : 0;
@@ -3707,7 +3713,30 @@ function operatorBaseEfficiency(
       facility.type === "trading" || facility.type === "manufacture" ? 1 : 5;
     return isCurrentlyWorking(placement) ? value : 0;
   }
+  if (facility.type === "recycle") {
+    return isCurrentlyWorking(placement)
+      ? (ruleset.recycle?.basicSpeedBuff ?? 0) * 100
+      : 0;
+  }
   return 0;
+}
+
+function recycleBoostItem(
+  context: PlanContext,
+  facility: EfficiencyFacility,
+): { name: string; addedTime: number } | undefined {
+  const rules = context.ruleset.recycle;
+  const itemId = context.settings.recycleBoostItemId;
+  if (
+    facility.type !== "recycle" ||
+    !rules ||
+    !rules.outputPool ||
+    facility.level < rules.speedUpUnlockLevel ||
+    !itemId
+  ) {
+    return undefined;
+  }
+  return rules.inputItems.find((item) => item.itemId === itemId);
 }
 
 function operatorTrainingEfficiency(placement: Placement): number {
@@ -3779,7 +3808,8 @@ function calculateFacility(
   );
   const placements = placementsInFacility(context, facility);
   const moodEfficiency = placements.reduce(
-    (total, placement) => total + operatorBaseEfficiency(facility, placement),
+    (total, placement) =>
+      total + operatorBaseEfficiency(facility, placement, context.ruleset),
     0,
   );
   let baseEfficiency = facilityBaseEfficiency(
@@ -3787,6 +3817,9 @@ function calculateFacility(
     facility.level,
     context.ruleset,
   );
+  if (facility.type === "recycle" && recycleBoostItem(context, facility)) {
+    baseEfficiency += (context.ruleset.recycle?.boostSpeed ?? 0) * 100;
+  }
   if (facility.type === "meeting") {
     const atmosphere = context.facilities
       .filter((candidate) => candidate.type === "dormitory")
@@ -3889,6 +3922,21 @@ function calculateFacility(
   );
   if (result.production && cluePreferences.length > 0) {
     result.production.cluePreferences = cluePreferences;
+  }
+  if (facility.type === "recycle" && production && result.production) {
+    const timeRequirement = context.ruleset.recycle?.timeRequirement ?? 0;
+    const cycleRate = timeRequirement > 0 ? 3600 / timeRequirement : 0;
+    const effectiveAmountPerHour =
+      result.production.effectiveAmountPerHour ??
+      result.production.amountPerHour;
+    const scale =
+      production.amountPerHour > EPSILON
+        ? effectiveAmountPerHour / production.amountPerHour
+        : 0;
+    result.recycleOutputs = recycleOutputRates(
+      context.ruleset.recycle,
+      cycleRate * (result.efficiency / 100) * scale,
+    );
   }
   return result;
 }
@@ -4150,6 +4198,31 @@ function productionFor(
           amount * multiplier,
         ]),
       ),
+    };
+  }
+  if (facility.type === "recycle") {
+    const rules = context.ruleset.recycle;
+    const timeRequirementHours = (rules?.timeRequirement ?? 0) / 3600;
+    if (!rules || timeRequirementHours <= 0) return undefined;
+    const expectedItemsPerDraw = expectedRecycleOutputPerDraw(rules).reduce(
+      (total, item) => total + item.amount,
+      0,
+    );
+    const baseAmountPerHour = expectedItemsPerDraw / timeRequirementHours;
+    const amountPerHour = baseAmountPerHour * (efficiency / 100);
+    const boostItem = recycleBoostItem(context, facility);
+    const materialPerHour = boostItem
+      ? { [boostItem.name]: -3600 / boostItem.addedTime }
+      : undefined;
+    return {
+      product: RECYCLE_OUTPUT_PRODUCT,
+      baseAmountPerHour,
+      baseAmountPerDay: baseAmountPerHour * 24,
+      amountPerHour,
+      amountPerDay: amountPerHour * 24,
+      itemRate: amountPerHour,
+      ...(materialPerHour ? { baseMaterialPerHour: materialPerHour } : {}),
+      ...(materialPerHour ? { materialPerHour } : {}),
     };
   }
   if (facility.type === "meeting") {
@@ -4440,6 +4513,32 @@ function capacityCalculationFor(
         total: value.base + endSkill,
         segments: publicCapacitySegments(segments),
         itemVolume: rule?.volume,
+      },
+      segments,
+    };
+  }
+  if (facility.type === "recycle") {
+    const rules = context.ruleset.recycle;
+    const phase = rules?.phases[facility.level - 1];
+    if (!rules || !phase) return undefined;
+    const skill = attributeState.attributes.storageCap?.skill ?? 0;
+    const segments = capacitySegmentsFor(
+      context,
+      facility,
+      attributeState,
+      active,
+      catalog,
+      rules.baseCapacity,
+      phase.recycleCapacity + skill,
+    );
+    return {
+      capacity: {
+        label: "储藏容量",
+        unit: "件",
+        base: rules.baseCapacity,
+        skill: phase.recycleCapacity + skill,
+        total: rules.baseCapacity + phase.recycleCapacity + skill,
+        segments: publicCapacitySegments(segments),
       },
       segments,
     };
@@ -4806,7 +4905,11 @@ function calculatePlan(
       if (facility.index === 0 && powerResult) facilities.push(powerResult);
       return;
     }
-    if (!placementsInFacility(context, facility).length) return;
+    if (
+      !placementsInFacility(context, facility).length &&
+      facility.type !== "recycle"
+    )
+      return;
     const state = attributes.get(facility.id) ?? {
       attributes: {},
       rawOrderLimit: 0,
@@ -5230,6 +5333,35 @@ function calculateEfficiencyInternal(
     (total, plan) => total + plan.durationHours,
     0,
   );
+  const recycleOutputAmounts = new Map<
+    string,
+    { itemId: string; name: string; amount: number }
+  >();
+  if (totalHours > EPSILON) {
+    plans.forEach((plan) => {
+      plan.facilities.forEach((facility) => {
+        facility.recycleOutputs?.forEach((output) => {
+          const current = recycleOutputAmounts.get(output.itemId);
+          recycleOutputAmounts.set(output.itemId, {
+            itemId: output.itemId,
+            name: output.name,
+            amount:
+              (current?.amount ?? 0) +
+              output.amountPerHour * plan.durationHours,
+          });
+        });
+      });
+    });
+  }
+  const recycleOutputs: RecycleItemDailyOutput[] = [
+    ...recycleOutputAmounts.values(),
+  ]
+    .map(({ itemId, name, amount }) => ({
+      itemId,
+      name,
+      amountPerDay: (amount * 24) / totalHours,
+    }))
+    .filter((output) => Math.abs(output.amountPerDay) > EPSILON);
   const dailyProductions = aggregateDailyProductions(plans, totalHours);
   if (maaDroneAcceleration?.enabled) {
     applyMaaDroneFlows(
@@ -5254,6 +5386,7 @@ function calculateEfficiencyInternal(
       dailyFacilities: aggregateDaily(plans, totalHours),
       dailyProductions,
       dailyOutputs: droneOutput,
+      recycleOutputs,
       ...(fiammetta ? { fiammetta } : {}),
       fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
       warnings: plans.flatMap((plan) => plan.warnings),
@@ -5267,6 +5400,7 @@ function calculateEfficiencyInternal(
     dailyFacilities: aggregateDaily(plans, totalHours),
     dailyProductions,
     dailyOutputs,
+    recycleOutputs,
     ...(fiammetta ? { fiammetta } : {}),
     fiammettaWarnings: plans.flatMap((plan) => plan.fiammettaWarnings),
     warnings: plans.flatMap((plan) => plan.warnings),

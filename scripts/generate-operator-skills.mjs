@@ -41,6 +41,7 @@ const ROOM_MAP = {
   人力办公室: "hire",
   办公室: "hire",
   训练室: "training",
+  回收站: "recycle",
   宿舍: "dormitory",
 };
 const ROOM_TYPE_MAP = {
@@ -52,6 +53,7 @@ const ROOM_TYPE_MAP = {
   HIRE: "hire",
   WORKSHOP: "processing",
   TRAINING: "training",
+  RECYCLE: "recycle",
   DORMITORY: "dormitory",
 };
 const ROOM_LABELS = Object.fromEntries(
@@ -73,6 +75,7 @@ const OUTPUT_ROOMS = new Set([
   "power",
   "meeting",
   "hire",
+  "recycle",
   "dormitory",
 ]);
 const ROOM_ORDER = [
@@ -84,6 +87,7 @@ const ROOM_ORDER = [
   "hire",
   "processing",
   "training",
+  "recycle",
   "dormitory",
 ];
 
@@ -3803,6 +3807,7 @@ function main() {
         }
         const room = ROOM_TYPE_MAP[buff.roomType ?? ""];
         if (!room) continue;
+        if (room === "recycle") continue;
         if (!OUTPUT_ROOMS.has(room)) {
           skippedFacilitySkillCount += 1;
           continue;
@@ -3824,6 +3829,36 @@ function main() {
       rarity: rarityValue(character.rarity),
       records,
     });
+  }
+
+  for (const [id, recycleOperator] of Object.entries(
+    buildingData.recycleOperators ?? {},
+  )) {
+    const character = characterTable[id];
+    const operator = byOperator.get(id) ?? {
+      name: character?.name ?? recycleOperator.name,
+      rarity: rarityValue(character?.rarity),
+      records: [],
+    };
+    for (const buffData of recycleOperator.buffData ?? []) {
+      const buff = buildingData.recycleBuffs?.[buffData.buffId ?? ""];
+      if (!buff) {
+        missingBuffCount += 1;
+        continue;
+      }
+      operator.records.push({
+        id,
+        name: character?.name ?? recycleOperator.name,
+        slot: 1,
+        room: "recycle",
+        roomLabel: ROOM_LABELS.recycle,
+        condition: buffData.cond,
+        skillName: buff.buffName ?? buffData.buffId ?? "未命名技能",
+        description: buff.description ?? "",
+        efficiency: buff.efficiency,
+      });
+    }
+    byOperator.set(id, operator);
   }
 
   if (!fs.existsSync(PACKAGE_OPERATOR_DIR)) {
@@ -3864,13 +3899,23 @@ function main() {
             type: "elite",
             value: 0,
           };
-          const effects = parseSkillDesc(
-            record.description,
-            record.roomLabel,
-            (message) => warn(`[${id}] ${record.skillName}：${message}`),
-            record.skillName,
-            id,
-          );
+          const effects =
+            record.room === "recycle" && Number.isFinite(record.efficiency)
+              ? [
+                  {
+                    target: "recycle",
+                    stat: "recycleSpd",
+                    value: record.efficiency,
+                    text: record.description,
+                  },
+                ]
+              : parseSkillDesc(
+                  record.description,
+                  record.roomLabel,
+                  (message) => warn(`[${id}] ${record.skillName}：${message}`),
+                  record.skillName,
+                  id,
+                );
           if (moodCheck?.[record.name]?.[record.skillName] === true) {
             effects.forEach((effect) => {
               if (effect.condition) effect.condition.moodCheck = true;

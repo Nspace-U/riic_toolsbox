@@ -198,6 +198,9 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
     layout: resolvedLayout,
     plans: resolvedPlans,
   };
+  if (document.settings) {
+    delete document.settings.recycleBoostItemId;
+  }
   removeRoomDescriptions(document);
   mapMaaProducts(document, MAA_PRODUCT_TO_INTERNAL);
   mapMaaDrones(document, true);
@@ -268,6 +271,12 @@ export function serializeMaaSchedule(
   applyDocumentDefaults(normalized);
   mapMaaDrones(normalized, false);
   mapMaaProducts(normalized, INTERNAL_PRODUCT_TO_MAA);
+  if (normalized.settings) {
+    delete normalized.settings.recycleBoostItemId;
+    if (Object.keys(normalized.settings).length === 0) {
+      delete normalized.settings;
+    }
+  }
   validateSchedule(normalized);
   return JSON.stringify(normalized, null, 2);
 }

@@ -37,11 +37,64 @@ export interface TorappuBuff {
   description?: string;
 }
 
+export interface TorappuRecyclePoolItem {
+  itemId: string;
+  weight: number;
+  count: number;
+  extraPoolValueChange: number;
+}
+
+export interface TorappuRecycleData {
+  recycleData?: {
+    basicSpeedBuff?: number;
+    phases?: Array<{ recycleCapacity?: number; recycleSpeed?: number }>;
+  };
+  recycleRoomConsts?: {
+    recycleTimeRequirement?: number;
+    recycleBaseCapacity?: number;
+    recycleBoostSpeed?: number;
+    recycleBoostLimit?: number;
+    recycleBoostLimitProtect?: number;
+    recycleSpeedUpUnlockLevel?: number;
+    recycleTwoPersonUnlockLevel?: number;
+  };
+  recycleRoomOutputPoolDatas?: Record<
+    string,
+    {
+      itemPoolId: string;
+      itemPoolStartTime: number;
+      itemPoolEndTime: number;
+      extraPoolId: string;
+      extraPoolRequirement: number;
+    }
+  >;
+  recycleRoomOutputPoolContentDatas?: Record<
+    string,
+    { items: TorappuRecyclePoolItem[] }
+  >;
+  recycleRoomInputItemDatas?: Record<
+    string,
+    { itemId: string; addedTime: number }
+  >;
+  recycleRoom?: {
+    id: string;
+    maxCount: number;
+    phases: Array<{ electricity: number; maxStationedNum: number }>;
+  };
+  recycleRoomUnlockConds?: Record<string, unknown>;
+  recycleRoomPrefab?: Record<string, unknown>;
+  recycleBuffs?: Record<string, TorappuBuff & { efficiency?: number }>;
+  recycleOperators?: Record<
+    string,
+    { name: string; buffData: TorappuBuffData[] }
+  >;
+}
+
 export interface TorappuCharacterTable {
   [operatorId: string]: TorappuCharacter;
 }
 
-export interface TorappuBuildingData {
+export interface TorappuBuildingData extends TorappuRecycleData {
   buffs?: Record<string, TorappuBuff>;
 }
 
@@ -79,6 +132,7 @@ const FACILITY_LABELS: Record<string, string> = {
   MANUFACTURE: "制造站",
   MEETING: "会客室",
   POWER: "发电站",
+  RECYCLE: "回收站",
   TRADING: "贸易站",
   TRAINING: "训练室",
   WORKSHOP: "加工站",

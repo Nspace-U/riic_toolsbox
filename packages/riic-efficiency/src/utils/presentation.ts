@@ -214,6 +214,7 @@ const RESOURCE_LABELS: Record<string, string> = {
   无人机: "无人机",
   信用: "信用",
   公开招募标签刷新次数: "公开招募标签刷新次数",
+  回收道具: "回收道具",
   固源岩: "固源岩",
   装置: "装置",
 };
@@ -282,6 +283,7 @@ const EFFICIENCY_STAT_LABELS: Record<string, string> = {
   tradeGapEff: "订单差值效率",
   tradeNetEff: "贸易净效率",
   manuProd: "制造效率",
+  recycleSpd: "回收效率",
   clueSpeed: "线索速度",
   clueChance: "线索概率",
   hireSpd: "公开招募效率",
@@ -308,6 +310,7 @@ const PERCENTAGE_EFFICIENCY_STATS = new Set([
   "tradeGapEff",
   "tradeNetEff",
   "manuProd",
+  "recycleSpd",
   "clueSpeed",
   "clueChance",
   "hireSpd",

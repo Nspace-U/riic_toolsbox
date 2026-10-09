@@ -1,4 +1,5 @@
 import type { TorappuItemTable } from "@/types/torappu";
+import type { TorappuBuildingData } from "@/utils/parseTorappuData";
 
 export type EliteLevel = 0 | 1 | 2;
 
@@ -83,4 +84,5 @@ export interface BaseData {
   terms: BaseSkillTerms;
   metadata?: BaseDataMetadata;
   itemTable?: TorappuItemTable;
+  buildingData?: TorappuBuildingData;
 }

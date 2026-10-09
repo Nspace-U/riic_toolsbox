@@ -17,6 +17,7 @@ export interface SanitySettings {
   orundum: number;
   credit: number;
   recruitRefresh: number;
+  recycleItemSanity?: number;
 }
 
 export const DEFAULT_SANITY_SETTINGS: SanitySettings = {
@@ -37,6 +38,7 @@ export interface SanityValues {
   credit: number;
   recruitRefresh: number;
   originiumShard: number;
+  recycleItemSanity: number | null;
   materials?: Readonly<Record<string, number | null>>;
 }
 
@@ -115,6 +117,13 @@ const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
     value: (values) => values.recruitRefresh,
   },
   {
+    resource: "回收道具",
+    label: "回收道具",
+    amountUnit: "件",
+    amountFactor: 1,
+    value: (values) => values.recycleItemSanity,
+  },
+  {
     resource: "源石碎片",
     label: "源石碎片",
     amountUnit: "源石碎片",
@@ -154,6 +163,7 @@ export function calculateSanityValues(settings: SanitySettings): SanityValues {
     credit: settings.credit,
     recruitRefresh: settings.recruitRefresh,
     originiumShard,
+    recycleItemSanity: settings.recycleItemSanity ?? null,
   };
 }
 

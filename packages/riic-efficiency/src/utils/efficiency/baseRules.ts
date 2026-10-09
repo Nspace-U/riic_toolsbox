@@ -9,6 +9,7 @@ export const WORK_ROOM_KEYS: RoomKey[] = [
   "power",
   "meeting",
   "hire",
+  "recycle",
 ];
 
 export const BASE_EFFICIENCY: Partial<Record<RoomKey, number>> = {
@@ -98,6 +99,38 @@ export interface TradeOrder {
   ignoreEfficiency?: boolean;
 }
 
+export interface RecycleOutputPoolItem {
+  itemId: string;
+  name: string;
+  weight: number;
+  count: number;
+  extraPoolValueChange: number;
+}
+
+export interface RecycleRules {
+  basicSpeedBuff: number;
+  phases: Array<{
+    recycleCapacity: number;
+    recycleSpeed: number;
+    maxStationedNum: number;
+  }>;
+  timeRequirement: number;
+  baseCapacity: number;
+  boostSpeed: number;
+  boostLimit: number;
+  boostLimitProtect: number;
+  speedUpUnlockLevel: number;
+  twoPersonUnlockLevel: number;
+  inputItems: Array<{ itemId: string; name: string; addedTime: number }>;
+  outputPool?: {
+    id: string;
+    extraPoolId: string;
+    extraPoolRequirement: number;
+    normalItems: RecycleOutputPoolItem[];
+    extraItems: RecycleOutputPoolItem[];
+  };
+}
+
 export interface EfficiencyRuleset {
   schemaVersion: number;
   version: string;
@@ -111,6 +144,7 @@ export interface EfficiencyRuleset {
   hireLimit: number;
   droneLimit: number;
   baseEfficiency: Partial<Record<RoomKey, number>>;
+  recycle?: RecycleRules;
   meetingEfficiencyByLevel: Record<number, number>;
   manufactureStorageByLevel: Record<number, number>;
   tradeOrderLimitByLevel: Record<number, number>;
@@ -263,6 +297,9 @@ export function facilityBaseEfficiency(
 ): number {
   if (type === "meeting") {
     return ruleset.meetingEfficiencyByLevel[level] ?? 107;
+  }
+  if (type === "recycle") {
+    return (ruleset.recycle?.phases[level - 1]?.recycleSpeed ?? 0) * 100;
   }
   return ruleset.baseEfficiency[type] ?? 0;
 }

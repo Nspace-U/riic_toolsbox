@@ -9,6 +9,7 @@ export const ROOM_KEYS = [
   "hire",
   "processing",
   "training",
+  "recycle",
   "dormitory",
 ] as const;
 
@@ -95,6 +96,7 @@ export interface ScheduleSettings {
   treatSkillsAsUnlocked?: boolean;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
   runOrderEnabled?: boolean;
+  recycleBoostItemId?: string;
 }
 
 export interface ScheduleDocument {

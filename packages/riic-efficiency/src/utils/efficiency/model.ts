@@ -48,6 +48,7 @@ export const DAILY_OUTPUT_ORDER = [
   "无人机",
   "信用",
   "公开招募标签刷新次数",
+  "回收道具",
 ];
 export const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
   莱茵生命: 1,
@@ -61,6 +62,7 @@ export const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
 export const EFFICIENCY_STATS = new Set([
   "tradeSpd",
   "manuProd",
+  "recycleSpd",
   "clueSpeed",
   "hireSpd",
   "droneCharge",
@@ -69,6 +71,7 @@ export const EFFICIENCY_STATS = new Set([
 export const DIRECT_FACILITY_EFFICIENCY_STATS = new Set([
   "tradeSpd",
   "manuProd",
+  "recycleSpd",
   "droneCharge",
   "clueSpeed",
   "hireSpd",
@@ -78,6 +81,7 @@ export const PERCENTAGE_EFFICIENCY_STATS: Partial<
 > = {
   trading: "tradeSpd",
   manufacture: "manuProd",
+  recycle: "recycleSpd",
   power: "droneCharge",
   meeting: "clueSpeed",
   hire: "hireSpd",

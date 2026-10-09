@@ -167,6 +167,7 @@ export function inferScheduleLayout(plans: Plan[]): LayoutEntry[] {
       layout,
     );
   });
+  addLevel("recycle", [3], layout);
 
   const beforeDormitory = powerOfLayout(layout);
   addLevel(

@@ -101,8 +101,8 @@ export function layoutTextFor(layout: LayoutEntry[]): string {
   }
 
   const coreTypes = LAYOUT_INPUT_ROWS[0] ?? [];
-  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 4) ?? [];
-  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[4];
+  const functionalTypes = LAYOUT_INPUT_ROWS[1]?.slice(0, 5) ?? [];
+  const dormitoryType = LAYOUT_INPUT_ROWS[1]?.[5];
   return [
     coreTypes.map((type) => levelsFor(type)).join(" "),
     `${functionalTypes.map((type) => levelsFor(type)).join("")} ${dormitoryType ? levelsFor(dormitoryType) : "0"}`,
@@ -165,6 +165,7 @@ export function layoutWithBuildChain(
     "processing",
     "hire",
     "training",
+    "recycle",
     "dormitory",
   ];
   return buildOrder.flatMap((type) => {

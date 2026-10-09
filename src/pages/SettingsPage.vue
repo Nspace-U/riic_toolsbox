@@ -26,6 +26,7 @@ import {
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useSanitySettings } from "@/composables/useSanitySettings";
 import {
+  buildRecycleRules,
   getRiicEfficiencyCatalog,
   getRiicEfficiencyOperatorSkillFile,
 } from "@/adapters/riicEfficiencyData";
@@ -63,7 +64,15 @@ const {
   resetProductColor,
   resetFiammettaColor,
 } = useFacilityColors();
-const { operators, itemTable, ready: baseDataReady } = useBaseData();
+const {
+  operators,
+  itemTable,
+  buildingData,
+  ready: baseDataReady,
+} = useBaseData();
+const recycleRules = computed(() =>
+  buildRecycleRules(buildingData.value, itemTable.value),
+);
 const { isBasePointVisible, setBasePointVisible, setAllBasePointsVisible } =
   useBasePointDisplaySettings();
 const {
@@ -133,7 +142,7 @@ const {
   resetSanitySetting,
   setSanityMaterialSetting,
   resetSanityMaterialSetting,
-} = useSanitySettings(itemTable);
+} = useSanitySettings(itemTable, recycleRules);
 const {
   lmdDroneStrategies,
   droneOverflowTruncationEnabled,
@@ -682,6 +691,15 @@ const sanityDisplayRows = computed(() => [
     value: sanityValues.value.recruitRefresh,
     unit: "理智/次",
     source: "可修改",
+  },
+  {
+    label: "回收站每次产出道具",
+    value: sanityValues.value.recycleItemSanity,
+    unit: "理智/件",
+    source:
+      sanitySettings.value.recycleItemSanity === undefined
+        ? "按产出池概率加权"
+        : "可修改",
   },
   {
     label: "源石碎片",
@@ -1236,6 +1254,33 @@ watch(
                 size="small"
                 title="恢复默认"
                 @click="resetSanitySetting('recruitRefresh')"
+              >
+                <template #icon><ReloadOutlined /></template>
+              </a-button>
+            </div>
+          </a-form-item>
+          <a-form-item
+            extra="默认按回收站产出池概率和材料理智加权，可单独覆盖"
+            label="回收站每次产出道具等效理智"
+          >
+            <div class="settings-control-row">
+              <a-input-number
+                :min="0"
+                :step="0.01"
+                :value="
+                  sanitySettings.recycleItemSanity ??
+                  sanityValues.recycleItemSanity
+                "
+                @update:value="
+                  (value: number | null) =>
+                    setSanitySetting('recycleItemSanity', value)
+                "
+              />
+              <a-button
+                aria-label="恢复回收站每次产出道具等效理智默认值"
+                size="small"
+                title="恢复默认"
+                @click="resetSanitySetting('recycleItemSanity')"
               >
                 <template #icon><ReloadOutlined /></template>
               </a-button>

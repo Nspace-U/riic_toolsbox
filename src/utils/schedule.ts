@@ -21,6 +21,7 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   hire: "办公室",
   processing: "加工站",
   training: "训练室",
+  recycle: "回收站",
   dormitory: "宿舍",
 };
 
@@ -33,6 +34,7 @@ export const ROOM_REPRESENTATIVE_COLORS: Record<RoomKey, string> = {
   hire: "#C2C2C2",
   processing: "#D0D60D",
   training: "#8A1F39",
+  recycle: "#6CCBCB",
   dormitory: "#37CBBF",
 };
 
@@ -49,13 +51,13 @@ export const LAYOUT_TEXT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
   ["trading"],
   ["manufacture"],
   ["power"],
-  ["meeting", "hire", "processing", "training"],
+  ["meeting", "hire", "processing", "training", "recycle"],
   ["dormitory"],
 ];
 
 export const LAYOUT_INPUT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
   ["trading", "manufacture"],
-  ["meeting", "processing", "hire", "training", "dormitory"],
+  ["meeting", "processing", "hire", "training", "recycle", "dormitory"],
 ];
 
 export function orderedLayoutEntries<T extends LayoutEntry>(
@@ -82,6 +84,7 @@ export const ROOM_LEVEL_LIMITS: Record<RoomKey, { min: number; max: number }> =
     dormitory: { min: 1, max: 5 },
     processing: { min: 1, max: 3 },
     training: { min: 1, max: 3 },
+    recycle: { min: 1, max: 3 },
   };
 
 export const ROOM_LIMITS: Record<RoomKey, number> = {
@@ -94,11 +97,13 @@ export const ROOM_LIMITS: Record<RoomKey, number> = {
   dormitory: 4,
   processing: 1,
   training: 1,
+  recycle: 1,
 };
 
 export const BUILD_CHAIN_REQUIRED: Partial<Record<RoomKey, RoomKey>> = {
   hire: "processing",
   training: "hire",
+  recycle: "training",
 };
 
 export const CORE_ROOM_KEYS: RoomKey[] = ["trading", "manufacture", "power"];
@@ -113,6 +118,7 @@ export const ROOM_POWER_VALUES: Record<RoomKey, number[]> = {
   dormitory: [-10, -20, -30, -45, -65],
   processing: [-10, -10, -10],
   training: [-10, -30, -60],
+  recycle: [0, 0, 0],
 };
 
 export const PRODUCT_LABELS: Record<string, string> = {
@@ -175,6 +181,7 @@ export const RESOURCE_ITEM_ICONS: Record<string, string> = {
   无人机: "AP_BASE.png",
   信用: "SOCIAL_PT.png",
   公开招募标签刷新次数: "TKT_RECRUIT.png",
+  回收道具: "icon_workshop.png",
   固源岩: "MTL_SL_G2.png",
   装置: "MTL_SL_BOSS2.png",
 };
@@ -183,6 +190,7 @@ export const ROOM_ITEM_ICONS: Partial<Record<RoomKey, string>> = {
   power: "AP_BASE.png",
   meeting: "SOCIAL_PT.png",
   hire: "TKT_RECRUIT.png",
+  recycle: "icon_workshop.png",
 };
 
 export function facilityProductIconFile(
@@ -238,6 +246,7 @@ const FULL_RIGHT_ROOM_KEYS: RoomKey[] = [
   "processing",
   "hire",
   "training",
+  "recycle",
 ];
 
 function uniqueScheduleTags(tags: readonly string[]): string[] {
@@ -353,10 +362,10 @@ export function parseLayoutText(text: string): LayoutEntry[] {
   }
 
   const functionalToken = rowTokens[1]?.[0] ?? "";
-  const functionalTypes = LAYOUT_INPUT_ROWS[1]!.slice(0, 4);
-  if (!/^\d{4}$/.test(functionalToken)) {
+  const functionalTypes = LAYOUT_INPUT_ROWS[1]!.slice(0, 5);
+  if (!/^\d{4,5}$/.test(functionalToken)) {
     throw new ScheduleError(
-      "第 2 行第 1 段必须按会客室、加工站、办公室、训练室填写 4 位数字",
+      "第 2 行第 1 段必须按会客室、加工站、办公室、训练室、回收站填写 4 或 5 位数字",
     );
   }
   [...functionalToken].forEach((character, typeIndex) => {
@@ -375,7 +384,7 @@ export function parseLayoutText(text: string): LayoutEntry[] {
   });
 
   const dormitoryToken = rowTokens[1]?.[1] ?? "";
-  const dormitoryType = LAYOUT_INPUT_ROWS[1]![4]!;
+  const dormitoryType = LAYOUT_INPUT_ROWS[1]![5]!;
   if (dormitoryToken !== "0") {
     if (!/^\d+$/.test(dormitoryToken)) {
       throw new ScheduleError(
@@ -411,6 +420,9 @@ export function roomSlotCount(type: RoomKey, level: number): number {
   }
   if (type === "meeting" || type === "training") {
     return 2;
+  }
+  if (type === "recycle") {
+    return level >= 2 ? 2 : 1;
   }
   return 5;
 }
@@ -610,6 +622,13 @@ function validateSettings(settings: unknown): ScheduleSettings {
     typeof settings.lmdDroneStrategy !== "string"
   ) {
     fail("settings.lmdDroneStrategy", "必须是字符串");
+  }
+  if (
+    hasOwn(settings, "recycleBoostItemId") &&
+    (typeof settings.recycleBoostItemId !== "string" ||
+      settings.recycleBoostItemId.length === 0)
+  ) {
+    fail("settings.recycleBoostItemId", "必须是非空字符串");
   }
   if (
     hasOwn(settings, "overflowMode") &&

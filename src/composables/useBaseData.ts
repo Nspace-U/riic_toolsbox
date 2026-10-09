@@ -27,6 +27,7 @@ interface UseBaseDataResult {
   terms: Readonly<typeof terms>;
   metadata: Readonly<typeof metadata>;
   itemTable: Readonly<typeof itemTable>;
+  buildingData: Readonly<typeof buildingData>;
   loading: Readonly<typeof loading>;
   assetsLoading: Readonly<typeof assetsLoading>;
   assetsReady: Readonly<typeof assetsReady>;
@@ -41,6 +42,7 @@ const richTextStyles = ref<RichTextStyles>({});
 const terms = ref<BaseSkillTerms>({});
 const metadata = ref<BaseDataMetadata>();
 const itemTable = ref<TorappuItemTable>();
+const buildingData = ref<TorappuBuildingData>();
 const loading = ref(false);
 const assetsLoading = ref(false);
 const assetsReady = ref(false);
@@ -100,6 +102,7 @@ async function fetchTorappuData(): Promise<BaseData> {
     terms,
     metadata,
     itemTable,
+    buildingData,
   };
 }
 
@@ -150,6 +153,7 @@ async function load(): Promise<void> {
       terms.value = data.terms;
       metadata.value = data.metadata;
       itemTable.value = data.itemTable;
+      buildingData.value = data.buildingData;
       ready.value = true;
       startAssetPreload(data);
     })
@@ -159,6 +163,7 @@ async function load(): Promise<void> {
       terms.value = {};
       metadata.value = undefined;
       itemTable.value = undefined;
+      buildingData.value = undefined;
       ready.value = false;
       errorMessage.value =
         error instanceof Error ? error.message : "数据读取失败";
@@ -188,6 +193,7 @@ const result: UseBaseDataResult = {
   terms,
   metadata,
   itemTable,
+  buildingData,
   loading,
   assetsLoading,
   assetsReady,

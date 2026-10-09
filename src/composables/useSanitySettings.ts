@@ -10,6 +10,8 @@ import {
   sanityMaterialItems,
 } from "@/utils/sanityMaterials";
 import type { TorappuItemTable } from "@/types/torappu";
+import type { RecycleRules } from "@arknights/riic-efficiency";
+import { recycleOutputItemSanity } from "@arknights/riic-efficiency";
 
 export const SANITY_SETTINGS_STORAGE_KEY = "riic-tools:sanity-settings:v1";
 
@@ -85,6 +87,9 @@ function readSanitySettings(): StoredSanitySettings {
       recruitRefresh: isFiniteNonNegative(candidate.recruitRefresh)
         ? candidate.recruitRefresh
         : DEFAULT_SANITY_SETTINGS.recruitRefresh,
+      recycleItemSanity: isFiniteNonNegative(candidate.recycleItemSanity)
+        ? candidate.recycleItemSanity
+        : undefined,
       materialSanityValues,
     };
   } catch {
@@ -148,17 +153,28 @@ function resetSanityMaterialSetting(itemId: string): void {
 
 export function useSanitySettings(
   itemTable: Readonly<Ref<TorappuItemTable | undefined>>,
+  recycleRules: Readonly<Ref<RecycleRules | undefined>>,
 ) {
   const materialItems = computed(() => sanityMaterialItems(itemTable.value));
-  const sanityValues = computed(() => ({
-    ...calculateSanityValues(sanitySettings.value),
-    materials: Object.fromEntries(
+  const sanityValues = computed(() => {
+    const materials = Object.fromEntries(
       materialItems.value.map((item) => [
         item.name,
         sanitySettings.value.materialSanityValues[item.itemId] ?? null,
       ]),
-    ),
-  }));
+    );
+    const recycleItemSanity =
+      sanitySettings.value.recycleItemSanity ??
+      recycleOutputItemSanity(
+        recycleRules.value,
+        sanitySettings.value.materialSanityValues,
+      );
+    return {
+      ...calculateSanityValues(sanitySettings.value),
+      recycleItemSanity,
+      materials,
+    };
+  });
 
   return {
     materialItems,

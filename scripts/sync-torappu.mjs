@@ -24,6 +24,11 @@ const DATA_FILES = [
     name: "item_table",
     path: "gamedata/latest/excel/item_table.json",
   },
+  {
+    name: "recycle_data",
+    path: "gamedata/latest/excel/recycle_data.json",
+    sourceOnly: true,
+  },
 ];
 
 const TARGET_ITEM_IDS = [
@@ -239,6 +244,12 @@ function selectBuildingData(buildingData, operatorIds) {
   return { buffs };
 }
 
+function selectRecycleBuildingData(recycleData) {
+  return Object.fromEntries(
+    Object.entries(recycleData).filter(([key]) => key.startsWith("recycle")),
+  );
+}
+
 function selectItemTable(itemTable) {
   const itemIds = new Set([
     ...TARGET_ITEM_IDS,
@@ -332,11 +343,15 @@ async function main() {
       operatorIds,
       previousCharacterTable,
     ),
-    building_data: selectBuildingData(rawData.building_data, operatorIds),
+    building_data: {
+      ...selectBuildingData(rawData.building_data, operatorIds),
+      ...selectRecycleBuildingData(rawData.recycle_data),
+    },
     gamedata_const: rawData.gamedata_const,
     item_table: selectItemTable(rawData.item_table),
   };
   for (const dataFile of DATA_FILES) {
+    if (dataFile.sourceOnly) continue;
     await writeJson(dataFile.path, data[dataFile.name]);
   }
 
@@ -344,7 +359,10 @@ async function main() {
   const buildingData = data.building_data;
   const itemTable = data.item_table;
   const skillIcons = new Set(
-    Object.values(buildingData.buffs ?? {})
+    [
+      ...Object.values(buildingData.buffs ?? {}),
+      ...Object.values(buildingData.recycleBuffs ?? {}),
+    ]
       .map((buff) => buff.skillIcon)
       .filter(Boolean)
       .map((icon) => `${icon}.png`),

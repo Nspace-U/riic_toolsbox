@@ -12,6 +12,7 @@ export type EfficiencyStat =
   | "tradeSpd"
   | "tradeGapEff"
   | "tradeNetEff"
+  | "recycleSpd"
   | "manuProd"
   | "clueSpeed"
   | "clueChance"
@@ -297,6 +298,18 @@ export interface ProductionValue {
   effectiveMaterialPerHour?: Record<string, number>;
 }
 
+export interface RecycleItemOutputRate {
+  itemId: string;
+  name: string;
+  amountPerHour: number;
+}
+
+export interface RecycleItemDailyOutput {
+  itemId: string;
+  name: string;
+  amountPerDay: number;
+}
+
 export interface DroneAccelerationDetail {
   planIndex: number;
   facilityId: string;
@@ -436,6 +449,7 @@ export interface FacilityEfficiencyResult {
   cluePreferences?: CluePreference[];
   capacity?: FacilityCapacity;
   production?: ProductionValue;
+  recycleOutputs?: RecycleItemOutputRate[];
   details: OperatorEfficiencyDetail[];
   baseDetails: OperatorEfficiencyDetail[];
   combinationDetails: OperatorEfficiencyDetail[];
@@ -531,6 +545,7 @@ export interface EfficiencyResult {
   dailyFacilities: FacilityEfficiencyResult[];
   dailyProductions: ProductionValue[];
   dailyOutputs: DailyOutput[];
+  recycleOutputs?: RecycleItemDailyOutput[];
   fiammetta?: FiammettaCalculation;
   fiammettaWarnings: string[];
   warnings: string[];

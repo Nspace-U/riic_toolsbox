@@ -1,0 +1,87 @@
+.ant-select-dropdown .simulator-recycle-boost-option {
+  display: grid;
+  grid-template-columns: 32px minmax(100px, 1fr) minmax(0, 3fr);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.ant-select-dropdown .simulator-recycle-boost-option img,
+.ant-modal .simulator-recycle-output-row img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.ant-select-dropdown .simulator-recycle-boost-values,
+.ant-modal .simulator-recycle-output-values {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+.ant-select-dropdown .simulator-recycle-boost-name,
+.ant-modal .simulator-recycle-output-detail > span {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.ant-select-dropdown .simulator-recycle-boost-option small,
+.ant-modal .simulator-recycle-output-row small {
+  color: #68756f;
+  overflow-wrap: anywhere;
+}
+
+.ant-modal .simulator-recycle-output-list {
+  display: grid;
+  gap: 8px;
+  max-block-size: 60vh;
+  margin-block-start: 12px;
+  overflow-y: auto;
+}
+
+.ant-modal .simulator-recycle-output-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-block-size: 44px;
+  padding-block: 4px;
+  border-block-end: 1px solid #e5ece8;
+}
+
+.ant-modal .simulator-recycle-output-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
+}
+
+@media (max-width: 600px) {
+  .ant-select-dropdown .simulator-recycle-boost-option {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .ant-select-dropdown .simulator-recycle-boost-values {
+    grid-column: 2;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .ant-select-dropdown .simulator-recycle-boost-option img,
+  .ant-modal .simulator-recycle-output-row img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .ant-modal .simulator-recycle-output-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ant-modal .simulator-recycle-output-values {
+    justify-content: flex-start;
+  }
+}

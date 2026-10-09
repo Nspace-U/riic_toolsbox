@@ -8,12 +8,16 @@ const props = withDefaults(
     tile: DisplayTile;
     icon?: string;
     accent?: string;
+    interactive?: boolean;
   }>(),
   {
     icon: undefined,
     accent: undefined,
+    interactive: false,
   },
 );
+
+const emit = defineEmits<{ activate: [] }>();
 
 const LINE_CLASSES: Record<string, string> = {
   "gross-points": "simulator-daily-output-gross-points",
@@ -31,17 +35,23 @@ function isNetTile(): boolean {
 </script>
 
 <template>
-  <div
+  <component
+    :is="props.interactive ? 'button' : 'div'"
     :class="{
       'simulator-daily-output-item--net': isNetTile(),
       'simulator-daily-output-item--accent': props.accent !== undefined,
+      'simulator-daily-output-item--interactive': props.interactive,
     }"
     :style="
       props.accent === undefined
         ? {}
         : { '--simulator-daily-output-accent': props.accent }
     "
+    :type="props.interactive ? 'button' : undefined"
+    :title="props.interactive ? '查看回收材料日均产量' : undefined"
+    :aria-haspopup="props.interactive ? 'dialog' : undefined"
     class="simulator-daily-output-item"
+    @click="props.interactive && emit('activate')"
   >
     <img
       v-if="props.icon"
@@ -70,5 +80,5 @@ function isNetTile(): boolean {
         </template>
       </div>
     </div>
-  </div>
+  </component>
 </template>

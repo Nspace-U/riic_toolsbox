@@ -38,6 +38,12 @@ export {
   TRADE_ORDER_LIMIT,
 } from "./utils/efficiency/baseRules";
 export {
+  RECYCLE_OUTPUT_PRODUCT,
+  expectedRecycleOutputPerDraw,
+  recycleOutputItemSanity,
+  recycleOutputRates,
+} from "./utils/efficiency/recycling";
+export {
   clampMood,
   EPSILON,
   firstItemProgress,
@@ -207,6 +213,8 @@ export type {
   MaaDroneWarning,
   MaaDroneWarningCode,
   ProductionValue,
+  RecycleItemDailyOutput,
+  RecycleItemOutputRate,
   ScheduleLayoutSource,
   TradeOrderSummary,
   OperatorEfficiencyCalculation,
@@ -253,6 +261,8 @@ export type {
 export type {
   EfficiencyRuleset,
   ManufactureRule,
+  RecycleOutputPoolItem,
+  RecycleRules,
   TradeOrder,
 } from "./utils/efficiency/baseRules";
 export type { SanityFlowResource, SanityResourceAmounts } from "./utils/sanity";

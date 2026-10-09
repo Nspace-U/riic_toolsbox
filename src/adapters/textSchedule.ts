@@ -133,6 +133,7 @@ function stationInfo(title: string): {
     "hire",
     "processing",
     "training",
+    "recycle",
     "dormitory",
   ];
   const type = stationTypes.find((candidate: RoomKey) =>
@@ -146,6 +147,7 @@ function stationInfo(title: string): {
         hire: "办公室",
         processing: "加工站",
         training: "训练室",
+        recycle: "回收站",
         dormitory: "宿舍",
       }[candidate],
     ),

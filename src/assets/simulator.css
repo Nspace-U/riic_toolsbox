@@ -867,6 +867,19 @@
   border-radius: 5px;
 }
 
+:deep(button.simulator-daily-output-item--interactive) {
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+:deep(button.simulator-daily-output-item--interactive:focus-visible) {
+  outline: 2px solid #2486b3;
+  outline-offset: 2px;
+}
+
 :deep(.simulator-daily-output-item--net) {
   background: #fffaf3;
   border-style: dashed;

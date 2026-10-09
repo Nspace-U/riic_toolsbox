@@ -29,7 +29,10 @@ import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import type { EliteLevel, Operator } from "@/types/baseData";
-import { getRiicEfficiencyCatalog } from "@/adapters/riicEfficiencyData";
+import {
+  buildRecycleRules,
+  getRiicEfficiencyCatalog,
+} from "@/adapters/riicEfficiencyData";
 import {
   progressionNodesForFacility,
   resolveOperatorProgression,
@@ -133,7 +136,11 @@ const calculatorTitle = computed(() =>
   props.mode === "efficiency" ? "效率计算器" : "组合计算器",
 );
 const storageKey = computed(() => STORAGE_KEYS[props.mode]);
-const { operators, ready, errorMessage } = useBaseData();
+const { operators, itemTable, buildingData, ready, errorMessage } =
+  useBaseData();
+const recycleRules = computed(() =>
+  buildRecycleRules(buildingData.value, itemTable.value),
+);
 const { facilityColors, productColors } = useFacilityColors();
 const {
   activeProfile,
@@ -316,7 +323,7 @@ async function loadResources(): Promise<void> {
       nextDefaults,
       readStoredPatch(storageKey.value),
     );
-    catalog.value = getRiicEfficiencyCatalog();
+    catalog.value = getRiicEfficiencyCatalog(recycleRules.value);
     loadError.value = "";
   } catch (error: unknown) {
     loadError.value =

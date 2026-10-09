@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import "@/pages/styles/simulator-overlays.css";
+
 import {
   CheckOutlined,
   ClusterOutlined,
@@ -52,6 +54,7 @@ import SimulatorNumericValue from "@/components/SimulatorNumericValue.vue";
 import { DEFAULT_SCHEDULE_ADAPTER, parseScheduleImport } from "@/adapters";
 import { serializeMaaSchedule } from "@/adapters/maaSchedule";
 import {
+  buildRecycleRules,
   getRiicEfficiencyCatalog,
   getRiicEfficiencyTerms,
 } from "@/adapters/riicEfficiencyData";
@@ -96,6 +99,7 @@ import {
   schedulePeriodForRange,
   schedulePeriodMinute,
   createSpecialOperatorAvatarLabelResolver,
+  RECYCLE_OUTPUT_PRODUCT,
   facilityId,
   importPowerSummary,
   nodesForOperator,
@@ -351,7 +355,15 @@ const {
   duplicateDocument,
   reorderDocuments,
 } = useScheduleDocuments();
-const { operators, itemTable, ready: baseDataReady } = useBaseData();
+const {
+  operators,
+  itemTable,
+  buildingData,
+  ready: baseDataReady,
+} = useBaseData();
+const recycleRules = computed(() =>
+  buildRecycleRules(buildingData.value, itemTable.value),
+);
 const operatorByNameMap = computed(() => {
   const map = new Map<string, Operator>();
   operators.value.forEach((operator) => {
@@ -365,8 +377,7 @@ const specialOperatorAvatarLabelResolver = computed(() =>
   createSpecialOperatorAvatarLabelResolver(getRiicEfficiencyCatalog().terms),
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
-const { isEfficiencyNoticeVisible } =
-  useEfficiencyNoticeDisplaySettings();
+const { isEfficiencyNoticeVisible } = useEfficiencyNoticeDisplaySettings();
 const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
 const { resultResourceDisplayMode } = useResultResourceDisplaySettings();
 const { facilityCardSettings, facilityCardIconScale } =
@@ -379,7 +390,7 @@ const {
   treatSkillsAsUnlocked,
 } = useOperatorProgression();
 const { operatorPickerColumns } = useOperatorPickerSettings();
-const { sanityValues } = useSanitySettings(itemTable);
+const { sanityValues } = useSanitySettings(itemTable, recycleRules);
 const { lmdDroneStrategies, droneOverflowTruncationEnabled } =
   useDroneStrategySettings();
 
@@ -483,6 +494,8 @@ const fileInput = ref<HTMLInputElement>();
 const importDraft = ref<ImportDraftState>();
 const lmdDroneStrategyDraft = ref("");
 const deleteScheduleModalOpen = ref(false);
+const recycleOutputDetailsOpen = ref(false);
+const recycleOutputDays = ref(1);
 const pendingDeleteSchedule = ref<{ id: string; title: string }>();
 const imageExportModalOpen = ref(false);
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
@@ -540,7 +553,7 @@ let operatorDragHoveredSlotKey: string | undefined;
 const operatorClipboard = ref<OperatorClipboard>();
 const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
-  "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 4 位依次为会客室、加工站、办公室、训练室，宿舍与其用空格分隔，0 表示不建造";
+  "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 5 位依次为会客室、加工站、办公室、训练室、回收站；旧四位格式表示未建回收站，宿舍与其用空格分隔，0 表示不建造";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let pendingOperatorSelection:
   | {
@@ -988,6 +1001,41 @@ const efficiencyNotices = computed<EfficiencyNotice[]>(() =>
   }),
 );
 
+const recycleBoostOptions = computed(() => {
+  const materialValues = sanityValues.value.materials ?? {};
+  return (recycleRules.value?.inputItems ?? [])
+    .map((item, sourceIndex) => ({
+      ...item,
+      sourceIndex,
+      sanity: materialValues[item.name] ?? null,
+    }))
+    .sort((left, right) => {
+      if (left.sanity === null && right.sanity !== null) return 1;
+      if (right.sanity === null && left.sanity !== null) return -1;
+      if (left.sanity === 0 && right.sanity !== 0) return -1;
+      if (right.sanity === 0 && left.sanity !== 0) return 1;
+      if (left.sanity !== null && right.sanity !== null) {
+        const leftRatio = left.addedTime / left.sanity;
+        const rightRatio = right.addedTime / right.sanity;
+        if (leftRatio !== rightRatio) return rightRatio - leftRatio;
+      }
+      return (
+        right.addedTime - left.addedTime || left.sourceIndex - right.sourceIndex
+      );
+    });
+});
+
+const recycleBoostSelectOptions = computed(() =>
+  recycleBoostOptions.value.map((item) => ({
+    value: item.itemId,
+    label: item.name,
+  })),
+);
+
+const recycleOutputItems = computed(
+  () => efficiencyResult.value?.recycleOutputs ?? [],
+);
+
 const simulatorNotices = computed<EfficiencyNotice[]>(() => {
   const notices = efficiencyNotices.value.filter(
     (notice) =>
@@ -1019,6 +1067,7 @@ const currentEfficiencySettings = computed(() => {
       Math.floor(settings?.fiammettaDirectCount ?? 3),
     ),
     preferMaxJieEfficiency: settings?.preferMaxJieEfficiency !== false,
+    recycleBoostItemId: settings?.recycleBoostItemId,
     firstItemProgress:
       typeof firstItemProgress === "number"
         ? Math.max(0, Math.min(100, firstItemProgress * 100))
@@ -1733,6 +1782,33 @@ function updateEfficiencyBooleanSetting(
   updateCurrent((document) => {
     document.settings = { ...(document.settings ?? {}), [key]: value };
   });
+}
+
+function updateRecycleBoostItem(itemId: string | undefined): void {
+  updateCurrent((document) => {
+    const settings = { ...(document.settings ?? {}) };
+    if (recycleBoostOptions.value.some((item) => item.itemId === itemId)) {
+      settings.recycleBoostItemId = itemId;
+    } else {
+      delete settings.recycleBoostItemId;
+    }
+    document.settings = settings;
+  });
+}
+
+function recycleBoostOption(
+  itemId: string,
+): (typeof recycleBoostOptions.value)[number] | undefined {
+  return recycleBoostOptions.value.find((item) => item.itemId === itemId);
+}
+
+function recycleOutputAmount(amount: number): string {
+  return formatEfficiencyNumber(amount);
+}
+
+function openRecycleOutputDetails(): void {
+  recycleOutputDays.value = 1;
+  recycleOutputDetailsOpen.value = true;
 }
 
 function updateEfficiencyOverflowSetting(value: boolean): void {
@@ -4204,7 +4280,7 @@ function refreshEfficiencyCatalog(): void {
 
   efficiencyLoading.value = true;
   try {
-    efficiencyCatalog.value = getRiicEfficiencyCatalog();
+    efficiencyCatalog.value = getRiicEfficiencyCatalog(recycleRules.value);
   } catch (error: unknown) {
     efficiencyError.value =
       error instanceof Error ? error.message : "效率数据读取失败";
@@ -5263,10 +5339,7 @@ async function handleFileChange(event: Event): Promise<void> {
     const text = await file.text();
     const backup = parseScheduleBackup(text);
     if (backup) {
-      const idMap = appendDocuments(
-        backup.documents,
-        backup.activeDocumentId,
-      );
+      const idMap = appendDocuments(backup.documents, backup.activeDocumentId);
       const nextSettings = { ...simulatorEditSettings.value };
       backup.documents.forEach((document) => {
         const id = idMap.get(document.id);
@@ -7095,6 +7168,64 @@ defineExpose({ prepareScheduleReferenceImage });
           title="计算设置"
         >
           <a-form layout="vertical">
+            <a-form-item label="回收站加速材料">
+              <a-select
+                :value="currentEfficiencySettings.recycleBoostItemId"
+                :options="recycleBoostSelectOptions"
+                allow-clear
+                option-label-prop="label"
+                placeholder="不加速"
+                @update:value="updateRecycleBoostItem"
+              >
+                <template #option="{ value }">
+                  <div class="simulator-recycle-boost-option">
+                    <img
+                      v-if="recycleBoostOption(value)"
+                      :alt="recycleBoostOption(value)?.name ?? ''"
+                      :src="
+                        dailyOutputIconUrl(
+                          recycleBoostOption(value)?.name ?? '',
+                        )
+                      "
+                    />
+                    <div class="simulator-recycle-boost-name">
+                      {{ recycleBoostOption(value)?.name }}
+                    </div>
+                    <div class="simulator-recycle-boost-values">
+                      <small>
+                        {{
+                          formatEfficiencyNumber(
+                            (recycleBoostOption(value)?.addedTime ?? 0) / 3600,
+                          )
+                        }}
+                        小时
+                      </small>
+                      <small>
+                        {{
+                          recycleBoostOption(value)?.sanity === null
+                            ? "未设置理智"
+                            : `${formatEfficiencyNumber(recycleBoostOption(value)?.sanity ?? 0)} 理智`
+                        }}
+                      </small>
+                      <small>
+                        {{
+                          recycleBoostOption(value)?.sanity === null
+                            ? "—"
+                            : recycleBoostOption(value)?.sanity === 0
+                              ? "∞"
+                              : formatEfficiencyNumber(
+                                  (recycleBoostOption(value)?.addedTime ?? 0) /
+                                    3600 /
+                                    (recycleBoostOption(value)?.sanity ?? 1),
+                                )
+                        }}
+                        h/理智
+                      </small>
+                    </div>
+                  </div>
+                </template>
+              </a-select>
+            </a-form-item>
             <a-form-item>
               <a-checkbox
                 :checked="currentEfficiencySettings.clueExchanging"
@@ -7193,6 +7324,48 @@ defineExpose({ prepareScheduleReferenceImage });
           </a-form>
         </a-modal>
 
+        <a-modal
+          v-model:open="recycleOutputDetailsOpen"
+          :footer="null"
+          title="回收站材料日均产量"
+        >
+          <a-form layout="vertical">
+            <a-form-item label="统计天数">
+              <a-input-number
+                :min="0"
+                :step="1"
+                :value="recycleOutputDays"
+                @update:value="
+                  (value: number | null) => (recycleOutputDays = value ?? 0)
+                "
+              />
+            </a-form-item>
+          </a-form>
+          <div class="simulator-recycle-output-list">
+            <div
+              v-for="item in recycleOutputItems"
+              :key="item.itemId"
+              class="simulator-recycle-output-row"
+            >
+              <img :alt="item.name" :src="dailyOutputIconUrl(item.name)" />
+              <div class="simulator-recycle-output-detail">
+                <span>{{ item.name }}</span>
+                <div class="simulator-recycle-output-values">
+                  <small
+                    >{{ recycleOutputAmount(item.amountPerDay) }} 件/天</small
+                  >
+                  <strong>
+                    {{
+                      recycleOutputAmount(item.amountPerDay * recycleOutputDays)
+                    }}
+                    件
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a-modal>
+
         <div v-if="simulatorNotices.length" class="simulator-notice-list">
           <a-alert
             v-for="notice in simulatorNotices"
@@ -7270,7 +7443,12 @@ defineExpose({ prepareScheduleReferenceImage });
                   :key="tile.key"
                   :accent="displayTileAccent(tile)"
                   :icon="displayTileIconUrl(tile)"
+                  :interactive="
+                    tile.product === RECYCLE_OUTPUT_PRODUCT &&
+                    recycleOutputItems.length > 0
+                  "
                   :tile="tile"
+                  @activate="openRecycleOutputDetails"
                 />
                 <div
                   v-if="resultDisplay.dailyOutput.totalTile"
@@ -7351,7 +7529,9 @@ defineExpose({ prepareScheduleReferenceImage });
                       <SimulatorDisplayValue :value="entry.meta" />
                     </span>
                     <span
-                      v-for="(rate, index) in entry.baseRateLines ?? [entry.baseRate]"
+                      v-for="(rate, index) in entry.baseRateLines ?? [
+                        entry.baseRate,
+                      ]"
                       :key="index"
                       class="simulator-drone-scenario-rate"
                     >
