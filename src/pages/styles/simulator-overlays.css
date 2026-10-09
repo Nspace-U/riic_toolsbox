@@ -42,6 +42,22 @@
   overflow-y: auto;
 }
 
+.ant-modal .simulator-recycle-output-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+}
+
+.ant-modal .simulator-recycle-output-settings .ant-form-item {
+  min-inline-size: 0;
+  margin-block-end: 12px;
+}
+
+.ant-modal .simulator-recycle-output-settings .ant-segmented {
+  max-inline-size: 100%;
+}
+
 .ant-modal .simulator-recycle-output-row {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr);
@@ -61,6 +77,10 @@
 }
 
 @media (max-width: 600px) {
+  .ant-modal .simulator-recycle-output-settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .ant-select-dropdown .simulator-recycle-boost-option {
     grid-template-columns: 28px minmax(0, 1fr);
   }

@@ -7372,9 +7372,9 @@ defineExpose({ prepareScheduleReferenceImage });
         <a-modal
           v-model:open="recycleOutputDetailsOpen"
           :footer="null"
-          title="回收站材料日均产量"
+          title="回收站材料产量"
         >
-          <a-form layout="vertical">
+          <a-form class="simulator-recycle-output-settings" layout="vertical">
             <a-form-item label="统计天数">
               <a-input-number
                 :min="0"
