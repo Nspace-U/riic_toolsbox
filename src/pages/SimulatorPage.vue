@@ -1041,8 +1041,7 @@ interface RecycleOutputDisplayRow {
   key: string;
   label: string;
   amountPerDay: number;
-  itemName?: string;
-  tierLabel?: string;
+  iconName: string;
 }
 
 const RECYCLE_OUTPUT_GROUP_OPTIONS = [
@@ -1051,10 +1050,10 @@ const RECYCLE_OUTPUT_GROUP_OPTIONS = [
 ];
 
 const RECYCLE_OUTPUT_RARITIES = [
-  { key: "TIER_2", label: "T2" },
-  { key: "TIER_3", label: "T3" },
-  { key: "TIER_4", label: "T4" },
-  { key: "TIER_5", label: "T5" },
+  { key: "TIER_2", label: "T2", iconName: "固源岩" },
+  { key: "TIER_3", label: "T3", iconName: "扭转醇" },
+  { key: "TIER_4", label: "T4", iconName: "白马醇" },
+  { key: "TIER_5", label: "T5", iconName: "双极纳米片" },
 ];
 
 const recycleOutputDisplayRows = computed<RecycleOutputDisplayRow[]>(() => {
@@ -1063,13 +1062,14 @@ const recycleOutputDisplayRows = computed<RecycleOutputDisplayRow[]>(() => {
       key: item.itemId,
       label: item.name,
       amountPerDay: item.amountPerDay,
-      itemName: item.name,
+      iconName: item.name,
     }));
   }
 
-  return RECYCLE_OUTPUT_RARITIES.map(({ key, label }) => ({
+  return RECYCLE_OUTPUT_RARITIES.map(({ key, label, iconName }) => ({
     key,
     label: `${label} 材料`,
+    iconName,
     amountPerDay: recycleOutputItems.value.reduce(
       (total, item) =>
         itemTable.value?.items[item.itemId]?.rarity === key
@@ -1077,7 +1077,6 @@ const recycleOutputDisplayRows = computed<RecycleOutputDisplayRow[]>(() => {
           : total,
       0,
     ),
-    tierLabel: label,
   })).sort((left, right) => right.amountPerDay - left.amountPerDay);
 });
 
@@ -7400,13 +7399,9 @@ defineExpose({ prepareScheduleReferenceImage });
               class="simulator-recycle-output-row"
             >
               <img
-                v-if="item.itemName"
-                :alt="item.itemName"
-                :src="dailyOutputIconUrl(item.itemName)"
+                :alt="item.iconName"
+                :src="dailyOutputIconUrl(item.iconName)"
               />
-              <span v-else class="simulator-recycle-output-rarity">
-                {{ item.tierLabel }}
-              </span>
               <div class="simulator-recycle-output-detail">
                 <span>{{ item.label }}</span>
                 <div class="simulator-recycle-output-values">
