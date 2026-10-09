@@ -1,7 +1,7 @@
 import type { RecycleRules } from "./baseRules";
 import type { RecycleItemOutputRate } from "../../types/efficiency";
 
-export const RECYCLE_OUTPUT_PRODUCT = "回收道具";
+export const RECYCLE_OUTPUT_PRODUCT = "精英材料";
 
 export function expectedRecycleOutputPerDraw(
   rules: RecycleRules | undefined,

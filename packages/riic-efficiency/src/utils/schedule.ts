@@ -394,6 +394,7 @@ export const RESOURCE_ITEM_ICONS: Record<string, string> = {
   无人机: "AP_BASE.png",
   信用: "SOCIAL_PT.png",
   公开招募标签刷新次数: "TKT_RECRUIT.png",
+  精英材料: "MTL_SL_ALCOHOL1.png",
   固源岩: "MTL_SL_G2.png",
   装置: "MTL_SL_BOSS2.png",
 };
@@ -402,6 +403,7 @@ export const ROOM_ITEM_ICONS: Partial<Record<RoomKey, string>> = {
   power: "AP_BASE.png",
   meeting: "SOCIAL_PT.png",
   hire: "TKT_RECRUIT.png",
+  recycle: "MTL_SL_ALCOHOL1.png",
 };
 
 export function facilityProductIconFile(

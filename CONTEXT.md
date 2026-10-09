@@ -36,7 +36,7 @@
 - 组件数据目录同时输出版本化 `ruleset.json` 与 `manifest.json`；规则集参与基础效率、制造配方、贸易订单、容量、线索、招募标签和无人机计算，订单数量使用 `schedule.settings.tradeOrderCount`。
 - 当前项目所有效率计算直接调用 `@arknights/riic-efficiency` 公共 API；组件规则数据使用 `packages/riic-efficiency/data/ruleset.json`，宿主不再维护第二套效率逻辑或重复干员技能数据。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
-- 回收站 key 为 `recycle`，最多建造 1 间，建造依赖训练室存在（不检查训练室等级），不耗电；1 级 1 槽、2/3 级 2 槽。`sync-torappu.mjs` 通过现有 `DATA_FILES` / `fetchJson` 流程读取 Torappu `recycle_data.json`，把 `recycle*` 字段按源名合并到 `building_data.json` 顶层且不落独立快照；应用仍通过既有 `building_data.json` 路径读取。设施等级、产速、储藏容量、加速时长、产出池和进度均使用这些字段。空置时持续产出；加速道具 ID 保存在应用排班 `ScheduleSettings.recycleBoostItemId`，不属于 MAA 设置契约。结果按池权重给出道具总产量，并可展开各材料日均期望量。
+- 回收站 key 为 `recycle`，最多建造 1 间，建造依赖训练室存在（不检查训练室等级），不耗电；1 级 1 槽、2/3 级 2 槽。`sync-torappu.mjs` 通过现有 `DATA_FILES` / `fetchJson` 流程读取 Torappu `recycle_data.json`，把 `recycle*` 字段按源名合并到 `building_data.json` 顶层且不落独立快照；应用仍通过既有 `building_data.json` 路径读取。设施等级、产速、储藏容量、加速时长、产出池和进度均使用这些字段，2/3 级容量按 10 件基础容量计算，不将等级增量归类为技能。空置时持续产出；加速道具 ID 保存在应用排班 `ScheduleSettings.recycleBoostItemId`，不属于 MAA 设置契约。结果按池权重以“精英材料”汇总道具总产量，并可展开各材料日均期望量；展示图标使用扭转醇物品图标，设施默认强调色 `#6CCBCB` 与旅骨回收技能图标背景色一致。
 - 已修复琴柳“感染力”判断：以不含自身效果的办公室完整效率与 130% 比较，完整效率包含设施基础效率、有效干员心情效率和其他干员技能效率；低于 130% 时追加 20% 干员效率，恰好 130% 不触发。琴柳效果可与八幡海铃的设施基础效率叠加，不使用 `stack: "max"`；0 心情干员不提供自身心情/技能效率，但所在设施仍保留基础效率。
 - 已修复效率计算中的 `source: "stat"` 折算链：这类效果重新参与最终设施效率聚合，属性折算基数限定为同一设施内干员的直接效率贡献，并排除按设施数量计算的来源；新增正义骑士号、野鬃、槐琥回归场景。
 - 雪雉的 `source: "stat"` 使用 `statScope: "targetFacility"`，读取所有作用于目标贸易站的普通干员效率和贸易站特殊效率，包括跨设施的灵知、八幡海铃和琳琅诗怀雅效果；设施级 `stack: "max"` 效率不计入该基数。目标设施范围保留负数且无负向下限，孑的“摊贩经济”和“市井之道”效果通过 `excludeFromStat` 排除；槐琥显式使用 `sameFacility`，只读取同一物理制造站。

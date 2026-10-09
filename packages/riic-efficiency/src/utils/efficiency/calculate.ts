@@ -4522,22 +4522,23 @@ function capacityCalculationFor(
     const phase = rules?.phases[facility.level - 1];
     if (!rules || !phase) return undefined;
     const skill = attributeState.attributes.storageCap?.skill ?? 0;
+    const baseCapacity = rules.baseCapacity + phase.recycleCapacity;
     const segments = capacitySegmentsFor(
       context,
       facility,
       attributeState,
       active,
       catalog,
-      rules.baseCapacity,
-      phase.recycleCapacity + skill,
+      baseCapacity,
+      skill,
     );
     return {
       capacity: {
         label: "储藏容量",
         unit: "件",
-        base: rules.baseCapacity,
-        skill: phase.recycleCapacity + skill,
-        total: rules.baseCapacity + phase.recycleCapacity + skill,
+        base: baseCapacity,
+        skill,
+        total: baseCapacity + skill,
         segments: publicCapacitySegments(segments),
       },
       segments,

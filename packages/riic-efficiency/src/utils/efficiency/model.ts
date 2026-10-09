@@ -48,7 +48,7 @@ export const DAILY_OUTPUT_ORDER = [
   "无人机",
   "信用",
   "公开招募标签刷新次数",
-  "回收道具",
+  "精英材料",
 ];
 export const CLUE_PREFERENCE_BY_FACTION: Record<string, number> = {
   莱茵生命: 1,

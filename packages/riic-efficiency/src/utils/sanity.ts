@@ -117,8 +117,8 @@ const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
     value: (values) => values.recruitRefresh,
   },
   {
-    resource: "回收道具",
-    label: "回收道具",
+    resource: "精英材料",
+    label: "精英材料",
     amountUnit: "件",
     amountFactor: 1,
     value: (values) => values.recycleItemSanity,
