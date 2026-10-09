@@ -15350,5 +15350,124 @@
     "implementationDate": "2026-09-04 12:00",
     "implementationOrder": 428,
     "branch": "剑豪"
+  },
+  "char_4231_clemnt": {
+    "name": "克莱门莎",
+    "rarity": "TIER_6",
+    "profession": "WARRIOR",
+    "subProfessionId": "primguard",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "meet_spd&cost[110]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "meet_spd&cost_char[000]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ],
+    "implementationDate": "2026-10-04 12:00",
+    "implementationOrder": 434,
+    "branch": "本源近卫"
+  },
+  "char_393_toledo": {
+    "name": "德·托莱多",
+    "rarity": "TIER_5",
+    "profession": "SUPPORT",
+    "subProfessionId": "underminer",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "hire_spd_cost[113]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "hire_spd_cost[122]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "dorm_hireToRecAll[002]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ],
+    "implementationDate": "2026-10-04 12:00",
+    "implementationOrder": 433,
+    "branch": "削弱者"
+  },
+  "char_4232_hbound": {
+    "name": "旅骨",
+    "rarity": "TIER_5",
+    "profession": "SPECIAL",
+    "subProfessionId": "alchemist",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "recycle_spd&cost[000]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "recycle_spd&cost[010]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "workshop_formula_device[080]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ],
+    "implementationDate": "2026-10-04 12:00",
+    "implementationOrder": 432,
+    "branch": "炼金师"
   }
 }
