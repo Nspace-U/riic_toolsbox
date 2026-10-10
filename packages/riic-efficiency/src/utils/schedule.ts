@@ -69,6 +69,7 @@ function formatSchedulePeriodMinute(value: number): string {
 function periodIntervals(
   period: unknown,
   planIndex: number,
+  nextStart?: number,
 ): { intervals: PeriodInterval[]; start?: number; error?: string } {
   if (!Array.isArray(period) || period.length === 0 || period.length > 2) {
     return {
@@ -94,22 +95,27 @@ function periodIntervals(
       };
     }
     start ??= intervalStart;
+    const endAtHandoff =
+      intervalIndex === period.length - 1 &&
+      intervalEnd === nextStart &&
+      start !== intervalEnd;
     const addInterval = (
       intervalStartValue: number,
       intervalEndValue: number,
-    ) =>
-      intervals.push({
-        end: intervalEndValue + 1,
-        planIndex,
-        start: intervalStartValue,
-      });
+      endAtHandoff = false,
+    ) => {
+      const end = intervalEndValue + (endAtHandoff ? 0 : 1);
+      if (intervalStartValue < end) {
+        intervals.push({ end, planIndex, start: intervalStartValue });
+      }
+    };
     if (intervalStart === intervalEnd) {
-      addInterval(intervalStart, intervalEnd);
+      addInterval(intervalStart, intervalEnd, endAtHandoff);
     } else if (intervalStart < intervalEnd) {
-      addInterval(intervalStart, intervalEnd);
+      addInterval(intervalStart, intervalEnd, endAtHandoff);
     } else {
       addInterval(intervalStart, 1439);
-      addInterval(0, intervalEnd);
+      addInterval(0, intervalEnd, endAtHandoff);
     }
   }
   if (period.length === 2) {
@@ -159,7 +165,12 @@ export function analyzeSchedulePeriods(
       errors.push(`队列 ${planIndex + 1} 缺少 period 时间设置`);
       return;
     }
-    const parsed = periodIntervals(plan.period, planIndex);
+    const nextPeriod = document.plans[(planIndex + 1) % document.plans.length];
+    const nextStart =
+      document.plans.length > 1
+        ? schedulePeriodMinute(nextPeriod?.period?.[0]?.[0])
+        : undefined;
+    const parsed = periodIntervals(plan.period, planIndex, nextStart);
     if (parsed.error || parsed.start === undefined) {
       errors.push(parsed.error ?? `队列 ${planIndex + 1} 的 period 无效`);
       return;
