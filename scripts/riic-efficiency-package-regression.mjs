@@ -231,6 +231,24 @@ const noticeResult = {
           start: 3,
           end: 0,
         },
+        {
+          facility: "recycle",
+          facilityId: "recycle-0",
+          facilityIndex: 0,
+          operator: "赫默",
+          working: false,
+          start: 0,
+          end: 0,
+        },
+        {
+          facility: "processing",
+          facilityId: "processing-0",
+          facilityIndex: 0,
+          operator: "星源",
+          working: true,
+          start: 0,
+          end: 0,
+        },
       ],
       autoRestWarnings: [
         { operator: "阿米娅", reason: "no-space", startMood: 2 },
@@ -295,8 +313,11 @@ assert.deepEqual(
     {
       code: "mood-work-zero",
       level: "warning",
-      message: "有干员在工作后心情降至 0",
-      details: ["队列1 · 贸易站 1 · 陈：工作后心情从 3 降至 0"],
+      message: "有干员心情为 0",
+      details: [
+        "队列1 · 贸易站 1 · 陈：工作后心情从 3 降至 0",
+        "队列1 · 回收站 1 · 赫默：整轮心情为 0，未实际工作",
+      ],
     },
     {
       code: "mood-auto-rest-no-space",

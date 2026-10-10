@@ -18,6 +18,8 @@ import {
 import { mapSpecialOperators } from "./specialOperatorMappings";
 import { formatDurationHours, formatNumber } from "./presentation";
 import { formatFacilityResultLabel } from "./resultPresentation";
+import { WORK_ROOM_KEYS } from "./efficiency/baseRules";
+import { EPSILON } from "./efficiency/model";
 
 export interface EfficiencyNoticeDisplayOption {
   code: string;
@@ -51,11 +53,7 @@ export const EFFICIENCY_NOTICE_DISPLAY_OPTIONS: EfficiencyNoticeDisplayOption[] 
     },
     { code: "maa-drone-target", label: "无人机加速目标无效", level: "warning" },
     { code: "mood-inheritance", label: "发现心情继承异常", level: "warning" },
-    {
-      code: "mood-work-zero",
-      label: "有干员在工作后心情降至 0",
-      level: "warning",
-    },
+    { code: "mood-work-zero", label: "有干员心情为 0", level: "warning" },
     { code: "fiammetta-mood", label: "菲亚梅塔心情恢复提示", level: "warning" },
     {
       code: "schedule-period-gap",
@@ -245,17 +243,22 @@ export function buildEfficiencyNotices(
 
   const workZeroDetails = result.plans.flatMap((plan, planIndex) =>
     plan.moods
-      .filter((mood) => mood.working && mood.start > 0 && mood.end === 0)
-      .map(
-        (mood) =>
-          `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[mood.facility]} ${mood.facilityIndex + 1} · ${mood.operator}：工作后心情从 ${formatNumber(mood.start)} 降至 0`,
-      ),
+      .filter((mood) => WORK_ROOM_KEYS.includes(mood.facility))
+      .flatMap((mood) => {
+        const label = `${plan.name || `队列${planIndex + 1}`} · ${ROOM_LABELS[mood.facility]} ${mood.facilityIndex + 1} · ${mood.operator}`;
+        if (mood.start <= EPSILON) {
+          return [`${label}：整轮心情为 0，未实际工作`];
+        }
+        return mood.end <= EPSILON
+          ? [`${label}：工作后心情从 ${formatNumber(mood.start)} 降至 0`]
+          : [];
+      }),
   );
   if (workZeroDetails.length > 0) {
     notices.push({
       code: "mood-work-zero",
       level: "warning",
-      message: "有干员在工作后心情降至 0",
+      message: "有干员心情为 0",
       details: workZeroDetails,
     });
   }
