@@ -5,6 +5,7 @@ import type {
 } from "@/types/schedule";
 import { ROOM_KEYS } from "@/types/schedule";
 import {
+  DEFAULT_ROOM_PRODUCTS,
   DEFAULT_SOURCE_MATERIAL,
   ScheduleError,
   validateLayout,
@@ -127,6 +128,23 @@ function applyDocumentDefaults(document: ScheduleDocument): void {
   });
 }
 
+function applyImportedProductDefaults(document: ScheduleDocument): void {
+  document.plans.forEach((plan) => {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const rooms = plan.rooms[type];
+      const product = DEFAULT_ROOM_PRODUCTS[type];
+      if (!Array.isArray(rooms) || !product) {
+        return;
+      }
+      rooms.forEach((room) => {
+        if (isRecord(room) && !hasOwn(room, "product")) {
+          room.product = product;
+        }
+      });
+    });
+  });
+}
+
 function normalizePlanPeriods(document: ScheduleDocument): void {
   document.plans.forEach((plan) => {
     if (plan.period === undefined || !plan.settings) {
@@ -200,6 +218,7 @@ export function parseMaaScheduleText(text: string): ParsedSchedule {
   };
   removeRoomDescriptions(document);
   mapMaaProducts(document, MAA_PRODUCT_TO_INTERNAL);
+  applyImportedProductDefaults(document);
   mapMaaDrones(document, true);
   importFiammetta(document);
   applyDocumentDefaults(document);
