@@ -6796,7 +6796,7 @@ defineExpose({ prepareScheduleReferenceImage });
                             )
                           "
                           :name-editing="
-                            isOperatorNameInputVisible(
+                            isEditingOperatorSlot(
                               operatorSlotAddress(
                                 planIndex,
                                 row.type,

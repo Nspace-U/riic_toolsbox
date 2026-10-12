@@ -437,7 +437,7 @@
 }
 
 :deep(.simulator-slot-name-input--pending) {
-  color: #526164;
+  color: transparent;
   background: transparent;
   border-color: transparent;
   caret-color: transparent;
@@ -445,7 +445,7 @@
 }
 
 :deep(.simulator-slot-name-input--pending::placeholder) {
-  color: #8a9698;
+  color: transparent;
   opacity: 1;
 }
 

@@ -127,7 +127,10 @@ function showAvatar(): boolean {
       </template>
     </div>
     <span
-      :class="{ 'simulator-empty-slot-name--editing': nameInputVisible }"
+      :class="{
+        'simulator-empty-slot-name--editing':
+          nameInputVisible && !nameInputPending,
+      }"
       :style="nameStyle()"
       class="simulator-empty-slot-name"
       @click.stop="emit('click', $event)"
