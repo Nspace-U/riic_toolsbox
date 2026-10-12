@@ -30,6 +30,10 @@ import type {
   ScheduleDocument,
 } from "@/types/schedule";
 import {
+  basicCalculatorProductForRoom,
+  type BasicCalculatorProductDefaults,
+} from "@/utils/basicCalculator";
+import {
   DEFAULT_SOURCE_MATERIAL,
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
@@ -41,9 +45,7 @@ import {
   parseLayoutText,
   roomSlotCount,
 } from "@/utils/schedule";
-import {
-  facilityTitleStyle as computeFacilityTitleStyle,
-} from "@/utils/simulator/facilityTitle";
+import { facilityTitleStyle as computeFacilityTitleStyle } from "@/utils/simulator/facilityTitle";
 import {
   cascadeLayoutTypes,
   layoutAdditionPlan,
@@ -128,6 +130,7 @@ const props = withDefaults(
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     facilityColors?: Partial<Record<RoomKey, string>>;
     productColors?: Partial<Record<string, string>>;
+    defaultProducts?: BasicCalculatorProductDefaults;
     operatorCandidates: (type: RoomKey) => OperatorPickerCandidateView[];
     operatorFor: (name: string) => Operator | undefined;
     operatorEliteLevel: (name: string, type: RoomKey) => EliteLevel;
@@ -144,6 +147,7 @@ const props = withDefaults(
     fixedRoomLevels: () => ({}),
     facilityColors: () => ({}),
     productColors: () => ({}),
+    defaultProducts: () => ({ trading: "", manufacture: "" }),
     operatorProgression: undefined,
   },
 );
@@ -554,12 +558,11 @@ function canDeleteOperators(): boolean {
   return operatorDeletionTargets().length > 0;
 }
 function facilityStyle(row: FacilityRow): Record<string, string> {
-  const product = roomAt(
-    props.modelValue,
+  const product = basicCalculatorProductForRoom(
+    props.defaultProducts,
     row.type,
-    row.entries[0]?.position ?? 0,
-    false,
-  )?.product;
+    roomAt(props.modelValue, row.type, row.entries[0]?.position ?? 0, false),
+  );
   return {
     "--simulator-facility-accent":
       (product &&
@@ -1452,10 +1455,13 @@ function openRoomContextMenu(event: MouseEvent, row: FacilityRow): void {
   };
   void clampContextMenuPosition();
 }
-function sourceValue(room: RoomAssignment | undefined): string {
+function sourceValue(room: RoomAssignment | undefined, type: RoomKey): string {
   return (
     room?.sourceMaterial ??
-    (room?.product === "源石碎片" ? DEFAULT_SOURCE_MATERIAL : "")
+    (basicCalculatorProductForRoom(props.defaultProducts, type, room) ===
+    "源石碎片"
+      ? DEFAULT_SOURCE_MATERIAL
+      : "")
   );
 }
 function roomHasProduct(type: RoomKey): boolean {
@@ -1509,25 +1515,45 @@ function roomContextMenuItems(
   const rooms = positions.map((position) =>
     roomAt(props.modelValue, type, position, false),
   );
-  const currentProduct = rooms.every(
-    (room) => (room?.product ?? "") === (rooms[0]?.product ?? ""),
+  const currentProducts = rooms.map((room) =>
+    basicCalculatorProductForRoom(props.defaultProducts, type, room),
+  );
+  const currentProduct = currentProducts.every(
+    (product) => product === currentProducts[0],
   )
-    ? rooms[0]?.product
+    ? currentProducts[0]
     : undefined;
   const items: ContextMenuItem[] = [];
+  items.push({
+    key: "product-default-" + type,
+    label: "使用组默认产物",
+    check: rooms.every((room) => !room?.product && !room?.productOverride),
+    action: () => {
+      updateRooms(type, positions, (room) => {
+        delete room.product;
+        delete room.sourceMaterial;
+        delete room.productOverride;
+      });
+      closeContextMenu();
+    },
+  });
   productOptions(type, currentProduct).forEach((option) =>
     items.push({
       key: "product-" + type + "-" + option.value,
       label: option.label,
-      check: rooms.every((room) => (room?.product ?? "") === option.value),
+      check: currentProducts.every(
+        (product) => (product ?? "") === option.value,
+      ),
       disabled: option.disabled,
       action: () => {
         updateRooms(type, positions, (room) => {
           if (!option.value) {
             delete room.product;
             delete room.sourceMaterial;
+            room.productOverride = true;
           } else {
             room.product = option.value;
+            room.productOverride = true;
             if (option.value === "源石碎片")
               room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
             else delete room.sourceMaterial;
@@ -1537,13 +1563,20 @@ function roomContextMenuItems(
       },
     }),
   );
-  if (rooms.length && rooms.every((room) => room?.product === "源石碎片")) {
+  if (
+    rooms.length &&
+    rooms.every(
+      (room) =>
+        basicCalculatorProductForRoom(props.defaultProducts, type, room) ===
+        "源石碎片",
+    )
+  ) {
     items.push({ key: "source-divider-" + type, label: "", divider: true });
     SOURCE_MATERIAL_OPTIONS.forEach((option) =>
       items.push({
         key: "source-" + type + "-" + option.value,
         label: option.label,
-        check: rooms.every((room) => sourceValue(room) === option.value),
+        check: rooms.every((room) => sourceValue(room, type) === option.value),
         action: () => {
           updateRooms(type, positions, (room) => {
             room.sourceMaterial = option.value;

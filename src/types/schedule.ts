@@ -36,6 +36,7 @@ export interface RoomAssignment {
   runOrderOperators?: string[];
   skip?: boolean;
   product?: string;
+  productOverride?: boolean;
   sourceMaterial?: string;
   operatorStates?: Record<string, OperatorState>;
   [key: string]: unknown;

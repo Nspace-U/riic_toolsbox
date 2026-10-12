@@ -11,7 +11,14 @@ import type {
   RoomKey,
   ScheduleDocument,
 } from "@/types/schedule";
+import { DEFAULT_SOURCE_MATERIAL } from "@/utils/schedule";
 import { calculateEfficiency } from "@arknights/riic-efficiency";
+
+export type BasicCalculatorProductFacility = "trading" | "manufacture";
+export type BasicCalculatorProductDefaults = Record<
+  BasicCalculatorProductFacility,
+  string
+>;
 
 export type BasicCalculatorColumnKind =
   | "operators"
@@ -65,6 +72,7 @@ export interface BasicCalculatorGroup {
   facility?: RoomKey;
   facilityLevel?: number;
   coreOperator?: BasicCalculatorOperator;
+  defaultProducts?: BasicCalculatorProductDefaults;
   columnIds: string[];
   rows: BasicCalculatorRow[];
 }
@@ -207,6 +215,10 @@ function clone<T>(value: T): T {
 function normalizeConfig(config: BasicCalculatorConfig): BasicCalculatorConfig {
   const normalized = clone(config);
   normalized.groups.forEach((group) => {
+    group.defaultProducts = {
+      trading: group.defaultProducts?.trading ?? "",
+      manufacture: group.defaultProducts?.manufacture ?? "",
+    };
     group.rows.forEach((row) => {
       row.schedule.plans.forEach((plan) => {
         delete plan.name;
@@ -513,8 +525,51 @@ export function basicCalculatorRoomAssignment(
     : undefined;
 }
 
+export function basicCalculatorProductForRoom(
+  defaults: BasicCalculatorProductDefaults | undefined,
+  type: RoomKey,
+  assignment: RoomAssignment | undefined,
+): string | undefined {
+  if (assignment?.productOverride) return undefined;
+  if (assignment?.product) return assignment.product;
+  if (type !== "trading" && type !== "manufacture") return undefined;
+  return defaults?.[type] || undefined;
+}
+
+function rowWithGroupProductDefaults(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): BasicCalculatorRow {
+  const next = clone(row);
+  next.schedule.plans.forEach((plan) => {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const assignments = plan.rooms[type];
+      if (!Array.isArray(assignments)) return;
+      (assignments as RoomAssignment[]).forEach((assignment) => {
+        if (assignment.productOverride) {
+          delete assignment.product;
+          delete assignment.sourceMaterial;
+          return;
+        }
+        const product = basicCalculatorProductForRoom(
+          group.defaultProducts,
+          type,
+          assignment,
+        );
+        if (product) assignment.product = product;
+        else delete assignment.product;
+        if (product === "源石碎片" && !assignment.sourceMaterial) {
+          assignment.sourceMaterial = DEFAULT_SOURCE_MATERIAL;
+        }
+      });
+    });
+  });
+  return next;
+}
+
 export function basicCalculatorScheduleOperators(
   document: ScheduleDocument,
+  defaultProducts?: BasicCalculatorProductDefaults,
 ): BasicCalculatorOperator[] {
   const positions = new Map<RoomKey, number>();
   const operators = document.layout.flatMap(({ type }) => {
@@ -530,7 +585,8 @@ export function basicCalculatorScheduleOperators(
       ...(document.settings?.runOrderEnabled === true &&
       type === "trading" &&
       assignment !== undefined &&
-      assignment.product !== "合成玉"
+      basicCalculatorProductForRoom(defaultProducts, type, assignment) !==
+        "合成玉"
         ? (assignment.runOrderOperators ?? []).map((name) => ({
             name,
             room: type,
@@ -551,7 +607,7 @@ export function basicCalculatorTargetFacility(
   const isWorkFacility = (type: RoomKey): boolean =>
     type !== "control" && type !== "dormitory";
   return (
-    basicCalculatorScheduleOperators(row.schedule).find(
+    basicCalculatorScheduleOperators(row.schedule, group.defaultProducts).find(
       (operator) => operator.room && isWorkFacility(operator.room),
     )?.room ??
     row.schedule.layout.find(({ type }) => isWorkFacility(type))?.type
@@ -737,6 +793,15 @@ function scheduleForCalculation(
   options: BasicCalculatorCalculationOptions,
 ): ScheduleDocument {
   const document = clone(schedule);
+  document.plans.forEach((plan) => {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const assignments = plan.rooms[type];
+      if (!Array.isArray(assignments)) return;
+      (assignments as RoomAssignment[]).forEach((assignment) => {
+        delete assignment.productOverride;
+      });
+    });
+  });
   const plan = document.plans[0];
   if (plan) plan.duration = Math.round(durationHours * 60);
   const rowFirstItemProgress = schedule.settings?.firstItemProgress;
@@ -798,7 +863,12 @@ function coreBaselineEfficiency(
     group.id === "jie-0" && coreOperator.name === "孑"
       ? { ...options, preferMaxJieEfficiency: true }
       : options;
-  const document = scheduleForCalculation(row.schedule, 24, baselineOptions);
+  const effectiveRow = rowWithGroupProductDefaults(group, row);
+  const document = scheduleForCalculation(
+    effectiveRow.schedule,
+    24,
+    baselineOptions,
+  );
   const assignment = basicCalculatorRoomAssignment(document, facility);
   const core = stateForAssignment(assignment, coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(
@@ -821,11 +891,16 @@ export function evaluateBasicCalculatorRow(
   options: BasicCalculatorCalculationOptions = {},
   baselineEfficiency?: number,
 ): BasicCalculatorEvaluation {
-  const targetFacility = basicCalculatorTargetFacility(group, row);
+  const effectiveRow = rowWithGroupProductDefaults(group, row);
+  const targetFacility = basicCalculatorTargetFacility(group, effectiveRow);
   if (!targetFacility) {
     throw new Error("当前排班没有可计算的工作设施");
   }
-  const document = scheduleForCalculation(row.schedule, durationHours, options);
+  const document = scheduleForCalculation(
+    effectiveRow.schedule,
+    durationHours,
+    options,
+  );
   const result = calculateEfficiencyForBasicCalculator(
     document,
     catalog,
@@ -865,7 +940,8 @@ export function evaluateBasicCalculatorRow(
     options,
   );
   const baseline =
-    baselineEfficiency ?? coreBaselineEfficiency(catalog, group, row, options);
+    baselineEfficiency ??
+    coreBaselineEfficiency(catalog, group, effectiveRow, options);
   const facilityIndex =
     result.plans[0]?.facilities.findIndex(
       (facility) => facility.facility.type === targetFacility,

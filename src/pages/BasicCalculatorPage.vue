@@ -50,6 +50,7 @@ import type {
 import {
   applyBasicCalculatorPatch,
   basicCalculatorOperatorFieldNames,
+  basicCalculatorProductForRoom,
   basicCalculatorRoomAssignment,
   basicCalculatorScheduleOperators,
   basicCalculatorTargetFacility,
@@ -68,6 +69,7 @@ import type {
   BasicCalculatorColumn,
   BasicCalculatorColumnKind,
   BasicCalculatorConfig,
+  BasicCalculatorProductDefaults,
   BasicCalculatorRowCalculation,
   BasicCalculatorEfficiencyValue,
   BasicCalculatorGroup,
@@ -116,19 +118,26 @@ const EFFICIENCY_COLUMN_LABELS: Partial<
   actualProductionRate: "实际产出速率",
 };
 
-interface GroupDraft {
-  id: string;
-  name: string;
-  facility?: RoomKey;
-  facilityLevel?: number;
-  coreOperator?: BasicCalculatorOperator;
-  columnIds: string[];
-  rows: BasicCalculatorRow[];
+const TRADING_PRODUCT_OPTIONS = [
+  { value: "", label: "未指定产物" },
+  ...PRODUCT_OPTIONS.filter(
+    (option) => option.value === "龙门币" || option.value === "合成玉",
+  ),
+];
+const MANUFACTURE_PRODUCT_OPTIONS = [
+  { value: "", label: "未指定产物" },
+  ...PRODUCT_OPTIONS.filter(
+    (option) => option.value !== "龙门币" && option.value !== "合成玉",
+  ),
+];
+
+interface GroupDraft extends Omit<BasicCalculatorGroup, "defaultProducts"> {
+  defaultProducts: BasicCalculatorProductDefaults;
 }
 
 const STORAGE_KEYS = {
-  combination: "riic-tools:basic-calculator:v5",
-  efficiency: "riic-tools:efficiency-calculator:v2",
+  combination: "riic-tools:basic-calculator:v6",
+  efficiency: "riic-tools:efficiency-calculator:v3",
 } as const;
 const props = withDefaults(
   defineProps<{ mode?: "combination" | "efficiency" }>(),
@@ -266,6 +275,7 @@ const draftHiddenOperatorOptions = computed<DraftHiddenOperatorOption[]>(() => {
   if (!group || !row) return [];
   return basicCalculatorScheduleOperators(
     rowDraftSchedule.value ?? row.schedule,
+    group.defaultProducts,
   ).map((operator) => ({
     operator,
     label: displayOperatorLabel(group, operator),
@@ -551,9 +561,10 @@ function rowVisibleOperators(
 ): BasicCalculatorOperator[] {
   const hiddenOperators = new Set(row.hiddenOperators ?? []);
   const facility = basicCalculatorTargetFacility(group, row);
-  const visible = basicCalculatorScheduleOperators(row.schedule).filter(
-    (operator) => !hiddenOperators.has(operator.name),
-  );
+  const visible = basicCalculatorScheduleOperators(
+    row.schedule,
+    group.defaultProducts,
+  ).filter((operator) => !hiddenOperators.has(operator.name));
   return [
     ...visible.filter((operator) => operator.room === facility),
     ...visible.filter((operator) => operator.room !== facility),
@@ -605,10 +616,11 @@ function productAccent(
 ): string | undefined {
   const facility = basicCalculatorTargetFacility(group, row);
   if (!facility) return undefined;
-  const product = basicCalculatorRoomAssignment(
-    row.schedule,
+  const product = basicCalculatorProductForRoom(
+    group.defaultProducts,
     facility,
-  )?.product;
+    basicCalculatorRoomAssignment(row.schedule, facility),
+  );
   if (!product) return undefined;
   return (
     productColors.value[product as keyof typeof productColors.value] ??
@@ -1381,12 +1393,19 @@ function addRow(group: BasicCalculatorGroup): void {
 
 function openGroupEditor(group?: BasicCalculatorGroup): void {
   groupDraft.value = group
-    ? (JSON.parse(JSON.stringify(group)) as GroupDraft)
+    ? {
+        ...(JSON.parse(JSON.stringify(group)) as BasicCalculatorGroup),
+        defaultProducts: {
+          trading: group.defaultProducts?.trading ?? "",
+          manufacture: group.defaultProducts?.manufacture ?? "",
+        },
+      }
     : {
         id: `group-${Date.now().toString(36)}`,
         name: props.mode === "efficiency" ? "新效率组" : "新组合组",
         facility: props.mode === "efficiency" ? "trading" : "manufacture",
         facilityLevel: 3,
+        defaultProducts: { trading: "", manufacture: "" },
         ...(props.mode === "combination"
           ? { coreOperator: { name: operators.value[0]?.name ?? "红云" } }
           : {}),
@@ -1414,6 +1433,10 @@ function saveGroup(): void {
   updateConfig((next) => {
     const index = next.groups.findIndex((group) => group.id === draft.id);
     const group = JSON.parse(JSON.stringify(draft)) as BasicCalculatorGroup;
+    group.defaultProducts = {
+      trading: draft.defaultProducts.trading,
+      manufacture: draft.defaultProducts.manufacture,
+    };
     if (props.mode === "efficiency") {
       delete group.coreOperator;
       group.facility = "trading";
@@ -2221,6 +2244,26 @@ function toggleGroupColumn(
             :min="1"
           />
         </a-form-item>
+        <a-form-item label="贸易站默认产物">
+          <a-select v-model:value="groupDraft.defaultProducts.trading">
+            <a-select-option
+              v-for="option in TRADING_PRODUCT_OPTIONS"
+              :key="option.value || 'unspecified'"
+              :value="option.value"
+              >{{ option.label }}</a-select-option
+            >
+          </a-select>
+        </a-form-item>
+        <a-form-item v-if="props.mode === 'combination'" label="制造站默认产物">
+          <a-select v-model:value="groupDraft.defaultProducts.manufacture">
+            <a-select-option
+              v-for="option in MANUFACTURE_PRODUCT_OPTIONS"
+              :key="option.value || 'unspecified'"
+              :value="option.value"
+              >{{ option.label }}</a-select-option
+            >
+          </a-select>
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -2275,6 +2318,7 @@ function toggleGroupColumn(
           "
           :facility-colors="facilityColors"
           :product-colors="productColors"
+          :default-products="rowDraftGroup.defaultProducts"
           :fixed-room-levels="rowDraftFixedRoomLevels"
           :fixed-room-types="rowDraftFixedRoomTypes"
           :operator-candidates="editorOperatorCandidates"
