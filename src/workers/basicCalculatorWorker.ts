@@ -20,6 +20,7 @@ self.onmessage = (event: MessageEvent<BasicCalculatorWorkerRequest>) => {
             row,
             request.columns,
             {
+              mode: request.mode,
               dormitoryDefaultIncludesMoodRecovery:
                 request.dormitoryDefaultIncludesMoodRecovery,
               progressionProfile: request.progressionProfile,
@@ -27,6 +28,9 @@ self.onmessage = (event: MessageEvent<BasicCalculatorWorkerRequest>) => {
               firstItemProgress: request.firstItemProgress,
               allowRowFirstItemProgressOverride:
                 request.allowRowFirstItemProgressOverride,
+              tradingBaseEfficiencyBonus: request.tradingBaseEfficiencyBonus,
+              manufactureBaseEfficiencyBonus:
+                request.manufactureBaseEfficiencyBonus,
             },
           ),
         ]),

@@ -412,13 +412,17 @@ const calculationFingerprint = computed(() => {
       hours: column.hours,
     })),
     groups: current.groups,
-    calculatorSettings:
-      props.mode === "combination"
+    calculatorSettings: {
+      tradingBaseEfficiencyBonus: current.settings.tradingBaseEfficiencyBonus,
+      manufactureBaseEfficiencyBonus:
+        current.settings.manufactureBaseEfficiencyBonus,
+      ...(props.mode === "combination"
         ? {
             preferMaxJieEfficiency: current.settings.preferMaxJieEfficiency,
             firstItemProgress: current.settings.firstItemProgress,
           }
-        : undefined,
+        : {}),
+    },
     progressionProfile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
@@ -450,6 +454,7 @@ function requestCalculations(): void {
       : {}),
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
+    mode: props.mode,
     preferMaxJieEfficiency:
       props.mode === "combination"
         ? current.settings.preferMaxJieEfficiency
@@ -457,6 +462,9 @@ function requestCalculations(): void {
     firstItemProgress:
       props.mode === "combination" ? current.settings.firstItemProgress : 0,
     allowRowFirstItemProgressOverride: props.mode === "combination",
+    tradingBaseEfficiencyBonus: current.settings.tradingBaseEfficiencyBonus,
+    manufactureBaseEfficiencyBonus:
+      current.settings.manufactureBaseEfficiencyBonus,
   });
 }
 
@@ -1051,6 +1059,18 @@ function updateGlobalFirstItemProgress(value: number | null): void {
     value === null || !Number.isFinite(value)
       ? 0
       : Math.max(0, Math.min(100, value)) / 100,
+  );
+}
+
+function updateBaseEfficiencyBonus(
+  key: "tradingBaseEfficiencyBonus" | "manufactureBaseEfficiencyBonus",
+  value: number | null,
+): void {
+  updateSetting(
+    key,
+    value === null || !Number.isFinite(value)
+      ? 0
+      : Math.max(0, Math.trunc(value)),
   );
 }
 
@@ -1712,7 +1732,34 @@ function toggleGroupColumn(
             @update:value="updateGlobalFirstItemProgress"
           />
         </a-form-item>
-        <a-form-item v-else label="效率显示">
+        <a-form-item label="贸易站基础效率加值">
+          <a-input-number
+            :min="0"
+            :precision="0"
+            :step="1"
+            :value="config.settings.tradingBaseEfficiencyBonus"
+            addon-after="%"
+            @update:value="
+              updateBaseEfficiencyBonus('tradingBaseEfficiencyBonus', $event)
+            "
+          />
+        </a-form-item>
+        <a-form-item label="制造站基础效率加值">
+          <a-input-number
+            :min="0"
+            :precision="0"
+            :step="1"
+            :value="config.settings.manufactureBaseEfficiencyBonus"
+            addon-after="%"
+            @update:value="
+              updateBaseEfficiencyBonus(
+                'manufactureBaseEfficiencyBonus',
+                $event,
+              )
+            "
+          />
+        </a-form-item>
+        <a-form-item v-if="props.mode === 'efficiency'" label="效率显示">
           <a-checkbox
             :checked="config.settings.mergeIdenticalEfficiencyCells"
             @change="

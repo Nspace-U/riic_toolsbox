@@ -1,3 +1,4 @@
+import { DEFAULT_RULESET } from "@arknights/riic-efficiency";
 import type {
   EfficiencyCatalog,
   EfficiencyResult,
@@ -93,6 +94,8 @@ export interface BasicCalculatorSettings {
   sortColumnId: string;
   sortDirection: "asc" | "desc";
   sortColumnCustomized: boolean;
+  tradingBaseEfficiencyBonus: number;
+  manufactureBaseEfficiencyBonus: number;
 }
 
 export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
@@ -111,6 +114,8 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
   sortColumnCustomized: false,
+  tradingBaseEfficiencyBonus: 0,
+  manufactureBaseEfficiencyBonus: 0,
 };
 
 export type BasicCalculatorAsset = Omit<BasicCalculatorConfig, "settings"> & {
@@ -159,11 +164,14 @@ export interface BasicCalculatorEvaluation {
 }
 
 export interface BasicCalculatorCalculationOptions {
+  mode?: "combination" | "efficiency";
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
   preferMaxJieEfficiency?: boolean;
   firstItemProgress?: number;
   allowRowFirstItemProgressOverride?: boolean;
+  tradingBaseEfficiencyBonus?: number;
+  manufactureBaseEfficiencyBonus?: number;
 }
 
 export interface BasicCalculatorRowCalculation {
@@ -192,9 +200,12 @@ export interface BasicCalculatorWorkerRequest {
   columns: BasicCalculatorColumn[];
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
+  mode: "combination" | "efficiency";
   preferMaxJieEfficiency: boolean;
   firstItemProgress: number;
   allowRowFirstItemProgressOverride: boolean;
+  tradingBaseEfficiencyBonus: number;
+  manufactureBaseEfficiencyBonus: number;
 }
 
 export interface BasicCalculatorWorkerResponse {
@@ -875,6 +886,7 @@ function coreBaselineEfficiency(
     coreOnlySchedule(document, facility, facilityLevel, core),
     catalog,
     baselineOptions,
+    group,
   );
   return (
     result.plans[0]?.facilities.find(
@@ -905,6 +917,7 @@ export function evaluateBasicCalculatorRow(
     document,
     catalog,
     options,
+    group,
   );
   const targetAssignment = basicCalculatorRoomAssignment(
     document,
@@ -938,6 +951,7 @@ export function evaluateBasicCalculatorRow(
     visibleDocument,
     catalog,
     options,
+    group,
   );
   const baseline =
     baselineEfficiency ??
@@ -1118,7 +1132,41 @@ function calculateEfficiencyForBasicCalculator(
   document: ScheduleDocument,
   catalog: EfficiencyCatalog,
   options: BasicCalculatorCalculationOptions,
+  group: BasicCalculatorGroup,
 ): EfficiencyResult {
+  const baseRuleset = catalog.ruleset ?? DEFAULT_RULESET;
+  const tradingBonus =
+    options.mode === "efficiency" ||
+    (group.coreOperator !== undefined && group.facility === "trading")
+      ? (options.tradingBaseEfficiencyBonus ?? 0)
+      : 0;
+  const manufactureBonus =
+    options.mode === "efficiency" ||
+    (group.coreOperator !== undefined && group.facility === "manufacture")
+      ? (options.manufactureBaseEfficiencyBonus ?? 0)
+      : 0;
+  const ruleset: EfficiencyRuleset =
+    tradingBonus === 0 && manufactureBonus === 0
+      ? baseRuleset
+      : {
+          ...baseRuleset,
+          baseEfficiency: {
+            ...baseRuleset.baseEfficiency,
+            ...(tradingBonus === 0
+              ? {}
+              : {
+                  trading:
+                    (baseRuleset.baseEfficiency.trading ?? 0) + tradingBonus,
+                }),
+            ...(manufactureBonus === 0
+              ? {}
+              : {
+                  manufacture:
+                    (baseRuleset.baseEfficiency.manufacture ?? 0) +
+                    manufactureBonus,
+                }),
+          },
+        };
   return calculateEfficiency(
     {
       ...document,
@@ -1136,7 +1184,7 @@ function calculateEfficiencyForBasicCalculator(
         treatSkillsAsUnlocked: false,
       },
     },
-    { catalog, ruleset: catalog.ruleset },
+    { catalog, ruleset },
   );
 }
 
