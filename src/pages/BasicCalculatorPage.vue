@@ -10,6 +10,7 @@ import {
   SortAscendingOutlined,
   SortDescendingOutlined,
   SettingOutlined,
+  WarningOutlined,
 } from "@ant-design/icons-vue";
 import {
   computed,
@@ -94,6 +95,7 @@ interface BasicCalculatorRowView {
   productionProduct?: string;
   tradeOrderRule?: string;
   tradeOrders?: BasicCalculatorRowCalculation["tradeOrders"];
+  jieEfficiencyFallbackReason?: BasicCalculatorRowCalculation["jieEfficiencyFallbackReason"];
   backgroundColor?: string;
 }
 
@@ -184,6 +186,24 @@ const rowDraftRunOrderEnabled = computed({
     const schedule = rowDraftSchedule.value;
     if (!schedule) return;
     schedule.settings = { ...schedule.settings, runOrderEnabled: enabled };
+  },
+});
+const rowDraftFirstItemProgress = computed({
+  get: () => {
+    const progress = rowDraftSchedule.value?.settings?.firstItemProgress;
+    return typeof progress === "number" ? progress * 100 : null;
+  },
+  set(value: number | null) {
+    const schedule = rowDraftSchedule.value;
+    if (!schedule) return;
+    const settings = { ...(schedule.settings ?? {}) };
+    if (value === null || !Number.isFinite(value)) {
+      delete settings.firstItemProgress;
+    } else {
+      settings.firstItemProgress = Math.max(0, Math.min(100, value)) / 100;
+    }
+    if (Object.keys(settings).length) schedule.settings = settings;
+    else delete schedule.settings;
   },
 });
 const rowDraftGroupId = ref("");
@@ -382,6 +402,13 @@ const calculationFingerprint = computed(() => {
       hours: column.hours,
     })),
     groups: current.groups,
+    calculatorSettings:
+      props.mode === "combination"
+        ? {
+            preferMaxJieEfficiency: current.settings.preferMaxJieEfficiency,
+            firstItemProgress: current.settings.firstItemProgress,
+          }
+        : undefined,
     progressionProfile: activeProfile.value,
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
@@ -413,6 +440,13 @@ function requestCalculations(): void {
       : {}),
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
+    preferMaxJieEfficiency:
+      props.mode === "combination"
+        ? current.settings.preferMaxJieEfficiency
+        : true,
+    firstItemProgress:
+      props.mode === "combination" ? current.settings.firstItemProgress : 0,
+    allowRowFirstItemProgressOverride: props.mode === "combination",
   });
 }
 
@@ -647,6 +681,7 @@ function rowView(
     productionProduct: calculation?.productionProduct,
     tradeOrderRule: calculation?.tradeOrderRule,
     tradeOrders: calculation?.tradeOrders,
+    jieEfficiencyFallbackReason: calculation?.jieEfficiencyFallbackReason,
     backgroundColor: productAccent(group, row),
   };
 }
@@ -773,6 +808,7 @@ function mergeRowViews(
     const existing = merged.get(key);
     if (existing) {
       existing.sourceRows.push(...view.sourceRows);
+      existing.jieEfficiencyFallbackReason ??= view.jieEfficiencyFallbackReason;
     } else {
       merged.set(key, { ...view, sourceRows: [...view.sourceRows] });
     }
@@ -995,6 +1031,25 @@ function updateSetting<K extends keyof BasicCalculatorConfig["settings"]>(
   updateConfig((draft) => {
     draft.settings[key] = value;
   });
+}
+
+function updateGlobalFirstItemProgress(value: number | null): void {
+  updateSetting(
+    "firstItemProgress",
+    value === null || !Number.isFinite(value)
+      ? 0
+      : Math.max(0, Math.min(100, value)) / 100,
+  );
+}
+
+function jieEfficiencyFallbackText(
+  reason: NonNullable<
+    BasicCalculatorRowCalculation["jieEfficiencyFallbackReason"]
+  >,
+): string {
+  return reason === "fixedOrder"
+    ? "遇到固定订单时，精0孑平均效率会回退到最高效率。"
+    : "缺少订单分布时，精0孑平均效率会回退到最高效率。";
 }
 
 function toggleSort(group: BasicCalculatorGroup, columnId: string): void {
@@ -1613,6 +1668,27 @@ function toggleGroupColumn(
             </a-checkbox>
           </a-space>
         </a-form-item>
+        <a-form-item v-if="props.mode === 'combination'" label="精0孑计算方式">
+          <a-radio-group
+            :value="config.settings.preferMaxJieEfficiency"
+            @change="
+              updateSetting('preferMaxJieEfficiency', $event.target.value)
+            "
+          >
+            <a-radio-button :value="true">最高</a-radio-button>
+            <a-radio-button :value="false">平均</a-radio-button>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item v-if="props.mode === 'combination'" label="全局首件进度">
+          <a-input-number
+            :max="100"
+            :min="0"
+            :step="1"
+            :value="config.settings.firstItemProgress * 100"
+            addon-after="%"
+            @update:value="updateGlobalFirstItemProgress"
+          />
+        </a-form-item>
         <a-form-item v-else label="效率显示">
           <a-checkbox
             :checked="config.settings.mergeIdenticalEfficiencyCells"
@@ -1900,6 +1976,28 @@ function toggleGroupColumn(
                         </OperatorSkillTooltip>
                       </template>
                     </span>
+                    <span
+                      v-else-if="cell.column.kind === 'efficiency'"
+                      class="basic-calculator-efficiency-value"
+                    >
+                      {{ columnText(view, cell.column) }}
+                      <a-tooltip
+                        v-if="
+                          view.jieEfficiencyFallbackReason &&
+                          !config.settings.preferMaxJieEfficiency
+                        "
+                        :title="
+                          jieEfficiencyFallbackText(
+                            view.jieEfficiencyFallbackReason,
+                          )
+                        "
+                      >
+                        <WarningOutlined
+                          aria-label="精0孑平均效率回退"
+                          class="basic-calculator-efficiency-fallback"
+                        />
+                      </a-tooltip>
+                    </span>
                     <span v-else>{{ columnText(view, cell.column) }}</span>
                   </td>
                 </tr>
@@ -2136,7 +2234,7 @@ function toggleGroupColumn(
       @ok="saveRow"
     >
       <div
-        v-if="rowDraft && rowDraftGroup && rowDraftSchedule"
+        v-if="rowDraft && rowDraftGroup && rowDraftSchedule && config"
         class="basic-calculator-row-editor"
       >
         <a-space align="center">
@@ -2147,6 +2245,22 @@ function toggleGroupColumn(
             size="small"
           />
         </a-space>
+        <a-form v-if="props.mode === 'combination'" layout="vertical">
+          <a-form-item
+            :extra="`留空时使用全局首件进度 ${formatNumber(config.settings.firstItemProgress * 100)}%`"
+            label="首件进度"
+          >
+            <a-input-number
+              :max="100"
+              :min="0"
+              :placeholder="`全局 ${formatNumber(config.settings.firstItemProgress * 100)}%`"
+              :step="1"
+              :value="rowDraftFirstItemProgress"
+              addon-after="%"
+              @update:value="rowDraftFirstItemProgress = $event"
+            />
+          </a-form-item>
+        </a-form>
         <BasicCalculatorScheduleEditor
           ref="rowEditor"
           v-model:model-value="rowDraftSchedule"
@@ -2285,6 +2399,14 @@ function toggleGroupColumn(
 }
 .basic-calculator-efficiency-column {
   min-inline-size: 104px;
+}
+.basic-calculator-efficiency-value {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+}
+.basic-calculator-efficiency-fallback {
+  color: #d48806;
 }
 .basic-calculator-table td.basic-calculator-note-cell {
   text-align: start;

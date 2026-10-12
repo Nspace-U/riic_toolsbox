@@ -80,6 +80,8 @@ export interface BasicCalculatorSettings {
   mergeIdenticalRows: boolean;
   mergeIdenticalEfficiencyCells: boolean;
   efficiencyDisplay: "first" | "second" | "both";
+  preferMaxJieEfficiency: boolean;
+  firstItemProgress: number;
   sortColumnId: string;
   sortDirection: "asc" | "desc";
   sortColumnCustomized: boolean;
@@ -96,6 +98,8 @@ export const DEFAULT_BASIC_CALCULATOR_SETTINGS: BasicCalculatorSettings = {
   mergeIdenticalRows: true,
   mergeIdenticalEfficiencyCells: true,
   efficiencyDisplay: "first",
+  preferMaxJieEfficiency: true,
+  firstItemProgress: 0,
   sortColumnId: "efficiency-24",
   sortDirection: "desc",
   sortColumnCustomized: false,
@@ -149,10 +153,14 @@ export interface BasicCalculatorEvaluation {
 export interface BasicCalculatorCalculationOptions {
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
+  preferMaxJieEfficiency?: boolean;
+  firstItemProgress?: number;
+  allowRowFirstItemProgressOverride?: boolean;
 }
 
 export interface BasicCalculatorRowCalculation {
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
+  jieEfficiencyFallbackReason?: "fixedOrder" | "missingOrders";
   storageDelta?: number;
   orderDelta?: number;
   tradeOrderRule?: string;
@@ -176,6 +184,9 @@ export interface BasicCalculatorWorkerRequest {
   columns: BasicCalculatorColumn[];
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
+  preferMaxJieEfficiency: boolean;
+  firstItemProgress: number;
+  allowRowFirstItemProgressOverride: boolean;
 }
 
 export interface BasicCalculatorWorkerResponse {
@@ -723,16 +734,22 @@ function stateForAssignment(
 function scheduleForCalculation(
   schedule: ScheduleDocument,
   durationHours: number,
+  options: BasicCalculatorCalculationOptions,
 ): ScheduleDocument {
   const document = clone(schedule);
   const plan = document.plans[0];
   if (plan) plan.duration = Math.round(durationHours * 60);
+  const rowFirstItemProgress = schedule.settings?.firstItemProgress;
   document.settings = {
     ...document.settings,
     clueExchanging: document.settings?.clueExchanging ?? true,
     dormFullTreat: document.settings?.dormFullTreat ?? true,
-    preferMaxJieEfficiency: true,
-    firstItemProgress: 0,
+    preferMaxJieEfficiency: options.preferMaxJieEfficiency ?? true,
+    firstItemProgress:
+      options.allowRowFirstItemProgressOverride &&
+      typeof rowFirstItemProgress === "number"
+        ? rowFirstItemProgress
+        : (options.firstItemProgress ?? 0),
   };
   return document;
 }
@@ -777,7 +794,7 @@ function coreBaselineEfficiency(
   const facilityLevel = group.facilityLevel;
   const coreOperator = group.coreOperator;
   if (!facility || facilityLevel === undefined || !coreOperator) return 0;
-  const document = scheduleForCalculation(row.schedule, 24);
+  const document = scheduleForCalculation(row.schedule, 24, options);
   const assignment = basicCalculatorRoomAssignment(document, facility);
   const core = stateForAssignment(assignment, coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(
@@ -804,7 +821,7 @@ export function evaluateBasicCalculatorRow(
   if (!targetFacility) {
     throw new Error("当前排班没有可计算的工作设施");
   }
-  const document = scheduleForCalculation(row.schedule, durationHours);
+  const document = scheduleForCalculation(row.schedule, durationHours, options);
   const result = calculateEfficiencyForBasicCalculator(
     document,
     catalog,
@@ -906,12 +923,27 @@ export function calculateBasicCalculatorRowValues(
     ? facilityResultOf(evaluation24)
     : undefined;
   const production = targetFacility?.production;
+  const fallbackCalculation =
+    options.preferMaxJieEfficiency === false
+      ? targetFacility?.details
+          .map((detail) => detail.calculation)
+          .find(
+            (calculation) =>
+              calculation?.type === "tradeGap" &&
+              calculation.fallbackReason !== undefined,
+          )
+      : undefined;
+  const jieEfficiencyFallbackReason =
+    fallbackCalculation?.type === "tradeGap"
+      ? fallbackCalculation.fallbackReason
+      : undefined;
   const equivalentValues = basicCalculatorTradeEquivalentValues(
     targetFacility,
     catalog.ruleset,
   );
   return {
     efficiency,
+    ...(jieEfficiencyFallbackReason ? { jieEfficiencyFallbackReason } : {}),
     storageDelta: visibleFacility?.attributes.storageCap?.skill ?? 0,
     orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
     operatorEfficiency: targetFacility?.operatorSkillEfficiency,

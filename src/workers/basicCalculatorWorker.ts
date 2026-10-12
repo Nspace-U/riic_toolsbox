@@ -23,6 +23,10 @@ self.onmessage = (event: MessageEvent<BasicCalculatorWorkerRequest>) => {
               dormitoryDefaultIncludesMoodRecovery:
                 request.dormitoryDefaultIncludesMoodRecovery,
               progressionProfile: request.progressionProfile,
+              preferMaxJieEfficiency: request.preferMaxJieEfficiency,
+              firstItemProgress: request.firstItemProgress,
+              allowRowFirstItemProgressOverride:
+                request.allowRowFirstItemProgressOverride,
             },
           ),
         ]),
