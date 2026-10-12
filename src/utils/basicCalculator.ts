@@ -794,13 +794,17 @@ function coreBaselineEfficiency(
   const facilityLevel = group.facilityLevel;
   const coreOperator = group.coreOperator;
   if (!facility || facilityLevel === undefined || !coreOperator) return 0;
-  const document = scheduleForCalculation(row.schedule, 24, options);
+  const baselineOptions =
+    group.id === "jie-0" && coreOperator.name === "孑"
+      ? { ...options, preferMaxJieEfficiency: true }
+      : options;
+  const document = scheduleForCalculation(row.schedule, 24, baselineOptions);
   const assignment = basicCalculatorRoomAssignment(document, facility);
   const core = stateForAssignment(assignment, coreOperator.name);
   const result = calculateEfficiencyForBasicCalculator(
     coreOnlySchedule(document, facility, facilityLevel, core),
     catalog,
-    options,
+    baselineOptions,
   );
   return (
     result.plans[0]?.facilities.find(
