@@ -42,6 +42,9 @@ import {
   roomSlotCount,
 } from "@/utils/schedule";
 import {
+  facilityTitleStyle as computeFacilityTitleStyle,
+} from "@/utils/simulator/facilityTitle";
+import {
   cascadeLayoutTypes,
   layoutAdditionPlan,
   layoutEntryLevelMax,
@@ -51,6 +54,9 @@ import {
   validateAddedLayout,
 } from "@/utils/simulator/layout";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
+
+const CALCULATOR_SLOT_SIZE = 76;
+const RUN_ORDER_DIVIDER_WIDTH = 17;
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -1629,8 +1635,22 @@ function contextMenuStyle(): Record<string, string> {
 function specialLabel(name: string): string | undefined {
   return props.operatorFor(name) ? undefined : name.slice(0, 2);
 }
+function facilityTitleStyle(row: FacilityRow): Record<string, string> {
+  const slots = slotsForRender(row);
+  const dividerCount = slots.filter(
+    (slot) => slot.runOrder && slot.slotIndex === 0,
+  ).length;
+  const contentWidth =
+    slots.length * CALCULATOR_SLOT_SIZE +
+    dividerCount * RUN_ORDER_DIVIDER_WIDTH;
+  return computeFacilityTitleStyle(
+    row.label,
+    contentWidth,
+    row.type === "power" ? 0 : row.entries.length,
+  );
+}
 function slotStyle(): Record<string, string> {
-  return { "--simulator-slot-size": "76px" };
+  return { "--simulator-slot-size": `${CALCULATOR_SLOT_SIZE}px` };
 }
 function layoutTextHint(): string {
   return "数字顺序与排班模拟器一致；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间；当前组合中已配置的控制中枢和核心工作设施会自动保留。";
@@ -1670,7 +1690,10 @@ defineExpose({ clearInteractionState });
           @contextmenu.stop.prevent="openRoomContextMenu($event, row)"
         >
           <template #title>
-            <div class="simulator-facility-title">
+            <div
+              :style="facilityTitleStyle(row)"
+              class="simulator-facility-title"
+            >
               <span>{{ row.label }}</span>
               <a-space v-if="row.type !== 'power'" :size="4" wrap>
                 <a-tag
