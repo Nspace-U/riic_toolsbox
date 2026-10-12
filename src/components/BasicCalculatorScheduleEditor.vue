@@ -57,6 +57,7 @@ import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 
 const CALCULATOR_SLOT_SIZE = 76;
 const RUN_ORDER_DIVIDER_WIDTH = 17;
+const FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE = 8;
 
 interface FacilityEntry {
   entry: LayoutEntry;
@@ -1645,7 +1646,7 @@ function facilityTitleStyle(row: FacilityRow): Record<string, string> {
     dividerCount * RUN_ORDER_DIVIDER_WIDTH;
   return computeFacilityTitleStyle(
     row.label,
-    contentWidth,
+    contentWidth - FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
     row.type === "power" ? 0 : row.entries.length,
   );
 }
