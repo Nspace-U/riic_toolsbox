@@ -83,6 +83,7 @@ import {
   formatNumber,
 } from "@/utils/simulator/presentation";
 import {
+  PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_REPRESENTATIVE_COLORS,

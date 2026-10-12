@@ -122,19 +122,25 @@
           "schedule": {
             "layout": [
               {
-                "type": "control",
-                "level": 5
-              },
-              {
                 "type": "manufacture",
                 "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
               }
             ],
             "plans": [
               {
                 "description": "额外4名莱茵生命干员",
                 "rooms": {
-                  "control": [
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["红云", "溯光星源", "娜斯提"]
+                    }
+                  ],
+                  "dormitory": [
                     {
                       "operators": [
                         "莱茵生命",
@@ -142,12 +148,6 @@
                         "莱茵生命",
                         "莱茵生命"
                       ]
-                    }
-                  ],
-                  "manufacture": [
-                    {
-                      "product": "赤金",
-                      "operators": ["红云", "溯光星源", "娜斯提"]
                     }
                   ]
                 }
@@ -735,19 +735,25 @@
           "schedule": {
             "layout": [
               {
-                "type": "control",
-                "level": 5
-              },
-              {
                 "type": "manufacture",
                 "level": 3
+              },
+              {
+                "type": "dormitory",
+                "level": 5
               }
             ],
             "plans": [
               {
                 "description": "额外4名莱茵生命干员",
                 "rooms": {
-                  "control": [
+                  "manufacture": [
+                    {
+                      "product": "赤金",
+                      "operators": ["泡泡", "溯光星源", "娜斯提"]
+                    }
+                  ],
+                  "dormitory": [
                     {
                       "operators": [
                         "莱茵生命",
@@ -755,12 +761,6 @@
                         "莱茵生命",
                         "莱茵生命"
                       ]
-                    }
-                  ],
-                  "manufacture": [
-                    {
-                      "product": "赤金",
-                      "operators": ["泡泡", "溯光星源", "娜斯提"]
                     }
                   ]
                 }
