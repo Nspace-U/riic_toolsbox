@@ -581,6 +581,7 @@ function rowWithGroupProductDefaults(
 export function basicCalculatorScheduleOperators(
   document: ScheduleDocument,
   defaultProducts?: BasicCalculatorProductDefaults,
+  preserveDuplicateNames: boolean = false,
 ): BasicCalculatorOperator[] {
   const positions = new Map<RoomKey, number>();
   const operators = document.layout.flatMap(({ type }) => {
@@ -607,7 +608,7 @@ export function basicCalculatorScheduleOperators(
         : []),
     ];
   });
-  return uniqueOperators(operators);
+  return preserveDuplicateNames ? operators : uniqueOperators(operators);
 }
 
 export function basicCalculatorTargetFacility(

@@ -241,6 +241,10 @@ const calculationsReadyForMerge = computed(() => {
 const operatorByName = computed(
   () => new Map(operators.value.map((operator) => [operator.name, operator])),
 );
+const termOperatorNames = computed(
+  () =>
+    new Set(Object.values(catalog.value?.terms ?? {}).map(({ name }) => name)),
+);
 const operatorOptions = computed(() =>
   [...operators.value]
     .sort((first, second) => {
@@ -567,12 +571,14 @@ function displayOperatorNameLabel(
 function rowVisibleOperators(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
+  preserveDuplicateNames: boolean = false,
 ): BasicCalculatorOperator[] {
   const hiddenOperators = new Set(row.hiddenOperators ?? []);
   const facility = basicCalculatorTargetFacility(group, row);
   const visible = basicCalculatorScheduleOperators(
     row.schedule,
     group.defaultProducts,
+    preserveDuplicateNames,
   ).filter((operator) => !hiddenOperators.has(operator.name));
   return [
     ...visible.filter((operator) => operator.room === facility),
@@ -580,12 +586,53 @@ function rowVisibleOperators(
   ];
 }
 
+function rowVisibleOperatorNameEntries(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): Array<{
+  operator: BasicCalculatorOperator;
+  count: number;
+  dividerBefore: boolean;
+}> {
+  const visible = rowVisibleOperators(group, row, true);
+  const entries = new Map<
+    string,
+    {
+      operator: BasicCalculatorOperator;
+      count: number;
+      dividerBefore: boolean;
+    }
+  >();
+
+  visible.forEach((operator, index) => {
+    const label = displayOperatorNameLabel(group, operator);
+    const dividerBefore =
+      operator.runOrder === true &&
+      index > 0 &&
+      visible[index - 1]?.runOrder !== true;
+    const key = termOperatorNames.value.has(operator.name)
+      ? `term:${JSON.stringify([label, operator.runOrder === true])}`
+      : `operator:${row.id}:${index}`;
+    const existing = entries.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      entries.set(key, { operator, count: 1, dividerBefore });
+    }
+  });
+
+  return [...entries.values()];
+}
+
 function operatorNameText(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): string {
-  return rowVisibleOperators(group, row)
-    .map((operator) => displayOperatorNameLabel(group, operator))
+  return rowVisibleOperatorNameEntries(group, row)
+    .map(({ operator, count }) => {
+      const label = displayOperatorNameLabel(group, operator);
+      return count > 1 ? `${label} ×${count}` : label;
+    })
     .join(" + ");
 }
 
@@ -878,15 +925,12 @@ function viewVisibleOperatorNameParts(view: BasicCalculatorRowView): Array<{
   }> = [];
 
   view.sourceRows.forEach((row) => {
-    const visible = rowVisibleOperators(view.group, row);
-    visible.forEach((operator, index) => {
-      const dividerBefore =
-        operator.runOrder === true &&
-        index > 0 &&
-        visible[index - 1]?.runOrder !== true;
+    const visible = rowVisibleOperatorNameEntries(view.group, row);
+    visible.forEach(({ operator, count, dividerBefore }, index) => {
+      const label = displayOperatorNameLabel(view.group, operator);
       parts.push({
         key: `${row.id}-${index}-${operator.name}`,
-        label: displayOperatorNameLabel(view.group, operator),
+        label: count > 1 ? `${label} ×${count}` : label,
         operator: operatorFor(operator.name),
         separator: dividerBefore
           ? ""
