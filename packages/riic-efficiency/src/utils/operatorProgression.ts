@@ -100,12 +100,12 @@ export function progressionEntryFromUnknown(
     elite: clampElite(elite),
     level: Math.max(1, level),
     owned: value.own,
-    rarity,
   };
 }
 
 export function parseOperatorProgressionImport(
   value: unknown,
+  operatorIdAliases: Record<string, string> = {},
 ): OperatorProgressionEntry[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error("练度 JSON 必须是非空数组");
@@ -120,7 +120,42 @@ export function parseOperatorProgressionImport(
   ) {
     throw new Error("练度 JSON 包含重复干员 ID");
   }
-  return validEntries;
+
+  const sourceEntries = value as Array<Record<string, unknown>>;
+  const canonicalEntries = new Map<
+    string,
+    { entry: OperatorProgressionEntry; rarity: number }
+  >();
+  validEntries.forEach((entry, index) => {
+    const sourceEntry = sourceEntries[index];
+    if (!sourceEntry) {
+      throw new Error("练度 JSON 包含无效干员记录");
+    }
+    const rarity = Number(sourceEntry.rarity);
+    const aliasId = Object.hasOwn(operatorIdAliases, entry.id)
+      ? operatorIdAliases[entry.id]
+      : undefined;
+    const canonicalId = typeof aliasId === "string" ? aliasId : entry.id;
+    const canonicalEntry = { ...entry, id: canonicalId };
+    const previous = canonicalEntries.get(canonicalId);
+    if (previous) {
+      if (
+        previous.entry.name !== canonicalEntry.name ||
+        previous.entry.elite !== canonicalEntry.elite ||
+        previous.entry.level !== canonicalEntry.level ||
+        previous.entry.owned !== canonicalEntry.owned ||
+        previous.rarity !== rarity
+      ) {
+        throw new Error(
+          `练度 JSON 中 ${canonicalEntry.name} 的多个形态数据冲突`,
+        );
+      }
+      return;
+    }
+    canonicalEntries.set(canonicalId, { entry: canonicalEntry, rarity });
+  });
+
+  return [...canonicalEntries.values()].map(({ entry }) => entry);
 }
 
 export function cloneProgressionEntries(

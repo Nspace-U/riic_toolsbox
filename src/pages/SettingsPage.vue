@@ -66,6 +66,7 @@ const {
 } = useFacilityColors();
 const {
   operators,
+  operatorIdAliases,
   itemTable,
   buildingData,
   ready: baseDataReady,
@@ -299,7 +300,6 @@ function progressionEntry(
       elite: 0,
       level: 0,
       owned: false,
-      rarity: operator.rarity,
     }
   );
 }
@@ -421,7 +421,11 @@ async function handleProgressionFileChange(event: Event): Promise<void> {
   progressionError.value = "";
   progressionSuccess.value = "";
   try {
-    importProfile(JSON.parse(await file.text()) as unknown, file.name);
+    importProfile(
+      JSON.parse(await file.text()) as unknown,
+      file.name,
+      operatorIdAliases.value,
+    );
     progressionSuccess.value = `已导入练度档案“${file.name.replace(/\.json$/i, "")}”。`;
   } catch (error: unknown) {
     progressionError.value =
@@ -489,7 +493,6 @@ function refreshProgressionSkillFiles(): void {
           elite: 0,
           level: 0,
           owned: false,
-          rarity: operator.rarity,
         });
       });
     }

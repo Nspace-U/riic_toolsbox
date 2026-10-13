@@ -137,8 +137,7 @@ function isStoredEntry(value: unknown): value is OperatorProgressionEntry {
     typeof value.name === "string" &&
     (value.elite === 0 || value.elite === 1 || value.elite === 2) &&
     typeof value.level === "number" &&
-    typeof value.owned === "boolean" &&
-    typeof value.rarity === "number"
+    typeof value.owned === "boolean"
   );
 }
 
@@ -253,8 +252,9 @@ function createProfile(
 function importProfile(
   value: unknown,
   fileName = "",
+  operatorIdAliases: Record<string, string> = {},
 ): OperatorProgressionProfile {
-  const entries = parseOperatorProgressionImport(value);
+  const entries = parseOperatorProgressionImport(value, operatorIdAliases);
   const profile = createProfile(
     entries,
     fileName.replace(/\.json$/i, "").trim() || "导入练度",

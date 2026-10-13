@@ -424,6 +424,7 @@
   "missingItemIcons": [],
   "paths": {
     "characterTable": "gamedata/latest/excel/character_table.json",
+    "charPatchTable": "gamedata/latest/excel/char_patch_table.json",
     "buildingData": "gamedata/latest/excel/building_data.json",
     "gamedataConst": "gamedata/latest/excel/gamedata_const.json",
     "itemTable": "gamedata/latest/excel/item_table.json",

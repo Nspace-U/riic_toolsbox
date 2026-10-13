@@ -62,6 +62,7 @@ export interface BaseDataMetadata {
   missingItemIcons?: string[];
   paths?: {
     characterTable?: string;
+    charPatchTable?: string;
     buildingData?: string;
     gamedataConst?: string;
     itemTable?: string;
@@ -80,6 +81,7 @@ export interface BaseDataMetadata {
 
 export interface BaseData {
   operators: Operator[];
+  operatorIdAliases: Record<string, string>;
   richTextStyles: RichTextStyles;
   terms: BaseSkillTerms;
   metadata?: BaseDataMetadata;

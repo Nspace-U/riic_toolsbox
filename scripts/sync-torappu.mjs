@@ -13,6 +13,10 @@ const DATA_FILES = [
     path: "gamedata/latest/excel/character_table.json",
   },
   {
+    name: "char_patch_table",
+    path: "gamedata/latest/excel/char_patch_table.json",
+  },
+  {
     name: "building_data",
     path: "gamedata/latest/excel/building_data.json",
   },
@@ -206,6 +210,34 @@ function selectCharacterTable(
   );
 }
 
+function selectAmiyaCharPatchTable(charPatchTable) {
+  const operatorId = "char_002_amiya";
+  const info = charPatchTable.infos?.[operatorId];
+  const templateIds = info?.tmplIds;
+  if (!Array.isArray(templateIds) || !templateIds.includes(operatorId)) {
+    throw new Error("Torappu char_patch_table 缺少阿米娅形态信息");
+  }
+
+  const patchIds = templateIds.filter((id) => id !== operatorId);
+  if (patchIds.length === 0) {
+    throw new Error("Torappu char_patch_table 没有阿米娅的其他形态");
+  }
+  const patchChars = Object.fromEntries(
+    patchIds.map((patchId) => {
+      const patchCharacter = charPatchTable.patchChars?.[patchId];
+      if (!patchCharacter) {
+        throw new Error(`Torappu char_patch_table 缺少阿米娅形态 ${patchId}`);
+      }
+      return [patchId, patchCharacter];
+    }),
+  );
+
+  return {
+    infos: { [operatorId]: info },
+    patchChars,
+  };
+}
+
 async function readExistingCharacterTable() {
   try {
     const filePath = resolve(
@@ -343,6 +375,7 @@ async function main() {
       operatorIds,
       previousCharacterTable,
     ),
+    char_patch_table: selectAmiyaCharPatchTable(rawData.char_patch_table),
     building_data: {
       ...selectBuildingData(rawData.building_data, operatorIds),
       ...selectRecycleBuildingData(rawData.recycle_data),
@@ -447,6 +480,7 @@ async function main() {
     missingItemIcons,
     paths: {
       characterTable: "gamedata/latest/excel/character_table.json",
+      charPatchTable: "gamedata/latest/excel/char_patch_table.json",
       buildingData: "gamedata/latest/excel/building_data.json",
       gamedataConst: "gamedata/latest/excel/gamedata_const.json",
       itemTable: ITEM_TABLE_PATH,

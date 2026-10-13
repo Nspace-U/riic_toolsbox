@@ -94,6 +94,11 @@ export interface TorappuCharacterTable {
   [operatorId: string]: TorappuCharacter;
 }
 
+export interface TorappuCharPatchTable {
+  infos?: Record<string, { tmplIds?: string[]; default?: string }>;
+  patchChars?: Record<string, unknown>;
+}
+
 export interface TorappuBuildingData extends TorappuRecycleData {
   buffs?: Record<string, TorappuBuff>;
 }
@@ -378,4 +383,26 @@ export function parseTorappuData(
   }
 
   return operators;
+}
+
+export function parseOperatorIdAliases(
+  characterTable: TorappuCharacterTable,
+  charPatchTable: TorappuCharPatchTable,
+): Record<string, string> {
+  const aliases: Record<string, string> = {};
+  Object.entries(charPatchTable.infos ?? {}).forEach(([operatorId, info]) => {
+    const canonicalId = info.default ?? operatorId;
+    if (!characterTable[canonicalId]?.name) {
+      return;
+    }
+    (info.tmplIds ?? []).forEach((templateId) => {
+      if (
+        templateId !== canonicalId &&
+        charPatchTable.patchChars?.[templateId]
+      ) {
+        aliases[templateId] = canonicalId;
+      }
+    });
+  });
+  return aliases;
 }

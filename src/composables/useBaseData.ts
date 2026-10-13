@@ -16,13 +16,16 @@ import {
 } from "@/utils/preloadBaseDataAssets";
 import {
   parseTorappuData,
+  parseOperatorIdAliases,
   type TorappuBuildingData,
+  type TorappuCharPatchTable,
   type TorappuCharacterTable,
   type TorappuGamedataConst,
 } from "@/utils/parseTorappuData";
 
 interface UseBaseDataResult {
   operators: Readonly<typeof operators>;
+  operatorIdAliases: Readonly<typeof operatorIdAliases>;
   richTextStyles: Readonly<typeof richTextStyles>;
   terms: Readonly<typeof terms>;
   metadata: Readonly<typeof metadata>;
@@ -38,6 +41,7 @@ interface UseBaseDataResult {
 }
 
 const operators = ref<Operator[]>([]);
+const operatorIdAliases = ref<Record<string, string>>({});
 const richTextStyles = ref<RichTextStyles>({});
 const terms = ref<BaseSkillTerms>({});
 const metadata = ref<BaseDataMetadata>();
@@ -65,32 +69,43 @@ async function fetchJson<T>(path: string, label: string): Promise<T> {
 }
 
 async function fetchTorappuData(): Promise<BaseData> {
-  const [characterTable, buildingData, gamedataConst, metadata, itemTable] =
-    await Promise.all([
-      fetchJson<TorappuCharacterTable>(
-        "assets/gamedata/latest/excel/character_table.json",
-        "干员数据",
-      ),
-      fetchJson<TorappuBuildingData>(
-        "assets/gamedata/latest/excel/building_data.json",
-        "基建数据",
-      ),
-      fetchJson<TorappuGamedataConst>(
-        "assets/gamedata/latest/excel/gamedata_const.json",
-        "常量数据",
-      ),
-      fetchJson<BaseDataMetadata>(
-        "assets/gamedata/latest/torappu-meta.json",
-        "版本信息",
-      ),
-      fetchJson<TorappuItemTable>(
-        "assets/gamedata/latest/excel/item_table.json",
-        "物品数据",
-      ),
-    ]);
+  const [
+    characterTable,
+    charPatchTable,
+    buildingData,
+    gamedataConst,
+    metadata,
+    itemTable,
+  ] = await Promise.all([
+    fetchJson<TorappuCharacterTable>(
+      "assets/gamedata/latest/excel/character_table.json",
+      "干员数据",
+    ),
+    fetchJson<TorappuCharPatchTable>(
+      "assets/gamedata/latest/excel/char_patch_table.json",
+      "干员形态数据",
+    ),
+    fetchJson<TorappuBuildingData>(
+      "assets/gamedata/latest/excel/building_data.json",
+      "基建数据",
+    ),
+    fetchJson<TorappuGamedataConst>(
+      "assets/gamedata/latest/excel/gamedata_const.json",
+      "常量数据",
+    ),
+    fetchJson<BaseDataMetadata>(
+      "assets/gamedata/latest/torappu-meta.json",
+      "版本信息",
+    ),
+    fetchJson<TorappuItemTable>(
+      "assets/gamedata/latest/excel/item_table.json",
+      "物品数据",
+    ),
+  ]);
   const terms: BaseSkillTerms = getRiicEfficiencyTerms();
 
   return {
+    operatorIdAliases: parseOperatorIdAliases(characterTable, charPatchTable),
     operators: parseTorappuData(
       characterTable,
       buildingData,
@@ -149,6 +164,7 @@ async function load(): Promise<void> {
   loadingPromise = fetchTorappuData()
     .then((data) => {
       operators.value = data.operators;
+      operatorIdAliases.value = data.operatorIdAliases;
       richTextStyles.value = data.richTextStyles;
       terms.value = data.terms;
       metadata.value = data.metadata;
@@ -159,6 +175,7 @@ async function load(): Promise<void> {
     })
     .catch((error: unknown) => {
       operators.value = [];
+      operatorIdAliases.value = {};
       richTextStyles.value = {};
       terms.value = {};
       metadata.value = undefined;
@@ -189,6 +206,7 @@ async function reload(): Promise<void> {
 
 const result: UseBaseDataResult = {
   operators,
+  operatorIdAliases,
   richTextStyles,
   terms,
   metadata,

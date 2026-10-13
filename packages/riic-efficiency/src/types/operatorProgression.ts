@@ -8,7 +8,6 @@ export interface OperatorProgressionEntry {
   elite: EliteLevel;
   level: number;
   owned: boolean;
-  rarity: number;
 }
 
 export interface OperatorProgressionProfile {
