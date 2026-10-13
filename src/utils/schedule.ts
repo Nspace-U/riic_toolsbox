@@ -46,12 +46,25 @@ export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
 
 export const ROOM_ORDER: RoomKey[] = [...ROOM_KEYS];
 
+export const ROOM_DISPLAY_ORDER: ReadonlyArray<RoomKey> = [
+  "control",
+  "trading",
+  "manufacture",
+  "power",
+  "meeting",
+  "hire",
+  "recycle",
+  "processing",
+  "training",
+  "dormitory",
+];
+
 export const LAYOUT_TEXT_ROWS: ReadonlyArray<ReadonlyArray<RoomKey>> = [
   ["control"],
   ["trading"],
   ["manufacture"],
   ["power"],
-  ["meeting", "hire", "processing", "training", "recycle"],
+  ["meeting", "hire", "recycle", "processing", "training"],
   ["dormitory"],
 ];
 
@@ -67,8 +80,8 @@ export function orderedLayoutEntries<T extends LayoutEntry>(
     .map((entry, index) => ({ entry, index }))
     .sort((left, right) => {
       const orderDifference =
-        ROOM_ORDER.indexOf(left.entry.type) -
-        ROOM_ORDER.indexOf(right.entry.type);
+        ROOM_DISPLAY_ORDER.indexOf(left.entry.type) -
+        ROOM_DISPLAY_ORDER.indexOf(right.entry.type);
       return orderDifference || left.index - right.index;
     });
 }

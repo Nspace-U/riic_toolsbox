@@ -117,6 +117,7 @@ import {
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
   ROOM_ORDER,
+  ROOM_DISPLAY_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   SOURCE_MATERIAL_OPTIONS,
   canonicalResourceKey,
@@ -890,7 +891,7 @@ function importedLayoutEntries(
 function importedOperatorLosses(draft: ImportDraftState): string[] {
   const details: string[] = [];
   draft.parsed.document.plans.forEach((plan, planIndex) => {
-    ROOM_ORDER.forEach((type) => {
+    ROOM_DISPLAY_ORDER.forEach((type) => {
       const entries = importedLayoutEntries(draft.layout, type);
       const rooms = plan.rooms[type];
       if (!Array.isArray(rooms)) {
@@ -1412,7 +1413,7 @@ const facilityRows = computed<FacilityRow[]>(() => {
   }
 
   const rows: FacilityRow[] = [];
-  ROOM_ORDER.forEach((type) => {
+  ROOM_DISPLAY_ORDER.forEach((type) => {
     const entries = document.layout
       .map((entry, index) => ({ entry, index }))
       .filter(({ entry }) => entry.type === type)

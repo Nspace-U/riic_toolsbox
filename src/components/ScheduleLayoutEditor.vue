@@ -6,7 +6,7 @@ import type { LayoutEntry, RoomKey } from "@/types/schedule";
 import {
   LAYOUT_TEXT_ROWS,
   ROOM_LABELS,
-  ROOM_ORDER,
+  ROOM_DISPLAY_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   canAddLayoutEntry,
   isFixedLevelRoom,
@@ -70,7 +70,7 @@ const layoutRows = computed(() => {
 });
 
 const layoutGroups = computed(() =>
-  ROOM_ORDER.map((type) => ({
+  ROOM_DISPLAY_ORDER.map((type) => ({
     type,
     label: ROOM_LABELS[type],
     entries: props.layout.filter((entry) => entry.type === type),
@@ -78,7 +78,7 @@ const layoutGroups = computed(() =>
 );
 
 const layoutAddOptions = computed(() =>
-  ROOM_ORDER.map((type) => {
+  ROOM_DISPLAY_ORDER.map((type) => {
     if (fixedRoomTypeSet.value.has(type)) {
       return {
         type,

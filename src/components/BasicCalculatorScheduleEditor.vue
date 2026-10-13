@@ -38,7 +38,7 @@ import {
   PRODUCT_OPTIONS,
   PRODUCT_REPRESENTATIVE_COLORS,
   ROOM_LABELS,
-  ROOM_ORDER,
+  ROOM_DISPLAY_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
   SOURCE_MATERIAL_OPTIONS,
   orderedLayoutEntries,
@@ -180,7 +180,7 @@ let pendingCalculatorSelection:
 const fixedRoomTypeSet = computed(() => new Set(props.fixedRoomTypes));
 const facilityRows = computed<FacilityRow[]>(() => {
   const rows: FacilityRow[] = [];
-  ROOM_ORDER.forEach((type) => {
+  ROOM_DISPLAY_ORDER.forEach((type) => {
     const entries = orderedLayoutEntries(props.modelValue.layout)
       .filter(({ entry }) => entry.type === type)
       .map(({ entry, index }, position) => ({ entry, index, position }));
