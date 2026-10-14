@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "columns": [
     {
       "id": "operators",
@@ -75,7 +75,7 @@
   "groups": [
     {
       "id": "level-1-butshu",
-      "name": "1级站但书",
+      "name": "1级贸易站",
       "facility": "trading",
       "facilityLevel": 1,
       "columnIds": [
@@ -85,6 +85,7 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate",
         "base-gold-consumption-rate",
@@ -144,12 +145,38 @@
               "runOrderEnabled": true
             }
           }
+        },
+        {
+          "id": "closur-level-1",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 1
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
         }
       ]
     },
     {
       "id": "level-2-butshu",
-      "name": "2级站但书",
+      "name": "2级贸易站",
       "facility": "trading",
       "facilityLevel": 2,
       "columnIds": [
@@ -159,6 +186,7 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate",
         "base-gold-consumption-rate",
@@ -270,12 +298,64 @@
               "runOrderEnabled": true
             }
           }
+        },
+        {
+          "id": "closur-level-2-40",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "40%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "closur-level-2-45",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "45%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
         }
       ]
     },
     {
       "id": "level-3-butshu",
-      "name": "3级站但书",
+      "name": "3级贸易站",
       "facility": "trading",
       "facilityLevel": 3,
       "columnIds": [
@@ -285,6 +365,7 @@
         "facility-efficiency",
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
+        "equivalent-manufacture-efficiency",
         "base-production-rate",
         "actual-production-rate",
         "base-gold-consumption-rate",
@@ -360,107 +441,6 @@
                   "trading": [
                     {
                       "operators": ["但书", "60%", "35%"],
-                      "runOrderOperators": []
-                    }
-                  ]
-                }
-              }
-            ],
-            "settings": {
-              "runOrderEnabled": false
-            }
-          }
-        }
-      ]
-    },
-    {
-      "id": "closur",
-      "name": "可露希尔",
-      "facility": "trading",
-      "facilityLevel": 3,
-      "columnIds": [
-        "operators",
-        "operator-names",
-        "operator-efficiency",
-        "facility-efficiency",
-        "equivalent-current-trade-efficiency",
-        "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
-        "base-production-rate",
-        "actual-production-rate",
-        "base-gold-consumption-rate",
-        "actual-gold-consumption-rate",
-        "saved-gold-consumption-rate",
-        "daily-profit"
-      ],
-      "rows": [
-        {
-          "id": "closur-level-1",
-          "schedule": {
-            "layout": [
-              {
-                "type": "trading",
-                "level": 1
-              }
-            ],
-            "plans": [
-              {
-                "rooms": {
-                  "trading": [
-                    {
-                      "operators": ["可露希尔"],
-                      "runOrderOperators": []
-                    }
-                  ]
-                }
-              }
-            ],
-            "settings": {
-              "runOrderEnabled": false
-            }
-          }
-        },
-        {
-          "id": "closur-level-2-40",
-          "schedule": {
-            "layout": [
-              {
-                "type": "trading",
-                "level": 2
-              }
-            ],
-            "plans": [
-              {
-                "rooms": {
-                  "trading": [
-                    {
-                      "operators": ["可露希尔", "40%"],
-                      "runOrderOperators": []
-                    }
-                  ]
-                }
-              }
-            ],
-            "settings": {
-              "runOrderEnabled": false
-            }
-          }
-        },
-        {
-          "id": "closur-level-2-45",
-          "schedule": {
-            "layout": [
-              {
-                "type": "trading",
-                "level": 2
-              }
-            ],
-            "plans": [
-              {
-                "rooms": {
-                  "trading": [
-                    {
-                      "operators": ["可露希尔", "45%"],
                       "runOrderOperators": []
                     }
                   ]
@@ -549,30 +529,7 @@
               "runOrderEnabled": false
             }
           }
-        }
-      ]
-    },
-    {
-      "id": "takila",
-      "name": "龙舌兰",
-      "facility": "trading",
-      "facilityLevel": 3,
-      "columnIds": [
-        "operators",
-        "operator-names",
-        "operator-efficiency",
-        "facility-efficiency",
-        "equivalent-current-trade-efficiency",
-        "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
-        "base-production-rate",
-        "actual-production-rate",
-        "base-gold-consumption-rate",
-        "actual-gold-consumption-rate",
-        "saved-gold-consumption-rate",
-        "daily-profit"
-      ],
-      "rows": [
+        },
         {
           "id": "takila-row-wulian-bibeak",
           "schedule": {

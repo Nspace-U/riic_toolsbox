@@ -148,6 +148,34 @@ const STORAGE_KEYS = {
   combination: "riic-tools:basic-calculator:v6",
   efficiency: "riic-tools:efficiency-calculator:v3",
 } as const;
+const EFFICIENCY_GROUPING_STORAGE_KEY =
+  "riic-tools:efficiency-calculator:grouping:v1";
+type EfficiencyGroupingMode = "facilityLevel" | "legacy";
+const LEGACY_EFFICIENCY_GROUPS: Omit<
+  BasicCalculatorGroup,
+  "columnIds" | "rows"
+>[] = [
+  {
+    id: "level-1-butshu",
+    name: "1级站但书",
+    facility: "trading",
+    facilityLevel: 1,
+  },
+  {
+    id: "level-2-butshu",
+    name: "2级站但书",
+    facility: "trading",
+    facilityLevel: 2,
+  },
+  {
+    id: "level-3-butshu",
+    name: "3级站但书",
+    facility: "trading",
+    facilityLevel: 3,
+  },
+  { id: "closur", name: "可露希尔", facility: "trading", facilityLevel: 3 },
+  { id: "takila", name: "龙舌兰", facility: "trading", facilityLevel: 3 },
+];
 const props = withDefaults(
   defineProps<{ mode?: "combination" | "efficiency" }>(),
   { mode: "combination" },
@@ -172,6 +200,7 @@ const {
 
 const defaults = ref<BasicCalculatorConfig>();
 const config = ref<BasicCalculatorConfig>();
+const efficiencyGroupingMode = ref<EfficiencyGroupingMode>("facilityLevel");
 const catalog = ref<EfficiencyCatalog>();
 const loading = ref(true);
 const loadError = ref("");
@@ -324,11 +353,240 @@ function readStoredPatch(key: string): BasicCalculatorPatch | undefined {
   }
 }
 
+function readEfficiencyGroupingMode(): EfficiencyGroupingMode {
+  if (typeof window === "undefined") return "facilityLevel";
+  try {
+    return window.localStorage.getItem(EFFICIENCY_GROUPING_STORAGE_KEY) ===
+      "legacy"
+      ? "legacy"
+      : "facilityLevel";
+  } catch {
+    return "facilityLevel";
+  }
+}
+
+function efficiencyRowTradingLevel(row: BasicCalculatorRow): number {
+  const level =
+    row.schedule.layout.find(({ type }) => type === "trading")?.level ?? 3;
+  return level === 1 || level === 2 || level === 3 ? level : 3;
+}
+
+function efficiencyRowHasOperator(
+  row: BasicCalculatorRow,
+  operatorName: string,
+): boolean {
+  return row.schedule.plans.some((plan) => {
+    const assignments = plan.rooms.trading;
+    return (
+      Array.isArray(assignments) &&
+      assignments.some(
+        (assignment: RoomAssignment) =>
+          assignment.operators?.includes(operatorName) === true ||
+          assignment.runOrderOperators?.includes(operatorName) === true,
+      )
+    );
+  });
+}
+
+function legacyEfficiencyGroupId(row: BasicCalculatorRow): string {
+  if (row.id.startsWith("closur-")) return "closur";
+  if (row.id.startsWith("takila-")) return "takila";
+  if (efficiencyRowHasOperator(row, "可露希尔")) return "closur";
+  if (efficiencyRowHasOperator(row, "龙舌兰")) return "takila";
+  return `level-${efficiencyRowTradingLevel(row)}-butshu`;
+}
+
+function regroupEfficiencyGroups(
+  groups: BasicCalculatorGroup[],
+  mode: EfficiencyGroupingMode,
+  levelGroups: BasicCalculatorGroup[],
+): BasicCalculatorGroup[] {
+  const entries = groups.flatMap((group) =>
+    group.rows.map((row) => ({ group, row })),
+  );
+  function columnIdsForRows(
+    rows: typeof entries,
+    fallback: string[],
+  ): string[] {
+    const sourceGroups = [...new Set(rows.map(({ group }) => group))];
+    return sourceGroups.length
+      ? [...new Set(sourceGroups.flatMap((group) => group.columnIds))]
+      : [...fallback];
+  }
+
+  if (mode === "facilityLevel") {
+    return levelGroups.flatMap((group) => {
+      const rows = entries.filter(
+        ({ row }) => efficiencyRowTradingLevel(row) === group.facilityLevel,
+      );
+      if (
+        rows.length === 0 &&
+        !groups.some((sourceGroup) => sourceGroup.id === group.id)
+      ) {
+        return [];
+      }
+      return [
+        {
+          ...group,
+          columnIds: columnIdsForRows(rows, group.columnIds),
+          rows: rows.map(({ row }) => row),
+        },
+      ];
+    });
+  }
+
+  return LEGACY_EFFICIENCY_GROUPS.flatMap((definition) => {
+    const rows = entries.filter(
+      ({ row }) => legacyEfficiencyGroupId(row) === definition.id,
+    );
+    if (
+      rows.length === 0 &&
+      !groups.some((group) => group.id === definition.id)
+    ) {
+      return [];
+    }
+    const fallbackColumns =
+      levelGroups.find(
+        (group) => group.facilityLevel === definition.facilityLevel,
+      )?.columnIds ?? [];
+    return [
+      {
+        ...definition,
+        columnIds: columnIdsForRows(rows, fallbackColumns),
+        rows: rows.map(({ row }) => row),
+      },
+    ];
+  });
+}
+
+function migrateEfficiencyCalculatorPatch(
+  patch: BasicCalculatorPatch | undefined,
+  defaults: BasicCalculatorConfig,
+): BasicCalculatorPatch | undefined {
+  if (!patch || patch.version !== 1 || defaults.version !== 2) return patch;
+
+  const groupIdByLevel = new Map(
+    defaults.groups
+      .filter(
+        (group) =>
+          group.facility === "trading" &&
+          typeof group.facilityLevel === "number",
+      )
+      .map((group) => [group.facilityLevel as number, group.id] as const),
+  );
+  const groupIdByRowId = new Map(
+    defaults.groups.flatMap((group) =>
+      group.rows.map((row) => [row.id, group.id] as const),
+    ),
+  );
+  const legacyGroupLevels: Record<string, number> = {
+    "level-1-butshu": 1,
+    "level-2-butshu": 2,
+    "level-3-butshu": 3,
+    closur: 3,
+    takila: 3,
+  };
+  function groupIdForRow(
+    rowId: string,
+    row: BasicCalculatorRow | undefined,
+    sourceGroupId: string,
+  ): string | undefined {
+    const currentLevel = row?.schedule.layout.find(
+      ({ type }) => type === "trading",
+    )?.level;
+    const groupIdForCurrentLevel =
+      currentLevel === undefined ? undefined : groupIdByLevel.get(currentLevel);
+    if (groupIdForCurrentLevel) return groupIdForCurrentLevel;
+    const existingGroupId = groupIdByRowId.get(rowId);
+    if (existingGroupId) return existingGroupId;
+    const level = legacyGroupLevels[sourceGroupId] ?? 3;
+    return groupIdByLevel.get(level);
+  }
+
+  const addedRows: Record<string, BasicCalculatorRow[]> = {};
+  const addedRowsById = new Map<string, BasicCalculatorRow>();
+  Object.entries(patch.addedRows ?? {}).forEach(([sourceGroupId, rows]) => {
+    rows.forEach((row) => {
+      const groupId = groupIdForRow(row.id, row, sourceGroupId);
+      if (!groupId) return;
+      addedRows[groupId] = [...(addedRows[groupId] ?? []), row];
+      addedRowsById.set(row.id, row);
+    });
+  });
+
+  const rowUpdates: Record<string, Record<string, BasicCalculatorRow>> = {};
+  Object.entries(patch.rowUpdates ?? {}).forEach(([sourceGroupId, updates]) => {
+    Object.entries(updates).forEach(([rowId, row]) => {
+      const groupId = groupIdForRow(rowId, row, sourceGroupId);
+      if (!groupId) return;
+      rowUpdates[groupId] = {
+        ...(rowUpdates[groupId] ?? {}),
+        [rowId]: row,
+      };
+    });
+  });
+  const updatedRowsById = new Map(
+    Object.values(rowUpdates).flatMap((updates) => Object.entries(updates)),
+  );
+
+  const removedRowIds: Record<string, string[]> = {};
+  Object.entries(patch.removedRowIds ?? {}).forEach(
+    ([sourceGroupId, rowIds]) => {
+      rowIds.forEach((rowId) => {
+        const groupId = groupIdForRow(rowId, undefined, sourceGroupId);
+        if (!groupId) return;
+        removedRowIds[groupId] = [
+          ...new Set([...(removedRowIds[groupId] ?? []), rowId]),
+        ];
+      });
+    },
+  );
+
+  const rowOrder: Record<string, string[]> = {};
+  Object.entries(patch.rowOrder ?? {}).forEach(([sourceGroupId, rowIds]) => {
+    rowIds.forEach((rowId) => {
+      const groupId = groupIdForRow(
+        rowId,
+        updatedRowsById.get(rowId) ?? addedRowsById.get(rowId),
+        sourceGroupId,
+      );
+      if (!groupId || rowOrder[groupId]?.includes(rowId)) return;
+      rowOrder[groupId] = [...(rowOrder[groupId] ?? []), rowId];
+    });
+  });
+
+  const groupIds = new Set(defaults.groups.map((group) => group.id));
+  const migratedPatch: BasicCalculatorPatch = {
+    ...patch,
+    version: defaults.version,
+    groupColumnIds: Object.fromEntries(
+      Object.entries(patch.groupColumnIds ?? {}).filter(([groupId]) =>
+        groupIds.has(groupId),
+      ),
+    ),
+    rowUpdates,
+    addedRows,
+    removedRowIds,
+    rowOrder,
+  };
+  delete migratedPatch.groupUpdates;
+  delete migratedPatch.addedGroups;
+  delete migratedPatch.removedGroupIds;
+  delete migratedPatch.groupOrder;
+  return migratedPatch;
+}
+
 function persistConfig(): void {
   if (!defaults.value || !config.value || typeof window === "undefined") {
     return;
   }
   try {
+    if (props.mode === "efficiency") {
+      window.localStorage.setItem(
+        EFFICIENCY_GROUPING_STORAGE_KEY,
+        efficiencyGroupingMode.value,
+      );
+    }
     const patch = createBasicCalculatorPatch(defaults.value, config.value);
     if (Object.keys(patch).length === 1) {
       window.localStorage.removeItem(storageKey.value);
@@ -363,11 +621,27 @@ async function loadResources(): Promise<void> {
     }
     const asset = (await defaultResponse.json()) as BasicCalculatorAsset;
     const nextDefaults = createBasicCalculatorConfig(asset);
+    const storedPatch = readStoredPatch(storageKey.value);
+    const patch =
+      props.mode === "efficiency"
+        ? migrateEfficiencyCalculatorPatch(storedPatch, nextDefaults)
+        : storedPatch;
+    const nextGroupingMode =
+      props.mode === "efficiency"
+        ? readEfficiencyGroupingMode()
+        : "facilityLevel";
+    const nextConfig = applyBasicCalculatorPatch(nextDefaults, patch);
+    if (props.mode === "efficiency" && nextGroupingMode === "legacy") {
+      nextConfig.groups = regroupEfficiencyGroups(
+        nextConfig.groups,
+        nextGroupingMode,
+        nextDefaults.groups,
+      );
+    }
     defaults.value = nextDefaults;
-    config.value = applyBasicCalculatorPatch(
-      nextDefaults,
-      readStoredPatch(storageKey.value),
-    );
+    efficiencyGroupingMode.value = nextGroupingMode;
+    config.value = nextConfig;
+    if (storedPatch?.version !== patch?.version) persistConfig();
     catalog.value = getRiicEfficiencyCatalog(recycleRules.value);
     loadError.value = "";
   } catch (error: unknown) {
@@ -772,9 +1046,7 @@ function rowView(
       numeric[column.id] =
         calculation?.productionProduct === "龙门币" &&
         calculation.actualProductionRate !== undefined
-          ? calculation.actualProductionRate *
-              24 *
-              sanityValues.value.lmd -
+          ? calculation.actualProductionRate * 24 * sanityValues.value.lmd -
             (calculation.actualGoldConsumptionRate ?? 0) *
               24 *
               sanityValues.value.pureGoldPoint *
@@ -1615,8 +1887,31 @@ function deleteGroup(groupId: string): void {
 function resetDefaults(): void {
   if (!defaults.value) return;
   config.value = cloneBasicCalculatorConfig(defaults.value);
-  if (typeof window !== "undefined")
+  if (props.mode === "efficiency") {
+    efficiencyGroupingMode.value = "facilityLevel";
+  }
+  if (typeof window !== "undefined") {
     window.localStorage.removeItem(storageKey.value);
+    if (props.mode === "efficiency") {
+      window.localStorage.removeItem(EFFICIENCY_GROUPING_STORAGE_KEY);
+    }
+  }
+}
+
+function setEfficiencyGroupingMode(mode: EfficiencyGroupingMode): void {
+  if (
+    props.mode !== "efficiency" ||
+    !config.value ||
+    !defaults.value ||
+    efficiencyGroupingMode.value === mode
+  ) {
+    return;
+  }
+  const levelGroups = defaults.value.groups;
+  efficiencyGroupingMode.value = mode;
+  updateConfig((draft) => {
+    draft.groups = regroupEfficiencyGroups(draft.groups, mode, levelGroups);
+  });
 }
 
 function operatorFor(name: string): Operator | undefined {
@@ -1885,6 +2180,15 @@ function toggleGroupColumn(
           >
             合并相同效率单元格
           </a-checkbox>
+        </a-form-item>
+        <a-form-item v-if="props.mode === 'efficiency'" label="分组方式">
+          <a-radio-group
+            :value="efficiencyGroupingMode"
+            @change="setEfficiencyGroupingMode($event.target.value)"
+          >
+            <a-radio-button value="facilityLevel">按贸易站等级</a-radio-button>
+            <a-radio-button value="legacy">按原分组</a-radio-button>
+          </a-radio-group>
         </a-form-item>
       </a-form>
     </a-card>
