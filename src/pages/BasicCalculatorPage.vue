@@ -95,6 +95,7 @@ import {
 
 interface BasicCalculatorRowView {
   group: BasicCalculatorGroup;
+  displayGroup: BasicCalculatorGroup;
   row: BasicCalculatorRow;
   sourceRows: BasicCalculatorRow[];
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
@@ -149,35 +150,16 @@ const STORAGE_KEYS = {
   efficiency: "riic-tools:efficiency-calculator:v3",
 } as const;
 const EFFICIENCY_GROUPING_STORAGE_KEY =
+  "riic-tools:efficiency-calculator:grouping:v2";
+const LEGACY_EFFICIENCY_GROUPING_STORAGE_KEY =
   "riic-tools:efficiency-calculator:grouping:v1";
+const EQUIVALENT_LEVEL_THREE_TRADE_COLUMN_ID =
+  "equivalent-level-three-trade-efficiency";
 type EfficiencyGroupingMode = "facilityLevel" | "legacy";
-const LEGACY_EFFICIENCY_GROUPS: Omit<
-  BasicCalculatorGroup,
-  "columnIds" | "rows"
->[] = [
-  { id: "base", name: "基础", facility: "trading" },
-  {
-    id: "level-1-butshu",
-    name: "1级站但书",
-    facility: "trading",
-    facilityLevel: 1,
-  },
-  {
-    id: "level-2-butshu",
-    name: "2级站但书",
-    facility: "trading",
-    facilityLevel: 2,
-  },
-  {
-    id: "level-3-butshu",
-    name: "3级站但书",
-    facility: "trading",
-    facilityLevel: 3,
-  },
-  { id: "closur", name: "可露希尔", facility: "trading", facilityLevel: 3 },
-  { id: "pepe", name: "佩佩", facility: "trading" },
-  { id: "takila", name: "龙舌兰", facility: "trading", facilityLevel: 3 },
-];
+interface EfficiencyGroupingSettings {
+  mode: EfficiencyGroupingMode;
+  facilityLevelColumnIds: Record<string, string[]>;
+}
 const props = withDefaults(
   defineProps<{ mode?: "combination" | "efficiency" }>(),
   { mode: "combination" },
@@ -203,6 +185,7 @@ const {
 const defaults = ref<BasicCalculatorConfig>();
 const config = ref<BasicCalculatorConfig>();
 const efficiencyGroupingMode = ref<EfficiencyGroupingMode>("facilityLevel");
+const efficiencyFacilityLevelColumnIds = ref<Record<string, string[]>>({});
 const catalog = ref<EfficiencyCatalog>();
 const loading = ref(true);
 const loadError = ref("");
@@ -264,6 +247,34 @@ const rowCalculations = ref<Record<string, BasicCalculatorRowCalculation>>({});
 const calculationLoading = ref(false);
 const calculationError = ref("");
 let calculationRequestId = 0;
+
+const sourceGroupByRowId = computed(
+  () =>
+    new Map(
+      (config.value?.groups ?? []).flatMap((group) =>
+        group.rows.map((row) => [row.id, group] as const),
+      ),
+    ),
+);
+const displayGroups = computed(() => {
+  const current = config.value;
+  if (!current) return [];
+  if (
+    props.mode !== "efficiency" ||
+    efficiencyGroupingMode.value === "legacy"
+  ) {
+    return current.groups;
+  }
+  return efficiencyFacilityLevelGroups(
+    current,
+    efficiencyFacilityLevelColumnIds.value,
+  );
+});
+const isEfficiencyFacilityLevelView = computed(
+  () =>
+    props.mode === "efficiency" &&
+    efficiencyGroupingMode.value === "facilityLevel",
+);
 
 const calculationsReadyForMerge = computed(() => {
   const current = config.value;
@@ -355,22 +366,65 @@ function readStoredPatch(key: string): BasicCalculatorPatch | undefined {
   }
 }
 
-function readEfficiencyGroupingMode(): EfficiencyGroupingMode {
-  if (typeof window === "undefined") return "facilityLevel";
+function readEfficiencyGroupingSettings(): EfficiencyGroupingSettings {
+  if (typeof window === "undefined") {
+    return { mode: "facilityLevel", facilityLevelColumnIds: {} };
+  }
   try {
-    return window.localStorage.getItem(EFFICIENCY_GROUPING_STORAGE_KEY) ===
-      "legacy"
-      ? "legacy"
-      : "facilityLevel";
+    const stored = window.localStorage.getItem(EFFICIENCY_GROUPING_STORAGE_KEY);
+    if (stored) {
+      const value: unknown = JSON.parse(stored);
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        const settings = value as Partial<EfficiencyGroupingSettings>;
+        const facilityLevelColumnIds = Object.fromEntries(
+          Object.entries(settings.facilityLevelColumnIds ?? {}).filter(
+            ([level, columnIds]) =>
+              ["1", "2", "3"].includes(level) &&
+              Array.isArray(columnIds) &&
+              columnIds.every((columnId) => typeof columnId === "string"),
+          ),
+        ) as Record<string, string[]>;
+        return {
+          mode: settings.mode === "legacy" ? "legacy" : "facilityLevel",
+          facilityLevelColumnIds,
+        };
+      }
+    }
+    return {
+      mode:
+        window.localStorage.getItem(LEGACY_EFFICIENCY_GROUPING_STORAGE_KEY) ===
+        "legacy"
+          ? "legacy"
+          : "facilityLevel",
+      facilityLevelColumnIds: {},
+    };
   } catch {
-    return "facilityLevel";
+    return { mode: "facilityLevel", facilityLevelColumnIds: {} };
   }
 }
 
-function efficiencyRowTradingLevel(row: BasicCalculatorRow): number {
-  const level =
-    row.schedule.layout.find(({ type }) => type === "trading")?.level ?? 3;
-  return level === 1 || level === 2 || level === 3 ? level : 3;
+function persistEfficiencyGroupingSettings(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const settings: EfficiencyGroupingSettings = {
+      mode: efficiencyGroupingMode.value,
+      facilityLevelColumnIds: efficiencyFacilityLevelColumnIds.value,
+    };
+    window.localStorage.setItem(
+      EFFICIENCY_GROUPING_STORAGE_KEY,
+      JSON.stringify(settings),
+    );
+    window.localStorage.removeItem(LEGACY_EFFICIENCY_GROUPING_STORAGE_KEY);
+  } catch {}
+}
+
+function efficiencyRowTradingLevel(
+  row: BasicCalculatorRow,
+): number | undefined {
+  const level = row.schedule.layout.find(
+    ({ type }) => type === "trading",
+  )?.level;
+  return level === 1 || level === 2 || level === 3 ? level : undefined;
 }
 
 function efficiencyRowHasOperator(
@@ -390,196 +444,378 @@ function efficiencyRowHasOperator(
   });
 }
 
-function legacyEfficiencyGroupId(row: BasicCalculatorRow): string {
+function efficiencySourceGroupId(row: BasicCalculatorRow): string {
   if (row.id.startsWith("base-")) return "base";
   if (row.id.startsWith("pepe-") || efficiencyRowHasOperator(row, "佩佩")) {
     return "pepe";
   }
-  if (row.id.startsWith("closur-")) return "closur";
-  if (row.id.startsWith("takila-")) return "takila";
-  if (efficiencyRowHasOperator(row, "可露希尔")) return "closur";
-  if (efficiencyRowHasOperator(row, "龙舌兰")) return "takila";
-  return `level-${efficiencyRowTradingLevel(row)}-butshu`;
+  if (
+    row.id.startsWith("closur-") ||
+    efficiencyRowHasOperator(row, "可露希尔")
+  ) {
+    return "closur";
+  }
+  if (row.id.startsWith("takila-") || efficiencyRowHasOperator(row, "龙舌兰")) {
+    return "takila";
+  }
+  return "butshu";
 }
 
-function regroupEfficiencyGroups(
-  groups: BasicCalculatorGroup[],
-  mode: EfficiencyGroupingMode,
-  levelGroups: BasicCalculatorGroup[],
+function efficiencyFacilityLevelGroups(
+  config: BasicCalculatorConfig,
+  savedColumnIds: Record<string, string[]>,
 ): BasicCalculatorGroup[] {
-  const entries = groups.flatMap((group) =>
-    group.rows.map((row) => ({ group, row })),
-  );
-  function columnIdsForRows(
-    rows: typeof entries,
-    fallback: string[],
-  ): string[] {
-    const sourceGroups = [...new Set(rows.map(({ group }) => group))];
-    return sourceGroups.length
-      ? [...new Set(sourceGroups.flatMap((group) => group.columnIds))]
-      : [...fallback];
-  }
-
-  if (mode === "facilityLevel") {
-    return levelGroups.flatMap((group) => {
-      const rows = entries.filter(
-        ({ row }) => efficiencyRowTradingLevel(row) === group.facilityLevel,
-      );
-      if (
-        rows.length === 0 &&
-        !groups.some((sourceGroup) => sourceGroup.id === group.id)
-      ) {
-        return [];
-      }
-      return [
-        {
-          ...group,
-          columnIds: columnIdsForRows(rows, group.columnIds),
-          rows: rows.map(({ row }) => row),
-        },
-      ];
-    });
-  }
-
-  return LEGACY_EFFICIENCY_GROUPS.flatMap((definition) => {
-    const rows = entries.filter(
-      ({ row }) => legacyEfficiencyGroupId(row) === definition.id,
+  const groups: BasicCalculatorGroup[] = [];
+  [1, 2, 3].forEach((level) => {
+    const entries = config.groups.flatMap((group) =>
+      group.rows
+        .filter((row) => efficiencyRowTradingLevel(row) === level)
+        .map((row) => ({ group, row })),
     );
-    if (
-      rows.length === 0 &&
-      !groups.some((group) => group.id === definition.id)
-    ) {
-      return [];
-    }
-    const fallbackColumns =
-      levelGroups.find(
-        (group) => group.facilityLevel === definition.facilityLevel,
-      )?.columnIds ?? [];
-    return [
-      {
-        ...definition,
-        columnIds: columnIdsForRows(rows, fallbackColumns),
-        rows: rows.map(({ row }) => row),
-      },
+    if (entries.length === 0) return;
+    const defaultColumnIds = [
+      ...new Set(entries.flatMap(({ group }) => group.columnIds)),
     ];
+    if (level === 3) {
+      const columnIndex = defaultColumnIds.indexOf(
+        EQUIVALENT_LEVEL_THREE_TRADE_COLUMN_ID,
+      );
+      if (columnIndex >= 0) defaultColumnIds.splice(columnIndex, 1);
+    }
+    groups.push({
+      id: `trading-level-${level}`,
+      name: `${level}级贸易站`,
+      facility: "trading",
+      facilityLevel: level,
+      columnIds: [...(savedColumnIds[String(level)] ?? defaultColumnIds)],
+      rows: entries.map(({ row }) => row),
+    });
   });
+  return groups;
+}
+
+interface EfficiencyPatchMigrationResult {
+  patch?: BasicCalculatorPatch;
+  facilityLevelColumnIds: Record<string, string[]>;
+}
+
+function legacyEfficiencyLevelGroupId(level: number): string {
+  return `level-${level}-butshu`;
+}
+
+function sourceEfficiencyGroupIdForPatch(
+  rowId: string,
+  row: BasicCalculatorRow | undefined,
+  oldGroupId: string,
+  defaultGroupByRowId: Map<string, string>,
+  customGroupIds: Set<string>,
+): string | undefined {
+  const defaultGroupId = defaultGroupByRowId.get(rowId);
+  if (defaultGroupId) return defaultGroupId;
+  if (customGroupIds.has(oldGroupId)) return oldGroupId;
+  if (
+    oldGroupId === "base" ||
+    oldGroupId === "pepe" ||
+    oldGroupId === "closur" ||
+    oldGroupId === "takila"
+  ) {
+    return oldGroupId;
+  }
+  if (oldGroupId === "butshu" || /^level-[123]-butshu$/.test(oldGroupId)) {
+    return row ? efficiencySourceGroupId(row) : "butshu";
+  }
+  return row ? efficiencySourceGroupId(row) : undefined;
+}
+
+function migrateVersionOneEfficiencyPatch(
+  patch: BasicCalculatorPatch,
+  defaults: BasicCalculatorConfig,
+): EfficiencyPatchMigrationResult {
+  const rowLevelById = new Map(
+    defaults.groups.flatMap((group) =>
+      group.rows.map(
+        (row) => [row.id, efficiencyRowTradingLevel(row)] as const,
+      ),
+    ),
+  );
+  const groupIdForRow = (
+    rowId: string,
+    row: BasicCalculatorRow | undefined,
+    sourceGroupId: string,
+  ): string => {
+    const level =
+      (row ? efficiencyRowTradingLevel(row) : undefined) ??
+      rowLevelById.get(rowId);
+    if (
+      level === undefined &&
+      ["base", "pepe", "closur", "butshu", "takila"].includes(sourceGroupId)
+    ) {
+      return sourceGroupId;
+    }
+    const fallbackLevel =
+      level ??
+      (sourceGroupId.match(/^level-([123])-butshu$/)?.[1]
+        ? Number(sourceGroupId.match(/^level-([123])-butshu$/)?.[1])
+        : 3);
+    return legacyEfficiencyLevelGroupId(fallbackLevel);
+  };
+  const remapRows = (
+    source: Record<string, BasicCalculatorRow[]> | undefined,
+  ): Record<string, BasicCalculatorRow[]> => {
+    const result: Record<string, BasicCalculatorRow[]> = {};
+    Object.entries(source ?? {}).forEach(([groupId, rows]) => {
+      rows.forEach((row) => {
+        const target = groupIdForRow(row.id, row, groupId);
+        result[target] = [...(result[target] ?? []), row];
+      });
+    });
+    return result;
+  };
+  const addedRows = remapRows(patch.addedRows);
+  const rowUpdates: Record<string, Record<string, BasicCalculatorRow>> = {};
+  Object.entries(patch.rowUpdates ?? {}).forEach(([groupId, updates]) => {
+    Object.entries(updates).forEach(([rowId, row]) => {
+      const target = groupIdForRow(rowId, row, groupId);
+      rowUpdates[target] = { ...(rowUpdates[target] ?? {}), [rowId]: row };
+    });
+  });
+  const removedRowIds: Record<string, string[]> = {};
+  Object.entries(patch.removedRowIds ?? {}).forEach(([groupId, rowIds]) => {
+    rowIds.forEach((rowId) => {
+      const target = groupIdForRow(rowId, undefined, groupId);
+      removedRowIds[target] = [...(removedRowIds[target] ?? []), rowId];
+    });
+  });
+  const rowOrder: Record<string, string[]> = {};
+  Object.entries(patch.rowOrder ?? {}).forEach(([groupId, rowIds]) => {
+    rowIds.forEach((rowId) => {
+      const target = groupIdForRow(rowId, undefined, groupId);
+      rowOrder[target] = [...(rowOrder[target] ?? []), rowId];
+    });
+  });
+  const facilityLevelColumnIds: Record<string, string[]> = {};
+  const sourceGroupColumnIds: Record<string, string[]> = {};
+  const sourceGroupIds = new Set(defaults.groups.map((group) => group.id));
+  Object.entries(patch.groupColumnIds ?? {}).forEach(([groupId, columnIds]) => {
+    const level = groupId.match(/^level-([123])-butshu$/)?.[1];
+    if (level) facilityLevelColumnIds[level] = columnIds;
+    else if (sourceGroupIds.has(groupId)) {
+      sourceGroupColumnIds[groupId] = columnIds;
+    }
+  });
+  const migratedPatch: BasicCalculatorPatch = {
+    ...patch,
+    version: 2,
+    rowUpdates,
+    addedRows,
+    removedRowIds,
+    rowOrder,
+    groupColumnIds: sourceGroupColumnIds,
+  };
+  delete migratedPatch.groupUpdates;
+  delete migratedPatch.addedGroups;
+  delete migratedPatch.removedGroupIds;
+  delete migratedPatch.groupOrder;
+  return { patch: migratedPatch, facilityLevelColumnIds };
 }
 
 function migrateEfficiencyCalculatorPatch(
-  patch: BasicCalculatorPatch | undefined,
+  storedPatch: BasicCalculatorPatch | undefined,
   defaults: BasicCalculatorConfig,
-): BasicCalculatorPatch | undefined {
-  if (!patch || patch.version !== 1 || defaults.version !== 2) return patch;
+  groupingMode: EfficiencyGroupingMode,
+): EfficiencyPatchMigrationResult {
+  if (!storedPatch) return { facilityLevelColumnIds: {} };
+  let patch = storedPatch;
+  let facilityLevelColumnIds: Record<string, string[]> = {};
+  if (patch.version === 1) {
+    const migration = migrateVersionOneEfficiencyPatch(patch, defaults);
+    if (migration.patch) patch = migration.patch;
+    facilityLevelColumnIds = migration.facilityLevelColumnIds;
+  }
+  if (patch.version === 3 && defaults.version === 4) {
+    const migratedPatch: BasicCalculatorPatch = {
+      ...patch,
+      version: defaults.version,
+      removedGroupIds: (patch.removedGroupIds ?? []).filter(
+        (groupId) => groupId !== "butshu",
+      ),
+    };
+    delete migratedPatch.groupOrder;
+    return {
+      patch: migratedPatch,
+      facilityLevelColumnIds,
+    };
+  }
+  if (patch.version === defaults.version) {
+    if (!patch.groupOrder) return { patch, facilityLevelColumnIds };
+    const normalizedPatch = { ...patch };
+    delete normalizedPatch.groupOrder;
+    return { patch: normalizedPatch, facilityLevelColumnIds };
+  }
+  if (patch.version !== 2 || defaults.version !== 4) {
+    return { patch, facilityLevelColumnIds };
+  }
 
-  const groupIdByLevel = new Map(
-    defaults.groups
-      .filter(
-        (group) =>
-          group.facility === "trading" &&
-          typeof group.facilityLevel === "number",
-      )
-      .map((group) => [group.facilityLevel as number, group.id] as const),
+  const sourceGroupIds = new Set([
+    "base",
+    "pepe",
+    "closur",
+    "butshu",
+    "takila",
+    "level-1-butshu",
+    "level-2-butshu",
+    "level-3-butshu",
+  ]);
+  const legacySourceGroups = (patch.addedGroups ?? []).filter((group) =>
+    sourceGroupIds.has(group.id),
   );
-  const groupIdByRowId = new Map(
+  const customGroups = (patch.addedGroups ?? []).filter(
+    (group) => !sourceGroupIds.has(group.id),
+  );
+  const customGroupIds = new Set(customGroups.map((group) => group.id));
+  const defaultGroupByRowId = new Map(
     defaults.groups.flatMap((group) =>
       group.rows.map((row) => [row.id, group.id] as const),
     ),
   );
-  const legacyGroupLevels: Record<string, number> = {
-    "level-1-butshu": 1,
-    "level-2-butshu": 2,
-    "level-3-butshu": 3,
-    closur: 3,
-    takila: 3,
-  };
-  function groupIdForRow(
-    rowId: string,
-    row: BasicCalculatorRow | undefined,
-    sourceGroupId: string,
-  ): string | undefined {
-    const currentLevel = row?.schedule.layout.find(
-      ({ type }) => type === "trading",
-    )?.level;
-    const groupIdForCurrentLevel =
-      currentLevel === undefined ? undefined : groupIdByLevel.get(currentLevel);
-    if (groupIdForCurrentLevel) return groupIdForCurrentLevel;
-    const existingGroupId = groupIdByRowId.get(rowId);
-    if (existingGroupId) return existingGroupId;
-    const level = legacyGroupLevels[sourceGroupId] ?? 3;
-    return groupIdByLevel.get(level);
+  const defaultRowsById = new Map(
+    defaults.groups.flatMap((group) =>
+      group.rows.map((row) => [row.id, row] as const),
+    ),
+  );
+  const rowUpdates: Record<string, Record<string, BasicCalculatorRow>> = {};
+  const addedRows: Record<string, BasicCalculatorRow[]> = {};
+  const removedRowIds: Record<string, string[]> = {};
+  const rowOrder: Record<string, string[]> = {};
+  const groupUpdates: NonNullable<BasicCalculatorPatch["groupUpdates"]> = {};
+  const groupColumnIds: Record<string, string[]> = {};
+  const defaultGroupIds = new Set(defaults.groups.map(({ id }) => id));
+  const removedGroupIds = new Set(
+    (patch.removedGroupIds ?? []).filter((id) => defaultGroupIds.has(id)),
+  );
+
+  function savePatchedRow(oldGroupId: string, row: BasicCalculatorRow): void {
+    const groupId = sourceEfficiencyGroupIdForPatch(
+      row.id,
+      row,
+      oldGroupId,
+      defaultGroupByRowId,
+      customGroupIds,
+    );
+    if (!groupId) return;
+    const defaultRow = defaultRowsById.get(row.id);
+    if (defaultRow && defaultGroupByRowId.get(row.id) === groupId) {
+      if (JSON.stringify(defaultRow) !== JSON.stringify(row)) {
+        rowUpdates[groupId] = { ...(rowUpdates[groupId] ?? {}), [row.id]: row };
+      }
+    } else if (customGroupIds.has(groupId)) {
+      const customGroup = customGroups.find((group) => group.id === groupId);
+      if (customGroup)
+        customGroup.rows = customGroup.rows.filter(({ id }) => id !== row.id);
+      customGroup?.rows.push(row);
+    } else {
+      addedRows[groupId] = [...(addedRows[groupId] ?? []), row];
+    }
   }
 
-  const addedRows: Record<string, BasicCalculatorRow[]> = {};
-  const addedRowsById = new Map<string, BasicCalculatorRow>();
-  Object.entries(patch.addedRows ?? {}).forEach(([sourceGroupId, rows]) => {
-    rows.forEach((row) => {
-      const groupId = groupIdForRow(row.id, row, sourceGroupId);
-      if (!groupId) return;
-      addedRows[groupId] = [...(addedRows[groupId] ?? []), row];
-      addedRowsById.set(row.id, row);
-    });
+  Object.entries(patch.addedRows ?? {}).forEach(([groupId, rows]) => {
+    rows.forEach((row) => savePatchedRow(groupId, row));
   });
-
-  const rowUpdates: Record<string, Record<string, BasicCalculatorRow>> = {};
-  Object.entries(patch.rowUpdates ?? {}).forEach(([sourceGroupId, updates]) => {
-    Object.entries(updates).forEach(([rowId, row]) => {
-      const groupId = groupIdForRow(rowId, row, sourceGroupId);
-      if (!groupId) return;
-      rowUpdates[groupId] = {
-        ...(rowUpdates[groupId] ?? {}),
-        [rowId]: row,
-      };
-    });
+  Object.entries(patch.rowUpdates ?? {}).forEach(([groupId, rows]) => {
+    Object.values(rows).forEach((row) => savePatchedRow(groupId, row));
   });
-  const updatedRowsById = new Map(
-    Object.values(rowUpdates).flatMap((updates) => Object.entries(updates)),
-  );
-
-  const removedRowIds: Record<string, string[]> = {};
-  Object.entries(patch.removedRowIds ?? {}).forEach(
-    ([sourceGroupId, rowIds]) => {
-      rowIds.forEach((rowId) => {
-        const groupId = groupIdForRow(rowId, undefined, sourceGroupId);
-        if (!groupId) return;
-        removedRowIds[groupId] = [
-          ...new Set([...(removedRowIds[groupId] ?? []), rowId]),
-        ];
-      });
-    },
-  );
-
-  const rowOrder: Record<string, string[]> = {};
-  Object.entries(patch.rowOrder ?? {}).forEach(([sourceGroupId, rowIds]) => {
+  Object.entries(patch.removedRowIds ?? {}).forEach(([oldGroupId, rowIds]) => {
     rowIds.forEach((rowId) => {
-      const groupId = groupIdForRow(
+      const groupId = sourceEfficiencyGroupIdForPatch(
         rowId,
-        updatedRowsById.get(rowId) ?? addedRowsById.get(rowId),
-        sourceGroupId,
+        undefined,
+        oldGroupId,
+        defaultGroupByRowId,
+        customGroupIds,
+      );
+      if (!groupId || customGroupIds.has(groupId)) return;
+      removedRowIds[groupId] = [...(removedRowIds[groupId] ?? []), rowId];
+    });
+  });
+  Object.entries(patch.rowOrder ?? {}).forEach(([oldGroupId, rowIds]) => {
+    rowIds.forEach((rowId) => {
+      const groupId = sourceEfficiencyGroupIdForPatch(
+        rowId,
+        undefined,
+        oldGroupId,
+        defaultGroupByRowId,
+        customGroupIds,
       );
       if (!groupId || rowOrder[groupId]?.includes(rowId)) return;
       rowOrder[groupId] = [...(rowOrder[groupId] ?? []), rowId];
     });
   });
 
-  const groupIds = new Set(defaults.groups.map((group) => group.id));
+  if (groupingMode === "legacy") {
+    const rowsById = new Map<string, BasicCalculatorRow>();
+    const presentSourceGroups = new Set<string>();
+    legacySourceGroups.forEach((group) => {
+      const targetId = group.id.startsWith("level-") ? "butshu" : group.id;
+      presentSourceGroups.add(targetId);
+      group.rows.forEach((row) => {
+        rowsById.set(row.id, row);
+        savePatchedRow(group.id, row);
+      });
+      const columnIds = new Set(groupColumnIds[targetId] ?? []);
+      group.columnIds.forEach((id) => columnIds.add(id));
+      groupColumnIds[targetId] = [...columnIds];
+      const update = { ...group } as Record<string, unknown>;
+      delete update.id;
+      delete update.rows;
+      delete update.columnIds;
+      delete update.facilityLevel;
+      if (targetId === "butshu") delete update.name;
+      groupUpdates[targetId] = {
+        ...(groupUpdates[targetId] ?? {}),
+        ...update,
+      } as NonNullable<BasicCalculatorPatch["groupUpdates"]>[string];
+    });
+    defaults.groups.forEach((group) => {
+      if (!presentSourceGroups.has(group.id)) return;
+      group.rows.forEach((row) => {
+        if (!rowsById.has(row.id)) {
+          removedRowIds[group.id] = [
+            ...(removedRowIds[group.id] ?? []),
+            row.id,
+          ];
+        }
+      });
+    });
+  }
+
+  Object.entries(patch.groupColumnIds ?? {}).forEach(([groupId, columnIds]) => {
+    const level = groupId.match(/^level-([123])-butshu$/)?.[1];
+    if (level) {
+      facilityLevelColumnIds[level] ??= [...columnIds];
+    } else if (defaults.groups.some((group) => group.id === groupId)) {
+      groupColumnIds[groupId] = [...columnIds];
+    }
+  });
+
+  const customGroupUpdates = Object.fromEntries(
+    Object.entries(patch.groupUpdates ?? {}).filter(([groupId]) =>
+      customGroupIds.has(groupId),
+    ),
+  );
   const migratedPatch: BasicCalculatorPatch = {
     ...patch,
     version: defaults.version,
-    groupColumnIds: Object.fromEntries(
-      Object.entries(patch.groupColumnIds ?? {}).filter(([groupId]) =>
-        groupIds.has(groupId),
-      ),
-    ),
+    groupUpdates: { ...customGroupUpdates, ...groupUpdates },
+    addedGroups: customGroups,
+    removedGroupIds: [...removedGroupIds],
+    groupColumnIds,
     rowUpdates,
     addedRows,
     removedRowIds,
     rowOrder,
   };
-  delete migratedPatch.groupUpdates;
-  delete migratedPatch.addedGroups;
-  delete migratedPatch.removedGroupIds;
   delete migratedPatch.groupOrder;
-  return migratedPatch;
+  return { patch: migratedPatch, facilityLevelColumnIds };
 }
 
 function persistConfig(): void {
@@ -587,12 +823,7 @@ function persistConfig(): void {
     return;
   }
   try {
-    if (props.mode === "efficiency") {
-      window.localStorage.setItem(
-        EFFICIENCY_GROUPING_STORAGE_KEY,
-        efficiencyGroupingMode.value,
-      );
-    }
+    if (props.mode === "efficiency") persistEfficiencyGroupingSettings();
     const patch = createBasicCalculatorPatch(defaults.value, config.value);
     if (Object.keys(patch).length === 1) {
       window.localStorage.removeItem(storageKey.value);
@@ -628,26 +859,36 @@ async function loadResources(): Promise<void> {
     const asset = (await defaultResponse.json()) as BasicCalculatorAsset;
     const nextDefaults = createBasicCalculatorConfig(asset);
     const storedPatch = readStoredPatch(storageKey.value);
-    const patch =
+    const groupingSettings =
       props.mode === "efficiency"
-        ? migrateEfficiencyCalculatorPatch(storedPatch, nextDefaults)
-        : storedPatch;
-    const nextGroupingMode =
+        ? readEfficiencyGroupingSettings()
+        : { mode: "facilityLevel" as const, facilityLevelColumnIds: {} };
+    const migration =
       props.mode === "efficiency"
-        ? readEfficiencyGroupingMode()
-        : "facilityLevel";
-    const nextConfig = applyBasicCalculatorPatch(nextDefaults, patch);
-    if (props.mode === "efficiency" && nextGroupingMode === "legacy") {
-      nextConfig.groups = regroupEfficiencyGroups(
-        nextConfig.groups,
-        nextGroupingMode,
-        nextDefaults.groups,
-      );
-    }
+        ? migrateEfficiencyCalculatorPatch(
+            storedPatch,
+            nextDefaults,
+            groupingSettings.mode,
+          )
+        : { patch: storedPatch, facilityLevelColumnIds: {} };
+    const nextConfig = applyBasicCalculatorPatch(nextDefaults, migration.patch);
     defaults.value = nextDefaults;
-    efficiencyGroupingMode.value = nextGroupingMode;
+    efficiencyGroupingMode.value = groupingSettings.mode;
+    efficiencyFacilityLevelColumnIds.value = {
+      ...migration.facilityLevelColumnIds,
+      ...groupingSettings.facilityLevelColumnIds,
+    };
     config.value = nextConfig;
-    if (storedPatch?.version !== patch?.version) persistConfig();
+    if (
+      props.mode === "efficiency" &&
+      (JSON.stringify(storedPatch) !== JSON.stringify(migration.patch) ||
+        (typeof window !== "undefined" &&
+          window.localStorage.getItem(
+            LEGACY_EFFICIENCY_GROUPING_STORAGE_KEY,
+          ) !== null))
+    ) {
+      persistConfig();
+    }
     catalog.value = getRiicEfficiencyCatalog(recycleRules.value);
     loadError.value = "";
   } catch (error: unknown) {
@@ -1016,9 +1257,10 @@ function aggregateValues(
 
 function rowView(
   group: BasicCalculatorGroup,
+  displayGroup: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): BasicCalculatorRowView {
-  const columns = groupColumns(group);
+  const columns = groupColumns(displayGroup);
   const calculation = rowCalculations.value[`${group.id}:${row.id}`];
   const numeric: Record<string, number | undefined> = {};
   columns.forEach((column) => {
@@ -1074,6 +1316,7 @@ function rowView(
   });
   return {
     group,
+    displayGroup,
     row,
     sourceRows: [row],
     efficiency: calculation?.efficiency ?? {},
@@ -1088,8 +1331,11 @@ function rowView(
 
 const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
   const result: Record<string, BasicCalculatorRowView[]> = {};
-  (config.value?.groups ?? []).forEach((group) => {
-    const views = group.rows.map((row) => rowView(group, row));
+  displayGroups.value.forEach((group) => {
+    const views = group.rows.flatMap((row) => {
+      const sourceGroup = sourceGroupByRowId.value.get(row.id);
+      return sourceGroup ? [rowView(sourceGroup, group, row)] : [];
+    });
     const sortState = groupSortState(group);
     const direction = sortState.direction === "asc" ? 1 : -1;
     views.sort((first, second) => {
@@ -1198,7 +1444,7 @@ function mergeRowViews(
             .filter((operator) => operator.runOrder)
             .map((operator) => operator.name)
         : [],
-      groupColumns(view.group)
+      groupColumns(view.displayGroup)
         .filter(
           (column) =>
             column.kind !== "operators" && column.kind !== "operatorNames",
@@ -1368,7 +1614,7 @@ function tableCellColumns(view: BasicCalculatorRowView): Array<{
   column: BasicCalculatorColumn;
   colspan: number;
 }> {
-  const columns = groupColumns(view.group);
+  const columns = groupColumns(view.displayGroup);
   const shouldMergeCells =
     config.value?.settings.mergeIdenticalEfficiencyCells &&
     calculationsReadyForMerge.value;
@@ -1584,8 +1830,16 @@ function cancelColumnSettings(): void {
 
 function saveColumnSettings(): void {
   const settingsDraft = columnSettingsDraft.value;
-  if (!settingsDraft) return;
+  if (!settingsDraft || !config.value) return;
   const savedDraft = cloneBasicCalculatorConfig(settingsDraft);
+  const currentColumnIds = new Set(config.value.columns.map(({ id }) => id));
+  const savedColumnIds = new Set(savedDraft.columns.map(({ id }) => id));
+  const addedColumnIds = [...savedColumnIds].filter(
+    (id) => !currentColumnIds.has(id),
+  );
+  const removedColumnIds = [...currentColumnIds].filter(
+    (id) => !savedColumnIds.has(id),
+  );
   updateConfig((draft) => {
     draft.columns = savedDraft.columns;
     const groupColumnIds = new Map(
@@ -1598,6 +1852,17 @@ function saveColumnSettings(): void {
     draft.settings.sortColumnId = savedDraft.settings.sortColumnId;
     draft.settings.sortDirection = savedDraft.settings.sortDirection;
   });
+  if (props.mode === "efficiency") {
+    const nextColumnIds = { ...efficiencyFacilityLevelColumnIds.value };
+    Object.entries(nextColumnIds).forEach(([level, columnIds]) => {
+      nextColumnIds[level] = [
+        ...columnIds.filter((id) => !removedColumnIds.includes(id)),
+        ...addedColumnIds,
+      ];
+    });
+    efficiencyFacilityLevelColumnIds.value = nextColumnIds;
+    persistEfficiencyGroupingSettings();
+  }
   cancelColumnSettings();
 }
 
@@ -1732,6 +1997,7 @@ function openRowEditor(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   rowDraftGroupId.value = group.id;
   rowDraft.value = JSON.parse(JSON.stringify(row)) as BasicCalculatorRow;
   rowDraftSchedule.value = JSON.parse(
@@ -1760,6 +2026,7 @@ function openMergedRowEditor(
 }
 
 function saveRow(): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   if (!rowDraft.value || !rowDraftGroupId.value || !rowDraftSchedule.value)
     return;
   const draft = JSON.parse(
@@ -1782,17 +2049,37 @@ function cancelRowEditor(): void {
 }
 
 function deleteRow(groupId: string, rowId: string): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   updateConfig((draft) => {
     const group = draft.groups.find((item) => item.id === groupId);
     if (group) group.rows = group.rows.filter((row) => row.id !== rowId);
   });
 }
 
+function efficiencyGroupTradingLevel(
+  group: BasicCalculatorGroup,
+): number | undefined {
+  if (group.rows.length === 0) return undefined;
+  const levels = group.rows.map(efficiencyRowTradingLevel);
+  const level = levels[0];
+  return level !== undefined && levels.every((item) => item === level)
+    ? level
+    : undefined;
+}
+
 function addRow(group: BasicCalculatorGroup): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   const id = `${group.id}-row-${Date.now().toString(36)}`;
+  const schedule = createBasicCalculatorSchedule(group);
+  if (props.mode === "efficiency" && group.facility === "trading") {
+    const level = efficiencyGroupTradingLevel(group);
+    if (level !== undefined) {
+      schedule.layout = [{ type: "trading", level }];
+    }
+  }
   const row: BasicCalculatorRow = {
     id,
-    schedule: createBasicCalculatorSchedule(group),
+    schedule,
     ...(group.coreOperator
       ? { hiddenOperators: [group.coreOperator.name] }
       : {}),
@@ -1804,6 +2091,7 @@ function addRow(group: BasicCalculatorGroup): void {
 }
 
 function openGroupEditor(group?: BasicCalculatorGroup): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   groupDraft.value = group
     ? {
         ...(JSON.parse(JSON.stringify(group)) as BasicCalculatorGroup),
@@ -1816,22 +2104,26 @@ function openGroupEditor(group?: BasicCalculatorGroup): void {
         id: `group-${Date.now().toString(36)}`,
         name: props.mode === "efficiency" ? "新效率组" : "新组合组",
         facility: props.mode === "efficiency" ? "trading" : "manufacture",
-        facilityLevel: 3,
         defaultProducts: { trading: "", manufacture: "" },
         ...(props.mode === "combination"
-          ? { coreOperator: { name: operators.value[0]?.name ?? "红云" } }
+          ? {
+              facilityLevel: 3,
+              coreOperator: { name: operators.value[0]?.name ?? "红云" },
+            }
           : {}),
         columnIds: config.value?.groups[0]?.columnIds ?? [],
         rows: [],
       };
   if (props.mode === "efficiency" && groupDraft.value) {
     delete groupDraft.value.coreOperator;
+    delete groupDraft.value.facilityLevel;
     groupDraft.value.facility = "trading";
   }
   groupModalOpen.value = true;
 }
 
 function saveGroup(): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   const draft = groupDraft.value;
   if (
     !draft ||
@@ -1851,6 +2143,7 @@ function saveGroup(): void {
     };
     if (props.mode === "efficiency") {
       delete group.coreOperator;
+      delete group.facilityLevel;
       group.facility = "trading";
     }
     if (index >= 0) {
@@ -1885,6 +2178,7 @@ function saveGroup(): void {
 }
 
 function deleteGroup(groupId: string): void {
+  if (isEfficiencyFacilityLevelView.value) return;
   updateConfig((draft) => {
     draft.groups = draft.groups.filter((group) => group.id !== groupId);
   });
@@ -1895,29 +2189,24 @@ function resetDefaults(): void {
   config.value = cloneBasicCalculatorConfig(defaults.value);
   if (props.mode === "efficiency") {
     efficiencyGroupingMode.value = "facilityLevel";
+    efficiencyFacilityLevelColumnIds.value = {};
   }
   if (typeof window !== "undefined") {
     window.localStorage.removeItem(storageKey.value);
     if (props.mode === "efficiency") {
       window.localStorage.removeItem(EFFICIENCY_GROUPING_STORAGE_KEY);
+      window.localStorage.removeItem(LEGACY_EFFICIENCY_GROUPING_STORAGE_KEY);
     }
   }
 }
 
 function setEfficiencyGroupingMode(mode: EfficiencyGroupingMode): void {
-  if (
-    props.mode !== "efficiency" ||
-    !config.value ||
-    !defaults.value ||
-    efficiencyGroupingMode.value === mode
-  ) {
+  if (props.mode !== "efficiency" || efficiencyGroupingMode.value === mode) {
     return;
   }
-  const levelGroups = defaults.value.groups;
   efficiencyGroupingMode.value = mode;
-  updateConfig((draft) => {
-    draft.groups = regroupEfficiencyGroups(draft.groups, mode, levelGroups);
-  });
+  activeGroupIds.value = [];
+  persistEfficiencyGroupingSettings();
 }
 
 function operatorFor(name: string): Operator | undefined {
@@ -1996,6 +2285,22 @@ function toggleGroupColumn(
   columnId: string,
   selected: boolean,
 ): void {
+  if (isEfficiencyFacilityLevelView.value) {
+    const group = displayGroups.value.find((item) => item.id === groupId);
+    if (group?.facilityLevel === undefined) return;
+    const key = String(group.facilityLevel);
+    const selectedColumnIds = new Set(
+      efficiencyFacilityLevelColumnIds.value[key] ?? group.columnIds,
+    );
+    if (selected) selectedColumnIds.add(columnId);
+    else selectedColumnIds.delete(columnId);
+    efficiencyFacilityLevelColumnIds.value = {
+      ...efficiencyFacilityLevelColumnIds.value,
+      [key]: [...selectedColumnIds],
+    };
+    persistEfficiencyGroupingSettings();
+    return;
+  }
   updateConfig((draft) => {
     const group = draft.groups.find((item) => item.id === groupId);
     if (!group) return;
@@ -2028,6 +2333,7 @@ function toggleGroupColumn(
             >列设置</a-button
           >
           <a-button
+            v-if="!isEfficiencyFacilityLevelView"
             :icon="h(PlusOutlined)"
             type="primary"
             @click="openGroupEditor()"
@@ -2205,24 +2511,29 @@ function toggleGroupColumn(
         v-model:active-key="activeGroupIds"
         class="basic-calculator-groups"
       >
-        <a-collapse-panel v-for="group in config.groups" :key="group.id">
+        <a-collapse-panel v-for="group in displayGroups" :key="group.id">
           <template #header>
             <div class="basic-calculator-group-header">
               <strong>{{ group.name }}</strong>
-              <span v-if="props.mode === 'efficiency' && group.facility">
-                {{ ROOM_LABELS[group.facility] }} ·
-                {{
-                  group.facilityLevel === undefined
-                    ? "全等级"
-                    : `${group.facilityLevel}级`
-                }}
+              <span
+                v-if="
+                  props.mode === 'efficiency' &&
+                  efficiencyGroupingMode === 'legacy' &&
+                  group.facility
+                "
+              >
+                {{ ROOM_LABELS[group.facility] }}
               </span>
               <span v-else-if="group.coreOperator && group.facility">
                 {{ group.coreOperator.name }} ·
                 {{ ROOM_LABELS[group.facility] }}
               </span>
-              <span v-else>无核心干员</span>
-              <span class="basic-calculator-group-header-actions" @click.stop>
+              <span v-else-if="props.mode === 'combination'">无核心干员</span>
+              <span
+                v-if="!isEfficiencyFacilityLevelView"
+                class="basic-calculator-group-header-actions"
+                @click.stop
+              >
                 <a-button
                   :icon="h(EditOutlined)"
                   type="text"
@@ -2261,6 +2572,7 @@ function toggleGroupColumn(
                 >{{ column.label }}</a-checkbox
               >
               <a-button
+                v-if="!isEfficiencyFacilityLevelView"
                 :icon="h(PlusOutlined)"
                 size="small"
                 @click="addRow(group)"
@@ -2273,6 +2585,7 @@ function toggleGroupColumn(
               <thead>
                 <tr>
                   <th
+                    v-if="!isEfficiencyFacilityLevelView"
                     aria-label="操作"
                     class="basic-calculator-actions-column"
                   />
@@ -2318,7 +2631,10 @@ function toggleGroupColumn(
                   :key="view.row.id"
                   :style="rowBackgroundStyle(view)"
                 >
-                  <td class="basic-calculator-actions-column">
+                  <td
+                    v-if="!isEfficiencyFacilityLevelView"
+                    class="basic-calculator-actions-column"
+                  >
                     <div
                       v-if="view.sourceRows.length === 1"
                       class="basic-calculator-row-actions"
@@ -2719,10 +3035,7 @@ function toggleGroupColumn(
             <a-select-option value="trading">贸易站</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item
-          v-if="props.mode === 'efficiency' || groupDraft.coreOperator"
-          label="设施等级"
-        >
+        <a-form-item v-if="groupDraft.coreOperator" label="设施等级">
           <a-input-number
             v-model:value="groupDraft.facilityLevel"
             :max="3"
