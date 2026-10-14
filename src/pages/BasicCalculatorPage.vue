@@ -29,6 +29,8 @@ import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPan
 import { useBaseData } from "@/composables/useBaseData";
 import { useFacilityColors } from "@/composables/useFacilityColors";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
+import { useResultResourceDisplaySettings } from "@/composables/useResultResourceDisplaySettings";
+import { useSanitySettings } from "@/composables/useSanitySettings";
 import type { EliteLevel, Operator } from "@/types/baseData";
 import {
   buildRecycleRules,
@@ -41,6 +43,7 @@ import {
   type OperatorProgressionNode,
   type ResolvedOperatorProgression,
   percentageOperatorValue,
+  PURE_GOLD_POINTS,
 } from "@arknights/riic-efficiency";
 import type {
   OperatorState,
@@ -118,6 +121,10 @@ const EFFICIENCY_COLUMN_LABELS: Partial<
   equivalentManufactureEfficiency: "等效制造效率",
   baseProductionRate: "基础产出速率",
   actualProductionRate: "实际产出速率",
+  baseGoldConsumptionRate: "基础赤金消耗速率",
+  actualGoldConsumptionRate: "实际赤金消耗速率",
+  savedGoldConsumptionRate: "节约赤金消耗速率",
+  dailyProfit: "每日收益",
 };
 
 const TRADING_PRODUCT_OPTIONS = [
@@ -154,6 +161,8 @@ const { operators, itemTable, buildingData, ready, errorMessage } =
 const recycleRules = computed(() =>
   buildRecycleRules(buildingData.value, itemTable.value),
 );
+const { sanityValues } = useSanitySettings(itemTable, recycleRules);
+const { resultResourceDisplayMode } = useResultResourceDisplaySettings();
 const { facilityColors, productColors } = useFacilityColors();
 const {
   activeProfile,
@@ -504,6 +513,7 @@ function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
   if (props.mode === "efficiency") {
     return {
       column:
+        columns.find((column) => column.kind === "dailyProfit") ??
         columns.find((column) => column.kind === "operatorEfficiency") ??
         columns.find((column) => column.kind === "operatorNames"),
       direction: "desc",
@@ -752,6 +762,24 @@ function rowView(
       numeric[column.id] = calculation?.baseProductionRate;
     } else if (column.kind === "actualProductionRate") {
       numeric[column.id] = calculation?.actualProductionRate;
+    } else if (column.kind === "baseGoldConsumptionRate") {
+      numeric[column.id] = calculation?.baseGoldConsumptionRate;
+    } else if (column.kind === "actualGoldConsumptionRate") {
+      numeric[column.id] = calculation?.actualGoldConsumptionRate;
+    } else if (column.kind === "savedGoldConsumptionRate") {
+      numeric[column.id] = calculation?.savedGoldConsumptionRate;
+    } else if (column.kind === "dailyProfit") {
+      numeric[column.id] =
+        calculation?.productionProduct === "龙门币" &&
+        calculation.actualProductionRate !== undefined
+          ? calculation.actualProductionRate *
+              24 *
+              sanityValues.value.lmd -
+            (calculation.actualGoldConsumptionRate ?? 0) *
+              24 *
+              sanityValues.value.pureGoldPoint *
+              PURE_GOLD_POINTS
+          : undefined;
     } else if (column.kind === "efficiency") {
       numeric[column.id] =
         calculation?.efficiency[String(column.hours ?? 24)]?.second;
@@ -1010,12 +1038,25 @@ function columnText(
     column.kind === "actualProductionRate"
   ) {
     const value = view.numeric[column.id];
-    const unit = view.productionProduct
-      ? `${view.productionProduct}/小时`
-      : column.unit;
-    return value === undefined
-      ? "—"
-      : `${formatNumber(value)} ${unit ?? ""}`.trim();
+    return value === undefined ? "—" : formatNumber(value);
+  }
+  if (
+    column.kind === "baseGoldConsumptionRate" ||
+    column.kind === "actualGoldConsumptionRate" ||
+    column.kind === "savedGoldConsumptionRate"
+  ) {
+    const value = view.numeric[column.id];
+    if (value === undefined) return "—";
+    const raw = formatNumber(value);
+    if (resultResourceDisplayMode.value === "raw") return raw;
+    const points = formatNumber(value * PURE_GOLD_POINTS);
+    return resultResourceDisplayMode.value === "points"
+      ? points
+      : `${raw} (${points})`;
+  }
+  if (column.kind === "dailyProfit") {
+    const value = view.numeric[column.id];
+    return value === undefined ? "—" : formatNumber(value);
   }
   if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
@@ -1398,10 +1439,6 @@ function addColumn(): void {
       ? { hours: Math.max(0.01, columnDraft.hours), unit: "%" }
       : {}),
     ...(columnDraft.kind === "tradeBaseEfficiency"
-      ? { unit: "龙门币/小时" }
-      : {}),
-    ...(columnDraft.kind === "baseProductionRate" ||
-    columnDraft.kind === "actualProductionRate"
       ? { unit: "龙门币/小时" }
       : {}),
     ...(columnDraft.kind === "operatorField"
@@ -2277,6 +2314,16 @@ function toggleGroupColumn(
               <a-select-option value="actualProductionRate"
                 >实际产出速率</a-select-option
               >
+              <a-select-option value="baseGoldConsumptionRate"
+                >基础赤金消耗速率</a-select-option
+              >
+              <a-select-option value="actualGoldConsumptionRate"
+                >实际赤金消耗速率</a-select-option
+              >
+              <a-select-option value="savedGoldConsumptionRate"
+                >节约赤金消耗速率</a-select-option
+              >
+              <a-select-option value="dailyProfit">每日收益</a-select-option>
             </template>
           </a-select>
         </a-form-item>

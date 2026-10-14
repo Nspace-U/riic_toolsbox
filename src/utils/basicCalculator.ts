@@ -35,6 +35,10 @@ export type BasicCalculatorColumnKind =
   | "equivalentManufactureEfficiency"
   | "baseProductionRate"
   | "actualProductionRate"
+  | "baseGoldConsumptionRate"
+  | "actualGoldConsumptionRate"
+  | "savedGoldConsumptionRate"
+  | "dailyProfit"
   | "efficiency"
   | "note"
   | "operatorField";
@@ -189,6 +193,9 @@ export interface BasicCalculatorRowCalculation {
   equivalentManufactureEfficiency?: number;
   baseProductionRate?: number;
   actualProductionRate?: number;
+  baseGoldConsumptionRate?: number;
+  actualGoldConsumptionRate?: number;
+  savedGoldConsumptionRate?: number;
   productionProduct?: string;
 }
 
@@ -1036,6 +1043,14 @@ export function calculateBasicCalculatorRowValues(
     targetFacility,
     catalog.ruleset,
   );
+  const baseGoldMaterialRate =
+    production?.baseMaterialPerHour?.["赤金"] ??
+    production?.materialPerHour?.["赤金"] ??
+    0;
+  const actualGoldMaterialRate =
+    production?.effectiveMaterialPerHour?.["赤金"] ??
+    production?.materialPerHour?.["赤金"] ??
+    0;
   return {
     efficiency,
     ...(jieEfficiencyFallbackReason ? { jieEfficiencyFallbackReason } : {}),
@@ -1049,6 +1064,11 @@ export function calculateBasicCalculatorRowValues(
           baseProductionRate: production.baseAmountPerHour,
           actualProductionRate:
             production.effectiveAmountPerHour ?? production.amountPerHour,
+          baseGoldConsumptionRate: Math.max(0, -baseGoldMaterialRate),
+          actualGoldConsumptionRate: Math.max(0, -actualGoldMaterialRate),
+          savedGoldConsumptionRate:
+            Math.max(0, -baseGoldMaterialRate) -
+            Math.max(0, -actualGoldMaterialRate),
           productionProduct: production.product,
         }
       : {}),

@@ -44,14 +44,32 @@
     {
       "id": "base-production-rate",
       "label": "基础产出速率",
-      "kind": "baseProductionRate",
-      "unit": "龙门币/小时"
+      "kind": "baseProductionRate"
     },
     {
       "id": "actual-production-rate",
       "label": "实际产出速率",
-      "kind": "actualProductionRate",
-      "unit": "龙门币/小时"
+      "kind": "actualProductionRate"
+    },
+    {
+      "id": "base-gold-consumption-rate",
+      "label": "基础赤金消耗速率",
+      "kind": "baseGoldConsumptionRate"
+    },
+    {
+      "id": "actual-gold-consumption-rate",
+      "label": "实际赤金消耗速率",
+      "kind": "actualGoldConsumptionRate"
+    },
+    {
+      "id": "saved-gold-consumption-rate",
+      "label": "节约赤金消耗速率",
+      "kind": "savedGoldConsumptionRate"
+    },
+    {
+      "id": "daily-profit",
+      "label": "每日收益",
+      "kind": "dailyProfit"
     }
   ],
   "groups": [
@@ -68,7 +86,11 @@
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
         "base-production-rate",
-        "actual-production-rate"
+        "actual-production-rate",
+        "base-gold-consumption-rate",
+        "actual-gold-consumption-rate",
+        "saved-gold-consumption-rate",
+        "daily-profit"
       ],
       "rows": [
         {
@@ -138,7 +160,11 @@
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
         "base-production-rate",
-        "actual-production-rate"
+        "actual-production-rate",
+        "base-gold-consumption-rate",
+        "actual-gold-consumption-rate",
+        "saved-gold-consumption-rate",
+        "daily-profit"
       ],
       "rows": [
         {
@@ -260,7 +286,11 @@
         "equivalent-current-trade-efficiency",
         "equivalent-level-three-trade-efficiency",
         "base-production-rate",
-        "actual-production-rate"
+        "actual-production-rate",
+        "base-gold-consumption-rate",
+        "actual-gold-consumption-rate",
+        "saved-gold-consumption-rate",
+        "daily-profit"
       ],
       "rows": [
         {
@@ -357,7 +387,11 @@
         "equivalent-level-three-trade-efficiency",
         "equivalent-manufacture-efficiency",
         "base-production-rate",
-        "actual-production-rate"
+        "actual-production-rate",
+        "base-gold-consumption-rate",
+        "actual-gold-consumption-rate",
+        "saved-gold-consumption-rate",
+        "daily-profit"
       ],
       "rows": [
         {
@@ -532,7 +566,11 @@
         "equivalent-level-three-trade-efficiency",
         "equivalent-manufacture-efficiency",
         "base-production-rate",
-        "actual-production-rate"
+        "actual-production-rate",
+        "base-gold-consumption-rate",
+        "actual-gold-consumption-rate",
+        "saved-gold-consumption-rate",
+        "daily-profit"
       ],
       "rows": [
         {
