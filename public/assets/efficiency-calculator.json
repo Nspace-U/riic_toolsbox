@@ -96,6 +96,32 @@
               "runOrderEnabled": false
             }
           }
+        },
+        {
+          "id": "level-1-butshu-row-2-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 1
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["40%"],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
+            }
+          }
         }
       ]
     },
@@ -116,7 +142,7 @@
       ],
       "rows": [
         {
-          "id": "level-2-butshu-row-1",
+          "id": "level-2-butshu-row-40",
           "schedule": {
             "layout": [
               {
@@ -129,7 +155,7 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["但书"],
+                      "operators": ["但书", "40%"],
                       "runOrderOperators": []
                     }
                   ]
@@ -138,6 +164,84 @@
             ],
             "settings": {
               "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "level-2-butshu-row-45",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["但书", "45%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "level-2-butshu-row-80-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["80%"],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
+            }
+          }
+        },
+        {
+          "id": "level-2-butshu-row-90-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["90%"],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
             }
           }
         }
@@ -160,7 +264,7 @@
       ],
       "rows": [
         {
-          "id": "level-3-butshu-row-1",
+          "id": "level-3-butshu-row-40-40",
           "schedule": {
             "layout": [
               {
@@ -173,7 +277,59 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["但书"],
+                      "operators": ["但书", "40%", "40%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "level-3-butshu-row-45-45",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["但书", "45%", "45%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "level-3-butshu-row-60-35",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["但书", "60%", "35%"],
                       "runOrderOperators": []
                     }
                   ]
@@ -205,12 +361,12 @@
       ],
       "rows": [
         {
-          "id": "closur-row-1",
+          "id": "closur-level-1",
           "schedule": {
             "layout": [
               {
                 "type": "trading",
-                "level": 3
+                "level": 1
               }
             ],
             "plans": [
@@ -229,28 +385,61 @@
               "runOrderEnabled": false
             }
           }
-        }
-      ]
-    },
-    {
-      "id": "vodfox-butshu-takila",
-      "name": "巫恋+但书+龙舌兰",
-      "facility": "trading",
-      "facilityLevel": 3,
-      "columnIds": [
-        "operators",
-        "operator-names",
-        "operator-efficiency",
-        "facility-efficiency",
-        "equivalent-current-trade-efficiency",
-        "equivalent-level-three-trade-efficiency",
-        "equivalent-manufacture-efficiency",
-        "base-production-rate",
-        "actual-production-rate"
-      ],
-      "rows": [
+        },
         {
-          "id": "vodfox-butshu-takila-row-1",
+          "id": "closur-level-2-40",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "40%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "closur-level-2-45",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "45%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "closur-level-3-40-40",
           "schedule": {
             "layout": [
               {
@@ -263,7 +452,59 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["巫恋", "龙舌兰", "但书"],
+                      "operators": ["可露希尔", "40%", "40%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "closur-level-3-45-45",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "45%", "45%"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "closur-level-3-60-35",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["可露希尔", "60%", "35%"],
                       "runOrderOperators": []
                     }
                   ]
@@ -278,8 +519,8 @@
       ]
     },
     {
-      "id": "vodfox-bibeak-takila",
-      "name": "巫恋+柏喙+龙舌兰",
+      "id": "takila",
+      "name": "龙舌兰",
       "facility": "trading",
       "facilityLevel": 3,
       "columnIds": [
@@ -295,7 +536,7 @@
       ],
       "rows": [
         {
-          "id": "vodfox-bibeak-takila-row-1",
+          "id": "takila-row-wulian-bibeak",
           "schedule": {
             "layout": [
               {
@@ -317,6 +558,110 @@
             ],
             "settings": {
               "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "takila-row-wulian-butshu",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["巫恋", "但书", "龙舌兰"],
+                      "runOrderOperators": []
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": false
+            }
+          }
+        },
+        {
+          "id": "takila-row-40-40-40-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["40%", "40%", "40%"],
+                      "runOrderOperators": ["但书", "龙舌兰"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
+            }
+          }
+        },
+        {
+          "id": "takila-row-45-45-40-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["45%", "45%", "40%"],
+                      "runOrderOperators": ["但书", "龙舌兰"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
+            }
+          }
+        },
+        {
+          "id": "takila-row-60-35-40-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["60%", "35%", "40%"],
+                      "runOrderOperators": ["但书", "龙舌兰"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
             }
           }
         }
