@@ -156,7 +156,14 @@ function stationInfo(title: string): {
     throw new ScheduleError(`无法识别设施“${title}”`);
   }
   const productLabel = title.match(/（([^）]+)）/)?.[1];
-  const product = productLabel ? canonicalResourceKey(productLabel) : undefined;
+  const normalizedProductLabel =
+    type === "trading"
+      ? ({ 龙门商法: "龙门币", 开采协力: "合成玉" }[productLabel ?? ""] ??
+        productLabel)
+      : productLabel;
+  const product = normalizedProductLabel
+    ? canonicalResourceKey(normalizedProductLabel)
+    : undefined;
   if (productLabel && !productLabel.trim()) {
     throw new ScheduleError(`无法识别设施“${title}”的产物`);
   }
