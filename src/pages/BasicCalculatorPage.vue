@@ -155,6 +155,7 @@ const LEGACY_EFFICIENCY_GROUPS: Omit<
   BasicCalculatorGroup,
   "columnIds" | "rows"
 >[] = [
+  { id: "base", name: "基础", facility: "trading" },
   {
     id: "level-1-butshu",
     name: "1级站但书",
@@ -174,6 +175,7 @@ const LEGACY_EFFICIENCY_GROUPS: Omit<
     facilityLevel: 3,
   },
   { id: "closur", name: "可露希尔", facility: "trading", facilityLevel: 3 },
+  { id: "pepe", name: "佩佩", facility: "trading" },
   { id: "takila", name: "龙舌兰", facility: "trading", facilityLevel: 3 },
 ];
 const props = withDefaults(
@@ -389,6 +391,10 @@ function efficiencyRowHasOperator(
 }
 
 function legacyEfficiencyGroupId(row: BasicCalculatorRow): string {
+  if (row.id.startsWith("base-")) return "base";
+  if (row.id.startsWith("pepe-") || efficiencyRowHasOperator(row, "佩佩")) {
+    return "pepe";
+  }
   if (row.id.startsWith("closur-")) return "closur";
   if (row.id.startsWith("takila-")) return "takila";
   if (efficiencyRowHasOperator(row, "可露希尔")) return "closur";
@@ -2205,7 +2211,11 @@ function toggleGroupColumn(
               <strong>{{ group.name }}</strong>
               <span v-if="props.mode === 'efficiency' && group.facility">
                 {{ ROOM_LABELS[group.facility] }} ·
-                {{ group.facilityLevel ?? 1 }}级
+                {{
+                  group.facilityLevel === undefined
+                    ? "全等级"
+                    : `${group.facilityLevel}级`
+                }}
               </span>
               <span v-else-if="group.coreOperator && group.facility">
                 {{ group.coreOperator.name }} ·
