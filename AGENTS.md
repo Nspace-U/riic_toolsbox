@@ -1,7 +1,6 @@
 # 明日方舟基建工具箱
 
-> 该项目是将明日方舟基建项目从 HTML + CSS + JS 用 Vue + TypeScript + AntDesignVue 进行的重构
-> 基建项目路径 D:\Game\明日方舟\基建
+> 明日方舟基建工具箱，使用 Vue 3、TypeScript 和 Ant Design Vue 构建
 > txt排班表格式来源 D:\Game\明日方舟\riic-yituliu-main
 
 ## 目录
@@ -36,6 +35,8 @@ Common commit types:
 - `refactor` - Code refactoring
 
 ## 项目协作规则
+
+- 本项目并不存在发行版本，不需要进行大多数旧数据兼容和迁移
 
 ### 文件职责
 
