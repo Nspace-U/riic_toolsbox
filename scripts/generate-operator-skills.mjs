@@ -288,8 +288,6 @@ function ruleset() {
       "Pure Gold": "赤金",
       "Battle Record": "中级作战记录",
       "Originium Shard": "源石碎片",
-      作战记录: "中级作战记录",
-      贵金属: "赤金",
     },
     maxEliteLevelByRarity: { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2, 6: 2 },
   };

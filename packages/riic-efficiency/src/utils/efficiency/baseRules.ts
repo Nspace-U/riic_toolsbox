@@ -255,8 +255,6 @@ export const DEFAULT_RULESET: EfficiencyRuleset = {
     "Pure Gold": "赤金",
     "Battle Record": "中级作战记录",
     "Originium Shard": "源石碎片",
-    作战记录: "中级作战记录",
-    贵金属: "赤金",
   },
   maxEliteLevelByRarity: {
     1: 0,

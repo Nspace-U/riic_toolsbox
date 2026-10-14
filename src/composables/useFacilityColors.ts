@@ -11,19 +11,15 @@ import type { RoomKey } from "@/types/schedule";
 const FACILITY_COLORS_STORAGE_KEY = "riic-tools:facility-colors:v1";
 const PRODUCT_COLORS_STORAGE_KEY = "riic-tools:product-colors:v1";
 const FIAMMETTA_COLOR_STORAGE_KEY = "riic-tools:fiammetta-color:v1";
-const LEGACY_FACILITY_COLORS_STORAGE_KEY = "riic-tools:maa-facility-colors:v1";
-const LEGACY_PRODUCT_COLORS_STORAGE_KEY = "riic-tools:maa-product-colors:v1";
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 const DEFAULT_FIAMMETTA_COLOR = "#A03030";
 
 const PRODUCT_COLOR_KEYS = ["赤金", "合成玉", "源石碎片"] as const;
 export type ProductColorKey = (typeof PRODUCT_COLOR_KEYS)[number];
 
-function readStoredColors(key: string, legacyKey: string): string | null {
+function readStoredColors(key: string): string | null {
   try {
-    return (
-      window.localStorage.getItem(key) ?? window.localStorage.getItem(legacyKey)
-    );
+    return window.localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -41,10 +37,7 @@ function loadFacilityColors(): Record<RoomKey, string> {
   const defaults = cloneDefaultColors();
 
   try {
-    const stored = readStoredColors(
-      FACILITY_COLORS_STORAGE_KEY,
-      LEGACY_FACILITY_COLORS_STORAGE_KEY,
-    );
+    const stored = readStoredColors(FACILITY_COLORS_STORAGE_KEY);
     if (!stored) {
       return defaults;
     }
@@ -86,10 +79,7 @@ function loadProductColors(): Record<ProductColorKey, string> {
   const defaults = cloneDefaultProductColors();
 
   try {
-    const stored = readStoredColors(
-      PRODUCT_COLORS_STORAGE_KEY,
-      LEGACY_PRODUCT_COLORS_STORAGE_KEY,
-    );
+    const stored = readStoredColors(PRODUCT_COLORS_STORAGE_KEY);
     if (!stored) {
       return defaults;
     }

@@ -105,8 +105,6 @@ function importFiammetta(document: ScheduleDocument): void {
     ...(document.settings ?? {}),
     fiammettaMode: "queue" as const,
   };
-  delete (settings as Record<string, unknown>).featherFixedOps;
-  delete (settings as Record<string, unknown>).featherTargets;
   document.settings = settings;
   document.fiammetta = { ...(document.fiammetta ?? {}), queue };
 }

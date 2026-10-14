@@ -9,10 +9,6 @@ import type { ScheduleDocument, StoredDocument } from "@/types/schedule";
 
 const DOCUMENTS_STORAGE_KEY = "riic-tools:schedule-documents:v1";
 const ACTIVE_DOCUMENT_STORAGE_KEY = "riic-tools:schedule-active-document:v1";
-const LEGACY_DOCUMENTS_STORAGE_KEY = "riic-tools:maa-documents:v1";
-const LEGACY_ACTIVE_DOCUMENT_STORAGE_KEY = "riic-tools:maa-active-document:v1";
-
-let legacyStorageUsed = false;
 
 const documents = ref<StoredDocument[]>(readDocuments());
 const activeDocumentId = ref(readActiveDocumentId());
@@ -25,17 +21,9 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function readStorageValue(key: string, legacyKey: string): string | null {
+function readStorageValue(key: string): string | null {
   try {
-    const stored = window.localStorage.getItem(key);
-    if (stored !== null) {
-      return stored;
-    }
-    const legacyStored = window.localStorage.getItem(legacyKey);
-    if (legacyStored !== null) {
-      legacyStorageUsed = true;
-    }
-    return legacyStored;
+    return window.localStorage.getItem(key);
   } catch {
     return null;
   }
@@ -47,10 +35,7 @@ function readDocuments(): StoredDocument[] {
   }
 
   try {
-    const raw = readStorageValue(
-      DOCUMENTS_STORAGE_KEY,
-      LEGACY_DOCUMENTS_STORAGE_KEY,
-    );
+    const raw = readStorageValue(DOCUMENTS_STORAGE_KEY);
     if (!raw) {
       return [];
     }
@@ -70,12 +55,7 @@ function readActiveDocumentId(): string {
   }
 
   try {
-    return (
-      readStorageValue(
-        ACTIVE_DOCUMENT_STORAGE_KEY,
-        LEGACY_ACTIVE_DOCUMENT_STORAGE_KEY,
-      ) ?? ""
-    );
+    return readStorageValue(ACTIVE_DOCUMENT_STORAGE_KEY) ?? "";
   } catch {
     return "";
   }
@@ -294,9 +274,6 @@ function reorderDocuments(
 }
 
 normalizeActiveDocument();
-if (legacyStorageUsed) {
-  persist();
-}
 
 export function useScheduleDocuments() {
   return {

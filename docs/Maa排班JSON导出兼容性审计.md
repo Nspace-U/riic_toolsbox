@@ -22,7 +22,7 @@
 `serializeMaaSchedule` 的实际顺序如下：
 
 1. 校验原始 `ScheduleDocument`。
-2. 通过 `cloneSchedule` 使用 JSON 深拷贝创建副本，同时删除旧版 `settings.featherFixedOps` 和 `settings.featherTargets`。
+2. 通过 `cloneSchedule` 使用 JSON 深拷贝创建副本。
 3. 将百分比干员和已加载术语干员映射为具体干员名称，并同步迁移对应的 `operatorStates`。
 4. 删除根级内部菲亚梅塔字段和计划原有的 `Fiammetta` 字段。
 5. 删除已知设施房间的 `description`，压缩 `operators` 中的空字符串；数组为空时删除 `operators` 字段。
@@ -72,13 +72,6 @@
 - 根级 `importFiammetta` 不导出。
 
 因此 Maa 的计划级 `Fiammetta` 字段本身受协议支持，但内部队列结构、额外目标、禁用状态和 `post` 顺序不会按原样保留。
-
-### 旧版内部字段
-
-`cloneSchedule` 会删除以下旧版设置字段，即使它们通过开放字段存在于输入文档中：
-
-- `settings.featherFixedOps`
-- `settings.featherTargets`
 
 ### 特殊干员占位符
 

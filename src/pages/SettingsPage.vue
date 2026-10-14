@@ -671,7 +671,7 @@ const sanityDisplayRows = computed(() => [
     source: "按当前基础时间计算",
   },
   {
-    label: "作战记录（经验）",
+    label: "中级作战记录（经验）",
     value: sanityValues.value.experience,
     unit: "理智/经验",
     source: "按当前基础时间计算",

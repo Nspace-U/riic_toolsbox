@@ -349,7 +349,7 @@ export const PRODUCT_LABELS: Record<string, string> = {
   龙门币: "龙门币",
   合成玉: "合成玉",
   赤金: "赤金",
-  中级作战记录: "作战记录",
+  中级作战记录: "中级作战记录",
   源石碎片: "源石碎片",
 };
 
@@ -359,8 +359,6 @@ export const RESOURCE_KEY_ALIASES: Readonly<Record<string, string>> = {
   "Pure Gold": "赤金",
   "Battle Record": "中级作战记录",
   "Originium Shard": "源石碎片",
-  作战记录: "中级作战记录",
-  贵金属: "赤金",
 };
 
 export function canonicalResourceKey(resource: string): string {
@@ -1171,14 +1169,7 @@ export function validateSchedule(document: ScheduleDocument): void {
 }
 
 export function cloneSchedule(document: ScheduleDocument): ScheduleDocument {
-  const clone = JSON.parse(JSON.stringify(document)) as ScheduleDocument;
-  const settings = clone.settings as
-    (ScheduleSettings & Record<string, unknown>) | undefined;
-  if (settings) {
-    delete settings.featherFixedOps;
-    delete settings.featherTargets;
-  }
-  return clone;
+  return JSON.parse(JSON.stringify(document)) as ScheduleDocument;
 }
 
 export function createEmptySchedule(): ScheduleDocument {

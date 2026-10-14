@@ -90,7 +90,7 @@ const SANITY_ITEM_DEFINITIONS: SanityItemDefinition[] = [
   },
   {
     resource: "中级作战记录",
-    label: "作战记录（经验）",
+    label: "中级作战记录（经验）",
     amountUnit: "经验",
     amountFactor: BATTLE_RECORD_EXPERIENCE,
     value: (values) => values.experience,

@@ -19,7 +19,6 @@ interface StoredSanitySettings extends SanitySettings {
   materialSanityOverrides: Record<string, number | null>;
 }
 
-const legacyMaterialSanityValues = ref<Record<string, number | null>>();
 const materialSanityDefaults = ref<Record<string, number>>({});
 const materialSanityDefaultsLoaded = ref(false);
 const sanitySettings = ref<StoredSanitySettings>(readSanitySettings());
@@ -71,36 +70,10 @@ function readSanitySettings(): StoredSanitySettings {
     }
     const candidate = parsed as Partial<SanitySettings> & {
       materialSanityOverrides?: unknown;
-      materialSanityValues?: unknown;
-      solidRock?: unknown;
-      device?: unknown;
     };
     const materialSanityOverrides = validMaterialSanityValues(
       candidate.materialSanityOverrides,
     );
-    const legacyValues = validMaterialSanityValues(
-      candidate.materialSanityValues,
-    );
-    if (
-      !Object.hasOwn(legacyValues, "30012") &&
-      isFiniteNonNegative(candidate.solidRock)
-    ) {
-      legacyValues["30012"] = candidate.solidRock;
-    }
-    if (
-      !Object.hasOwn(legacyValues, "30062") &&
-      isFiniteNonNegative(candidate.device)
-    ) {
-      legacyValues["30062"] = candidate.device;
-    }
-    const pendingLegacyValues = Object.fromEntries(
-      Object.entries(legacyValues).filter(
-        ([itemId]) => !Object.hasOwn(materialSanityOverrides, itemId),
-      ),
-    ) as Record<string, number | null>;
-    if (Object.keys(pendingLegacyValues).length > 0) {
-      legacyMaterialSanityValues.value = pendingLegacyValues;
-    }
     return {
       ...DEFAULT_SANITY_SETTINGS,
       lmd: isFiniteNonNegative(candidate.lmd)
@@ -136,39 +109,9 @@ function persistSanitySettings(): void {
   try {
     window.localStorage.setItem(
       SANITY_SETTINGS_STORAGE_KEY,
-      JSON.stringify({
-        ...sanitySettings.value,
-        ...(legacyMaterialSanityValues.value
-          ? { materialSanityValues: legacyMaterialSanityValues.value }
-          : {}),
-      }),
+      JSON.stringify(sanitySettings.value),
     );
   } catch {}
-}
-
-function migrateLegacyMaterialSanityValues(
-  defaults: Record<string, number>,
-): void {
-  const legacyValues = legacyMaterialSanityValues.value;
-  if (!legacyValues) {
-    return;
-  }
-
-  const overrides = { ...sanitySettings.value.materialSanityOverrides };
-  Object.entries(legacyValues).forEach(([itemId, value]) => {
-    if (
-      !Object.hasOwn(overrides, itemId) &&
-      value !== (defaults[itemId] ?? null)
-    ) {
-      overrides[itemId] = value;
-    }
-  });
-  legacyMaterialSanityValues.value = undefined;
-  sanitySettings.value = {
-    ...sanitySettings.value,
-    materialSanityOverrides: overrides,
-  };
-  persistSanitySettings();
 }
 
 function ensureSanityMaterialDefaults(): void {
@@ -179,7 +122,6 @@ function ensureSanityMaterialDefaults(): void {
     .then((defaults) => {
       materialSanityDefaults.value = defaults;
       materialSanityDefaultsLoaded.value = true;
-      migrateLegacyMaterialSanityValues(defaults);
     })
     .catch(() => {
       materialSanityDefaultsPromise = undefined;
@@ -189,9 +131,6 @@ function ensureSanityMaterialDefaults(): void {
 function sanityMaterialValue(itemId: string): number | null {
   if (Object.hasOwn(sanitySettings.value.materialSanityOverrides, itemId)) {
     return sanitySettings.value.materialSanityOverrides[itemId] ?? null;
-  }
-  if (Object.hasOwn(legacyMaterialSanityValues.value ?? {}, itemId)) {
-    return legacyMaterialSanityValues.value?.[itemId] ?? null;
   }
   return materialSanityDefaults.value[itemId] ?? null;
 }
@@ -231,10 +170,6 @@ function setSanityMaterialSetting(itemId: string, value: number | null): void {
   } else {
     overrides[itemId] = value;
   }
-  const legacyValues = { ...legacyMaterialSanityValues.value };
-  delete legacyValues[itemId];
-  legacyMaterialSanityValues.value =
-    Object.keys(legacyValues).length > 0 ? legacyValues : undefined;
   sanitySettings.value = {
     ...sanitySettings.value,
     materialSanityOverrides: overrides,
@@ -245,10 +180,6 @@ function setSanityMaterialSetting(itemId: string, value: number | null): void {
 function resetSanityMaterialSetting(itemId: string): void {
   const overrides = { ...sanitySettings.value.materialSanityOverrides };
   delete overrides[itemId];
-  const legacyValues = { ...legacyMaterialSanityValues.value };
-  delete legacyValues[itemId];
-  legacyMaterialSanityValues.value =
-    Object.keys(legacyValues).length > 0 ? legacyValues : undefined;
   sanitySettings.value = {
     ...sanitySettings.value,
     materialSanityOverrides: overrides,
