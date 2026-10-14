@@ -40,6 +40,7 @@ import {
   type EfficiencyCatalog,
   type OperatorProgressionNode,
   type ResolvedOperatorProgression,
+  percentageOperatorValue,
 } from "@arknights/riic-efficiency";
 import type {
   OperatorState,
@@ -591,33 +592,58 @@ function rowVisibleOperatorNameEntries(
   row: BasicCalculatorRow,
 ): Array<{
   operator: BasicCalculatorOperator;
+  label: string;
   count: number;
   dividerBefore: boolean;
+  percentageTotal?: number;
 }> {
   const visible = rowVisibleOperators(group, row, true);
   const entries = new Map<
     string,
     {
       operator: BasicCalculatorOperator;
+      label: string;
       count: number;
       dividerBefore: boolean;
+      percentageTotal?: number;
     }
   >();
 
   visible.forEach((operator, index) => {
-    const label = displayOperatorNameLabel(group, operator);
+    const percentage = percentageOperatorValue(operator.name);
+    const roomLabel =
+      operator.room && operator.room !== group.facility
+        ? `(${ROOM_LABELS[operator.room]})`
+        : "";
+    const label =
+      percentage === undefined
+        ? displayOperatorNameLabel(group, operator)
+        : `${formatEfficiencyNumber(percentage)}%${roomLabel}`;
     const dividerBefore =
       operator.runOrder === true &&
       index > 0 &&
       visible[index - 1]?.runOrder !== true;
-    const key = termOperatorNames.value.has(operator.name)
-      ? `term:${JSON.stringify([label, operator.runOrder === true])}`
-      : `operator:${row.id}:${index}`;
+    const key =
+      percentage !== undefined
+        ? `percentage:${JSON.stringify([operator.room ?? null, operator.runOrder === true])}`
+        : termOperatorNames.value.has(operator.name)
+          ? `term:${JSON.stringify([label, operator.runOrder === true])}`
+          : `operator:${row.id}:${index}`;
     const existing = entries.get(key);
     if (existing) {
       existing.count += 1;
+      if (percentage !== undefined) {
+        existing.percentageTotal = (existing.percentageTotal ?? 0) + percentage;
+        existing.label = `${formatEfficiencyNumber(existing.percentageTotal)}%${roomLabel}`;
+      }
     } else {
-      entries.set(key, { operator, count: 1, dividerBefore });
+      entries.set(key, {
+        operator,
+        label,
+        count: 1,
+        dividerBefore,
+        ...(percentage === undefined ? {} : { percentageTotal: percentage }),
+      });
     }
   });
 
@@ -629,8 +655,8 @@ function operatorNameText(
   row: BasicCalculatorRow,
 ): string {
   return rowVisibleOperatorNameEntries(group, row)
-    .map(({ operator, count }) => {
-      const label = displayOperatorNameLabel(group, operator);
+    .map(({ label, count, percentageTotal }) => {
+      if (percentageTotal !== undefined) return label;
       return count > 1 ? `${label} ×${count}` : label;
     })
     .join(" + ");
@@ -926,22 +952,28 @@ function viewVisibleOperatorNameParts(view: BasicCalculatorRowView): Array<{
 
   view.sourceRows.forEach((row) => {
     const visible = rowVisibleOperatorNameEntries(view.group, row);
-    visible.forEach(({ operator, count, dividerBefore }, index) => {
-      const label = displayOperatorNameLabel(view.group, operator);
-      parts.push({
-        key: `${row.id}-${index}-${operator.name}`,
-        label: count > 1 ? `${label} ×${count}` : label,
-        operator: operatorFor(operator.name),
-        separator: dividerBefore
-          ? ""
-          : index === 0
-            ? parts.length > 0
-              ? " / "
-              : ""
-            : " + ",
-        dividerBefore,
-      });
-    });
+    visible.forEach(
+      ({ operator, label, count, dividerBefore, percentageTotal }, index) => {
+        parts.push({
+          key: `${row.id}-${index}-${operator.name}`,
+          label:
+            percentageTotal !== undefined
+              ? label
+              : count > 1
+                ? `${label} ×${count}`
+                : label,
+          operator: operatorFor(operator.name),
+          separator: dividerBefore
+            ? ""
+            : index === 0
+              ? parts.length > 0
+                ? " / "
+                : ""
+              : " + ",
+          dividerBefore,
+        });
+      },
+    );
   });
 
   return parts;
