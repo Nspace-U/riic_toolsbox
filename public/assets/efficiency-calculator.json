@@ -261,7 +261,7 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["80%"],
+                      "operators": ["40%", "40%"],
                       "runOrderOperators": ["但书"]
                     }
                   ]
@@ -287,7 +287,33 @@
                 "rooms": {
                   "trading": [
                     {
-                      "operators": ["90%"],
+                      "operators": ["45%", "45%"],
+                      "runOrderOperators": ["但书"]
+                    }
+                  ]
+                }
+              }
+            ],
+            "settings": {
+              "runOrderEnabled": true
+            }
+          }
+        },
+        {
+          "id": "level-2-butshu-row-60-35-run-order",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 2
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["60%", "35%"],
                       "runOrderOperators": ["但书"]
                     }
                   ]
