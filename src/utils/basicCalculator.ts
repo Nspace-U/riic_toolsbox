@@ -1099,18 +1099,18 @@ function basicCalculatorTradeEquivalentValues(
     !ruleset ||
     facility.facility.type !== "trading" ||
     production?.product !== "龙门币" ||
-    !production.orderRule ||
-    production.orderRule === "龙门商法"
+    !production.orderRule
   ) {
     return {};
   }
 
+  const isSpecialOrder = production.orderRule !== "龙门商法";
   const currentBase = basicCalculatorTradeBaseRates(
     ruleset,
     facility.facility.level,
   );
   const levelThreeBase = basicCalculatorTradeBaseRates(ruleset, 3);
-  if (!currentBase || !levelThreeBase) return {};
+  if (!currentBase) return {};
 
   const goldRule = ruleset.manufactureRules["赤金"];
   const lmdPerGold = currentBase.lmdPerHour / currentBase.goldPerHour;
@@ -1125,10 +1125,18 @@ function basicCalculatorTradeEquivalentValues(
     actualProductionRate / lmdPerGold + actualGoldMaterialRate;
 
   return {
-    equivalentCurrentTradeEfficiency:
-      (production.amountPerHour / currentBase.lmdPerHour) * 100,
-    equivalentLevelThreeTradeEfficiency:
-      (production.amountPerHour / levelThreeBase.lmdPerHour) * 100,
+    ...(isSpecialOrder
+      ? {
+          equivalentCurrentTradeEfficiency:
+            (production.amountPerHour / currentBase.lmdPerHour) * 100,
+          ...(levelThreeBase
+            ? {
+                equivalentLevelThreeTradeEfficiency:
+                  (production.amountPerHour / levelThreeBase.lmdPerHour) * 100,
+              }
+            : {}),
+        }
+      : {}),
     savedGoldConsumptionRate: extraGoldPerHour,
     ...(goldManufactureRate > 0
       ? {
