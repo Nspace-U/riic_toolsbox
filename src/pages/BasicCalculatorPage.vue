@@ -100,6 +100,7 @@ interface BasicCalculatorRowView {
   sourceRows: BasicCalculatorRow[];
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
   numeric: Record<string, number | undefined>;
+  facilityData?: BasicCalculatorRowCalculation["facilityData"];
   productionProduct?: string;
   tradeOrderRule?: string;
   tradeOrders?: BasicCalculatorRowCalculation["tradeOrders"];
@@ -343,6 +344,24 @@ const draftHiddenOperatorNames = computed(() => {
 const fieldOptions = computed(() =>
   catalog.value ? operatorFieldOptions(catalog.value) : [],
 );
+const facilityDataFieldOptions = computed(() => {
+  const paths = new Set<string>();
+  Object.values(rowCalculations.value).forEach(({ facilityData }) => {
+    if (facilityData)
+      facilityFieldPaths(facilityData).forEach((path) => paths.add(path));
+  });
+  [
+    ...(config.value?.columns ?? []),
+    ...(columnSettingsDraft.value?.columns ?? []),
+  ].forEach((column) => {
+    if (column.kind === "facilityField" && column.path) {
+      paths.add(column.path);
+    }
+  });
+  return [...paths]
+    .sort((first, second) => first.localeCompare(second, "zh-CN"))
+    .map((path) => ({ value: path, label: path }));
+});
 
 interface DraftHiddenOperatorOption {
   operator: BasicCalculatorOperator;
@@ -868,6 +887,43 @@ function aggregateValues(
   return values[0];
 }
 
+function facilityFieldPaths(value: unknown, prefix: string = ""): string[] {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return prefix ? [prefix] : [];
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return prefix ? [prefix] : [];
+  return entries.flatMap(([key, child]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return [path, ...facilityFieldPaths(child, path)];
+  });
+}
+
+function facilityFieldValue(
+  facilityData: BasicCalculatorRowCalculation["facilityData"],
+  path: string,
+): unknown {
+  let value: unknown = facilityData;
+  for (const key of path.split(".")) {
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return undefined;
+    }
+    value = (value as Record<string, unknown>)[key];
+  }
+  return value;
+}
+
+function facilityFieldText(
+  facilityData: BasicCalculatorRowCalculation["facilityData"],
+  path: string,
+): string {
+  const value = facilityFieldValue(facilityData, path);
+  if (value === undefined) return "—";
+  return typeof value === "object"
+    ? (JSON.stringify(value) ?? "—")
+    : String(value);
+}
+
 function rowView(
   group: BasicCalculatorGroup,
   displayGroup: BasicCalculatorGroup,
@@ -934,6 +990,9 @@ function rowView(
     sourceRows: [row],
     efficiency: calculation?.efficiency ?? {},
     numeric,
+    ...(calculation?.facilityData
+      ? { facilityData: calculation.facilityData }
+      : {}),
     productionProduct: calculation?.productionProduct,
     tradeOrderRule: calculation?.tradeOrderRule,
     tradeOrders: calculation?.tradeOrders,
@@ -1028,6 +1087,12 @@ function sortValue(
   if (column.kind === "tradeOrders") return tradeOrderText(view);
   if (column.kind === "note")
     return view.row.schedule.plans[0]?.description ?? "";
+  if (column.kind === "facilityField") {
+    const value = facilityFieldValue(view.facilityData, column.path ?? "");
+    if (value === undefined) return undefined;
+    if (typeof value === "number" || typeof value === "string") return value;
+    return JSON.stringify(value);
+  }
   if (
     column.kind === "operatorField" &&
     (column.aggregate ?? "list") === "list"
@@ -1150,6 +1215,9 @@ function columnText(
 ): string {
   if (column.kind === "operatorNames") {
     return viewOperatorNameText(view);
+  }
+  if (column.kind === "facilityField") {
+    return facilityFieldText(view.facilityData, column.path ?? "");
   }
   if (column.kind === "tradeOrders") return tradeOrderText(view);
   if (column.kind === "tradeBaseEfficiency") {
@@ -1380,7 +1448,12 @@ function updateColumnPath(id: string, path: string): void {
   const column = columnSettingsDraft.value?.columns.find(
     (item) => item.id === id,
   );
-  if (column?.kind === "operatorField") column.path = path;
+  if (
+    column &&
+    (column.kind === "operatorField" || column.kind === "facilityField")
+  ) {
+    column.path = path;
+  }
 }
 
 function updateColumnAggregate(
@@ -1426,6 +1499,15 @@ function resetColumnDraft(): void {
   columnDraft.hours = 12;
   columnDraft.path = fieldOptions.value[0]?.value ?? "";
   columnDraft.aggregate = "list";
+}
+
+function updateColumnDraftKind(kind: BasicCalculatorColumnKind): void {
+  columnDraft.kind = kind;
+  if (kind === "operatorField") {
+    columnDraft.path = fieldOptions.value[0]?.value ?? "";
+  } else if (kind === "facilityField") {
+    columnDraft.path = facilityDataFieldOptions.value[0]?.value ?? "";
+  }
 }
 
 function openColumnEditor(): void {
@@ -1585,11 +1667,13 @@ function addColumn(): void {
       EFFICIENCY_COLUMN_LABELS[columnDraft.kind] ||
       (columnDraft.kind === "efficiency"
         ? `${formatNumber(columnDraft.hours)}小时效率`
-        : columnDraft.kind === "tradeOrders"
-          ? "订单类型"
-          : columnDraft.kind === "tradeBaseEfficiency"
-            ? "基础效率"
-            : "自定义列"),
+        : columnDraft.kind === "facilityField"
+          ? columnDraft.path
+          : columnDraft.kind === "tradeOrders"
+            ? "订单类型"
+            : columnDraft.kind === "tradeBaseEfficiency"
+              ? "基础效率"
+              : "自定义列"),
     kind: columnDraft.kind,
     ...(columnDraft.kind === "efficiency"
       ? { hours: Math.max(0.01, columnDraft.hours), unit: "%" }
@@ -1600,6 +1684,7 @@ function addColumn(): void {
     ...(columnDraft.kind === "operatorField"
       ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
       : {}),
+    ...(columnDraft.kind === "facilityField" ? { path: columnDraft.path } : {}),
   };
   draft.columns.push(column);
   draft.groups.forEach((group) => group.columnIds.push(id));
@@ -2501,6 +2586,19 @@ function toggleGroupColumn(
             >
           </a-select>
           <a-select
+            v-if="column.kind === 'facilityField'"
+            :value="column.path"
+            style="min-width: 250px"
+            @change="updateColumnPath(column.id, $event)"
+          >
+            <a-select-option
+              v-for="option in facilityDataFieldOptions"
+              :key="option.value"
+              :value="option.value"
+              >{{ option.label }}</a-select-option
+            >
+          </a-select>
+          <a-select
             v-if="column.kind === 'operatorField'"
             :value="column.aggregate ?? 'list'"
             @change="updateColumnAggregate(column.id, $event)"
@@ -2522,7 +2620,7 @@ function toggleGroupColumn(
       <a-divider />
       <a-form :model="columnDraft" layout="vertical" @finish="addColumn">
         <a-form-item label="新列类型" name="kind">
-          <a-select v-model:value="columnDraft.kind">
+          <a-select :value="columnDraft.kind" @change="updateColumnDraftKind">
             <template v-if="props.mode === 'combination'">
               <a-select-option value="efficiency">工作时间效率</a-select-option>
               <a-select-option value="operatorField"
@@ -2567,6 +2665,9 @@ function toggleGroupColumn(
               >
               <a-select-option value="dailyProfit">每日收益</a-select-option>
             </template>
+            <a-select-option value="facilityField"
+              >效率包数据字段</a-select-option
+            >
           </a-select>
         </a-form-item>
         <a-form-item label="列名称" name="label">
@@ -2609,8 +2710,29 @@ function toggleGroupColumn(
             ><a-radio value="min">最小值</a-radio>
           </a-radio-group>
         </a-form-item>
+        <a-form-item
+          v-if="columnDraft.kind === 'facilityField'"
+          label="效率包数据字段"
+          name="path"
+        >
+          <a-select v-model:value="columnDraft.path">
+            <a-select-option
+              v-for="option in facilityDataFieldOptions"
+              :key="option.value"
+              :value="option.value"
+              >{{ option.label }}</a-select-option
+            >
+          </a-select>
+        </a-form-item>
         <div class="basic-calculator-column-submit">
-          <a-button html-type="submit" type="primary">添加</a-button>
+          <a-button
+            :disabled="
+              columnDraft.kind === 'facilityField' && !columnDraft.path
+            "
+            html-type="submit"
+            type="primary"
+            >添加</a-button
+          >
         </div>
       </a-form>
     </a-modal>

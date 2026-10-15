@@ -41,7 +41,8 @@ export type BasicCalculatorColumnKind =
   | "dailyProfit"
   | "efficiency"
   | "note"
-  | "operatorField";
+  | "operatorField"
+  | "facilityField";
 
 export type BasicCalculatorAggregate = "list" | "sum" | "max" | "min";
 
@@ -180,6 +181,7 @@ export interface BasicCalculatorCalculationOptions {
 
 export interface BasicCalculatorRowCalculation {
   efficiency: Record<string, BasicCalculatorEfficiencyValue>;
+  facilityData?: FacilityEfficiencyResult;
   jieEfficiencyFallbackReason?: "fixedOrder" | "missingOrders";
   storageDelta?: number;
   orderDelta?: number;
@@ -1053,6 +1055,7 @@ export function calculateBasicCalculatorRowValues(
     0;
   return {
     efficiency,
+    ...(targetFacility ? { facilityData: targetFacility } : {}),
     ...(jieEfficiencyFallbackReason ? { jieEfficiencyFallbackReason } : {}),
     storageDelta: visibleFacility?.attributes.storageCap?.skill ?? 0,
     orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
