@@ -26,6 +26,12 @@ export type BasicCalculatorColumnKind =
   | "operatorNames"
   | "storageDelta"
   | "orderDelta"
+  | "orderLimitBase"
+  | "orderLimitSkill"
+  | "orderLimitTotal"
+  | "storageCapBase"
+  | "storageCapSkill"
+  | "storageCapTotal"
   | "tradeOrders"
   | "tradeBaseEfficiency"
   | "operatorEfficiency"
@@ -38,6 +44,8 @@ export type BasicCalculatorColumnKind =
   | "baseGoldConsumptionRate"
   | "actualGoldConsumptionRate"
   | "savedGoldConsumptionRate"
+  | "itemDuration"
+  | "overflowTime"
   | "dailyProfit"
   | "efficiency"
   | "note"
@@ -54,6 +62,7 @@ export interface BasicCalculatorColumn {
   path?: string;
   unit?: string;
   aggregate?: BasicCalculatorAggregate;
+  firstItemProgress?: number;
   visible?: boolean;
 }
 
@@ -169,7 +178,7 @@ export interface BasicCalculatorEvaluation {
 }
 
 export interface BasicCalculatorCalculationOptions {
-  mode?: "combination" | "efficiency";
+  mode?: "combination" | "efficiency" | "overflow";
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
   preferMaxJieEfficiency?: boolean;
@@ -190,6 +199,12 @@ export interface BasicCalculatorRowCalculation {
   tradeBaseEfficiency?: number;
   operatorEfficiency?: number;
   facilityEfficiency?: number;
+  orderLimitBase?: number;
+  orderLimitSkill?: number;
+  orderLimitTotal?: number;
+  storageCapBase?: number;
+  storageCapSkill?: number;
+  storageCapTotal?: number;
   equivalentCurrentTradeEfficiency?: number;
   equivalentLevelThreeTradeEfficiency?: number;
   equivalentManufactureEfficiency?: number;
@@ -199,6 +214,9 @@ export interface BasicCalculatorRowCalculation {
   actualGoldConsumptionRate?: number;
   savedGoldConsumptionRate?: number;
   productionProduct?: string;
+  itemDurationHours?: number;
+  overflowTimeAtZeroProgress?: number;
+  overflowTimeAtFullProgress?: number;
 }
 
 export interface BasicCalculatorWorkerRequest {
@@ -209,7 +227,7 @@ export interface BasicCalculatorWorkerRequest {
   columns: BasicCalculatorColumn[];
   progressionProfile?: OperatorProgressionProfile;
   dormitoryDefaultIncludesMoodRecovery?: boolean;
-  mode: "combination" | "efficiency";
+  mode: "combination" | "efficiency" | "overflow";
   preferMaxJieEfficiency: boolean;
   firstItemProgress: number;
   allowRowFirstItemProgressOverride: boolean;
@@ -798,6 +816,62 @@ export function synchronizeBasicCalculatorGroupSchedule(
   return document;
 }
 
+export function synchronizeBasicCalculatorFlexibleGroupSchedule(
+  schedule: ScheduleDocument,
+  previousGroup: BasicCalculatorGroup,
+  nextGroup: BasicCalculatorGroup,
+): ScheduleDocument {
+  const previousFacility = previousGroup.facility;
+  const nextFacility = nextGroup.facility;
+  const nextFacilityLevel = nextGroup.facilityLevel;
+  if (!previousFacility || !nextFacility || nextFacilityLevel === undefined) {
+    return clone(schedule);
+  }
+  const document = clone(schedule);
+  const targetIndex = document.layout.findIndex(
+    (entry) => entry.type === previousFacility,
+  );
+  if (targetIndex < 0) return document;
+  const nextLayout = document.layout.map((entry, index) =>
+    index === targetIndex
+      ? { ...entry, type: nextFacility, level: nextFacilityLevel }
+      : entry,
+  );
+  document.plans.forEach((plan) => {
+    const positions = new Map<RoomKey, number>();
+    const assignments = document.layout.map((entry) => {
+      const position = positions.get(entry.type) ?? 0;
+      positions.set(entry.type, position + 1);
+      const rooms = plan.rooms[entry.type];
+      return Array.isArray(rooms)
+        ? clone((rooms[position] as RoomAssignment | undefined) ?? {})
+        : {};
+    });
+    const rooms = { ...plan.rooms };
+    new Set([
+      ...document.layout.map((entry) => entry.type),
+      nextFacility,
+    ]).forEach((type) => delete rooms[type]);
+    const nextPositions = new Map<RoomKey, number>();
+    nextLayout.forEach((entry, index) => {
+      const position = nextPositions.get(entry.type) ?? 0;
+      nextPositions.set(entry.type, position + 1);
+      const assignment = assignments[index] ?? {};
+      if (index === targetIndex && previousFacility !== nextFacility) {
+        delete assignment.product;
+        delete assignment.productOverride;
+        delete assignment.sourceMaterial;
+      }
+      const entries = (rooms[entry.type] ?? []) as RoomAssignment[];
+      entries[position] = assignment;
+      rooms[entry.type] = entries;
+    });
+    plan.rooms = rooms;
+  });
+  document.layout = nextLayout;
+  return document;
+}
+
 function stateForAssignment(
   assignment: RoomAssignment | undefined,
   name: string,
@@ -993,6 +1067,15 @@ export function calculateBasicCalculatorRowValues(
   columns: BasicCalculatorColumn[],
   options: BasicCalculatorCalculationOptions = {},
 ): BasicCalculatorRowCalculation {
+  const calculationOptions =
+    options.mode === "overflow"
+      ? {
+          ...options,
+          preferMaxJieEfficiency: true,
+          firstItemProgress: 0,
+          allowRowFirstItemProgressOverride: false,
+        }
+      : options;
   const hours = new Set(
     columns
       .filter((column) => column.kind === "efficiency")
@@ -1005,7 +1088,7 @@ export function calculateBasicCalculatorRowValues(
     catalog,
     group,
     row,
-    options,
+    calculationOptions,
   );
   let evaluation24: BasicCalculatorEvaluation | undefined;
   [...hours].forEach((duration) => {
@@ -1014,7 +1097,7 @@ export function calculateBasicCalculatorRowValues(
       group,
       row,
       duration,
-      options,
+      calculationOptions,
       baselineEfficiency,
     );
     if (duration === 24) evaluation24 = evaluation;
@@ -1027,16 +1110,65 @@ export function calculateBasicCalculatorRowValues(
     ? facilityResultOf(evaluation24)
     : undefined;
   const production = targetFacility?.production;
+  const averageZeroFacility =
+    options.mode === "overflow"
+      ? facilityResultOf(
+          evaluateBasicCalculatorRow(
+            catalog,
+            group,
+            row,
+            24,
+            {
+              ...options,
+              preferMaxJieEfficiency: false,
+              firstItemProgress: 0,
+              allowRowFirstItemProgressOverride: false,
+            },
+            baselineEfficiency,
+          ),
+        )
+      : undefined;
+  const averageFullFacility =
+    options.mode === "overflow"
+      ? facilityResultOf(
+          evaluateBasicCalculatorRow(
+            catalog,
+            group,
+            row,
+            24,
+            {
+              ...options,
+              preferMaxJieEfficiency: false,
+              firstItemProgress: 1,
+              allowRowFirstItemProgressOverride: false,
+            },
+            baselineEfficiency,
+          ),
+        )
+      : undefined;
+  const itemDurationHours =
+    production?.itemRate !== undefined && production.itemRate > 0
+      ? 1 / production.itemRate
+      : undefined;
   const fallbackCalculation =
-    options.preferMaxJieEfficiency === false
-      ? targetFacility?.details
+    options.mode === "overflow"
+      ? [averageZeroFacility, averageFullFacility]
+          .flatMap((facility) => facility?.details ?? [])
           .map((detail) => detail.calculation)
           .find(
             (calculation) =>
               calculation?.type === "tradeGap" &&
               calculation.fallbackReason !== undefined,
           )
-      : undefined;
+      : options.preferMaxJieEfficiency === false
+        ? targetFacility?.details
+            .map((detail) => detail.calculation)
+            .find(
+              (calculation) =>
+                calculation?.type === "tradeGap" &&
+                calculation.fallbackReason !== undefined,
+            )
+        : undefined;
   const jieEfficiencyFallbackReason =
     fallbackCalculation?.type === "tradeGap"
       ? fallbackCalculation.fallbackReason
@@ -1053,6 +1185,7 @@ export function calculateBasicCalculatorRowValues(
     production?.effectiveMaterialPerHour?.["赤金"] ??
     production?.materialPerHour?.["赤金"] ??
     0;
+  const facilityCapacity = targetFacility?.capacity;
   return {
     efficiency,
     ...(targetFacility ? { facilityData: targetFacility } : {}),
@@ -1061,6 +1194,30 @@ export function calculateBasicCalculatorRowValues(
     orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
     operatorEfficiency: targetFacility?.operatorSkillEfficiency,
     facilityEfficiency: targetFacility?.efficiency,
+    orderLimitBase:
+      facilityCapacity?.label === "订单上限"
+        ? facilityCapacity.base
+        : undefined,
+    orderLimitSkill:
+      facilityCapacity?.label === "订单上限"
+        ? facilityCapacity.skill
+        : undefined,
+    orderLimitTotal:
+      facilityCapacity?.label === "订单上限"
+        ? facilityCapacity.total
+        : undefined,
+    storageCapBase:
+      facilityCapacity?.label === "仓库容量"
+        ? facilityCapacity.base
+        : undefined,
+    storageCapSkill:
+      facilityCapacity?.label === "仓库容量"
+        ? facilityCapacity.skill
+        : undefined,
+    storageCapTotal:
+      facilityCapacity?.label === "仓库容量"
+        ? facilityCapacity.total
+        : undefined,
     ...equivalentValues,
     ...(production
       ? {
@@ -1076,6 +1233,21 @@ export function calculateBasicCalculatorRowValues(
           productionProduct: production.product,
         }
       : {}),
+    ...(itemDurationHours === undefined ? {} : { itemDurationHours }),
+    ...(averageZeroFacility?.production === undefined
+      ? {}
+      : {
+          overflowTimeAtZeroProgress:
+            averageZeroFacility.production.breachTime ??
+            Number.POSITIVE_INFINITY,
+        }),
+    ...(averageFullFacility?.production === undefined
+      ? {}
+      : {
+          overflowTimeAtFullProgress:
+            averageFullFacility.production.breachTime ??
+            Number.POSITIVE_INFINITY,
+        }),
     ...(production?.product === "龙门币"
       ? {
           tradeOrderRule: production.orderRule,
@@ -1177,11 +1349,13 @@ function calculateEfficiencyForBasicCalculator(
   const baseRuleset = catalog.ruleset ?? DEFAULT_RULESET;
   const tradingBonus =
     options.mode === "efficiency" ||
+    options.mode === "overflow" ||
     (group.coreOperator !== undefined && group.facility === "trading")
       ? (options.tradingBaseEfficiencyBonus ?? 0)
       : 0;
   const manufactureBonus =
     options.mode === "efficiency" ||
+    options.mode === "overflow" ||
     (group.coreOperator !== undefined && group.facility === "manufacture")
       ? (options.manufactureBaseEfficiencyBonus ?? 0)
       : 0;

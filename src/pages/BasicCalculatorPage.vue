@@ -65,6 +65,7 @@ import {
   createBasicCalculatorSchedule,
   operatorFieldOptions,
   operatorFieldValues,
+  synchronizeBasicCalculatorFlexibleGroupSchedule,
   synchronizeBasicCalculatorGroupSchedule,
 } from "@/utils/basicCalculator";
 import type {
@@ -83,6 +84,7 @@ import type {
   BasicCalculatorWorkerResponse,
 } from "@/utils/basicCalculator";
 import {
+  formatDurationHours,
   formatEfficiencyNumber,
   formatNumber,
 } from "@/utils/simulator/presentation";
@@ -105,6 +107,9 @@ interface BasicCalculatorRowView {
   tradeOrderRule?: string;
   tradeOrders?: BasicCalculatorRowCalculation["tradeOrders"];
   jieEfficiencyFallbackReason?: BasicCalculatorRowCalculation["jieEfficiencyFallbackReason"];
+  itemDurationHours?: number;
+  overflowTimeAtZeroProgress?: number;
+  overflowTimeAtFullProgress?: number;
   backgroundColor?: string;
 }
 
@@ -127,6 +132,14 @@ const EFFICIENCY_COLUMN_LABELS: Partial<
   actualGoldConsumptionRate: "实际赤金消耗速率",
   savedGoldConsumptionRate: "节约赤金消耗速率",
   dailyProfit: "每日收益",
+  orderLimitBase: "订单上限基础",
+  orderLimitSkill: "订单上限技能",
+  orderLimitTotal: "订单上限总计",
+  storageCapBase: "仓库容量基础",
+  storageCapSkill: "仓库容量技能",
+  storageCapTotal: "仓库容量总计",
+  itemDuration: "单件耗时",
+  overflowTime: "爆仓时间",
 };
 
 const TRADING_PRODUCT_OPTIONS = [
@@ -149,6 +162,7 @@ interface GroupDraft extends Omit<BasicCalculatorGroup, "defaultProducts"> {
 const STORAGE_KEYS = {
   combination: "riic-tools:basic-calculator:v6",
   efficiency: "riic-tools:efficiency-calculator:v4",
+  overflow: "riic-tools:overflow-calculator:v1",
 } as const;
 const EFFICIENCY_GROUPING_STORAGE_KEY =
   "riic-tools:efficiency-calculator:grouping:v2";
@@ -160,11 +174,20 @@ interface EfficiencyGroupingSettings {
   facilityLevelColumnIds: Record<string, string[]>;
 }
 const props = withDefaults(
-  defineProps<{ mode?: "combination" | "efficiency" }>(),
+  defineProps<{ mode?: "combination" | "efficiency" | "overflow" }>(),
   { mode: "combination" },
 );
-const calculatorTitle = computed(() =>
-  props.mode === "efficiency" ? "效率计算器" : "组合计算器",
+const calculatorTitle = computed(
+  () =>
+    ({
+      combination: "组合计算器",
+      efficiency: "效率计算器",
+      overflow: "爆仓计算器",
+    })[props.mode],
+);
+const groupTypeLabel = computed(
+  () =>
+    ({ combination: "组合", efficiency: "效率", overflow: "爆仓" })[props.mode],
 );
 const storageKey = computed(() => STORAGE_KEYS[props.mode]);
 const { operators, itemTable, buildingData, ready, errorMessage } =
@@ -183,6 +206,8 @@ const {
 
 const defaults = ref<BasicCalculatorConfig>();
 const config = ref<BasicCalculatorConfig>();
+let loadedMode: typeof props.mode | undefined;
+let resourceLoadRequestId = 0;
 const efficiencyGroupingMode = ref<EfficiencyGroupingMode>("facilityLevel");
 const efficiencyFacilityLevelColumnIds = ref<Record<string, string[]>>({});
 const catalog = ref<EfficiencyCatalog>();
@@ -200,6 +225,7 @@ const columnDraft = reactive({
   hours: 12,
   path: "",
   aggregate: "list" as BasicCalculatorAggregate,
+  firstItemProgress: 0,
 });
 const groupDraft = ref<GroupDraft>();
 const rowDraft = ref<BasicCalculatorRow>();
@@ -493,12 +519,21 @@ function updateConfig(update: (draft: BasicCalculatorConfig) => void): void {
 }
 
 async function loadResources(): Promise<void> {
-  if (!ready.value || defaults.value) return;
+  const mode = props.mode;
+  if (!ready.value || loadedMode === mode) return;
+  const requestId = ++resourceLoadRequestId;
+  loading.value = true;
+  defaults.value = undefined;
+  config.value = undefined;
+  rowCalculations.value = {};
+  loadError.value = "";
   try {
     const assetPath =
-      props.mode === "efficiency"
+      mode === "efficiency"
         ? "assets/efficiency-calculator.json"
-        : "assets/basic-calculator.json";
+        : mode === "overflow"
+          ? "assets/overflow-calculator.json"
+          : "assets/basic-calculator.json";
     const defaultResponse = await fetch(
       `${import.meta.env.BASE_URL}${assetPath}`,
     );
@@ -508,10 +543,11 @@ async function loadResources(): Promise<void> {
       );
     }
     const asset = (await defaultResponse.json()) as BasicCalculatorAsset;
+    if (requestId !== resourceLoadRequestId) return;
     const nextDefaults = createBasicCalculatorConfig(asset);
-    const storedPatch = readStoredPatch(storageKey.value);
+    const storedPatch = readStoredPatch(STORAGE_KEYS[mode]);
     const groupingSettings =
-      props.mode === "efficiency"
+      mode === "efficiency"
         ? readEfficiencyGroupingSettings()
         : { mode: "facilityLevel" as const, facilityLevelColumnIds: {} };
     const nextConfig = applyBasicCalculatorPatch(nextDefaults, storedPatch);
@@ -522,18 +558,22 @@ async function loadResources(): Promise<void> {
     };
     config.value = nextConfig;
     catalog.value = getRiicEfficiencyCatalog(recycleRules.value);
+    loadedMode = mode;
     loadError.value = "";
   } catch (error: unknown) {
+    if (requestId !== resourceLoadRequestId) return;
     loadError.value =
       error instanceof Error
         ? error.message
         : `${calculatorTitle.value}读取失败`;
   } finally {
-    loading.value = false;
+    if (requestId === resourceLoadRequestId) loading.value = false;
   }
 }
 
-watch(ready, () => void loadResources(), { immediate: true });
+watch([ready, () => props.mode], () => void loadResources(), {
+  immediate: true,
+});
 onMounted(() => {
   calculatorWorker.value = new Worker(
     new URL("../workers/basicCalculatorWorker.ts", import.meta.url),
@@ -573,6 +613,7 @@ const calculationFingerprint = computed(() => {
     return "";
   }
   return JSON.stringify({
+    mode: props.mode,
     catalogReady: Boolean(catalog.value),
     columns: current.columns.map((column) => ({
       id: column.id,
@@ -668,6 +709,16 @@ function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
       column:
         columns.find((column) => column.kind === "dailyProfit") ??
         columns.find((column) => column.kind === "operatorEfficiency") ??
+        columns.find((column) => column.kind === "operatorNames"),
+      direction: "desc",
+    };
+  }
+
+  if (props.mode === "overflow") {
+    return {
+      column:
+        columns.find((column) => column.kind === "facilityEfficiency") ??
+        columns.find((column) => column.kind === "itemDuration") ??
         columns.find((column) => column.kind === "operatorNames"),
       direction: "desc",
     };
@@ -943,6 +994,18 @@ function rowView(
       numeric[column.id] = calculation?.operatorEfficiency;
     } else if (column.kind === "facilityEfficiency") {
       numeric[column.id] = calculation?.facilityEfficiency;
+    } else if (column.kind === "orderLimitBase") {
+      numeric[column.id] = calculation?.orderLimitBase;
+    } else if (column.kind === "orderLimitSkill") {
+      numeric[column.id] = calculation?.orderLimitSkill;
+    } else if (column.kind === "orderLimitTotal") {
+      numeric[column.id] = calculation?.orderLimitTotal;
+    } else if (column.kind === "storageCapBase") {
+      numeric[column.id] = calculation?.storageCapBase;
+    } else if (column.kind === "storageCapSkill") {
+      numeric[column.id] = calculation?.storageCapSkill;
+    } else if (column.kind === "storageCapTotal") {
+      numeric[column.id] = calculation?.storageCapTotal;
     } else if (column.kind === "equivalentCurrentTradeEfficiency") {
       numeric[column.id] = calculation?.equivalentCurrentTradeEfficiency;
     } else if (column.kind === "equivalentLevelThreeTradeEfficiency") {
@@ -969,6 +1032,13 @@ function rowView(
               sanityValues.value.pureGoldPoint *
               PURE_GOLD_POINTS
           : undefined;
+    } else if (column.kind === "itemDuration") {
+      numeric[column.id] = calculation?.itemDurationHours;
+    } else if (column.kind === "overflowTime") {
+      numeric[column.id] =
+        column.firstItemProgress === 1
+          ? calculation?.overflowTimeAtFullProgress
+          : calculation?.overflowTimeAtZeroProgress;
     } else if (column.kind === "efficiency") {
       numeric[column.id] =
         calculation?.efficiency[String(column.hours ?? 24)]?.second;
@@ -997,6 +1067,9 @@ function rowView(
     tradeOrderRule: calculation?.tradeOrderRule,
     tradeOrders: calculation?.tradeOrders,
     jieEfficiencyFallbackReason: calculation?.jieEfficiencyFallbackReason,
+    itemDurationHours: calculation?.itemDurationHours,
+    overflowTimeAtZeroProgress: calculation?.overflowTimeAtZeroProgress,
+    overflowTimeAtFullProgress: calculation?.overflowTimeAtFullProgress,
     backgroundColor: productAccent(group, row),
   };
 }
@@ -1032,7 +1105,7 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
       );
     });
     result[group.id] =
-      (props.mode === "efficiency" || group.coreOperator) &&
+      (props.mode !== "combination" || group.coreOperator) &&
       config.value?.settings.mergeIdenticalRows &&
       calculationsReadyForMerge.value
         ? mergeRowViews(views)
@@ -1263,9 +1336,29 @@ function columnText(
     const value = view.numeric[column.id];
     return value === undefined ? "—" : formatNumber(value);
   }
-  if (column.kind === "storageDelta" || column.kind === "orderDelta") {
+  if (column.kind === "itemDuration") {
     const value = view.numeric[column.id];
-    return value === undefined ? "—" : formatNumber(value);
+    return value === undefined ? "—" : formatDurationHours(value);
+  }
+  if (column.kind === "overflowTime") {
+    const value = view.numeric[column.id];
+    if (value === undefined) return "—";
+    return Number.isFinite(value) ? formatDurationHours(value) : "不爆仓";
+  }
+  if (
+    column.kind === "storageDelta" ||
+    column.kind === "orderDelta" ||
+    column.kind === "orderLimitBase" ||
+    column.kind === "orderLimitSkill" ||
+    column.kind === "orderLimitTotal" ||
+    column.kind === "storageCapBase" ||
+    column.kind === "storageCapSkill" ||
+    column.kind === "storageCapTotal"
+  ) {
+    const value = view.numeric[column.id];
+    return value === undefined
+      ? "—"
+      : `${formatNumber(value)}${column.unit ?? ""}`;
   }
   if (column.kind === "efficiency") {
     return efficiencyText(view.efficiency[String(column.hours ?? 24)]);
@@ -1306,13 +1399,17 @@ function tableCellColumns(view: BasicCalculatorRowView): Array<{
     if (!column) continue;
 
     let colspan = 1;
-    if (shouldMergeCells && column.kind === "efficiency") {
+    if (
+      shouldMergeCells &&
+      (column.kind === "efficiency" ||
+        (props.mode === "overflow" && column.kind === "facilityEfficiency"))
+    ) {
       const text = columnText(view, column);
       while (index + colspan < columns.length) {
         const nextColumn = columns[index + colspan];
         if (
           !nextColumn ||
-          nextColumn.kind !== "efficiency" ||
+          nextColumn.kind !== column.kind ||
           columnText(view, nextColumn) !== text
         ) {
           break;
@@ -1487,18 +1584,24 @@ function removeColumn(id: string): void {
     group.columnIds = group.columnIds.filter((columnId) => columnId !== id);
   });
   if (draft.settings.sortColumnId === id) {
-    draft.settings.sortColumnId = "efficiency-24";
+    draft.settings.sortColumnId =
+      props.mode === "overflow" ? "facility-efficiency" : "efficiency-24";
     draft.settings.sortDirection = "desc";
   }
 }
 
 function resetColumnDraft(): void {
   columnDraft.kind =
-    props.mode === "efficiency" ? "operatorEfficiency" : "efficiency";
+    props.mode === "efficiency"
+      ? "operatorEfficiency"
+      : props.mode === "overflow"
+        ? "facilityEfficiency"
+        : "efficiency";
   columnDraft.label = "";
   columnDraft.hours = 12;
   columnDraft.path = fieldOptions.value[0]?.value ?? "";
   columnDraft.aggregate = "list";
+  columnDraft.firstItemProgress = 0;
 }
 
 function updateColumnDraftKind(kind: BasicCalculatorColumnKind): void {
@@ -1507,7 +1610,17 @@ function updateColumnDraftKind(kind: BasicCalculatorColumnKind): void {
     columnDraft.path = fieldOptions.value[0]?.value ?? "";
   } else if (kind === "facilityField") {
     columnDraft.path = facilityDataFieldOptions.value[0]?.value ?? "";
+  } else if (kind === "overflowTime") {
+    columnDraft.firstItemProgress = 0;
   }
+}
+
+function updateColumnFirstItemProgress(id: string, value: number): void {
+  const column = columnSettingsDraft.value?.columns.find(
+    (item) => item.id === id,
+  );
+  if (!column || column.kind !== "overflowTime") return;
+  column.firstItemProgress = value === 1 ? 1 : 0;
 }
 
 function openColumnEditor(): void {
@@ -1664,6 +1777,12 @@ function addColumn(): void {
     id,
     label:
       columnDraft.label.trim() ||
+      (props.mode === "overflow" && columnDraft.kind === "facilityEfficiency"
+        ? "整体效率"
+        : undefined) ||
+      (columnDraft.kind === "overflowTime"
+        ? `爆仓时间（${columnDraft.firstItemProgress * 100}%首件进度）`
+        : undefined) ||
       EFFICIENCY_COLUMN_LABELS[columnDraft.kind] ||
       (columnDraft.kind === "efficiency"
         ? `${formatNumber(columnDraft.hours)}小时效率`
@@ -1681,10 +1800,23 @@ function addColumn(): void {
     ...(columnDraft.kind === "tradeBaseEfficiency"
       ? { unit: "龙门币/小时" }
       : {}),
+    ...(columnDraft.kind === "orderLimitBase" ||
+    columnDraft.kind === "orderLimitSkill" ||
+    columnDraft.kind === "orderLimitTotal"
+      ? { unit: "单" }
+      : {}),
+    ...(columnDraft.kind === "storageCapBase" ||
+    columnDraft.kind === "storageCapSkill" ||
+    columnDraft.kind === "storageCapTotal"
+      ? { unit: "格" }
+      : {}),
     ...(columnDraft.kind === "operatorField"
       ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
       : {}),
     ...(columnDraft.kind === "facilityField" ? { path: columnDraft.path } : {}),
+    ...(columnDraft.kind === "overflowTime"
+      ? { firstItemProgress: columnDraft.firstItemProgress }
+      : {}),
   };
   draft.columns.push(column);
   draft.groups.forEach((group) => group.columnIds.push(id));
@@ -1769,6 +1901,15 @@ function addRow(group: BasicCalculatorGroup): void {
   if (isEfficiencyFacilityLevelView.value) return;
   const id = `${group.id}-row-${Date.now().toString(36)}`;
   const schedule = createBasicCalculatorSchedule(group);
+  if (
+    props.mode === "overflow" &&
+    group.facility &&
+    group.facilityLevel !== undefined
+  ) {
+    schedule.layout = [{ type: group.facility, level: group.facilityLevel }];
+    const plan = schedule.plans[0];
+    if (plan) plan.rooms[group.facility] = [{ operators: [] }];
+  }
   if (props.mode === "efficiency" && group.facility === "trading") {
     const level = efficiencyGroupTradingLevel(group);
     if (level !== undefined) {
@@ -1800,15 +1941,25 @@ function openGroupEditor(group?: BasicCalculatorGroup): void {
       }
     : {
         id: `group-${Date.now().toString(36)}`,
-        name: props.mode === "efficiency" ? "新效率组" : "新组合组",
-        facility: props.mode === "efficiency" ? "trading" : "manufacture",
+        name:
+          props.mode === "efficiency"
+            ? "新效率组"
+            : props.mode === "overflow"
+              ? "新爆仓组"
+              : "新组合组",
+        facility:
+          props.mode === "efficiency" || props.mode === "overflow"
+            ? "trading"
+            : "manufacture",
         defaultProducts: { trading: "", manufacture: "" },
         ...(props.mode === "combination"
           ? {
               facilityLevel: 3,
               coreOperator: { name: operators.value[0]?.name ?? "红云" },
             }
-          : {}),
+          : props.mode === "overflow"
+            ? { facilityLevel: 3 }
+            : {}),
         columnIds: config.value?.groups[0]?.columnIds ?? [],
         rows: [],
       };
@@ -1826,6 +1977,8 @@ function saveGroup(): void {
   if (
     !draft ||
     !draft.name.trim() ||
+    (props.mode === "overflow" &&
+      (!draft.facility || draft.facilityLevel === undefined)) ||
     (draft.coreOperator &&
       (!draft.coreOperator.name ||
         !draft.facility ||
@@ -1848,7 +2001,16 @@ function saveGroup(): void {
       const previousGroup = next.groups[index]!;
       const previousCoreOperator = previousGroup.coreOperator;
       const nextCoreOperator = group.coreOperator;
-      if (previousCoreOperator && nextCoreOperator) {
+      if (props.mode === "overflow") {
+        group.rows = previousGroup.rows.map((row) => ({
+          ...row,
+          schedule: synchronizeBasicCalculatorFlexibleGroupSchedule(
+            row.schedule,
+            previousGroup,
+            group,
+          ),
+        }));
+      } else if (previousCoreOperator && nextCoreOperator) {
         group.rows = previousGroup.rows.map((row) => ({
           ...row,
           hiddenOperators:
@@ -2035,7 +2197,11 @@ function toggleGroupColumn(
             type="primary"
             @click="openGroupEditor()"
             >{{
-              props.mode === "efficiency" ? "新建效率组" : "新建组合组"
+              props.mode === "efficiency"
+                ? "新建效率组"
+                : props.mode === "overflow"
+                  ? "新建爆仓组"
+                  : "新建组合组"
             }}</a-button
           >
           <a-popconfirm
@@ -2177,7 +2343,10 @@ function toggleGroupColumn(
             "
           />
         </a-form-item>
-        <a-form-item v-if="props.mode === 'efficiency'" label="效率显示">
+        <a-form-item
+          v-if="props.mode === 'efficiency' || props.mode === 'overflow'"
+          label="效率显示"
+        >
           <a-checkbox
             :checked="config.settings.mergeIdenticalEfficiencyCells"
             @change="
@@ -2239,7 +2408,7 @@ function toggleGroupColumn(
                 <a-popconfirm
                   cancel-text="取消"
                   ok-text="删除"
-                  :title="`删除这个${props.mode === 'efficiency' ? '效率' : '组合'}组？`"
+                  :title="`删除这个${groupTypeLabel}组？`"
                   @confirm="deleteGroup(group.id)"
                 >
                   <a-button :icon="h(DeleteOutlined)" danger type="text" />
@@ -2509,6 +2678,25 @@ function toggleGroupColumn(
                         />
                       </a-tooltip>
                     </span>
+                    <span
+                      v-else-if="cell.column.kind === 'overflowTime'"
+                      class="basic-calculator-efficiency-value"
+                    >
+                      {{ columnText(view, cell.column) }}
+                      <a-tooltip
+                        v-if="view.jieEfficiencyFallbackReason"
+                        :title="
+                          jieEfficiencyFallbackText(
+                            view.jieEfficiencyFallbackReason,
+                          )
+                        "
+                      >
+                        <WarningOutlined
+                          aria-label="精0孑平均效率回退"
+                          class="basic-calculator-efficiency-fallback"
+                        />
+                      </a-tooltip>
+                    </span>
                     <span v-else>{{ columnText(view, cell.column) }}</span>
                   </td>
                 </tr>
@@ -2573,6 +2761,14 @@ function toggleGroupColumn(
             @change="updateColumnHours(column.id, Number($event))"
           />
           <a-select
+            v-if="column.kind === 'overflowTime'"
+            :value="column.firstItemProgress ?? 0"
+            @change="updateColumnFirstItemProgress(column.id, Number($event))"
+          >
+            <a-select-option :value="0">0%首件进度</a-select-option>
+            <a-select-option :value="1">100%首件进度</a-select-option>
+          </a-select>
+          <a-select
             v-if="column.kind === 'operatorField'"
             :value="column.path"
             style="min-width: 250px"
@@ -2632,7 +2828,7 @@ function toggleGroupColumn(
               <a-select-option value="orderDelta">订单上限差值</a-select-option>
               <a-select-option value="note">备注</a-select-option>
             </template>
-            <template v-else>
+            <template v-else-if="props.mode === 'efficiency'">
               <a-select-option value="operatorEfficiency"
                 >干员效率</a-select-option
               >
@@ -2665,6 +2861,31 @@ function toggleGroupColumn(
               >
               <a-select-option value="dailyProfit">每日收益</a-select-option>
             </template>
+            <template v-else>
+              <a-select-option value="facilityEfficiency"
+                >整体效率</a-select-option
+              >
+              <a-select-option value="orderLimitBase"
+                >订单上限基础</a-select-option
+              >
+              <a-select-option value="orderLimitSkill"
+                >订单上限技能</a-select-option
+              >
+              <a-select-option value="orderLimitTotal"
+                >订单上限总计</a-select-option
+              >
+              <a-select-option value="storageCapBase"
+                >仓库容量基础</a-select-option
+              >
+              <a-select-option value="storageCapSkill"
+                >仓库容量技能</a-select-option
+              >
+              <a-select-option value="storageCapTotal"
+                >仓库容量总计</a-select-option
+              >
+              <a-select-option value="itemDuration">单件耗时</a-select-option>
+              <a-select-option value="overflowTime">爆仓时间</a-select-option>
+            </template>
             <a-select-option value="facilityField"
               >效率包数据字段</a-select-option
             >
@@ -2683,6 +2904,16 @@ function toggleGroupColumn(
             :min="0.01"
             :step="0.01"
           />
+        </a-form-item>
+        <a-form-item
+          v-if="columnDraft.kind === 'overflowTime'"
+          label="首件进度"
+          name="firstItemProgress"
+        >
+          <a-select v-model:value="columnDraft.firstItemProgress">
+            <a-select-option :value="0">0%</a-select-option>
+            <a-select-option :value="1">100%</a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item
           v-if="columnDraft.kind === 'operatorField'"
@@ -2741,13 +2972,12 @@ function toggleGroupColumn(
       :open="groupModalOpen"
       cancel-text="取消"
       ok-text="保存"
-      :title="`${props.mode === 'efficiency' ? '效率' : '组合'}组设置`"
+      :title="`${groupTypeLabel}组设置`"
       @cancel="groupModalOpen = false"
       @ok="saveGroup"
     >
       <a-form v-if="groupDraft" layout="vertical">
-        <a-form-item
-          :label="props.mode === 'efficiency' ? '效率组名称' : '组合组名称'"
+        <a-form-item :label="`${groupTypeLabel}组名称`"
           ><a-input v-model:value="groupDraft.name"
         /></a-form-item>
         <a-form-item v-if="groupDraft.coreOperator" label="核心干员">
@@ -2763,20 +2993,32 @@ function toggleGroupColumn(
         <a-form-item v-if="props.mode === 'efficiency'" label="工作设施">
           <a-input value="贸易站" disabled />
         </a-form-item>
+        <a-form-item v-else-if="props.mode === 'overflow'" label="工作设施">
+          <a-select v-model:value="groupDraft.facility">
+            <a-select-option value="trading">贸易站</a-select-option>
+            <a-select-option value="manufacture">制造站</a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item v-else-if="groupDraft.coreOperator" label="工作设施">
           <a-select v-model:value="groupDraft.facility">
             <a-select-option value="manufacture">制造站</a-select-option>
             <a-select-option value="trading">贸易站</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item v-if="groupDraft.coreOperator" label="设施等级">
+        <a-form-item
+          v-if="groupDraft.coreOperator || props.mode === 'overflow'"
+          label="设施等级"
+        >
           <a-input-number
             v-model:value="groupDraft.facilityLevel"
             :max="3"
             :min="1"
           />
         </a-form-item>
-        <a-form-item label="贸易站默认产物">
+        <a-form-item
+          v-if="props.mode !== 'overflow' || groupDraft.facility === 'trading'"
+          label="贸易站默认产物"
+        >
           <a-select v-model:value="groupDraft.defaultProducts.trading">
             <a-select-option
               v-for="option in TRADING_PRODUCT_OPTIONS"
@@ -2786,7 +3028,13 @@ function toggleGroupColumn(
             >
           </a-select>
         </a-form-item>
-        <a-form-item v-if="props.mode === 'combination'" label="制造站默认产物">
+        <a-form-item
+          v-if="
+            props.mode === 'combination' ||
+            (props.mode === 'overflow' && groupDraft.facility === 'manufacture')
+          "
+          label="制造站默认产物"
+        >
           <a-select v-model:value="groupDraft.defaultProducts.manufacture">
             <a-select-option
               v-for="option in MANUFACTURE_PRODUCT_OPTIONS"
@@ -2803,7 +3051,7 @@ function toggleGroupColumn(
       :open="rowModalOpen"
       cancel-text="取消"
       ok-text="保存"
-      title="组合行设置"
+      :title="`${groupTypeLabel}行设置`"
       width="1180px"
       @cancel="cancelRowEditor"
       @ok="saveRow"

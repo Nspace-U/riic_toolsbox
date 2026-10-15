@@ -53,6 +53,13 @@ const router = createRouter({
       meta: { title: "效率计算器" },
     },
     {
+      path: "/calculators/overflow",
+      name: "overflow-calculator",
+      component: BasicCalculatorPage,
+      props: { mode: "overflow" },
+      meta: { title: "爆仓计算器" },
+    },
+    {
       path: "/operator-skills",
       name: "operator-skills",
       component: OperatorSkillsPage,

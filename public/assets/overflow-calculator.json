@@ -1,0 +1,511 @@
+{
+  "version": 1,
+  "columns": [
+    { "id": "operators", "label": "干员", "kind": "operators" },
+    { "id": "operator-names", "label": "干员名称", "kind": "operatorNames" },
+    {
+      "id": "facility-efficiency",
+      "label": "整体效率",
+      "kind": "facilityEfficiency"
+    },
+    {
+      "id": "order-limit-base",
+      "label": "订单上限（基础）",
+      "kind": "orderLimitBase",
+      "unit": "单"
+    },
+    {
+      "id": "order-limit-skill",
+      "label": "订单上限（技能）",
+      "kind": "orderLimitSkill",
+      "unit": "单"
+    },
+    {
+      "id": "order-limit-total",
+      "label": "订单上限（总计）",
+      "kind": "orderLimitTotal",
+      "unit": "单"
+    },
+    {
+      "id": "storage-cap-base",
+      "label": "仓库容量（基础）",
+      "kind": "storageCapBase",
+      "unit": "格"
+    },
+    {
+      "id": "storage-cap-skill",
+      "label": "仓库容量（技能）",
+      "kind": "storageCapSkill",
+      "unit": "格"
+    },
+    {
+      "id": "storage-cap-total",
+      "label": "仓库容量（总计）",
+      "kind": "storageCapTotal",
+      "unit": "格"
+    },
+    { "id": "item-duration", "label": "单件耗时", "kind": "itemDuration" },
+    {
+      "id": "overflow-time-zero",
+      "label": "极限爆仓时间（0%首件进度）",
+      "kind": "overflowTime",
+      "firstItemProgress": 0
+    },
+    {
+      "id": "overflow-time-full",
+      "label": "最短爆仓时间（100%首件进度）",
+      "kind": "overflowTime",
+      "firstItemProgress": 1
+    }
+  ],
+  "groups": [
+    {
+      "id": "closur",
+      "name": "可露希尔",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "defaultProducts": { "trading": "龙门币", "manufacture": "" },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "facility-efficiency",
+        "order-limit-base",
+        "order-limit-skill",
+        "order-limit-total",
+        "item-duration",
+        "overflow-time-zero",
+        "overflow-time-full"
+      ],
+      "rows": [
+        {
+          "id": "closur-01",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    { "operators": ["可露希尔", "摩根", "推进之王"] }
+                  ],
+                  "control": [{ "operators": ["戴菲恩"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "closur-02",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [{ "operators": ["可露希尔", "伺夜", "贝洛内"] }],
+                  "control": [{ "operators": ["八幡海铃"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "closur-03",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    { "operators": ["可露希尔", "泰拉大陆调查团", "40%"] }
+                  ],
+                  "control": [{ "operators": ["麒麟R夜刀", "火龙S黑角"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "closur-04",
+          "schedule": {
+            "layout": [{ "type": "trading", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [{ "operators": ["可露希尔", "40%", "40%"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "closur-05",
+          "schedule": {
+            "layout": [{ "type": "trading", "level": 2 }],
+            "plans": [
+              { "rooms": { "trading": [{ "operators": ["可露希尔", "45%"] }] } }
+            ]
+          }
+        },
+        {
+          "id": "closur-06",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 2 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [{ "operators": ["可露希尔", "泰拉大陆调查团"] }],
+                  "control": [{ "operators": ["麒麟R夜刀", "火龙S黑角"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "closur-07",
+          "schedule": {
+            "layout": [{ "type": "trading", "level": 2 }],
+            "plans": [
+              { "rooms": { "trading": [{ "operators": ["可露希尔", "40%"] }] } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "orundum",
+      "name": "合成玉",
+      "facility": "trading",
+      "facilityLevel": 3,
+      "defaultProducts": { "trading": "合成玉", "manufacture": "" },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "facility-efficiency",
+        "order-limit-base",
+        "order-limit-skill",
+        "order-limit-total",
+        "item-duration",
+        "overflow-time-zero",
+        "overflow-time-full"
+      ],
+      "rows": [
+        {
+          "id": "orundum-01",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    { "operators": ["摩根", "推进之王", "维娜·维多利亚"] }
+                  ],
+                  "control": [{ "operators": ["戴菲恩"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "orundum-02",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    { "operators": ["伺夜", "贝洛内", "泰拉大陆调查团"] }
+                  ],
+                  "control": [
+                    { "operators": ["八幡海铃", "麒麟R夜刀", "火龙S黑角"] }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "orundum-03",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [{ "operators": ["孑"] }],
+                  "control": [{ "operators": ["银灰", "琳琅诗怀雅", "灵知"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "orundum-04",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑"],
+                      "operatorStates": { "孑": { "elite": 1 } }
+                    }
+                  ],
+                  "control": [{ "operators": ["银灰", "琳琅诗怀雅", "灵知"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "orundum-05",
+          "schedule": {
+            "layout": [
+              { "type": "trading", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [{ "operators": ["伺夜", "贝洛内", "瑰盐"] }],
+                  "control": [{ "operators": ["八幡海铃"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "orundum-06",
+          "schedule": {
+            "layout": [{ "type": "trading", "level": 3 }],
+            "plans": [
+              {
+                "rooms": { "trading": [{ "operators": ["40%", "40%", "40%"] }] }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "gold",
+      "name": "赤金",
+      "facility": "manufacture",
+      "facilityLevel": 3,
+      "defaultProducts": { "trading": "", "manufacture": "赤金" },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "facility-efficiency",
+        "storage-cap-base",
+        "storage-cap-skill",
+        "storage-cap-total",
+        "item-duration",
+        "overflow-time-zero",
+        "overflow-time-full"
+      ],
+      "rows": [
+        {
+          "id": "gold-01",
+          "schedule": {
+            "layout": [
+              { "type": "manufacture", "level": 3 },
+              { "type": "control", "level": 5 },
+              { "type": "power", "level": 3 },
+              { "type": "power", "level": 3 },
+              { "type": "power", "level": 3 },
+              { "type": "trading", "level": 3 },
+              { "type": "trading", "level": 3 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["清流", "温蒂", "冬时"] }],
+                  "control": [{ "operators": ["森蚺"] }],
+                  "power": [
+                    { "operators": ["承曦格雷伊"] },
+                    {
+                      "operators": ["Lancet-2"],
+                      "operatorStates": { "Lancet-2": { "mood": 0 } }
+                    },
+                    { "operators": [] }
+                  ],
+                  "trading": [{ "operators": [] }, { "operators": [] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "gold-02",
+          "schedule": {
+            "layout": [
+              { "type": "manufacture", "level": 2 },
+              { "type": "control", "level": 5 },
+              { "type": "power", "level": 3 },
+              { "type": "power", "level": 3 },
+              { "type": "trading", "level": 3 },
+              { "type": "trading", "level": 3 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["清流", "温蒂"] }],
+                  "control": [{ "operators": ["森蚺"] }],
+                  "power": [
+                    { "operators": ["承曦格雷伊"] },
+                    {
+                      "operators": ["Lancet-2"],
+                      "operatorStates": { "Lancet-2": { "mood": 0 } }
+                    }
+                  ],
+                  "trading": [{ "operators": [] }, { "operators": [] }]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "battle-record",
+      "name": "中级作战记录",
+      "facility": "manufacture",
+      "facilityLevel": 3,
+      "defaultProducts": { "trading": "", "manufacture": "中级作战记录" },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "facility-efficiency",
+        "storage-cap-base",
+        "storage-cap-skill",
+        "storage-cap-total",
+        "item-duration",
+        "overflow-time-zero",
+        "overflow-time-full"
+      ],
+      "rows": [
+        {
+          "id": "battle-record-01",
+          "schedule": {
+            "layout": [
+              { "type": "manufacture", "level": 3 },
+              { "type": "control", "level": 5 }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["远牙", "野鬃", "灰毫"] }],
+                  "control": [{ "operators": ["薇薇安娜", "焰尾"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "battle-record-02",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 2 }],
+            "plans": [
+              { "rooms": { "manufacture": [{ "operators": ["35%", "35%"] }] } }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "originite-material",
+      "name": "源石材料",
+      "facility": "manufacture",
+      "facilityLevel": 3,
+      "defaultProducts": { "trading": "", "manufacture": "源石碎片" },
+      "columnIds": [
+        "operators",
+        "operator-names",
+        "facility-efficiency",
+        "storage-cap-base",
+        "storage-cap-skill",
+        "storage-cap-total",
+        "item-duration",
+        "overflow-time-zero",
+        "overflow-time-full"
+      ],
+      "rows": [
+        {
+          "id": "originite-material-01",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["泡泡", "火神", "褐果"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "originite-material-02",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["红云", "刻俄柏", "35%"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "originite-material-03",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["褐果", "35%", "35%"] }]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "id": "originite-material-04",
+          "schedule": {
+            "layout": [{ "type": "manufacture", "level": 3 }],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [{ "operators": ["35%", "35%", "35%"] }]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

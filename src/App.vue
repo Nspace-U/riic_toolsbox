@@ -49,6 +49,11 @@ const navigationItems: NavigationItem[] = [
         label: "效率计算器",
         icon: CalculatorOutlined,
       },
+      {
+        key: "/calculators/overflow",
+        label: "爆仓计算器",
+        icon: CalculatorOutlined,
+      },
     ],
   },
   {
