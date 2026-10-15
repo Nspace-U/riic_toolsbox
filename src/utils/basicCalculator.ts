@@ -1067,8 +1067,9 @@ export function calculateBasicCalculatorRowValues(
           baseGoldConsumptionRate: Math.max(0, -baseGoldMaterialRate),
           actualGoldConsumptionRate: Math.max(0, -actualGoldMaterialRate),
           savedGoldConsumptionRate:
+            equivalentValues.savedGoldConsumptionRate ??
             Math.max(0, -baseGoldMaterialRate) -
-            Math.max(0, -actualGoldMaterialRate),
+              Math.max(0, -actualGoldMaterialRate),
           productionProduct: production.product,
         }
       : {}),
@@ -1090,6 +1091,7 @@ function basicCalculatorTradeEquivalentValues(
   | "equivalentCurrentTradeEfficiency"
   | "equivalentLevelThreeTradeEfficiency"
   | "equivalentManufactureEfficiency"
+  | "savedGoldConsumptionRate"
 > {
   const production = facility?.production;
   if (
@@ -1113,16 +1115,22 @@ function basicCalculatorTradeEquivalentValues(
   const goldRule = ruleset.manufactureRules["赤金"];
   const lmdPerGold = currentBase.lmdPerHour / currentBase.goldPerHour;
   const goldManufactureRate = goldRule ? goldRule.amount / goldRule.hours : 0;
+  const actualProductionRate =
+    production.effectiveAmountPerHour ?? production.amountPerHour;
+  const actualGoldMaterialRate =
+    production.effectiveMaterialPerHour?.["赤金"] ??
+    production.materialPerHour?.["赤金"] ??
+    0;
   const extraGoldPerHour =
-    production.amountPerHour / lmdPerGold +
-    (production.materialPerHour?.["赤金"] ?? 0);
+    actualProductionRate / lmdPerGold + actualGoldMaterialRate;
 
   return {
     equivalentCurrentTradeEfficiency:
       (production.amountPerHour / currentBase.lmdPerHour) * 100,
     equivalentLevelThreeTradeEfficiency:
       (production.amountPerHour / levelThreeBase.lmdPerHour) * 100,
-    ...(goldManufactureRate > 0 && extraGoldPerHour > 0.000001
+    savedGoldConsumptionRate: extraGoldPerHour,
+    ...(goldManufactureRate > 0
       ? {
           equivalentManufactureEfficiency:
             (extraGoldPerHour / goldManufactureRate) * 100,
