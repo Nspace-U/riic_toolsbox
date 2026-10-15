@@ -24,6 +24,7 @@ export type BasicCalculatorProductDefaults = Record<
 export type BasicCalculatorColumnKind =
   | "operators"
   | "operatorNames"
+  | "facilityLevel"
   | "storageDelta"
   | "orderDelta"
   | "orderLimit"

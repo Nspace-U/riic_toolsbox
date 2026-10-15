@@ -110,6 +110,7 @@ interface BasicCalculatorRowView {
   itemDurationHours?: number;
   overflowTimeAtZeroProgress?: number;
   overflowTimeAtFullProgress?: number;
+  facilityLevel?: number;
   backgroundColor?: string;
 }
 
@@ -684,6 +685,31 @@ function groupColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
   );
 }
 
+const FACILITY_LEVEL_COLUMN: BasicCalculatorColumn = {
+  id: "facility-level",
+  label: "设施等级",
+  kind: "facilityLevel",
+};
+
+function tableColumns(group: BasicCalculatorGroup): BasicCalculatorColumn[] {
+  const columns = groupColumns(group);
+  if (
+    props.mode !== "overflow" &&
+    !(props.mode === "efficiency" && !isEfficiencyFacilityLevelView.value)
+  ) {
+    return columns;
+  }
+  const nameIndex = columns.findIndex(
+    (column) => column.kind === "operatorNames",
+  );
+  const insertIndex = nameIndex < 0 ? columns.length : nameIndex + 1;
+  return [
+    ...columns.slice(0, insertIndex),
+    FACILITY_LEVEL_COLUMN,
+    ...columns.slice(insertIndex),
+  ];
+}
+
 function groupSortState(group: BasicCalculatorGroup): BasicCalculatorSortState {
   const columns = groupColumns(group);
   const settings = config.value?.settings;
@@ -978,6 +1004,10 @@ function rowView(
 ): BasicCalculatorRowView {
   const columns = groupColumns(displayGroup);
   const calculation = rowCalculations.value[`${group.id}:${row.id}`];
+  const facility = basicCalculatorTargetFacility(group, row);
+  const facilityLevel = row.schedule.layout.find(
+    (entry) => entry.type === facility,
+  )?.level;
   const numeric: Record<string, number | undefined> = {};
   columns.forEach((column) => {
     if (column.kind === "storageDelta") {
@@ -1063,6 +1093,7 @@ function rowView(
     itemDurationHours: calculation?.itemDurationHours,
     overflowTimeAtZeroProgress: calculation?.overflowTimeAtZeroProgress,
     overflowTimeAtFullProgress: calculation?.overflowTimeAtFullProgress,
+    facilityLevel,
     backgroundColor: productAccent(group, row),
   };
 }
@@ -1188,7 +1219,7 @@ function mergeRowViews(
             .filter((operator) => operator.runOrder)
             .map((operator) => operator.name)
         : [],
-      groupColumns(view.displayGroup)
+      tableColumns(view.displayGroup)
         .filter(
           (column) =>
             column.kind !== "operators" && column.kind !== "operatorNames",
@@ -1281,6 +1312,9 @@ function columnText(
 ): string {
   if (column.kind === "operatorNames") {
     return viewOperatorNameText(view);
+  }
+  if (column.kind === "facilityLevel") {
+    return view.facilityLevel === undefined ? "—" : `${view.facilityLevel}级`;
   }
   if (column.kind === "facilityField") {
     return facilityFieldText(view.facilityData, column.path ?? "");
@@ -1380,7 +1414,7 @@ function tableCellColumns(view: BasicCalculatorRowView): Array<{
   column: BasicCalculatorColumn;
   colspan: number;
 }> {
-  const columns = groupColumns(view.displayGroup);
+  const columns = tableColumns(view.displayGroup);
   const shouldMergeCells =
     config.value?.settings.mergeIdenticalEfficiencyCells &&
     calculationsReadyForMerge.value;
@@ -2436,7 +2470,7 @@ function toggleGroupColumn(
                     class="basic-calculator-actions-column"
                   />
                   <th
-                    v-for="column in groupColumns(group)"
+                    v-for="column in tableColumns(group)"
                     :key="column.id"
                     :class="{
                       'basic-calculator-efficiency-column':
