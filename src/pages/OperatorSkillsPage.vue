@@ -20,7 +20,7 @@ import {
   getOperatorSkillTermKeys,
   getOperatorTerms,
 } from "@/utils/operatorSkill";
-import { ROOM_LABELS, ROOM_ORDER } from "@/utils/schedule";
+import { ROOM_DISPLAY_ORDER, ROOM_LABELS } from "@/utils/schedule";
 
 type SortMode = "implementationOrder" | "name";
 type OperatorDisplayRow = {
@@ -68,7 +68,7 @@ const sortMode = ref<SortMode>("implementationOrder");
 const expandedOperatorIds = ref(new Set<string>());
 let filterUpdateTimer: number | undefined;
 
-const facilityOptions = ROOM_ORDER.map((value) => ({
+const facilityOptions = ROOM_DISPLAY_ORDER.map((value) => ({
   label: ROOM_LABELS[value],
   value: ROOM_LABELS[value],
   type: value,
