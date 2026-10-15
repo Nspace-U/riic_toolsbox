@@ -132,12 +132,8 @@ const EFFICIENCY_COLUMN_LABELS: Partial<
   actualGoldConsumptionRate: "实际赤金消耗速率",
   savedGoldConsumptionRate: "节约赤金消耗速率",
   dailyProfit: "每日收益",
-  orderLimitBase: "订单上限基础",
-  orderLimitSkill: "订单上限技能",
-  orderLimitTotal: "订单上限总计",
-  storageCapBase: "仓库容量基础",
-  storageCapSkill: "仓库容量技能",
-  storageCapTotal: "仓库容量总计",
+  orderLimit: "订单上限",
+  storageCapacity: "仓库容量",
   itemDuration: "单件耗时",
   overflowTime: "爆仓时间",
 };
@@ -162,7 +158,7 @@ interface GroupDraft extends Omit<BasicCalculatorGroup, "defaultProducts"> {
 const STORAGE_KEYS = {
   combination: "riic-tools:basic-calculator:v6",
   efficiency: "riic-tools:efficiency-calculator:v4",
-  overflow: "riic-tools:overflow-calculator:v1",
+  overflow: "riic-tools:overflow-calculator:v2",
 } as const;
 const EFFICIENCY_GROUPING_STORAGE_KEY =
   "riic-tools:efficiency-calculator:grouping:v2";
@@ -994,18 +990,15 @@ function rowView(
       numeric[column.id] = calculation?.operatorEfficiency;
     } else if (column.kind === "facilityEfficiency") {
       numeric[column.id] = calculation?.facilityEfficiency;
-    } else if (column.kind === "orderLimitBase") {
-      numeric[column.id] = calculation?.orderLimitBase;
-    } else if (column.kind === "orderLimitSkill") {
-      numeric[column.id] = calculation?.orderLimitSkill;
-    } else if (column.kind === "orderLimitTotal") {
-      numeric[column.id] = calculation?.orderLimitTotal;
-    } else if (column.kind === "storageCapBase") {
-      numeric[column.id] = calculation?.storageCapBase;
-    } else if (column.kind === "storageCapSkill") {
-      numeric[column.id] = calculation?.storageCapSkill;
-    } else if (column.kind === "storageCapTotal") {
-      numeric[column.id] = calculation?.storageCapTotal;
+    } else if (
+      column.kind === "orderLimit" ||
+      column.kind === "storageCapacity"
+    ) {
+      const capacity = calculation?.facilityData?.capacity;
+      const expectedLabel =
+        column.kind === "orderLimit" ? "订单上限" : "仓库容量";
+      numeric[column.id] =
+        capacity?.label === expectedLabel ? capacity.total : undefined;
     } else if (column.kind === "equivalentCurrentTradeEfficiency") {
       numeric[column.id] = calculation?.equivalentCurrentTradeEfficiency;
     } else if (column.kind === "equivalentLevelThreeTradeEfficiency") {
@@ -1345,16 +1338,15 @@ function columnText(
     if (value === undefined) return "—";
     return Number.isFinite(value) ? formatDurationHours(value) : "不爆仓";
   }
-  if (
-    column.kind === "storageDelta" ||
-    column.kind === "orderDelta" ||
-    column.kind === "orderLimitBase" ||
-    column.kind === "orderLimitSkill" ||
-    column.kind === "orderLimitTotal" ||
-    column.kind === "storageCapBase" ||
-    column.kind === "storageCapSkill" ||
-    column.kind === "storageCapTotal"
-  ) {
+  if (column.kind === "orderLimit" || column.kind === "storageCapacity") {
+    const capacity = view.facilityData?.capacity;
+    const expectedLabel =
+      column.kind === "orderLimit" ? "订单上限" : "仓库容量";
+    return capacity?.label === expectedLabel
+      ? `${formatNumber(capacity.total)}（${formatNumber(capacity.base)}，${formatNumber(capacity.skill)}）`
+      : "—";
+  }
+  if (column.kind === "storageDelta" || column.kind === "orderDelta") {
     const value = view.numeric[column.id];
     return value === undefined
       ? "—"
@@ -1780,9 +1772,7 @@ function addColumn(): void {
       (props.mode === "overflow" && columnDraft.kind === "facilityEfficiency"
         ? "整体效率"
         : undefined) ||
-      (columnDraft.kind === "overflowTime"
-        ? `爆仓时间（${columnDraft.firstItemProgress * 100}%首件进度）`
-        : undefined) ||
+      (columnDraft.kind === "overflowTime" ? "爆仓时间" : undefined) ||
       EFFICIENCY_COLUMN_LABELS[columnDraft.kind] ||
       (columnDraft.kind === "efficiency"
         ? `${formatNumber(columnDraft.hours)}小时效率`
@@ -1799,16 +1789,6 @@ function addColumn(): void {
       : {}),
     ...(columnDraft.kind === "tradeBaseEfficiency"
       ? { unit: "龙门币/小时" }
-      : {}),
-    ...(columnDraft.kind === "orderLimitBase" ||
-    columnDraft.kind === "orderLimitSkill" ||
-    columnDraft.kind === "orderLimitTotal"
-      ? { unit: "单" }
-      : {}),
-    ...(columnDraft.kind === "storageCapBase" ||
-    columnDraft.kind === "storageCapSkill" ||
-    columnDraft.kind === "storageCapTotal"
-      ? { unit: "格" }
       : {}),
     ...(columnDraft.kind === "operatorField"
       ? { path: columnDraft.path, aggregate: columnDraft.aggregate }
@@ -2761,7 +2741,11 @@ function toggleGroupColumn(
             @change="updateColumnHours(column.id, Number($event))"
           />
           <a-select
-            v-if="column.kind === 'overflowTime'"
+            v-if="
+              column.kind === 'overflowTime' &&
+              column.id !== 'overflow-time-shortest' &&
+              column.id !== 'overflow-time-extreme'
+            "
             :value="column.firstItemProgress ?? 0"
             @change="updateColumnFirstItemProgress(column.id, Number($event))"
           >
@@ -2865,23 +2849,9 @@ function toggleGroupColumn(
               <a-select-option value="facilityEfficiency"
                 >整体效率</a-select-option
               >
-              <a-select-option value="orderLimitBase"
-                >订单上限基础</a-select-option
-              >
-              <a-select-option value="orderLimitSkill"
-                >订单上限技能</a-select-option
-              >
-              <a-select-option value="orderLimitTotal"
-                >订单上限总计</a-select-option
-              >
-              <a-select-option value="storageCapBase"
-                >仓库容量基础</a-select-option
-              >
-              <a-select-option value="storageCapSkill"
-                >仓库容量技能</a-select-option
-              >
-              <a-select-option value="storageCapTotal"
-                >仓库容量总计</a-select-option
+              <a-select-option value="orderLimit">订单上限</a-select-option>
+              <a-select-option value="storageCapacity"
+                >仓库容量</a-select-option
               >
               <a-select-option value="itemDuration">单件耗时</a-select-option>
               <a-select-option value="overflowTime">爆仓时间</a-select-option>

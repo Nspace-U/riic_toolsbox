@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "columns": [
     { "id": "operators", "label": "干员", "kind": "operators" },
     { "id": "operator-names", "label": "干员名称", "kind": "operatorNames" },
@@ -9,53 +9,27 @@
       "kind": "facilityEfficiency"
     },
     {
-      "id": "order-limit-base",
-      "label": "订单上限（基础）",
-      "kind": "orderLimitBase",
-      "unit": "单"
+      "id": "order-limit",
+      "label": "订单上限",
+      "kind": "orderLimit"
     },
     {
-      "id": "order-limit-skill",
-      "label": "订单上限（技能）",
-      "kind": "orderLimitSkill",
-      "unit": "单"
-    },
-    {
-      "id": "order-limit-total",
-      "label": "订单上限（总计）",
-      "kind": "orderLimitTotal",
-      "unit": "单"
-    },
-    {
-      "id": "storage-cap-base",
-      "label": "仓库容量（基础）",
-      "kind": "storageCapBase",
-      "unit": "格"
-    },
-    {
-      "id": "storage-cap-skill",
-      "label": "仓库容量（技能）",
-      "kind": "storageCapSkill",
-      "unit": "格"
-    },
-    {
-      "id": "storage-cap-total",
-      "label": "仓库容量（总计）",
-      "kind": "storageCapTotal",
-      "unit": "格"
+      "id": "storage-capacity",
+      "label": "仓库容量",
+      "kind": "storageCapacity"
     },
     { "id": "item-duration", "label": "单件耗时", "kind": "itemDuration" },
     {
-      "id": "overflow-time-zero",
-      "label": "极限爆仓时间（0%首件进度）",
-      "kind": "overflowTime",
-      "firstItemProgress": 0
-    },
-    {
-      "id": "overflow-time-full",
-      "label": "最短爆仓时间（100%首件进度）",
+      "id": "overflow-time-shortest",
+      "label": "最短爆仓时间",
       "kind": "overflowTime",
       "firstItemProgress": 1
+    },
+    {
+      "id": "overflow-time-extreme",
+      "label": "极限爆仓时间",
+      "kind": "overflowTime",
+      "firstItemProgress": 0
     }
   ],
   "groups": [
@@ -69,12 +43,10 @@
         "operators",
         "operator-names",
         "facility-efficiency",
-        "order-limit-base",
-        "order-limit-skill",
-        "order-limit-total",
+        "order-limit",
         "item-duration",
-        "overflow-time-zero",
-        "overflow-time-full"
+        "overflow-time-shortest",
+        "overflow-time-extreme"
       ],
       "rows": [
         {
@@ -192,12 +164,10 @@
         "operators",
         "operator-names",
         "facility-efficiency",
-        "order-limit-base",
-        "order-limit-skill",
-        "order-limit-total",
+        "order-limit",
         "item-duration",
-        "overflow-time-zero",
-        "overflow-time-full"
+        "overflow-time-shortest",
+        "overflow-time-extreme"
       ],
       "rows": [
         {
@@ -319,12 +289,10 @@
         "operators",
         "operator-names",
         "facility-efficiency",
-        "storage-cap-base",
-        "storage-cap-skill",
-        "storage-cap-total",
+        "storage-capacity",
         "item-duration",
-        "overflow-time-zero",
-        "overflow-time-full"
+        "overflow-time-shortest",
+        "overflow-time-extreme"
       ],
       "rows": [
         {
@@ -399,12 +367,10 @@
         "operators",
         "operator-names",
         "facility-efficiency",
-        "storage-cap-base",
-        "storage-cap-skill",
-        "storage-cap-total",
+        "storage-capacity",
         "item-duration",
-        "overflow-time-zero",
-        "overflow-time-full"
+        "overflow-time-shortest",
+        "overflow-time-extreme"
       ],
       "rows": [
         {
@@ -445,12 +411,10 @@
         "operators",
         "operator-names",
         "facility-efficiency",
-        "storage-cap-base",
-        "storage-cap-skill",
-        "storage-cap-total",
+        "storage-capacity",
         "item-duration",
-        "overflow-time-zero",
-        "overflow-time-full"
+        "overflow-time-shortest",
+        "overflow-time-extreme"
       ],
       "rows": [
         {

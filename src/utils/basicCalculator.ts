@@ -26,12 +26,8 @@ export type BasicCalculatorColumnKind =
   | "operatorNames"
   | "storageDelta"
   | "orderDelta"
-  | "orderLimitBase"
-  | "orderLimitSkill"
-  | "orderLimitTotal"
-  | "storageCapBase"
-  | "storageCapSkill"
-  | "storageCapTotal"
+  | "orderLimit"
+  | "storageCapacity"
   | "tradeOrders"
   | "tradeBaseEfficiency"
   | "operatorEfficiency"
@@ -199,12 +195,6 @@ export interface BasicCalculatorRowCalculation {
   tradeBaseEfficiency?: number;
   operatorEfficiency?: number;
   facilityEfficiency?: number;
-  orderLimitBase?: number;
-  orderLimitSkill?: number;
-  orderLimitTotal?: number;
-  storageCapBase?: number;
-  storageCapSkill?: number;
-  storageCapTotal?: number;
   equivalentCurrentTradeEfficiency?: number;
   equivalentLevelThreeTradeEfficiency?: number;
   equivalentManufactureEfficiency?: number;
@@ -1185,7 +1175,6 @@ export function calculateBasicCalculatorRowValues(
     production?.effectiveMaterialPerHour?.["赤金"] ??
     production?.materialPerHour?.["赤金"] ??
     0;
-  const facilityCapacity = targetFacility?.capacity;
   return {
     efficiency,
     ...(targetFacility ? { facilityData: targetFacility } : {}),
@@ -1194,30 +1183,6 @@ export function calculateBasicCalculatorRowValues(
     orderDelta: visibleFacility?.attributes.orderLimit?.skill ?? 0,
     operatorEfficiency: targetFacility?.operatorSkillEfficiency,
     facilityEfficiency: targetFacility?.efficiency,
-    orderLimitBase:
-      facilityCapacity?.label === "订单上限"
-        ? facilityCapacity.base
-        : undefined,
-    orderLimitSkill:
-      facilityCapacity?.label === "订单上限"
-        ? facilityCapacity.skill
-        : undefined,
-    orderLimitTotal:
-      facilityCapacity?.label === "订单上限"
-        ? facilityCapacity.total
-        : undefined,
-    storageCapBase:
-      facilityCapacity?.label === "仓库容量"
-        ? facilityCapacity.base
-        : undefined,
-    storageCapSkill:
-      facilityCapacity?.label === "仓库容量"
-        ? facilityCapacity.skill
-        : undefined,
-    storageCapTotal:
-      facilityCapacity?.label === "仓库容量"
-        ? facilityCapacity.total
-        : undefined,
     ...equivalentValues,
     ...(production
       ? {
