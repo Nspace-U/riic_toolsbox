@@ -661,6 +661,61 @@
             "华法琳",
             "白金"
           ]
+        },
+        {
+          "id": "red-cloud-23",
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "卡缇"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["红云"]
+        },
+        {
+          "id": "red-cloud-24",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["战车", "早露", "凛冬", "真理", "古米"]
+                    }
+                  ],
+                  "manufacture": [
+                    {
+                      "operators": ["红云", "导火索"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["红云"]
         }
       ]
     },
@@ -1274,6 +1329,61 @@
             "华法琳",
             "白金"
           ]
+        },
+        {
+          "id": "bubble-23",
+          "schedule": {
+            "layout": [
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "卡缇"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["泡泡"]
+        },
+        {
+          "id": "bubble-24",
+          "schedule": {
+            "layout": [
+              {
+                "type": "control",
+                "level": 5
+              },
+              {
+                "type": "manufacture",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "control": [
+                    {
+                      "operators": ["战车", "早露", "凛冬", "真理", "古米"]
+                    }
+                  ],
+                  "manufacture": [
+                    {
+                      "operators": ["泡泡", "导火索"]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["泡泡"]
         }
       ]
     },
