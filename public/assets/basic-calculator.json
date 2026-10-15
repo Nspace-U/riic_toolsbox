@@ -2747,6 +2747,62 @@
             ]
           },
           "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-1-18",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "瑰盐"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
+        },
+        {
+          "id": "jie-1-19",
+          "schedule": {
+            "layout": [
+              {
+                "type": "trading",
+                "level": 3
+              }
+            ],
+            "plans": [
+              {
+                "rooms": {
+                  "trading": [
+                    {
+                      "operators": ["孑", "焰狐龙梓兰"],
+                      "operatorStates": {
+                        "孑": {
+                          "elite": 1
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "hiddenOperators": ["孑"]
         }
       ]
     },
