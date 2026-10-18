@@ -53,6 +53,7 @@ import {
   layoutTextFor,
   layoutWithBuildChain,
   resizeRoomsForLayout,
+  type LayoutPreset,
   validateAddedLayout,
 } from "@/utils/simulator/layout";
 import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
@@ -129,6 +130,8 @@ const props = withDefaults(
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     hideLayoutEditor?: boolean;
+    showLayoutPresets?: boolean;
+    layoutPresetWillRemoveOperators?: (preset: LayoutPreset) => boolean;
     facilityColors?: Partial<Record<RoomKey, string>>;
     productColors?: Partial<Record<string, string>>;
     defaultProducts?: BasicCalculatorProductDefaults;
@@ -147,6 +150,8 @@ const props = withDefaults(
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
     hideLayoutEditor: false,
+    showLayoutPresets: false,
+    layoutPresetWillRemoveOperators: undefined,
     facilityColors: () => ({}),
     productColors: () => ({}),
     defaultProducts: () => ({ trading: "", manufacture: "" }),
@@ -1707,6 +1712,8 @@ defineExpose({ clearInteractionState });
       :fixed-room-levels="fixedRoomLevels"
       :fixed-room-types="fixedRoomTypes"
       :layout="modelValue.layout"
+      :layout-preset-will-remove-operators="layoutPresetWillRemoveOperators"
+      :show-layout-presets="showLayoutPresets"
       :show-summary="false"
       :layout-text-footer="layoutTextHint()"
       @add-layout="addLayoutEntry"

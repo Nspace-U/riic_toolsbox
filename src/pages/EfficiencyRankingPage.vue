@@ -65,18 +65,6 @@ interface EfficiencyRankingWorkerResponse {
   error?: string;
 }
 
-interface EfficiencyRankingTableColumn {
-  title: string;
-  key: string;
-  dataIndex?: string;
-  width?: number;
-  align?: "center";
-  customCell?: (
-    record: EfficiencyRankingRowView,
-    index: number,
-  ) => { rowSpan: number };
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -275,53 +263,6 @@ const candidates = computed(() =>
     .map(({ operator }) => operator),
 );
 
-const tableColumns = computed(() => {
-  const columns: EfficiencyRankingTableColumn[] = [
-    { title: "编辑", key: "edit", width: 68, align: "center" },
-  ];
-  if (pageSettings.value.avatar.showAvatar) {
-    columns.push({
-      title: "头像",
-      key: "avatar",
-      width: activeFacility.value === "meeting" ? 150 : 78,
-      align: "center",
-    });
-  }
-  columns.push({
-    title: "干员名称",
-    key: "name",
-    dataIndex: "operator",
-    width: 180,
-  });
-  if (activeFacility.value === "meeting") {
-    columns.push(
-      { title: "线索倾向", key: "clue", width: 190 },
-      { title: "技能效率", key: "skill", width: 200, align: "center" },
-    );
-  }
-  columns.push(
-    {
-      title: "效率",
-      key: "efficiency",
-      dataIndex: "result.efficiency",
-      width: 130,
-      align: "center",
-      customCell: (_record: EfficiencyRankingRowView, index: number) => ({
-        rowSpan: efficiencyCellRowSpan(index),
-      }),
-    },
-    {
-      title: "心情",
-      key: "mood",
-      dataIndex: "result.moodExtra",
-      width: 115,
-      align: "center",
-    },
-    { title: "备注", key: "notes", dataIndex: "result.notes", width: 320 },
-  );
-  return columns;
-});
-
 let worker: Worker | undefined;
 let calculationRequestId = 0;
 
@@ -459,6 +400,10 @@ function openLayoutEditor(): void {
     pageSettings.value.treatSkillsAsUnlocked,
   );
   layoutModalOpen.value = true;
+}
+
+function layoutPresetNeedsConfirmation(): boolean {
+  return false;
 }
 
 function saveLayoutEditor(): void {
@@ -722,10 +667,6 @@ function moodText(value: number | undefined): string {
   return `${value > 0 ? "+" : ""}${formatNumber(value)}`;
 }
 
-function rowKey(row: EfficiencyRankingRowView): string {
-  return row.id;
-}
-
 function isOperatorOwned(name: string): boolean {
   const operator = operatorFor(name);
   return !activeProfile.value || !operator
@@ -838,17 +779,16 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="efficiency-ranking-page">
-    <a-card class="efficiency-ranking-heading">
-      <div class="efficiency-ranking-heading-row">
+    <a-card
+      :bordered="false"
+      class="basic-calculator-header efficiency-ranking-heading"
+    >
+      <div class="basic-calculator-header-content">
         <div>
+          <span class="page-kicker">RIIC EFFICIENCY</span>
           <h1>效率排名</h1>
         </div>
-      </div>
-    </a-card>
-
-    <a-card title="设置" class="efficiency-ranking-settings">
-      <template #extra>
-        <a-space>
+        <a-space wrap>
           <a-button :icon="h(EditOutlined)" @click="openLayoutEditor">
             编辑布局
           </a-button>
@@ -861,7 +801,13 @@ onBeforeUnmount(() => {
             <a-button :icon="h(ReloadOutlined)">恢复默认</a-button>
           </a-popconfirm>
         </a-space>
-      </template>
+      </div>
+    </a-card>
+
+    <a-card
+      title="显示与排序"
+      class="basic-calculator-settings efficiency-ranking-settings"
+    >
       <a-form layout="inline">
         <a-form-item label="头像">
           <a-space wrap>
@@ -895,7 +841,7 @@ onBeforeUnmount(() => {
             显示练度
           </a-checkbox>
         </a-form-item>
-        <a-form-item label="效率单元格">
+        <a-form-item label="效率显示">
           <a-checkbox
             v-model:checked="pageSettings.mergeIdenticalEfficiencyCells"
           >
@@ -978,88 +924,112 @@ onBeforeUnmount(() => {
           </a-radio-group>
         </div>
         <a-spin :spinning="calculationLoading">
-          <a-table
-            :columns="tableColumns"
-            :data-source="visibleRows"
-            :pagination="false"
-            :row-key="rowKey"
-            :scroll="{ x: 'max-content' }"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'edit'">
-                <a-button
-                  aria-label="编辑排班"
-                  size="small"
-                  :icon="h(EditOutlined)"
-                  @click="openRowEditor(record)"
-                />
-              </template>
-              <a-space v-else-if="column.key === 'avatar'" :size="4" wrap>
-                <OperatorAvatarDisplay
-                  v-for="member in rowOperators(record)"
-                  :key="member.operator.id"
-                  :display-name="member.operator.name"
-                  :elite-level="member.progression.elite"
-                  :operator="member.operator"
-                  :operator-owned="isOperatorOwned(member.operator.name)"
-                  :plain="true"
-                  :proportional-layout="true"
-                  :show-elite-level="pageSettings.avatar.showEliteLevel"
-                  :show-profession="pageSettings.avatar.showProfession"
-                  :show-rarity="pageSettings.avatar.showRarity"
-                  :size="record.meetingCategory === 'combo' ? 44 : 54"
-                />
-              </a-space>
-              <span
-                v-else-if="column.key === 'name'"
-                class="efficiency-ranking-name"
-              >
-                {{ rowName(record) }}
-              </span>
-              <span v-else-if="column.key === 'clue'">
-                {{ cluePreferencesText(record) }}
-              </span>
-              <span
-                v-else-if="column.key === 'skill'"
-                class="efficiency-ranking-efficiency"
-              >
-                {{ skillEfficiencyText(record) }}
-              </span>
-              <span
-                v-else-if="column.key === 'efficiency'"
-                class="efficiency-ranking-efficiency"
-              >
-                {{ efficiencyText(record) }}
-              </span>
-              <div
-                v-else-if="column.key === 'mood'"
-                class="efficiency-ranking-member-lines"
-              >
-                <template v-if="record.meetingCategory === 'combo'">
-                  <span
-                    v-for="item in moodContributions(record)"
-                    :key="item.name"
-                    :class="moodClass(item.value)"
+          <a-empty
+            v-if="visibleRows.length === 0"
+            description="没有符合条件的干员"
+          />
+          <div v-else class="basic-calculator-table-wrap">
+            <table class="basic-calculator-table efficiency-ranking-table">
+              <thead>
+                <tr>
+                  <th class="basic-calculator-actions-column" scope="col">
+                    编辑
+                  </th>
+                  <th v-if="pageSettings.avatar.showAvatar" scope="col">
+                    头像
+                  </th>
+                  <th class="basic-calculator-name-cell" scope="col">
+                    干员名称
+                  </th>
+                  <template v-if="activeFacility === 'meeting'">
+                    <th scope="col">线索倾向</th>
+                    <th scope="col">技能效率</th>
+                  </template>
+                  <th class="basic-calculator-efficiency-column" scope="col">
+                    效率
+                  </th>
+                  <th scope="col">心情</th>
+                  <th scope="col">备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(record, index) in visibleRows" :key="record.id">
+                  <td class="basic-calculator-actions-column">
+                    <div class="efficiency-ranking-row-actions">
+                      <a-button
+                        aria-label="编辑排班"
+                        size="small"
+                        type="text"
+                        :icon="h(EditOutlined)"
+                        @click="openRowEditor(record)"
+                      />
+                    </div>
+                  </td>
+                  <td v-if="pageSettings.avatar.showAvatar">
+                    <div
+                      class="basic-calculator-avatars efficiency-ranking-avatars"
+                    >
+                      <OperatorAvatarDisplay
+                        v-for="member in rowOperators(record)"
+                        :key="member.operator.id"
+                        :display-name="member.operator.name"
+                        :elite-level="member.progression.elite"
+                        :operator="member.operator"
+                        :operator-owned="isOperatorOwned(member.operator.name)"
+                        :plain="true"
+                        :proportional-layout="true"
+                        :show-elite-level="pageSettings.avatar.showEliteLevel"
+                        :show-profession="pageSettings.avatar.showProfession"
+                        :show-rarity="pageSettings.avatar.showRarity"
+                        :size="record.meetingCategory === 'combo' ? 44 : 54"
+                      />
+                    </div>
+                  </td>
+                  <td
+                    class="basic-calculator-name-cell efficiency-ranking-name"
                   >
-                    {{ item.name }} {{ moodText(item.value) }}
-                  </span>
-                </template>
-                <span v-else :class="moodClass(record.result?.moodExtra)">
-                  {{ moodText(record.result?.moodExtra) }}
-                </span>
-              </div>
-              <span
-                v-else-if="column.key === 'notes'"
-                class="efficiency-ranking-notes"
-              >
-                {{ notesText(record) }}
-              </span>
-            </template>
-            <template #emptyText>
-              <span>没有符合条件的干员</span>
-            </template>
-          </a-table>
+                    {{ rowName(record) }}
+                  </td>
+                  <template v-if="activeFacility === 'meeting'">
+                    <td>{{ cluePreferencesText(record) }}</td>
+                    <td class="basic-calculator-efficiency-value">
+                      {{ skillEfficiencyText(record) }}
+                    </td>
+                  </template>
+                  <td
+                    v-if="efficiencyCellRowSpan(index) > 0"
+                    class="basic-calculator-efficiency-column"
+                    :rowspan="efficiencyCellRowSpan(index)"
+                  >
+                    <span class="basic-calculator-efficiency-value">
+                      {{ efficiencyText(record) }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="efficiency-ranking-member-lines">
+                      <template v-if="record.meetingCategory === 'combo'">
+                        <span
+                          v-for="item in moodContributions(record)"
+                          :key="item.name"
+                          :class="moodClass(item.value)"
+                        >
+                          {{ item.name }} {{ moodText(item.value) }}
+                        </span>
+                      </template>
+                      <span v-else :class="moodClass(record.result?.moodExtra)">
+                        {{ moodText(record.result?.moodExtra) }}
+                      </span>
+                    </div>
+                  </td>
+                  <td
+                    class="basic-calculator-note-cell efficiency-ranking-notes"
+                  >
+                    {{ notesText(record) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </a-spin>
       </a-tab-pane>
     </a-tabs>
@@ -1077,6 +1047,8 @@ onBeforeUnmount(() => {
       <BasicCalculatorScheduleEditor
         v-if="layoutDraftSchedule"
         v-model:model-value="layoutDraftSchedule"
+        :layout-preset-will-remove-operators="layoutPresetNeedsConfirmation"
+        :show-layout-presets="true"
         session-key="efficiency-ranking:shared-layout"
         :operator-candidates="operatorCandidates"
         :operator-elite-level="operatorEliteLevel"
@@ -1135,13 +1107,6 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.efficiency-ranking-heading-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 .efficiency-ranking-heading h1 {
   margin: 0;
   font-size: 20px;
@@ -1150,6 +1115,31 @@ onBeforeUnmount(() => {
 
 .efficiency-ranking-settings :deep(.ant-form) {
   row-gap: 8px;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-header-content) {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+@media (max-width: 720px) {
+  .efficiency-ranking-page :deep(.basic-calculator-header-content) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.efficiency-ranking-page :deep(.page-kicker) {
+  color: #216a66;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-header h1) {
+  margin-block: 4px;
 }
 
 .efficiency-ranking-tabs {
@@ -1192,11 +1182,70 @@ onBeforeUnmount(() => {
   margin-block: 12px;
 }
 
-.efficiency-ranking-page :deep(.ant-table-cell) {
-  vertical-align: middle;
+.efficiency-ranking-page :deep(.basic-calculator-table-wrap) {
+  overflow-x: auto;
 }
 
-.efficiency-ranking-page :deep(.ant-table-thead > tr > th) {
+.efficiency-ranking-page :deep(.basic-calculator-table) {
+  border-collapse: collapse;
+  margin-inline: auto;
+  table-layout: auto;
+  width: max-content;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-table th),
+.efficiency-ranking-page :deep(.basic-calculator-table td) {
+  border-block-end: 1px solid rgba(46, 65, 61, 0.12);
+  padding: 5px 6px;
+  text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-table th) {
+  background: rgba(236, 242, 240, 0.9);
+  color: #42534f;
+  font-size: 12px;
+  font-weight: 700;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-efficiency-column) {
+  min-inline-size: 104px;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-name-cell),
+.efficiency-ranking-page :deep(.basic-calculator-note-cell) {
+  text-align: start;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-note-cell) {
+  white-space: pre;
+}
+
+.efficiency-ranking-page :deep(.basic-calculator-actions-column) {
+  padding-inline: 4px;
+}
+
+.efficiency-ranking-row-actions {
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.efficiency-ranking-page
+  :deep(.basic-calculator-table tr:hover .efficiency-ranking-row-actions),
+.efficiency-ranking-page
+  :deep(
+    .basic-calculator-table tr:focus-within .efficiency-ranking-row-actions
+  ) {
+  opacity: 1;
+}
+
+.efficiency-ranking-avatars {
+  justify-content: center;
 }
 </style>
