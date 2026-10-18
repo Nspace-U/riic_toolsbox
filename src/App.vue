@@ -50,6 +50,11 @@ const navigationItems: NavigationItem[] = [
         icon: CalculatorOutlined,
       },
       {
+        key: "/calculators/ranking",
+        label: "效率排名",
+        icon: CalculatorOutlined,
+      },
+      {
         key: "/calculators/overflow",
         label: "爆仓计算器",
         icon: CalculatorOutlined,

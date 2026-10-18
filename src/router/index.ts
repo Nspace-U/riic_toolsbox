@@ -3,6 +3,7 @@ import type { RouteLocationNormalizedLoaded } from "vue-router";
 
 import BasicCalculatorPage from "@/pages/BasicCalculatorPage.vue";
 import EfficiencyCalculatorPage from "@/pages/EfficiencyCalculatorPage.vue";
+import EfficiencyRankingPage from "@/pages/EfficiencyRankingPage.vue";
 import OperatorSkillsPage from "@/pages/OperatorSkillsPage.vue";
 import ScheduleReferencePage from "@/pages/ScheduleReferencePage.vue";
 import SettingsPage from "@/pages/SettingsPage.vue";
@@ -51,6 +52,12 @@ const router = createRouter({
       name: "efficiency-calculator",
       component: EfficiencyCalculatorPage,
       meta: { title: "效率计算器" },
+    },
+    {
+      path: "/calculators/ranking",
+      name: "efficiency-ranking",
+      component: EfficiencyRankingPage,
+      meta: { title: "效率排名" },
     },
     {
       path: "/calculators/overflow",
