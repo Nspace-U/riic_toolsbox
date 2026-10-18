@@ -20,6 +20,42 @@ export interface LayoutAdditionPlan {
   types: RoomKey[];
 }
 
+export interface LayoutPreset {
+  id: string;
+  name: string;
+  layoutText: string;
+}
+
+export const LAYOUT_PRESETS: LayoutPreset[] = [
+  { id: "243", name: "243", layoutText: "33 3333\n33333 5555" },
+  { id: "153", name: "153", layoutText: "3 33333\n33333 5555" },
+  {
+    id: "full-252",
+    name: "满血252",
+    layoutText: "32 33333\n13133 3111",
+  },
+  {
+    id: "right-full-252-32-trading",
+    name: "右满252 32贸",
+    layoutText: "32 33222\n33333 2111",
+  },
+  {
+    id: "full-342",
+    name: "满血342",
+    layoutText: "332 3333\n13133 3111",
+  },
+  {
+    id: "right-full-342-331-trading",
+    name: "右满342 331贸",
+    layoutText: "331 3322\n33333 1111",
+  },
+  {
+    id: "right-full-342-322-trading",
+    name: "右满342 322贸",
+    layoutText: "322 3322\n33333 2111",
+  },
+];
+
 export function roomsForLayout(
   layout: LayoutEntry[],
 ): Record<string, RoomAssignment[]> {
@@ -85,6 +121,30 @@ export function resizeRoomsForLayout(plan: Plan, layout: LayoutEntry[]): void {
     );
   });
   plan.rooms = nextRooms;
+}
+
+export function layoutWouldRemoveOperators(
+  plans: Plan[],
+  layout: LayoutEntry[],
+): boolean {
+  return ROOM_ORDER.some((type) => {
+    const layoutEntries = layout.filter((entry) => entry.type === type);
+    return plans.some((plan) => {
+      const rooms = Array.isArray(plan.rooms[type])
+        ? (plan.rooms[type] as RoomAssignment[])
+        : [];
+      return rooms.some((room, index) => {
+        const layoutEntry = layoutEntries[index];
+        const capacity = layoutEntry
+          ? roomSlotCount(type, layoutEntry.level)
+          : 0;
+        return (
+          Boolean(room.operators?.slice(capacity).some(Boolean)) ||
+          Boolean(room.runOrderOperators?.slice(capacity).some(Boolean))
+        );
+      });
+    });
+  });
 }
 
 export function layoutEntryLevelMax(type: RoomKey): number {

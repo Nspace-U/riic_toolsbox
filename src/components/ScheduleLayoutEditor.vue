@@ -14,10 +14,12 @@ import {
   roomLevelRange,
 } from "@/utils/schedule";
 import {
+  LAYOUT_PRESETS,
+  cascadeLayoutTypes,
   layoutAdditionPlan,
   layoutEntryLevelMax,
   layoutTextFor,
-  cascadeLayoutTypes,
+  type LayoutPreset,
 } from "@/utils/simulator/layout";
 
 const props = withDefaults(
@@ -29,6 +31,8 @@ const props = withDefaults(
     facilityColors?: Partial<Record<RoomKey, string>>;
     error?: string;
     showSummary?: boolean;
+    showLayoutPresets?: boolean;
+    layoutPresetWillRemoveOperators?: (preset: LayoutPreset) => boolean;
     layoutTextFooter?: string;
   }>(),
   {
@@ -38,6 +42,8 @@ const props = withDefaults(
     facilityColors: () => ({}),
     error: "",
     showSummary: true,
+    showLayoutPresets: false,
+    layoutPresetWillRemoveOperators: () => true,
     layoutTextFooter: "",
   },
 );
@@ -51,6 +57,25 @@ const emit = defineEmits<{
 
 const layoutText = ref("");
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
+const selectedLayoutPresetId = ref<string>();
+const pendingLayoutPreset = ref<LayoutPreset>();
+const layoutPresetPopconfirmTrigger: string[] = [];
+const layoutPresetOptions = LAYOUT_PRESETS.map((preset) => ({
+  label: preset.name,
+  value: preset.id,
+}));
+
+const selectedLayoutPreset = computed(() =>
+  LAYOUT_PRESETS.find((preset) => preset.id === selectedLayoutPresetId.value),
+);
+const layoutPresetApplyDisabled = computed(() => {
+  const preset = selectedLayoutPreset.value;
+  return (
+    !preset ||
+    !props.layoutPresetWillRemoveOperators ||
+    pendingLayoutPreset.value !== undefined
+  );
+});
 
 const fixedRoomTypeSet = computed(() => new Set(props.fixedRoomTypes));
 const deleteDisabledRoomTypeSet = computed(
@@ -111,6 +136,7 @@ watch(
   () => props.layout,
   (layout) => {
     layoutText.value = layoutTextFor(layout);
+    pendingLayoutPreset.value = undefined;
   },
   { deep: true, immediate: true },
 );
@@ -178,6 +204,38 @@ function deleteConfirmationTitle(entry: LayoutEntry): string | undefined {
 function fixedLevelText(entry: LayoutEntry): string {
   return `Lv${entry.level}`;
 }
+
+function applySelectedLayoutPreset(): void {
+  const preset = selectedLayoutPreset.value;
+  const willRemoveOperators = props.layoutPresetWillRemoveOperators;
+  if (!preset || !willRemoveOperators || layoutPresetApplyDisabled.value) {
+    return;
+  }
+  if (layoutApplyTimer !== undefined) {
+    clearTimeout(layoutApplyTimer);
+    layoutApplyTimer = undefined;
+  }
+  layoutText.value = layoutTextFor(props.layout);
+  if (willRemoveOperators(preset)) {
+    pendingLayoutPreset.value = preset;
+    return;
+  }
+  emit("apply-layout-text", preset.layoutText);
+}
+
+function confirmLayoutPreset(): void {
+  const preset = pendingLayoutPreset.value;
+  pendingLayoutPreset.value = undefined;
+  if (preset) {
+    emit("apply-layout-text", preset.layoutText);
+  }
+}
+
+function handleLayoutPresetOpenChange(open: boolean): void {
+  if (!open) {
+    pendingLayoutPreset.value = undefined;
+  }
+}
 </script>
 
 <template>
@@ -193,8 +251,37 @@ function fixedLevelText(entry: LayoutEntry): string {
         v-model:value="layoutText"
         :auto-size="{ minRows: 2, maxRows: 2 }"
         class="simulator-layout-text-input"
+        :disabled="pendingLayoutPreset !== undefined"
         placeholder="33 33222\n1313 2111"
       />
+      <div v-if="showLayoutPresets" class="simulator-layout-presets">
+        <span class="simulator-summary-label">预设布局</span>
+        <a-select
+          v-model:value="selectedLayoutPresetId"
+          :disabled="pendingLayoutPreset !== undefined"
+          :options="layoutPresetOptions"
+          class="simulator-layout-preset-select"
+          aria-label="选择预设布局"
+          placeholder="选择预设布局"
+        />
+        <a-popconfirm
+          :open="pendingLayoutPreset !== undefined"
+          :title="`应用“${pendingLayoutPreset?.name}”会移除超出新布局容量的干员，确认应用？`"
+          :trigger="layoutPresetPopconfirmTrigger"
+          cancel-text="取消"
+          ok-text="确认应用"
+          placement="top"
+          @open-change="handleLayoutPresetOpenChange"
+          @confirm="confirmLayoutPreset"
+        >
+          <a-button
+            :disabled="layoutPresetApplyDisabled"
+            @click="applySelectedLayoutPreset"
+          >
+            应用
+          </a-button>
+        </a-popconfirm>
+      </div>
       <div v-if="layoutTextFooter" class="simulator-layout-text-footer">
         <span>{{ layoutTextFooter }}</span>
       </div>

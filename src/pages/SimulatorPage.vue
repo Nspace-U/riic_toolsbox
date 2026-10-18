@@ -156,10 +156,12 @@ import {
   layoutAdditionPlan,
   layoutEntryLevelMax,
   layoutTextFor,
+  layoutWouldRemoveOperators,
   layoutWithBuildChain,
   resizeRoomsForLayout,
   roomsForLayout,
   validateAddedLayout,
+  type LayoutPreset,
 } from "@/utils/simulator/layout";
 import {
   estimateTextEm,
@@ -1946,12 +1948,28 @@ function addLayoutEntry(type: RoomKey): void {
   );
 }
 
+function layoutFromText(text: string): LayoutEntry[] {
+  return validateAddedLayout(layoutWithBuildChain(parseLayoutText(text)));
+}
+
+function layoutPresetWillRemoveOperators(preset: LayoutPreset): boolean {
+  const document = currentDocument.value;
+  if (!document) {
+    return false;
+  }
+  try {
+    return layoutWouldRemoveOperators(
+      document.plans,
+      layoutFromText(preset.layoutText),
+    );
+  } catch {
+    return false;
+  }
+}
+
 function applyLayoutText(text: string = layoutText.value): void {
   try {
-    const requestedLayout = parseLayoutText(text);
-    const nextLayout = validateAddedLayout(
-      layoutWithBuildChain(requestedLayout),
-    );
+    const nextLayout = layoutFromText(text);
     const updated = updateCurrent(
       (document) => {
         document.layout = nextLayout.map((entry) => ({ ...entry }));
@@ -1963,7 +1981,7 @@ function applyLayoutText(text: string = layoutText.value): void {
     );
     if (updated) {
       layoutText.value = layoutTextFor(nextLayout);
-      message.success("已按输入内容更新设施布局。");
+      message.success("已更新设施布局。");
     }
   } catch (error: unknown) {
     setError(error);
@@ -6420,7 +6438,11 @@ defineExpose({ prepareScheduleReferenceImage });
             :facility-colors="facilityColors"
             :delete-disabled-room-types="['control']"
             :layout="currentDocument.layout"
+            :layout-preset-will-remove-operators="
+              layoutPresetWillRemoveOperators
+            "
             :layout-text-footer="layoutTextHint"
+            :show-layout-presets="true"
             @add-layout="addLayoutEntry"
             @apply-layout-text="applyLayoutText"
             @remove-layout="removeLayoutEntry"
