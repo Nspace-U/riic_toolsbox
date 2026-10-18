@@ -128,6 +128,7 @@ const props = withDefaults(
     fixedOperator?: { type: RoomKey; name: string };
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
+    hideLayoutEditor?: boolean;
     facilityColors?: Partial<Record<RoomKey, string>>;
     productColors?: Partial<Record<string, string>>;
     defaultProducts?: BasicCalculatorProductDefaults;
@@ -145,6 +146,7 @@ const props = withDefaults(
     fixedOperator: undefined,
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
+    hideLayoutEditor: false,
     facilityColors: () => ({}),
     productColors: () => ({}),
     defaultProducts: () => ({ trading: "", manufacture: "" }),
@@ -1699,6 +1701,7 @@ defineExpose({ clearInteractionState });
     @pointerdown="handlePointerDown"
   >
     <ScheduleLayoutEditor
+      v-if="!hideLayoutEditor"
       :error="layoutError"
       :facility-colors="facilityColors"
       :fixed-room-levels="fixedRoomLevels"

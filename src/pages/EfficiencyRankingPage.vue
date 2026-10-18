@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { EditOutlined } from "@ant-design/icons-vue";
+import { EditOutlined, ReloadOutlined } from "@ant-design/icons-vue";
+import { Modal } from "ant-design-vue";
 import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
@@ -34,21 +35,24 @@ import {
   createEfficiencyRankingSchedule,
   buildEfficiencyRankingEntries,
   DEFAULT_EFFICIENCY_RANKING_SETTINGS,
+  defaultEfficiencyRankingNote,
   emptyEfficiencyRankingSchedule,
   EFFICIENCY_RANKING_FACILITIES,
   operatorStateForSchedule,
   type EfficiencyRankingCalculationResult,
   type EfficiencyRankingEntry,
   type EfficiencyRankingSettings,
+  type DormitoryCategory,
 } from "@/utils/efficiencyRanking";
 
-const STORAGE_KEY = "riic-tools:efficiency-ranking:v1";
+const STORAGE_KEY = "riic-tools:efficiency-ranking:v2";
 
 interface StoredEfficiencyRankingState {
-  version: 1;
+  version: 2;
   settings: EfficiencyRankingSettings;
   layout: LayoutEntry[];
   rowRooms: Record<string, Record<string, RoomAssignment[]>>;
+  rowNotes: Record<string, string>;
 }
 
 interface EfficiencyRankingRowView extends EfficiencyRankingEntry {
@@ -83,24 +87,25 @@ function clone<T>(value: T): T {
 
 function readStoredState(): StoredEfficiencyRankingState {
   const defaults: StoredEfficiencyRankingState = {
-    version: 1,
+    version: 2,
     settings: clone(DEFAULT_EFFICIENCY_RANKING_SETTINGS),
     layout: createDefaultEfficiencyRankingLayout(),
     rowRooms: {},
+    rowNotes: {},
   };
   if (typeof window === "undefined") return defaults;
   try {
     const value: unknown = JSON.parse(
       window.localStorage.getItem(STORAGE_KEY) ?? "null",
     );
-    if (!isRecord(value) || value.version !== 1) return defaults;
+    if (!isRecord(value) || value.version !== 2) return defaults;
     const storedSettings = isRecord(value.settings) ? value.settings : {};
     const storedAvatar = isRecord(storedSettings.avatar)
       ? storedSettings.avatar
       : {};
     const workHours = Number(storedSettings.workHours);
     return {
-      version: 1,
+      version: 2,
       settings: {
         ...defaults.settings,
         ...storedSettings,
@@ -116,6 +121,9 @@ function readStoredState(): StoredEfficiencyRankingState {
       rowRooms: isRecord(value.rowRooms)
         ? (value.rowRooms as Record<string, Record<string, RoomAssignment[]>>)
         : {},
+      rowNotes: isRecord(value.rowNotes)
+        ? (value.rowNotes as Record<string, string>)
+        : {},
     };
   } catch {
     return defaults;
@@ -126,12 +134,16 @@ const storedState = readStoredState();
 const pageSettings = ref<EfficiencyRankingSettings>(storedState.settings);
 const sharedLayout = ref<LayoutEntry[]>(storedState.layout);
 const rowRooms = ref(storedState.rowRooms);
+const rowNotes = ref(storedState.rowNotes);
 const activeFacility = ref<RoomKey>("power");
+const activeMeetingCategory = ref<"normal" | "independent" | "combo">("normal");
+const activeDormitoryCategory = ref<DormitoryCategory>("self");
 const layoutModalOpen = ref(false);
 const rowModalOpen = ref(false);
 const layoutDraftSchedule = ref<ScheduleDocument>();
 const rowDraftSchedule = ref<ScheduleDocument>();
 const rowDraftEntry = ref<Omit<EfficiencyRankingEntry, "schedule">>();
+const rowDraftNote = ref("");
 const rowCalculationResults = ref<
   Record<string, EfficiencyRankingCalculationResult>
 >({});
@@ -189,15 +201,63 @@ const facilityTabs = computed(() =>
   })),
 );
 
+const meetingCategoryTabs = computed(() => [
+  {
+    key: "normal" as const,
+    label: "普通干员",
+    count: rowViews.value.filter(
+      (row) => row.facility === "meeting" && row.meetingCategory === "normal",
+    ).length,
+  },
+  {
+    key: "independent" as const,
+    label: "独立干员",
+    count: rowViews.value.filter(
+      (row) =>
+        row.facility === "meeting" && row.meetingCategory === "independent",
+    ).length,
+  },
+  {
+    key: "combo" as const,
+    label: "干员组合",
+    count: rowViews.value.filter(
+      (row) => row.facility === "meeting" && row.meetingCategory === "combo",
+    ).length,
+  },
+]);
+
+const dormitoryCategoryTabs = computed(() =>
+  [
+    { key: "self" as const, label: "自回" },
+    { key: "group" as const, label: "群回" },
+    { key: "single" as const, label: "单回" },
+    { key: "targeted" as const, label: "定回" },
+  ].map((category) => ({
+    ...category,
+    count: rowViews.value.filter(
+      (row) =>
+        row.facility === "dormitory" &&
+        row.dormitoryCategories?.includes(category.key),
+    ).length,
+  })),
+);
+
 const visibleRows = computed(() =>
   rowViews.value
     .filter((row) => row.facility === activeFacility.value)
+    .filter((row) =>
+      activeFacility.value === "meeting"
+        ? row.meetingCategory === activeMeetingCategory.value
+        : activeFacility.value === "dormitory"
+          ? row.dormitoryCategories?.includes(activeDormitoryCategory.value)
+          : true,
+    )
     .sort(compareRankingRows),
 );
 
 const rowDraftTitle = computed(() =>
   rowDraftEntry.value
-    ? `编辑${rowDraftEntry.value.operator.name}${rowDraftEntry.value.progressionLabel}`
+    ? `编辑${rowNameForEntry(rowDraftEntry.value)}`
     : "编辑排班",
 );
 
@@ -220,10 +280,26 @@ const tableColumns = computed(() => {
     { title: "编辑", key: "edit", width: 68, align: "center" },
   ];
   if (pageSettings.value.avatar.showAvatar) {
-    columns.push({ title: "头像", key: "avatar", width: 78, align: "center" });
+    columns.push({
+      title: "头像",
+      key: "avatar",
+      width: activeFacility.value === "meeting" ? 150 : 78,
+      align: "center",
+    });
+  }
+  columns.push({
+    title: "干员名称",
+    key: "name",
+    dataIndex: "operator",
+    width: 180,
+  });
+  if (activeFacility.value === "meeting") {
+    columns.push(
+      { title: "线索倾向", key: "clue", width: 190 },
+      { title: "技能效率", key: "skill", width: 200, align: "center" },
+    );
   }
   columns.push(
-    { title: "干员名称", key: "name", dataIndex: "operator", width: 180 },
     {
       title: "效率",
       key: "efficiency",
@@ -302,7 +378,32 @@ function efficiencyText(row: EfficiencyRankingRowView): string {
   if (row.facility === "dormitory") {
     return `${formatNumber(value)}心情/小时`;
   }
+  if (row.meetingCategory === "combo") {
+    const total = `${formatEfficiencyNumber(value)}%`;
+    if (pageSettings.value.meetingEfficiencyDisplay === "sum") return total;
+    const activeCount = [
+      row.operator.name,
+      ...(row.pairedOperators ?? []).map((item) => item.operator.name),
+    ].filter((name) => isRowMemberAssigned(row, name)).length;
+    const average = `${formatEfficiencyNumber(value / Math.max(1, activeCount))}%`;
+    if (pageSettings.value.meetingEfficiencyDisplay === "average")
+      return average;
+    return `合计 ${total} / 平均 ${average}`;
+  }
   return `${formatEfficiencyNumber(value)}%`;
+}
+
+function isRowMemberAssigned(
+  row: EfficiencyRankingRowView,
+  name: string,
+): boolean {
+  const assignments = row.schedule.plans[0]?.rooms[row.facility];
+  return (
+    Array.isArray(assignments) &&
+    (assignments as RoomAssignment[]).some((assignment) =>
+      assignment.operators?.includes(name),
+    )
+  );
 }
 
 function efficiencyCellRowSpan(index: number): number {
@@ -332,10 +433,11 @@ function updateWorkHours(value: number | null): void {
 function persistState(): void {
   if (typeof window === "undefined") return;
   const state: StoredEfficiencyRankingState = {
-    version: 1,
+    version: 2,
     settings: clone(pageSettings.value),
     layout: clone(sharedLayout.value),
     rowRooms: clone(rowRooms.value),
+    rowNotes: clone(rowNotes.value),
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -362,9 +464,67 @@ function openLayoutEditor(): void {
 function saveLayoutEditor(): void {
   const schedule = layoutDraftSchedule.value;
   if (!schedule) return;
-  sharedLayout.value = clone(schedule.layout);
+  const losses = layoutLosses(schedule.layout);
+  if (!losses.length) {
+    applySharedLayout(schedule.layout);
+    return;
+  }
+  Modal.confirm({
+    title: "布局会移除排班干员",
+    content: h("div", [
+      h("p", "以下行中有干员会因布局变更而被移除："),
+      h(
+        "ul",
+        losses.map((loss) =>
+          h("li", `${loss.row}: ${loss.operators.join("、")}`),
+        ),
+      ),
+    ]),
+    okText: "继续应用",
+    cancelText: "保留当前布局",
+    onOk: () => applySharedLayout(schedule.layout),
+    onCancel: () => {
+      layoutModalOpen.value = false;
+    },
+  });
+}
+
+function layoutLosses(
+  layout: LayoutEntry[],
+): Array<{ row: string; operators: string[] }> {
+  return rankingEntries.value.flatMap((entry) => {
+    const source = entry.schedule.plans[0]?.rooms;
+    if (!source) return [];
+    const sourceRooms = source as Record<string, RoomAssignment[]>;
+    const resized = cloneRoomsForLayout(sourceRooms, layout);
+    const lost = new Set<string>();
+    Object.entries(sourceRooms).forEach(([facility, rooms]) => {
+      if (!Array.isArray(rooms)) return;
+      const nextRooms = resized[facility];
+      rooms.forEach((room, roomIndex) => {
+        const retained = nextRooms?.[roomIndex]?.operators ?? [];
+        (room.operators ?? []).forEach((name: string) => {
+          if (name && !retained.includes(name)) lost.add(name);
+        });
+      });
+    });
+    return lost.size
+      ? [{ row: rowNameForEntry(entry), operators: [...lost] }]
+      : [];
+  });
+}
+
+function applySharedLayout(layout: LayoutEntry[]): void {
+  sharedLayout.value = clone(layout);
   normalizeSavedRooms(sharedLayout.value);
   layoutModalOpen.value = false;
+}
+
+function restorePageDefaults(): void {
+  pageSettings.value = clone(DEFAULT_EFFICIENCY_RANKING_SETTINGS);
+  sharedLayout.value = createDefaultEfficiencyRankingLayout();
+  rowRooms.value = {};
+  rowNotes.value = {};
 }
 
 function openRowEditor(row: EfficiencyRankingRowView): void {
@@ -375,18 +535,39 @@ function openRowEditor(row: EfficiencyRankingRowView): void {
     progression: row.progression,
     progressionLabel: row.progressionLabel,
     sourceIndex: row.sourceIndex,
+    meetingCategory: row.meetingCategory,
+    pairedOperators: clone(row.pairedOperators ?? []),
+    dormitoryCategories: clone(row.dormitoryCategories ?? []),
   };
   rowDraftEntry.value = entry;
   rowDraftSchedule.value = clone(row.schedule);
+  rowDraftNote.value = Object.hasOwn(rowNotes.value, row.id)
+    ? (rowNotes.value[row.id] ?? "")
+    : defaultEfficiencyRankingNote(entry, catalog.value!);
   rowModalOpen.value = true;
+}
+
+function restoreRowDefault(): void {
+  const entry = rowDraftEntry.value;
+  const currentCatalog = catalog.value;
+  if (!entry || !currentCatalog) return;
+  rowDraftSchedule.value = createEfficiencyRankingSchedule(entry, {
+    layout: sharedLayout.value,
+    workHours: pageSettings.value.workHours,
+    clueExchanging: pageSettings.value.clueExchanging,
+    treatSkillsAsUnlocked: pageSettings.value.treatSkillsAsUnlocked,
+    progressionProfile: activeProfile.value,
+    dormitoryDefaultIncludesMoodRecovery:
+      dormitoryDefaultIncludesMoodRecovery.value,
+    catalog: currentCatalog,
+  });
+  rowDraftNote.value = defaultEfficiencyRankingNote(entry, currentCatalog);
 }
 
 function saveRowEditor(): void {
   const entry = rowDraftEntry.value;
   const schedule = rowDraftSchedule.value;
   if (!entry || !schedule) return;
-  sharedLayout.value = clone(schedule.layout);
-  normalizeSavedRooms(sharedLayout.value);
   const planRooms = schedule.plans[0]?.rooms;
   if (planRooms && typeof planRooms === "object") {
     rowRooms.value = {
@@ -397,6 +578,7 @@ function saveRowEditor(): void {
       ),
     };
   }
+  rowNotes.value = { ...rowNotes.value, [entry.id]: rowDraftNote.value };
   rowModalOpen.value = false;
 }
 
@@ -431,10 +613,101 @@ function operatorCandidates(type: RoomKey): OperatorPickerCandidateView[] {
   }));
 }
 
+function rowNameForEntry(
+  row: Omit<EfficiencyRankingEntry, "schedule">,
+): string {
+  const showProgression = pageSettings.value.showOperatorProgressionInNames;
+  const name = `${row.operator.name}${showProgression ? row.progressionLabel : ""}`;
+  return [
+    name,
+    ...(row.pairedOperators ?? []).map(
+      (item) =>
+        `${item.operator.name}${showProgression ? item.progressionLabel : ""}`,
+    ),
+  ].join(" + ");
+}
+
 function rowName(row: EfficiencyRankingRowView): string {
-  return pageSettings.value.showOperatorProgressionInNames
-    ? `${row.operator.name}${row.progressionLabel}`
-    : row.operator.name;
+  return rowNameForEntry(row);
+}
+
+function rowOperators(row: EfficiencyRankingRowView): Array<{
+  operator: Operator;
+  progression: { elite: EliteLevel; level: number };
+}> {
+  return [
+    { operator: row.operator, progression: row.progression },
+    ...(row.pairedOperators ?? []).map((item) => ({
+      operator: item.operator,
+      progression: item.progression,
+    })),
+  ];
+}
+
+function skillEfficiencyText(row: EfficiencyRankingRowView): string {
+  const values = row.result?.operatorSkillEfficiencies;
+  if (!values) return "—";
+  const members = [
+    row.operator,
+    ...(row.pairedOperators ?? []).map((item) => item.operator),
+  ];
+  const formatted = members.flatMap((operator) => {
+    const value = values[operator.name];
+    if (value === undefined) return [];
+    const text = `${formatEfficiencyNumber(value)}%`;
+    return row.meetingCategory === "combo"
+      ? [`${operator.name} ${text}`]
+      : [text];
+  });
+  return formatted.join(" + ") || "—";
+}
+
+function cluePreferenceLabel(preference: number | "unowned" | "owned"): string {
+  if (typeof preference === "number") return `线索${preference}`;
+  return preference === "unowned" ? "尚未拥有" : "已经拥有";
+}
+
+function cluePreferencesText(row: EfficiencyRankingRowView): string {
+  const values = row.result?.cluePreferencesByOperator;
+  if (!values) return "";
+  const members = [
+    row.operator,
+    ...(row.pairedOperators ?? []).map((item) => item.operator),
+  ];
+  return members
+    .flatMap((operator) => {
+      const preferences = values[operator.name] ?? [];
+      if (!preferences.length) return [];
+      const text = [...new Set(preferences)]
+        .map(cluePreferenceLabel)
+        .join("、");
+      return [
+        row.meetingCategory === "combo" ? `${operator.name}：${text}` : text,
+      ];
+    })
+    .join("；");
+}
+
+function moodContributions(
+  row: EfficiencyRankingRowView,
+): Array<{ name: string; value: number }> {
+  const values = row.result?.moodExtrasByOperator ?? {};
+  return [
+    row.operator,
+    ...(row.pairedOperators ?? []).map((item) => item.operator),
+  ].flatMap((operator) => {
+    const value = values[operator.name];
+    return value === undefined || value === 0
+      ? []
+      : [{ name: operator.name, value }];
+  });
+}
+
+function notesText(row: EfficiencyRankingRowView): string {
+  const manualNote = Object.hasOwn(rowNotes.value, row.id)
+    ? rowNotes.value[row.id]
+    : defaultEfficiencyRankingNote(row, catalog.value!);
+  return [manualNote, ...(row.result?.notes ?? [])].filter(Boolean).join("\n");
 }
 
 function moodClass(value: number | undefined): string {
@@ -530,7 +803,9 @@ const calculationFingerprint = computed(() =>
 );
 
 watch(calculationFingerprint, () => requestCalculations(), { immediate: true });
-watch([pageSettings, sharedLayout, rowRooms], persistState, { deep: true });
+watch([pageSettings, sharedLayout, rowRooms, rowNotes], persistState, {
+  deep: true,
+});
 
 onMounted(() => {
   worker = new Worker(
@@ -568,13 +843,25 @@ onBeforeUnmount(() => {
         <div>
           <h1>效率排名</h1>
         </div>
-        <a-button :icon="h(EditOutlined)" @click="openLayoutEditor">
-          编辑布局
-        </a-button>
       </div>
     </a-card>
 
     <a-card title="设置" class="efficiency-ranking-settings">
+      <template #extra>
+        <a-space>
+          <a-button :icon="h(EditOutlined)" @click="openLayoutEditor">
+            编辑布局
+          </a-button>
+          <a-popconfirm
+            cancel-text="取消"
+            ok-text="恢复"
+            title="恢复整页设置、布局和所有行内容？"
+            @confirm="restorePageDefaults"
+          >
+            <a-button :icon="h(ReloadOutlined)">恢复默认</a-button>
+          </a-popconfirm>
+        </a-space>
+      </template>
       <a-form layout="inline">
         <a-form-item label="头像">
           <a-space wrap>
@@ -614,6 +901,13 @@ onBeforeUnmount(() => {
           >
             合并相同效率单元格
           </a-checkbox>
+        </a-form-item>
+        <a-form-item label="会客室组合效率">
+          <a-radio-group v-model:value="pageSettings.meetingEfficiencyDisplay">
+            <a-radio-button value="sum">合计</a-radio-button>
+            <a-radio-button value="average">平均</a-radio-button>
+            <a-radio-button value="both">两种</a-radio-button>
+          </a-radio-group>
         </a-form-item>
         <a-form-item label="线索交流">
           <a-checkbox v-model:checked="pageSettings.clueExchanging">
@@ -655,6 +949,34 @@ onBeforeUnmount(() => {
         :key="facility.key"
         :tab="`${facility.label}（${facility.count}）`"
       >
+        <div
+          v-if="facility.key === 'meeting'"
+          class="efficiency-ranking-subtabs"
+        >
+          <a-radio-group v-model:value="activeMeetingCategory">
+            <a-radio-button
+              v-for="category in meetingCategoryTabs"
+              :key="category.key"
+              :value="category.key"
+            >
+              {{ category.label }}（{{ category.count }}）
+            </a-radio-button>
+          </a-radio-group>
+        </div>
+        <div
+          v-if="facility.key === 'dormitory'"
+          class="efficiency-ranking-subtabs"
+        >
+          <a-radio-group v-model:value="activeDormitoryCategory">
+            <a-radio-button
+              v-for="category in dormitoryCategoryTabs"
+              :key="category.key"
+              :value="category.key"
+            >
+              {{ category.label }}（{{ category.count }}）
+            </a-radio-button>
+          </a-radio-group>
+        </div>
         <a-spin :spinning="calculationLoading">
           <a-table
             :columns="tableColumns"
@@ -673,24 +995,36 @@ onBeforeUnmount(() => {
                   @click="openRowEditor(record)"
                 />
               </template>
-              <OperatorAvatarDisplay
-                v-else-if="column.key === 'avatar'"
-                :display-name="record.operator.name"
-                :elite-level="record.progression.elite"
-                :operator="record.operator"
-                :operator-owned="isOperatorOwned(record.operator.name)"
-                :plain="true"
-                :proportional-layout="true"
-                :show-elite-level="pageSettings.avatar.showEliteLevel"
-                :show-profession="pageSettings.avatar.showProfession"
-                :show-rarity="pageSettings.avatar.showRarity"
-                :size="54"
-              />
+              <a-space v-else-if="column.key === 'avatar'" :size="4" wrap>
+                <OperatorAvatarDisplay
+                  v-for="member in rowOperators(record)"
+                  :key="member.operator.id"
+                  :display-name="member.operator.name"
+                  :elite-level="member.progression.elite"
+                  :operator="member.operator"
+                  :operator-owned="isOperatorOwned(member.operator.name)"
+                  :plain="true"
+                  :proportional-layout="true"
+                  :show-elite-level="pageSettings.avatar.showEliteLevel"
+                  :show-profession="pageSettings.avatar.showProfession"
+                  :show-rarity="pageSettings.avatar.showRarity"
+                  :size="record.meetingCategory === 'combo' ? 44 : 54"
+                />
+              </a-space>
               <span
                 v-else-if="column.key === 'name'"
                 class="efficiency-ranking-name"
               >
                 {{ rowName(record) }}
+              </span>
+              <span v-else-if="column.key === 'clue'">
+                {{ cluePreferencesText(record) }}
+              </span>
+              <span
+                v-else-if="column.key === 'skill'"
+                class="efficiency-ranking-efficiency"
+              >
+                {{ skillEfficiencyText(record) }}
               </span>
               <span
                 v-else-if="column.key === 'efficiency'"
@@ -698,17 +1032,28 @@ onBeforeUnmount(() => {
               >
                 {{ efficiencyText(record) }}
               </span>
-              <span
+              <div
                 v-else-if="column.key === 'mood'"
-                :class="moodClass(record.result?.moodExtra)"
+                class="efficiency-ranking-member-lines"
               >
-                {{ moodText(record.result?.moodExtra) }}
-              </span>
+                <template v-if="record.meetingCategory === 'combo'">
+                  <span
+                    v-for="item in moodContributions(record)"
+                    :key="item.name"
+                    :class="moodClass(item.value)"
+                  >
+                    {{ item.name }} {{ moodText(item.value) }}
+                  </span>
+                </template>
+                <span v-else :class="moodClass(record.result?.moodExtra)">
+                  {{ moodText(record.result?.moodExtra) }}
+                </span>
+              </div>
               <span
                 v-else-if="column.key === 'notes'"
                 class="efficiency-ranking-notes"
               >
-                {{ record.result?.notes.join("；") || "" }}
+                {{ notesText(record) }}
               </span>
             </template>
             <template #emptyText>
@@ -752,6 +1097,7 @@ onBeforeUnmount(() => {
       <BasicCalculatorScheduleEditor
         v-if="rowDraftSchedule && rowDraftEntry"
         v-model:model-value="rowDraftSchedule"
+        :hide-layout-editor="true"
         :session-key="`efficiency-ranking:${rowDraftEntry.id}`"
         :fixed-operator="rowDraftFixedOperator"
         :operator-candidates="operatorCandidates"
@@ -759,6 +1105,24 @@ onBeforeUnmount(() => {
         :operator-progression="operatorProgression"
         :operator-for="operatorFor"
       />
+      <div v-if="rowDraftEntry" class="efficiency-ranking-row-editor-footer">
+        <a-popconfirm
+          cancel-text="取消"
+          ok-text="恢复"
+          title="恢复这名干员的默认排班和备注？"
+          @confirm="restoreRowDefault"
+        >
+          <a-button :icon="h(ReloadOutlined)">恢复此行默认</a-button>
+        </a-popconfirm>
+      </div>
+      <a-form v-if="rowDraftEntry" layout="vertical">
+        <a-form-item label="备注">
+          <a-textarea
+            v-model:value="rowDraftNote"
+            :auto-size="{ minRows: 2, maxRows: 8 }"
+          />
+        </a-form-item>
+      </a-form>
     </a-modal>
   </div>
 </template>
@@ -792,6 +1156,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.efficiency-ranking-subtabs {
+  margin-block-end: 12px;
+}
+
 .efficiency-ranking-name {
   font-weight: 500;
 }
@@ -812,6 +1180,16 @@ onBeforeUnmount(() => {
 
 .efficiency-ranking-notes {
   white-space: pre-wrap;
+}
+
+.efficiency-ranking-member-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.efficiency-ranking-row-editor-footer {
+  margin-block: 12px;
 }
 
 .efficiency-ranking-page :deep(.ant-table-cell) {

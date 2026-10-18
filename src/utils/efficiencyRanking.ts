@@ -1,5 +1,6 @@
 import {
   calculateEfficiency,
+  type CluePreference,
   type EfficiencyCatalog,
   type EfficiencyCondition,
   type EfficiencyResult,
@@ -8,6 +9,7 @@ import {
   type OperatorProgressionProfile,
   groupIncludesOperator,
 } from "@arknights/riic-efficiency";
+import specialRowsJson from "@/assets/efficiency-ranking-special-rows.json";
 
 import type { EliteLevel, Operator } from "@/types/baseData";
 import type {
@@ -45,6 +47,7 @@ export interface EfficiencyRankingSettings {
   };
   showOperatorProgressionInNames: boolean;
   mergeIdenticalEfficiencyCells: boolean;
+  meetingEfficiencyDisplay: "sum" | "average" | "both";
   clueExchanging: boolean;
   workHours: number;
   treatSkillsAsUnlocked: boolean;
@@ -59,6 +62,7 @@ export const DEFAULT_EFFICIENCY_RANKING_SETTINGS: EfficiencyRankingSettings = {
   },
   showOperatorProgressionInNames: true,
   mergeIdenticalEfficiencyCells: true,
+  meetingEfficiencyDisplay: "sum",
   clueExchanging: true,
   workHours: 24,
   treatSkillsAsUnlocked: false,
@@ -71,13 +75,47 @@ export interface EfficiencyRankingEntry {
   progression: { elite: EliteLevel; level: number };
   progressionLabel: string;
   sourceIndex: number;
+  meetingCategory?: "normal" | "independent" | "combo";
+  pairedOperators?: Array<{
+    operator: Operator;
+    progression: { elite: EliteLevel; level: number };
+    progressionLabel: string;
+  }>;
+  dormitoryCategories?: DormitoryCategory[];
   schedule: ScheduleDocument;
 }
+
+export type DormitoryCategory = "self" | "group" | "single" | "targeted";
+
+interface EfficiencyRankingSupport {
+  facility: RoomKey;
+  name?: string;
+  term?: string;
+  roomIndex?: number;
+  count?: number;
+  elite?: EliteLevel;
+  level?: number;
+  mood?: number;
+}
+
+interface EfficiencyRankingSpecialRow {
+  note?: string;
+  supports?: EfficiencyRankingSupport[];
+  dormitoryCategories?: DormitoryCategory[];
+}
+
+const specialRows = specialRowsJson as Record<
+  string,
+  Partial<Record<RoomKey, EfficiencyRankingSpecialRow>>
+>;
 
 export interface EfficiencyRankingCalculationResult {
   id: string;
   efficiency?: number;
   moodExtra?: number;
+  operatorSkillEfficiencies: Record<string, number>;
+  moodExtrasByOperator: Record<string, number>;
+  cluePreferencesByOperator: Record<string, CluePreference[]>;
   notes: string[];
 }
 
@@ -92,17 +130,15 @@ export interface EfficiencyRankingScheduleOptions {
   catalog: EfficiencyCatalog;
 }
 
-export const EFFICIENCY_RANKING_OPERATOR_NOTES: Readonly<
-  Record<string, string>
-> = {
-  char_4218_aigis: "结城理进驻在制造站",
-  char_4227_gallus: "其他作业平台进驻在发电站",
-  char_4188_confes: "其他拉特兰干员（空构）进驻在发电站",
-  char_4136_phonor: "逻各斯进驻在训练室",
-  char_4015_spuria: "5小时暖机",
-  char_4093_frston: "凯尔希进驻在控制中枢",
-  char_249_mlyss: "额外5名莱茵生命挂件",
-};
+const MEETING_COMBINATIONS: ReadonlyArray<{
+  leader: string;
+  partner?: string;
+  term?: string;
+}> = [
+  { leader: "忍冬", partner: "铃兰" },
+  { leader: "提丰", term: "cc.g.sm" },
+  { leader: "寻澜", term: "cc.g.bs" },
+];
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -188,7 +224,107 @@ function progressionLabel(
 ): string {
   const eliteLabel =
     progression.elite === 1 ? "Ⅰ" : progression.elite === 2 ? "Ⅱ" : "";
-  return `${eliteLabel}${progression.level >= 30 && skillFileHasLevelNode ? "(Lv30)" : ""}`;
+  return `${eliteLabel}${progression.elite === 0 && progression.level >= 30 && skillFileHasLevelNode ? "(Lv30)" : ""}`;
+}
+
+function maximumLevelForRarity(rarity: number): number {
+  if (rarity >= 6) return 90;
+  if (rarity === 5) return 80;
+  if (rarity === 4) return 70;
+  if (rarity === 3) return 55;
+  return 30;
+}
+
+function progressionsForOperator(
+  operator: Operator,
+  catalog: EfficiencyCatalog,
+  facility: RoomKey,
+  treatSkillsAsUnlocked: boolean,
+): Array<{
+  progression: { elite: EliteLevel; level: number };
+  progressionLabel: string;
+}> {
+  const skillFile = catalog.operators[operator.name]?.skillFile;
+  const chains =
+    skillFile?.chains.filter((chain) => chain.room === facility) ?? [];
+  const progressions = new Map<string, { elite: EliteLevel; level: number }>();
+  chains.forEach((chain) => {
+    chain.stages.forEach((stage) => {
+      if (stage.effects.length === 0) return;
+      const progression = progressionFromUnlock(stage.unlock);
+      if (!progression) return;
+      const displayProgression =
+        facility === "meeting" && progression.elite === 2
+          ? {
+              ...progression,
+              level: maximumLevelForRarity(operator.rarity),
+            }
+          : progression;
+      progressions.set(progressionKey(displayProgression), displayProgression);
+    });
+  });
+  const allProgressions = [...progressions.values()].sort(compareProgression);
+  const selectedProgressions = treatSkillsAsUnlocked
+    ? allProgressions.slice(-1)
+    : allProgressions;
+  const hasLevelNode = chains.some((chain) =>
+    chain.stages.some((stage) => stage.unlock.type === "level"),
+  );
+  return selectedProgressions.map((progression) => ({
+    progression,
+    progressionLabel: progressionLabel(progression, hasLevelNode),
+  }));
+}
+
+function meetingCategoryForOperator(
+  operator: Operator,
+  catalog: EfficiencyCatalog,
+): "normal" | "independent" {
+  const skillFile = catalog.operators[operator.name]?.skillFile;
+  return skillFile?.chains.some(
+    (chain) =>
+      chain.room === "meeting" &&
+      chain.stages.some((stage) =>
+        stage.effects.some((effect) => effect.condition?.type === "onlySelf"),
+      ),
+  )
+    ? "independent"
+    : "normal";
+}
+
+function dormitoryCategoriesForEntry(
+  operator: Operator,
+  progression: { elite: EliteLevel; level: number },
+  catalog: EfficiencyCatalog,
+): DormitoryCategory[] {
+  const custom = specialRows[operator.id]?.dormitory?.dormitoryCategories;
+  if (custom) return [...custom];
+  const skillFile = catalog.operators[operator.name]?.skillFile;
+  const chains =
+    skillFile?.chains.filter((chain) => chain.room === "dormitory") ?? [];
+  const categories = new Set<DormitoryCategory>();
+  selectedStages(
+    chains.map((chain, chainIndex) => ({ chain, chainIndex })),
+    progression,
+  ).forEach(({ stage }) => {
+    stage.effects.forEach((effect) => {
+      if (effect.stat !== "moodRecover") return;
+      if (effect.scope === "self") categories.add("self");
+      if (effect.scope === "room" || !effect.scope) {
+        categories.add(effect.subjects === "single" ? "single" : "group");
+      }
+      if (
+        effect.scopeGroup ||
+        effect.moodBelow !== undefined ||
+        ["moodCmp", "moodDrop", "opAtFacility", "opGroupInFacility"].includes(
+          String(effect.condition?.type),
+        )
+      ) {
+        categories.add("targeted");
+      }
+    });
+  });
+  return [...categories];
 }
 
 export function buildEfficiencyRankingEntries(
@@ -199,46 +335,94 @@ export function buildEfficiencyRankingEntries(
   const operatorIndexes = new Map(
     operators.map((operator, index) => [operator.name, index]),
   );
+  const operatorByName = new Map(
+    operators.map((operator) => [operator.name, operator]),
+  );
   const entries: Omit<EfficiencyRankingEntry, "schedule">[] = [];
   EFFICIENCY_RANKING_FACILITIES.forEach(({ key: facility }) => {
     operators.forEach((operator, sourceIndex) => {
-      const skillFile = catalog.operators[operator.name]?.skillFile;
-      const chains =
-        skillFile?.chains.filter((chain) => chain.room === facility) ?? [];
-      if (chains.length === 0) return;
-      const progressions = new Map<
-        string,
-        { elite: EliteLevel; level: number }
-      >();
-      chains.forEach((chain) => {
-        chain.stages.forEach((stage) => {
-          if (stage.effects.length === 0) return;
-          const progression = progressionFromUnlock(stage.unlock);
-          if (progression)
-            progressions.set(progressionKey(progression), progression);
-        });
-      });
-      const allProgressions = [...progressions.values()].sort(
-        compareProgression,
+      const progressions = progressionsForOperator(
+        operator,
+        catalog,
+        facility,
+        treatSkillsAsUnlocked,
       );
-      const selectedProgressions = treatSkillsAsUnlocked
-        ? allProgressions.slice(-1)
-        : allProgressions;
-      const hasLevelNode = chains.some((chain) =>
-        chain.stages.some((stage) => stage.unlock.type === "level"),
-      );
-      selectedProgressions.forEach((progression) => {
-        const suffix = progressionLabel(progression, hasLevelNode);
-        entries.push({
+      progressions.forEach(({ progression, progressionLabel: suffix }) => {
+        const entry: Omit<EfficiencyRankingEntry, "schedule"> = {
           id: `${facility}:${operator.id}:${progressionKey(progression)}`,
           facility,
           operator,
           progression,
           progressionLabel: suffix,
           sourceIndex: operatorIndexes.get(operator.name) ?? sourceIndex,
+        };
+        if (facility === "meeting") {
+          entry.meetingCategory = meetingCategoryForOperator(operator, catalog);
+        }
+        if (facility === "dormitory") {
+          entry.dormitoryCategories = dormitoryCategoriesForEntry(
+            operator,
+            progression,
+            catalog,
+          );
+        }
+        entries.push({
+          ...entry,
         });
       });
     });
+  });
+  MEETING_COMBINATIONS.forEach(({ leader: leaderName, partner, term }) => {
+    const leader = operatorByName.get(leaderName);
+    if (!leader) return;
+    const partners = partner
+      ? [operatorByName.get(partner)].filter((operator): operator is Operator =>
+          Boolean(operator),
+        )
+      : (catalog.terms[term ?? ""]?.members ?? [])
+          .filter((name) => name !== leaderName)
+          .map((name) => operatorByName.get(name))
+          .filter((operator): operator is Operator => Boolean(operator));
+    const leaderProgressions = progressionsForOperator(
+      leader,
+      catalog,
+      "meeting",
+      treatSkillsAsUnlocked,
+    );
+    partners
+      .filter((candidate) =>
+        (catalog.operators[candidate.name]?.skillFile?.chains ?? []).some(
+          (chain) => chain.room === "meeting",
+        ),
+      )
+      .forEach((candidate) => {
+        const partnerProgressions = progressionsForOperator(
+          candidate,
+          catalog,
+          "meeting",
+          treatSkillsAsUnlocked,
+        );
+        leaderProgressions.forEach((leaderProgression) => {
+          partnerProgressions.forEach((partnerProgression) => {
+            entries.push({
+              id: `meeting:combo:${leader.id}:${progressionKey(leaderProgression.progression)}:${candidate.id}:${progressionKey(partnerProgression.progression)}`,
+              facility: "meeting",
+              operator: leader,
+              progression: leaderProgression.progression,
+              progressionLabel: leaderProgression.progressionLabel,
+              sourceIndex: operatorIndexes.get(leader.name) ?? 0,
+              meetingCategory: "combo",
+              pairedOperators: [
+                {
+                  operator: candidate,
+                  progression: partnerProgression.progression,
+                  progressionLabel: partnerProgression.progressionLabel,
+                },
+              ],
+            });
+          });
+        });
+      });
   });
   return entries;
 }
@@ -254,70 +438,81 @@ function addOperatorToFacility(
   layout: LayoutEntry[],
   facility: RoomKey,
   name: string,
-  allowDuplicate = false,
-): void {
+  options: { allowDuplicate?: boolean; roomIndex?: number } = {},
+): RoomAssignment | undefined {
   const assignments = rooms[facility];
-  if (!Array.isArray(assignments)) return;
+  if (!Array.isArray(assignments)) return undefined;
   if (
-    !allowDuplicate &&
+    !options.allowDuplicate &&
     (assignments as RoomAssignment[]).some((assignment) =>
       assignment.operators?.includes(name),
     )
   ) {
-    return;
+    return undefined;
   }
   const entries = layout.filter((entry) => entry.type === facility);
   for (const [index, assignment] of (
     assignments as RoomAssignment[]
   ).entries()) {
+    if (options.roomIndex !== undefined && index !== options.roomIndex)
+      continue;
     const capacity = roomSlotCount(facility, entries[index]?.level ?? 1);
     const operators = [...(assignment.operators ?? [])];
     const emptyIndex = operators.findIndex((operator) => !operator);
     if (emptyIndex >= 0) {
       operators[emptyIndex] = name;
       assignment.operators = operators;
-      return;
+      return assignment;
     }
     if (operators.length < capacity) {
       operators.push(name);
       assignment.operators = operators;
-      return;
+      return assignment;
     }
   }
+  return undefined;
 }
 
 function placeDefaultSupports(
-  operator: Operator,
+  entry: Omit<EfficiencyRankingEntry, "schedule">,
   rooms: Record<string, RoomAssignment[] | unknown>,
   layout: LayoutEntry[],
   catalog: EfficiencyCatalog,
 ): void {
-  if (operator.id === "char_4218_aigis") {
-    addOperatorToFacility(rooms, layout, "manufacture", "结城理");
-  }
-  if (operator.id === "char_4227_gallus") {
-    addOperatorToFacility(
-      rooms,
-      layout,
-      "power",
-      catalog.terms["cc.tag.op"]?.name ?? "作业平台",
-    );
-  }
-  if (operator.id === "char_4188_confes") {
-    addOperatorToFacility(rooms, layout, "power", "空构");
-  }
-  if (operator.id === "char_4136_phonor") {
-    addOperatorToFacility(rooms, layout, "training", "逻各斯");
-  }
-  if (operator.id === "char_4093_frston") {
-    addOperatorToFacility(rooms, layout, "control", "凯尔希");
-  }
-  if (operator.id === "char_249_mlyss") {
-    const memberTerm = catalog.terms["cc.g.rh"]?.name ?? "莱茵生命";
-    for (let index = 0; index < 5; index += 1) {
-      addOperatorToFacility(rooms, layout, "dormitory", memberTerm, true);
+  const defaults = specialRows[entry.operator.id]?.[entry.facility];
+  (defaults?.supports ?? []).forEach((support) => {
+    const name = support.name ?? catalog.terms[support.term ?? ""]?.name;
+    if (!name) return;
+    const count = Math.max(1, Math.floor(support.count ?? 1));
+    for (let index = 0; index < count; index += 1) {
+      const assignment = addOperatorToFacility(
+        rooms,
+        layout,
+        support.facility,
+        name,
+        {
+          allowDuplicate: Boolean(support.term),
+          roomIndex: support.roomIndex,
+        },
+      );
+      if (
+        !assignment ||
+        (support.elite === undefined &&
+          support.level === undefined &&
+          support.mood === undefined)
+      )
+        continue;
+      assignment.operatorStates = {
+        ...assignment.operatorStates,
+        [name]: {
+          ...assignment.operatorStates?.[name],
+          ...(support.elite !== undefined ? { elite: support.elite } : {}),
+          ...(support.level !== undefined ? { level: support.level } : {}),
+          ...(support.mood !== undefined ? { mood: support.mood } : {}),
+        },
+      };
     }
-  }
+  });
 }
 
 export function createEfficiencyRankingSchedule(
@@ -328,7 +523,12 @@ export function createEfficiencyRankingSchedule(
     ? clone(options.savedRooms)
     : roomsForLayout(options.layout);
   const plan = {
-    name: `${entry.operator.name}${entry.progressionLabel}`,
+    name: [
+      `${entry.operator.name}${entry.progressionLabel}`,
+      ...(entry.pairedOperators ?? []).map(
+        (item) => `${item.operator.name}${item.progressionLabel}`,
+      ),
+    ].join(" + "),
     duration: Math.round(options.workHours * 60),
     rooms,
   };
@@ -355,15 +555,26 @@ export function createEfficiencyRankingSchedule(
           level: entry.progression.level,
         },
       };
+      if (!options.savedRooms && entry.pairedOperators?.length) {
+        const names = targetAssignment.operators ?? [];
+        entry.pairedOperators.forEach(({ operator, progression }) => {
+          if (names.includes(operator.name) || names.length >= capacity) return;
+          names.push(operator.name);
+          targetAssignment.operatorStates = {
+            ...targetAssignment.operatorStates,
+            [operator.name]: {
+              ...targetAssignment.operatorStates?.[operator.name],
+              elite: progression.elite,
+              level: progression.level,
+            },
+          };
+        });
+        targetAssignment.operators = names;
+      }
     }
   }
   if (!options.savedRooms) {
-    placeDefaultSupports(
-      entry.operator,
-      plan.rooms,
-      options.layout,
-      options.catalog,
-    );
+    placeDefaultSupports(entry, plan.rooms, options.layout, options.catalog);
   }
   return {
     layout: clone(options.layout),
@@ -378,6 +589,48 @@ export function createEfficiencyRankingSchedule(
         : {}),
     },
   };
+}
+
+function rankingOperators(entry: EfficiencyRankingEntry): Array<{
+  operator: Operator;
+  progression: { elite: EliteLevel; level: number };
+}> {
+  return [
+    { operator: entry.operator, progression: entry.progression },
+    ...(entry.pairedOperators ?? []).map((item) => ({
+      operator: item.operator,
+      progression: item.progression,
+    })),
+  ];
+}
+
+function operatorIsAssigned(
+  entry: EfficiencyRankingEntry,
+  operatorName: string,
+): boolean {
+  const assignments = entry.schedule.plans[0]?.rooms[entry.facility];
+  return (
+    Array.isArray(assignments) &&
+    (assignments as RoomAssignment[]).some((assignment) =>
+      assignment.operators?.includes(operatorName),
+    )
+  );
+}
+
+function efficiencyDetailsForOperator(
+  facility: EfficiencyResult["plans"][number]["facilities"][number],
+  entry: EfficiencyRankingEntry,
+  operatorName: string,
+): number {
+  return facility.details
+    .filter(
+      (detail) =>
+        detail.operator === operatorName &&
+        detail.facility === entry.facility &&
+        (detail.ownerFacility ?? detail.facility) === entry.facility &&
+        !["moodCost", "moodRecover", "clueChance"].includes(detail.stat),
+    )
+    .reduce((total, detail) => total + detail.value, 0);
 }
 
 function targetEfficiency(
@@ -403,14 +656,176 @@ function targetEfficiency(
     (item) => item.facility.type === entry.facility,
   );
   if (!facility) return undefined;
-  return facility.details
-    .filter(
-      (detail) =>
-        detail.operator === entry.operator.name &&
-        detail.facility === entry.facility &&
-        (detail.ownerFacility ?? detail.facility) === entry.facility,
-    )
-    .reduce((total, detail) => total + detail.value, 0);
+  const contributors = rankingOperators(entry).filter(({ operator }) =>
+    operatorIsAssigned(entry, operator.name),
+  );
+  return contributors.reduce(
+    (total, { operator }) =>
+      total + efficiencyDetailsForOperator(facility, entry, operator.name),
+    0,
+  );
+}
+
+function skillEfficiencyByOperator(
+  result: EfficiencyResult,
+  entry: EfficiencyRankingEntry,
+): Record<string, number> {
+  const facility = result.plans[0]?.facilities.find(
+    (item) => item.facility.type === entry.facility,
+  );
+  if (!facility || entry.facility === "dormitory") return {};
+  return Object.fromEntries(
+    rankingOperators(entry)
+      .filter(({ operator }) => operatorIsAssigned(entry, operator.name))
+      .map(({ operator }) => [
+        operator.name,
+        efficiencyDetailsForOperator(facility, entry, operator.name),
+      ]),
+  );
+}
+
+function moodExtrasByOperator(
+  result: EfficiencyResult,
+  entry: EfficiencyRankingEntry,
+): Record<string, number> {
+  const plan = result.plans[0];
+  if (!plan) return {};
+  return Object.fromEntries(
+    rankingOperators(entry).flatMap(({ operator }) => {
+      const details = plan.moods.flatMap((mood) =>
+        mood.rateDetails.filter(
+          (detail) =>
+            mood.facility === entry.facility &&
+            detail.kind === "skill" &&
+            detail.operator === operator.name,
+        ),
+      );
+      return details.length > 0
+        ? [
+            [
+              operator.name,
+              details.reduce((total, detail) => total + detail.value, 0),
+            ],
+          ]
+        : [];
+    }),
+  );
+}
+
+function cluePreferenceForEffect(
+  effect: EfficiencySkillStage["effects"][number],
+  catalog: EfficiencyCatalog,
+): CluePreference | undefined {
+  const preference = effect.cluePreference;
+  if (
+    typeof preference === "number" ||
+    preference === "unowned" ||
+    preference === "owned"
+  ) {
+    return preference;
+  }
+  const text = effect.text ?? "";
+  if (text.includes("尚未拥有")) return "unowned";
+  if (text.includes("已经拥有")) return "owned";
+  const clueNumber = text.match(/线索([1-7])/);
+  if (clueNumber) return Number(clueNumber[1]);
+  const factionPreference = Object.entries(
+    catalog.ruleset?.cluePreferenceByFaction ?? {},
+  ).find(([faction]) => text.includes(faction));
+  return factionPreference?.[1];
+}
+
+function cluePreferencesByOperator(
+  catalog: EfficiencyCatalog,
+  entry: EfficiencyRankingEntry,
+  result: EfficiencyResult,
+): Record<string, CluePreference[]> {
+  if (entry.facility !== "meeting") return {};
+  const facility = result.plans[0]?.facilities.find(
+    (item) => item.facility.type === "meeting",
+  );
+  if (!facility) return {};
+  return Object.fromEntries(
+    rankingOperators(entry).map(({ operator, progression }) => {
+      const hasActiveClueDetail = facility.details.some(
+        (detail) =>
+          detail.operator === operator.name && detail.stat === "clueChance",
+      );
+      if (!hasActiveClueDetail) return [operator.name, []];
+      const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
+        .map((chain, chainIndex) => ({ chain, chainIndex }))
+        .filter(({ chain }) => chain.room === "meeting");
+      const preferences = selectedStages(chains, progression).flatMap(
+        ({ stage }) =>
+          stage.effects.flatMap((effect) => {
+            const preference = cluePreferenceForEffect(effect, catalog);
+            if (
+              effect.stat !== "clueChance" ||
+              preference === undefined ||
+              !facility.cluePreferences?.includes(preference)
+            ) {
+              return [];
+            }
+            return [preference];
+          }),
+      );
+      return [operator.name, [...new Set(preferences)]];
+    }),
+  );
+}
+
+export function defaultEfficiencyRankingNote(
+  entry: Omit<EfficiencyRankingEntry, "schedule">,
+  catalog: EfficiencyCatalog,
+): string {
+  const configured = specialRows[entry.operator.id]?.[entry.facility]?.note;
+  const notes = new Set<string>();
+  if (configured) notes.add(configured);
+  if (entry.facility === "meeting") {
+    [
+      { operator: entry.operator, progression: entry.progression },
+      ...(entry.pairedOperators ?? []).map((item) => ({
+        operator: item.operator,
+        progression: item.progression,
+      })),
+    ].forEach(({ operator, progression }) => {
+      const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
+        .map((chain, chainIndex) => ({ chain, chainIndex }))
+        .filter(({ chain }) => chain.room === "meeting");
+      if (
+        selectedStages(chains, progression).some(({ stage }) =>
+          stage.effects.some(
+            (effect) => effect.condition?.type === "clueExchanging",
+          ),
+        )
+      ) {
+        notes.add("处于线索交流");
+      }
+    });
+    return [...notes].join("\n");
+  }
+  if (configured || entry.facility !== "dormitory")
+    return [...notes].join("\n");
+  const chains = (
+    catalog.operators[entry.operator.name]?.skillFile?.chains ?? []
+  )
+    .map((chain, chainIndex) => ({ chain, chainIndex }))
+    .filter(({ chain }) => chain.room === "dormitory");
+  selectedStages(chains, entry.progression).forEach(({ stage }) => {
+    stage.effects.forEach((effect) => {
+      if (effect.stat !== "moodRecover") return;
+      const value = Number(effect.value ?? effect.baseValue ?? 0);
+      if (effect.scopeGroup && value) {
+        const group =
+          catalog.terms[effect.scopeGroup]?.name ?? effect.scopeGroup;
+        notes.add(`如果目标是${group}干员，则恢复效果额外+${value}`);
+      }
+      if (effect.moodBelow !== undefined && value) {
+        notes.add(`目标心情低于${effect.moodBelow}时，恢复效果额外+${value}`);
+      }
+    });
+  });
+  return [...notes].join("\n");
 }
 
 function selectedStages(
@@ -541,99 +956,121 @@ function unmetConditionNotes(
   entry: EfficiencyRankingEntry,
   result: EfficiencyResult,
 ): string[] {
-  const skillFile = catalog.operators[entry.operator.name]?.skillFile;
-  const chains = (skillFile?.chains ?? [])
-    .map((chain, chainIndex) => ({ chain, chainIndex }))
-    .filter(({ chain }) => chain.room === entry.facility);
-  const activeStages = selectedStages(chains, entry.progression);
-  const currentValue = targetEfficiency(result, entry);
-  if (currentValue === undefined) return [];
   const notes = new Set<string>();
-  activeStages.forEach(({ chainIndex, stageIndex, stage }) => {
-    stage.effects.forEach((effect, effectIndex) => {
-      if (!effect.condition) return;
-      const nextCatalog = catalogWithoutEffectCondition(
-        catalog,
-        entry.operator.name,
-        chainIndex,
-        stageIndex,
-        effectIndex,
-      );
-      const withoutCondition = calculateEfficiency(entry.schedule, {
-        catalog: nextCatalog,
+  rankingOperators(entry).forEach(({ operator, progression }) => {
+    const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
+      .map((chain, chainIndex) => ({ chain, chainIndex }))
+      .filter(({ chain }) => chain.room === entry.facility);
+    const activeStages = selectedStages(chains, progression);
+    activeStages.forEach(({ chainIndex, stageIndex, stage }) => {
+      stage.effects.forEach((effect, effectIndex) => {
+        if (!effect.condition) return;
+        const nextCatalog = catalogWithoutEffectCondition(
+          catalog,
+          operator.name,
+          chainIndex,
+          stageIndex,
+          effectIndex,
+        );
+        const withoutCondition = calculateEfficiency(entry.schedule, {
+          catalog: nextCatalog,
+        });
+        if (
+          efficiencyResultSignature(withoutCondition) ===
+          efficiencyResultSignature(result)
+        ) {
+          return;
+        }
+        const reason = conditionDescription(effect.condition, catalog);
+        if (reason) notes.add(reason);
       });
-      const nextValue = targetEfficiency(withoutCondition, entry);
-      if (
-        nextValue !== undefined &&
-        Math.abs(nextValue - currentValue) <= 0.0001
-      ) {
-        return;
-      }
-      const reason = conditionDescription(effect.condition, catalog);
-      if (reason) notes.add(reason);
     });
   });
   return [...notes];
 }
 
-function hasActiveCondition(
-  catalog: EfficiencyCatalog,
-  entry: EfficiencyRankingEntry,
-): boolean {
-  const skillFile = catalog.operators[entry.operator.name]?.skillFile;
-  const chains = (skillFile?.chains ?? [])
-    .map((chain, chainIndex) => ({ chain, chainIndex }))
-    .filter(({ chain }) => chain.room === entry.facility);
-  return selectedStages(chains, entry.progression).some(({ stage }) =>
-    stage.effects.some((effect) => effect.condition !== undefined),
-  );
+function efficiencyResultSignature(result: EfficiencyResult): string {
+  const plan = result.plans[0];
+  return JSON.stringify({
+    facilities: plan?.facilities.map((facility) => ({
+      id: facility.facility.id,
+      efficiency: facility.efficiency,
+      skillEfficiency: facility.skillEfficiency,
+      cluePreferences: facility.cluePreferences,
+      details: facility.details,
+    })),
+    moods: plan?.moods.map((mood) => ({
+      operator: mood.operator,
+      facility: mood.facility,
+      rateDetails: mood.rateDetails,
+    })),
+  });
 }
 
 function unmetGroupCountNotes(
   catalog: EfficiencyCatalog,
   entry: EfficiencyRankingEntry,
+  result: EfficiencyResult,
 ): string[] {
-  const skillFile = catalog.operators[entry.operator.name]?.skillFile;
-  const chains = (skillFile?.chains ?? [])
-    .map((chain, chainIndex) => ({ chain, chainIndex }))
-    .filter(({ chain }) => chain.room === entry.facility);
-  const activeStages = selectedStages(chains, entry.progression);
-  const plan = entry.schedule.plans[0];
-  if (!plan) return [];
+  const schedulePlan = entry.schedule.plans[0];
+  const resultPlan = result.plans[0];
+  if (!schedulePlan || !resultPlan) return [];
   const notes = new Set<string>();
-  activeStages.forEach(({ stage }) => {
-    stage.effects.forEach((effect) => {
-      const per = effect.per;
-      if (
-        per?.source !== "opGroupInBase" ||
-        !per.group ||
-        per.cap === undefined
-      ) {
-        return;
-      }
-      const required = Math.ceil(Number(per.cap) * Number(per.per ?? 1));
-      const count = entry.schedule.layout.reduce((total, layoutEntry) => {
-        if (per.exclude?.includes(layoutEntry.type)) return total;
-        const assignments = plan.rooms[layoutEntry.type];
-        if (!Array.isArray(assignments)) return total;
-        const roomIndex = entry.schedule.layout
-          .slice(0, entry.schedule.layout.indexOf(layoutEntry))
-          .filter((item) => item.type === layoutEntry.type).length;
-        const assignment = (assignments as RoomAssignment[])[roomIndex];
-        return (
-          total +
-          (assignment?.operators ?? []).filter(
-            (name) =>
-              name &&
-              (!per.other || name !== entry.operator.name) &&
-              groupIncludesOperator(catalog, per.group, name),
-          ).length
+  rankingOperators(entry).forEach(({ operator, progression }) => {
+    const skillFile = catalog.operators[operator.name]?.skillFile;
+    const chains = (skillFile?.chains ?? [])
+      .map((chain, chainIndex) => ({ chain, chainIndex }))
+      .filter(({ chain }) => chain.room === entry.facility);
+    selectedStages(chains, progression).forEach(({ stage }) => {
+      stage.effects.forEach((effect) => {
+        const per = effect.per;
+        if (per?.source === "basePoint" && per.term) {
+          if ((resultPlan.basePoints[per.term] ?? 0) <= 0) {
+            const termName = catalog.terms[per.term]?.name ?? per.term;
+            notes.add(`需要${termName}基建点`);
+          }
+          return;
+        }
+        if (
+          !per?.group ||
+          (per.source !== "opGroupInBase" &&
+            per.source !== "baseFacilityWithGroup")
+        ) {
+          return;
+        }
+        const required = Math.ceil(Number(per.cap ?? 1) * Number(per.per ?? 1));
+        const count = entry.schedule.layout.reduce(
+          (total, layoutEntry, layoutIndex) => {
+            if (per.exclude?.includes(layoutEntry.type)) return total;
+            const roomIndex = entry.schedule.layout
+              .slice(0, layoutIndex)
+              .filter((item) => item.type === layoutEntry.type).length;
+            const assignments = schedulePlan.rooms[layoutEntry.type];
+            if (!Array.isArray(assignments)) return total;
+            const assignment = (assignments as RoomAssignment[])[roomIndex];
+            const matching = (assignment?.operators ?? []).filter(
+              (name) =>
+                name &&
+                (!per.other || name !== operator.name) &&
+                groupIncludesOperator(catalog, per.group, name),
+            );
+            return (
+              total +
+              (per.source === "baseFacilityWithGroup"
+                ? Number(matching.length > 0)
+                : matching.length)
+            );
+          },
+          0,
         );
-      }, 0);
-      if (count < required) {
+        if (count >= required) return;
         const groupName = catalog.terms[per.group]?.name ?? per.group;
-        notes.add(`需要额外${required - count}名${groupName}干员`);
-      }
+        notes.add(
+          per.source === "baseFacilityWithGroup"
+            ? `需要${required}间设施有${groupName}干员，还差${required - count}间`
+            : `需要额外${required - count}名${groupName}干员`,
+        );
+      });
     });
   });
   return [...notes];
@@ -647,44 +1084,33 @@ export function calculateEfficiencyRankingEntry(
   const result = calculateEfficiency(entry.schedule, {
     catalog: calculationCatalog,
   });
-  const plan = result.plans[0];
-  const mood = plan?.moods.find(
-    (item) =>
-      item.operator === entry.operator.name && item.facility === entry.facility,
-  );
-  const moodDetails =
-    mood?.rateDetails.filter((detail) => detail.kind === "skill") ?? [];
   const efficiency = targetEfficiency(result, entry);
+  const moodByOperator = moodExtrasByOperator(result, entry);
+  const moodValues = Object.values(moodByOperator);
   const notes = new Set(
     [
       ...unmetConditionNotes(calculationCatalog, entry, result),
-      ...unmetGroupCountNotes(calculationCatalog, entry),
+      ...unmetGroupCountNotes(calculationCatalog, entry, result),
     ].map((note) => `条件未满足：${note}`),
   );
   if (!entry.schedule.layout.some((item) => item.type === entry.facility)) {
     notes.add(`共享布局未配置${ROOM_LABELS[entry.facility]}`);
   }
-  const staticNote = EFFICIENCY_RANKING_OPERATOR_NOTES[entry.operator.id];
-  if (
-    staticNote &&
-    entry.facility === "power" &&
-    (entry.operator.id === "char_4015_spuria" ||
-      entry.operator.id === "char_249_mlyss" ||
-      hasActiveCondition(calculationCatalog, entry))
-  ) {
-    notes.add(staticNote);
-  }
   return {
     id: entry.id,
     efficiency,
-    ...(moodDetails.length > 0
+    ...(moodValues.length > 0
       ? {
-          moodExtra: moodDetails.reduce(
-            (total, detail) => total + detail.value,
-            0,
-          ),
+          moodExtra: moodValues.reduce((total, value) => total + value, 0),
         }
       : {}),
+    operatorSkillEfficiencies: skillEfficiencyByOperator(result, entry),
+    moodExtrasByOperator: moodByOperator,
+    cluePreferencesByOperator: cluePreferencesByOperator(
+      calculationCatalog,
+      entry,
+      result,
+    ),
     notes: [...notes],
   };
 }
