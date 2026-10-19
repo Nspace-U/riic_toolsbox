@@ -61,13 +61,15 @@ export function buildCalculationSteps(
 ): EfficiencyCalculationStepView[] {
   return result.plans.flatMap((plan, planIndex) => {
     const dormitorySteps = plan.dormitoryRecoveries.map((recovery) => {
-      const dormitory = plan.facilities.find(
-        (facility) => facility.facility.id === recovery.facilityId,
-      )?.facility;
       return {
         plan,
         planIndex,
-        ...(dormitory ? { dormitory } : {}),
+        dormitory: {
+          id: recovery.facilityId,
+          type: "dormitory" as const,
+          level: 0,
+          index: recovery.facilityIndex,
+        },
         dormitoryRecovery: recovery,
         moods: [] as MoodSnapshot[],
       };

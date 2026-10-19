@@ -125,6 +125,15 @@ function rowIconUrl(rowKey: string): string | undefined {
       v-else-if="sectionLayout() === 'mood-list'"
       class="simulator-step-detail-grid"
     >
+      <template v-for="row in props.section.rows" :key="row.key">
+        <span v-if="row.label">
+          <SimulatorDisplayValue :value="row.label" />
+        </span>
+        <span v-else aria-hidden="true"></span>
+        <strong>
+          <SimulatorDisplayValue v-if="row.value" :value="row.value" />
+        </strong>
+      </template>
       <div
         v-for="entry in props.section.entries"
         :key="entry.key"
