@@ -1282,120 +1282,127 @@ function dormitoryRecoverySection(
   recoveries: readonly DormitoryRecoverySnapshot[],
   plan: EfficiencyPlanResult,
 ): DisplaySection {
-  const rows: DisplayRow[] = [];
-  const entries: DisplayEntry[] = [];
-  recoveries.forEach((recovery) => {
-    const roomLabel = `宿舍 ${recovery.facilityIndex + 1}`;
-    rows.push(
-      displayRow(
-        `dormitory-${recovery.facilityId}-base-recovery-rate`,
-        displayText(`${roomLabel} · 基础恢复速度`),
-        displayUnit(recovery.baseRate, "number", " 心情/小时"),
-      ),
-    );
-    recovery.contributions.forEach((contribution, index) => {
-      const detail: DormitoryRecoveryContribution = {
-        operator: contribution.operator,
-        ...(contribution.skill === undefined
-          ? {}
-          : { skill: contribution.skill }),
-        value: contribution.value,
-        distribution: dormitoryRoomContributionDistribution(contribution),
-      };
-      rows.push(
+  const sections = recoveries
+    .slice()
+    .sort((left, right) => left.facilityIndex - right.facilityIndex)
+    .map((recovery): DisplaySection => {
+      const roomLabel = `宿舍 ${recovery.facilityIndex + 1}`;
+      const rows: DisplayRow[] = [
         displayRow(
-          `dormitory-${recovery.facilityId}-room-source-${index}`,
-          displayText(
-            `${roomLabel} · ${contribution.operator} · ${dormitoryContributionLabel(detail, true)}`,
-          ),
-          displayUnit(contribution.value, "signed", " 心情/小时"),
+          `dormitory-${recovery.facilityId}-base-recovery-rate`,
+          displayText("基础恢复速度"),
+          displayUnit(recovery.baseRate, "number", " 心情/小时"),
         ),
-      );
-    });
-    if (recovery.contributions.length === 0) {
-      rows.push(
-        displayRow(
-          `dormitory-${recovery.facilityId}-room-sources-empty`,
-          displayText(`${roomLabel} · 干员技能贡献`),
-          displayText("无"),
-        ),
-      );
-    }
-    recovery.operators.forEach((operator) => {
-      const operatorRows: DisplayRow[] = [];
-      if (operator.blocksOtherRecovery) {
-        operatorRows.push(
+      ];
+      recovery.contributions.forEach((contribution, index) => {
+        const detail: DormitoryRecoveryContribution = {
+          operator: contribution.operator,
+          ...(contribution.skill === undefined
+            ? {}
+            : { skill: contribution.skill }),
+          value: contribution.value,
+          distribution: dormitoryRoomContributionDistribution(contribution),
+        };
+        rows.push(
           displayRow(
-            "dormitory-recovery-blocked",
-            undefined,
-            displayText("恢复阻断"),
-          ),
-        );
-      }
-      operator.contributions.forEach((contribution, index) => {
-        operatorRows.push(
-          displayRow(
-            `dormitory-operator-source-${index}`,
+            `dormitory-${recovery.facilityId}-room-source-${index}`,
             displayText(
-              `${contribution.operator} · ${dormitoryContributionLabel(contribution)}`,
+              `${contribution.operator} · ${dormitoryContributionLabel(detail, true)}`,
             ),
             displayUnit(contribution.value, "signed", " 心情/小时"),
           ),
         );
       });
-      if (operator.contributions.length === 0) {
-        operatorRows.push(
+      if (recovery.contributions.length === 0) {
+        rows.push(
           displayRow(
-            "dormitory-operator-sources-empty",
+            `dormitory-${recovery.facilityId}-room-sources-empty`,
             displayText("干员技能贡献"),
             displayText("无"),
           ),
         );
       }
-      operatorRows.push(
-        displayRow(
-          "dormitory-operator-final-rate",
-          displayText("实际恢复速度"),
-          displayUnit(operator.rate, "number", " 心情/小时"),
-        ),
-      );
-      if (
-        operator.startMood !== undefined &&
-        operator.expectedMood !== undefined &&
-        operator.recoveredMood !== undefined &&
-        operator.endMood !== undefined
-      ) {
+      const entries = recovery.operators.map((operator): DisplayEntry => {
+        const operatorRows: DisplayRow[] = [];
+        if (operator.blocksOtherRecovery) {
+          operatorRows.push(
+            displayRow(
+              "dormitory-recovery-blocked",
+              undefined,
+              displayText("恢复阻断"),
+            ),
+          );
+        }
+        operator.contributions.forEach((contribution, index) => {
+          operatorRows.push(
+            displayRow(
+              `dormitory-operator-source-${index}`,
+              displayText(
+                `${contribution.operator} · ${dormitoryContributionLabel(contribution)}`,
+              ),
+              displayUnit(contribution.value, "signed", " 心情/小时"),
+            ),
+          );
+        });
+        if (operator.contributions.length === 0) {
+          operatorRows.push(
+            displayRow(
+              "dormitory-operator-sources-empty",
+              displayText("干员技能贡献"),
+              displayText("无"),
+            ),
+          );
+        }
         operatorRows.push(
           displayRow(
-            "dormitory-operator-start-mood",
-            displayText("队列开始时心情"),
-            displayNumber(operator.startMood),
-          ),
-          displayRow(
-            "dormitory-operator-recovery-amount",
-            displayText("队列内恢复量"),
-            displayUnit(operator.recoveredMood, "number", " 心情"),
-          ),
-          displayRow(
-            "dormitory-operator-end-mood",
-            displayText("队列结束时心情"),
-            displayValue(
-              `${formatNumber(operator.endMood)}（目标 ${formatNumber(operator.expectedMood)}，${formatNumber(plan.durationHours)} 小时）`,
-            ),
+            "dormitory-operator-final-rate",
+            displayText("实际恢复速度"),
+            displayUnit(operator.rate, "number", " 心情/小时"),
           ),
         );
-      }
-      entries.push({
-        key: `dormitory-${recovery.facilityId}-operator-${operator.slotIndex}-${operator.operator}`,
-        title: displayText(`${roomLabel} · ${operator.operator}`),
-        rows: operatorRows,
+        if (
+          operator.startMood !== undefined &&
+          operator.expectedMood !== undefined &&
+          operator.recoveredMood !== undefined &&
+          operator.endMood !== undefined
+        ) {
+          operatorRows.push(
+            displayRow(
+              "dormitory-operator-start-mood",
+              displayText("队列开始时心情"),
+              displayNumber(operator.startMood),
+            ),
+            displayRow(
+              "dormitory-operator-recovery-amount",
+              displayText("队列内恢复量"),
+              displayUnit(operator.recoveredMood, "number", " 心情"),
+            ),
+            displayRow(
+              "dormitory-operator-end-mood",
+              displayText("队列结束时心情"),
+              displayValue(
+                `${formatNumber(operator.endMood)}（目标 ${formatNumber(operator.expectedMood)}，${formatNumber(plan.durationHours)} 小时）`,
+              ),
+            ),
+          );
+        }
+        return {
+          key: `dormitory-${recovery.facilityId}-operator-${operator.slotIndex}-${operator.operator}`,
+          title: displayText(operator.operator),
+          rows: operatorRows,
+        };
       });
+      return {
+        key: `dormitory-${recovery.facilityId}`,
+        label: roomLabel,
+        rows,
+        entries,
+      };
     });
-  });
   return {
     key: "dormitory-recovery",
-    rows,
-    entries,
+    rows: [],
+    sections,
   };
 }
 
