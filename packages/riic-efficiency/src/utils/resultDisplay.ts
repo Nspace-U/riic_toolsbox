@@ -1250,10 +1250,11 @@ function moodSection(
 function dormitoryContributionLabel(
   contribution: DormitoryRecoveryContribution,
   roomTotal = false,
+  fixedRecovery = false,
 ): string {
   const distribution = {
     shared: "群体恢复",
-    self: "固定恢复",
+    self: fixedRecovery ? "固定恢复" : "自身恢复",
     single: roomTotal ? "单体恢复 · 单人额外总量" : "单体恢复",
     spread: roomTotal ? "特定恢复 · 均摊总量" : "特定恢复 · 均摊",
     specific: "特定恢复",
@@ -1307,7 +1308,15 @@ function dormitoryRecoverySection(
           displayRow(
             `dormitory-${recovery.facilityId}-room-source-${index}`,
             displayText(
-              `${contribution.operator} · ${dormitoryContributionLabel(detail, true)}`,
+              `${contribution.operator} · ${dormitoryContributionLabel(
+                detail,
+                true,
+                recovery.operators.some(
+                  (operator) =>
+                    operator.operator === contribution.operator &&
+                    operator.blocksOtherRecovery === true,
+                ),
+              )}`,
             ),
             displayUnit(contribution.value, "signed", " 心情/小时"),
           ),
@@ -1329,7 +1338,11 @@ function dormitoryRecoverySection(
             displayRow(
               `dormitory-operator-source-${index}`,
               displayText(
-                `${contribution.operator} · ${dormitoryContributionLabel(contribution)}`,
+                `${contribution.operator} · ${dormitoryContributionLabel(
+                  contribution,
+                  false,
+                  operator.blocksOtherRecovery === true,
+                )}`,
               ),
               displayUnit(contribution.value, "signed", " 心情/小时"),
             ),
