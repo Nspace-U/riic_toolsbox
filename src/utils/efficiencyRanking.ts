@@ -101,6 +101,7 @@ interface EfficiencyRankingSupport {
 }
 
 interface EfficiencyRankingSpecialRow {
+  unlock?: EfficiencySkillStage["unlock"];
   note?: string;
   supports?: EfficiencyRankingSupport[];
   dormitoryCategories?: DormitoryCategory[];
@@ -219,6 +220,18 @@ function compareProgression(
 
 function progressionKey(value: { elite: EliteLevel; level: number }): string {
   return `${value.elite}:${value.level}`;
+}
+
+function specialRowForProgression(
+  entry: Omit<EfficiencyRankingEntry, "schedule">,
+): EfficiencyRankingSpecialRow | undefined {
+  const specialRow = specialRows[entry.operator.id]?.[entry.facility];
+  if (!specialRow?.unlock) return specialRow;
+  const minimumProgression = progressionFromUnlock(specialRow.unlock);
+  return minimumProgression &&
+    compareProgression(entry.progression, minimumProgression) >= 0
+    ? specialRow
+    : undefined;
 }
 
 function progressionLabel(
@@ -509,7 +522,7 @@ function placeDefaultSupports(
   layout: LayoutEntry[],
   catalog: EfficiencyCatalog,
 ): void {
-  const defaults = specialRows[entry.operator.id]?.[entry.facility];
+  const defaults = specialRowForProgression(entry);
   (defaults?.supports ?? []).forEach((support) => {
     const name = support.name ?? catalog.terms[support.term ?? ""]?.name;
     if (!name) return;
@@ -794,7 +807,7 @@ export function defaultEfficiencyRankingNote(
   entry: Omit<EfficiencyRankingEntry, "schedule">,
   catalog: EfficiencyCatalog,
 ): string {
-  const configured = specialRows[entry.operator.id]?.[entry.facility]?.note;
+  const configured = specialRowForProgression(entry)?.note;
   const notes = new Set<string>();
   if (configured) notes.add(configured);
   if (entry.facility === "meeting") {
