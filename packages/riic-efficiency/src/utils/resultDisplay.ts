@@ -1253,7 +1253,7 @@ function dormitoryContributionLabel(
 ): string {
   const distribution = {
     shared: "群体恢复",
-    self: "自身恢复",
+    self: "固定恢复",
     single: roomTotal ? "单体恢复 · 单人额外总量" : "单体恢复",
     spread: roomTotal ? "特定恢复 · 均摊总量" : "特定恢复 · 均摊",
     specific: "特定恢复",
@@ -1324,15 +1324,6 @@ function dormitoryRecoverySection(
       }
       const entries = recovery.operators.map((operator): DisplayEntry => {
         const operatorRows: DisplayRow[] = [];
-        if (operator.blocksOtherRecovery) {
-          operatorRows.push(
-            displayRow(
-              "dormitory-recovery-blocked",
-              undefined,
-              displayText("恢复阻断"),
-            ),
-          );
-        }
         operator.contributions.forEach((contribution, index) => {
           operatorRows.push(
             displayRow(
