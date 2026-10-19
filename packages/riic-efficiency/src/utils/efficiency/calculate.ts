@@ -22,6 +22,7 @@ import type {
   DroneAccelerationCandidate,
   DroneAccelerationDetail,
   MoodRateDetail,
+  MoodRecoveryContribution,
   MoodSnapshot,
   MaaDroneAccelerationResult,
   MaaDroneWarning,
@@ -1685,18 +1686,69 @@ function sortedCluePreferences(
 function cluePreferencesFor(
   context: PlanContext,
   facility: EfficiencyFacility,
-): CluePreference[] {
-  return sortedCluePreferences(
-    context.active
-      .filter(
-        (item) =>
-          item.target?.id === facility.id && item.effect.stat === "clueChance",
-      )
-      .map((item) => cluePreferenceOf(item.effect, context.catalog))
-      .filter(
-        (preference): preference is CluePreference => preference !== undefined,
-      ),
+): {
+  preferences: CluePreference[];
+  byOperator: Record<string, CluePreference[]>;
+} {
+  const byOperator = new Map<string, CluePreference[]>();
+  context.active.forEach((item) => {
+    if (item.target?.id !== facility.id || item.effect.stat !== "clueChance") {
+      return;
+    }
+    const preference = cluePreferenceOf(item.effect, context.catalog);
+    if (preference === undefined) return;
+    const values = byOperator.get(item.owner.name) ?? [];
+    values.push(preference);
+    byOperator.set(item.owner.name, values);
+  });
+  const preferencesByOperator = Object.fromEntries(
+    [...byOperator.entries()].map(([operator, values]) => [
+      operator,
+      sortedCluePreferences(values),
+    ]),
   );
+  return {
+    preferences: sortedCluePreferences(
+      Object.values(preferencesByOperator).flat(),
+    ),
+    byOperator: preferencesByOperator,
+  };
+}
+
+function moodRecoveryContributionsForPlan(
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+): MoodRecoveryContribution[] {
+  return context.active.flatMap((item) => {
+    const target = item.target;
+    if (
+      !target ||
+      target.type !== "dormitory" ||
+      item.effect.stat !== "moodRecover"
+    ) {
+      return [];
+    }
+    const { effect } = item;
+    return [
+      {
+        operator: item.owner.name,
+        skill: item.skill,
+        facilityId: target.id,
+        value: effectValue(
+          item,
+          target,
+          context,
+          catalog,
+          emptyEvaluationData(),
+        ),
+        ...(effect.scope !== undefined ? { scope: effect.scope } : {}),
+        ...(effect.subjects !== undefined ? { subjects: effect.subjects } : {}),
+        ...(effect.scopeGroup !== undefined
+          ? { scopeGroup: effect.scopeGroup }
+          : {}),
+      },
+    ];
+  });
 }
 
 function appendBasePointSource(
@@ -3882,8 +3934,10 @@ function calculateFacility(
   ];
   const operatorSkillEfficiency = skillEfficiency;
   const details = [...baseDetails, ...combinationDetails];
-  const cluePreferences =
-    facility.type === "meeting" ? cluePreferencesFor(context, facility) : [];
+  const cluePreferenceResult =
+    facility.type === "meeting"
+      ? cluePreferencesFor(context, facility)
+      : undefined;
   const result: FacilityEfficiencyResult = {
     facility,
     inherited: resolvedAssignment.inherited,
@@ -3895,7 +3949,13 @@ function calculateFacility(
     operatorSkillEfficiency,
     efficiency: baseEfficiency + moodEfficiency + skillEfficiency,
     attributes: attributeState.attributes,
-    ...(cluePreferences.length > 0 ? { cluePreferences } : {}),
+    ...(cluePreferenceResult?.preferences.length
+      ? { cluePreferences: cluePreferenceResult.preferences }
+      : {}),
+    ...(cluePreferenceResult &&
+    Object.keys(cluePreferenceResult.byOperator).length > 0
+      ? { cluePreferencesByOperator: cluePreferenceResult.byOperator }
+      : {}),
     details,
     baseDetails,
     combinationDetails,
@@ -3920,8 +3980,8 @@ function calculateFacility(
     production,
     result.capacity,
   );
-  if (result.production && cluePreferences.length > 0) {
-    result.production.cluePreferences = cluePreferences;
+  if (result.production && cluePreferenceResult?.preferences.length) {
+    result.production.cluePreferences = cluePreferenceResult.preferences;
   }
   if (facility.type === "recycle" && production && result.production) {
     const timeRequirement = context.ruleset.recycle?.timeRequirement ?? 0;
@@ -4935,6 +4995,10 @@ function calculatePlan(
     name: context.plan.name ?? `队列${context.index + 1}`,
     durationHours: context.durationHours,
     facilities,
+    moodRecoveryContributions: moodRecoveryContributionsForPlan(
+      context,
+      catalog,
+    ),
     moods: context.placements
       .filter((placement) => isMoodContinuityPlacement(placement, catalog))
       .map((placement): MoodSnapshot => ({

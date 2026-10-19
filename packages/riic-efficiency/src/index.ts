@@ -208,6 +208,7 @@ export type {
   FacilityCapacitySegment,
   MoodRateDetail,
   MoodRateDetailKind,
+  MoodRecoveryContribution,
   MoodSnapshot,
   MaaDroneAccelerationResult,
   MaaDroneWarning,

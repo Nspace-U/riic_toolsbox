@@ -447,6 +447,7 @@ export interface FacilityEfficiencyResult {
   efficiency: number;
   attributes: FacilityAttributes;
   cluePreferences?: CluePreference[];
+  cluePreferencesByOperator?: Record<string, CluePreference[]>;
   capacity?: FacilityCapacity;
   production?: ProductionValue;
   recycleOutputs?: RecycleItemOutputRate[];
@@ -524,6 +525,7 @@ export interface EfficiencyPlanResult {
   name: string;
   durationHours: number;
   facilities: FacilityEfficiencyResult[];
+  moodRecoveryContributions: MoodRecoveryContribution[];
   moods: MoodSnapshot[];
   moodWarnings: MoodWarning[];
   autoRestWarnings: AutoRestWarning[];
@@ -533,6 +535,16 @@ export interface EfficiencyPlanResult {
   basePointDetails: BasePointDetail[];
   warnings: string[];
   droneAccelerations: DroneAccelerationDetail[];
+}
+
+export interface MoodRecoveryContribution {
+  operator: string;
+  skill?: string;
+  facilityId: string;
+  value: number;
+  scope?: string;
+  subjects?: string;
+  scopeGroup?: string;
 }
 
 export type ScheduleLayoutSource = "document" | "inferred";

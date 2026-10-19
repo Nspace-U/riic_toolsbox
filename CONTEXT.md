@@ -36,6 +36,7 @@
 - 效率计算已拆为 `packages/riic-efficiency` 独立 ESM 组件，公共入口为 `src/index.ts`，构建输出 ESM 与声明文件；组件不读取浏览器数据，排班设置中的 `progressionProfile`、`treatSkillsAsUnlocked` 和 `dormitoryDefaultIncludesMoodRecovery` 由调用方直接放入 `schedule.settings`。
 - 组件数据目录同时输出版本化 `ruleset.json` 与 `manifest.json`；规则集参与基础效率、制造配方、贸易订单、容量、线索、招募标签和无人机计算，订单数量使用 `schedule.settings.tradeOrderCount`。
 - 当前项目所有效率计算直接调用 `@arknights/riic-efficiency` 公共 API；组件规则数据使用 `packages/riic-efficiency/data/ruleset.json`，宿主不再维护第二套效率逻辑或重复干员技能数据。
+- 效率排名会客室按干员可达的精英阶段生成候选行，以显示效率去重；技能效率不含练度加成，线索倾向按逐干员的实际生效数据展示。宿舍效率列显示技能每小时自身或每目标的恢复值，不按房间人数累计。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
 - 回收站 key 为 `recycle`，最多建造 1 间，建造依赖训练室存在（不检查训练室等级），不耗电；1 级 1 槽、2/3 级 2 槽。`sync-torappu.mjs` 通过现有 `DATA_FILES` / `fetchJson` 流程读取 Torappu `recycle_data.json`，把 `recycle*` 字段按源名合并到 `building_data.json` 顶层且不落独立快照；应用仍通过既有 `building_data.json` 路径读取。设施等级、产速、储藏容量、加速时长、产出池和进度均使用这些字段，2/3 级容量按 10 件基础容量计算，不将等级增量归类为技能。空置时持续产出；加速道具 ID 保存在应用排班 `ScheduleSettings.recycleBoostItemId`，随单张 Maa JSON 和全量排班备份导入/导出。结果按池权重以“精英材料”汇总道具总产量；明细弹窗默认将 T2–T5 按日均数量降序汇总为四行，代表图标依次使用固源岩、扭转醇、白马醇、双极纳米片，可切换逐材料查看，统计天数和分组方式每次打开时重置为 1 天和稀有度，不写入排班设置。展示图标使用扭转醇物品图标，设施默认强调色 `#6CCBCB` 与旅骨回收技能图标背景色一致；纯游戏规则和数值见 [回收站游戏内规则与数值.md](docs/回收站游戏内规则与数值.md)。
 - 已修复琴柳“感染力”判断：以不含自身效果的办公室完整效率与 130% 比较，完整效率包含设施基础效率、有效干员心情效率和其他干员技能效率；低于 130% 时追加 20% 干员效率，恰好 130% 不触发。琴柳效果可与八幡海铃的设施基础效率叠加，不使用 `stack: "max"`；0 心情干员不提供自身心情/技能效率，但所在设施仍保留基础效率。

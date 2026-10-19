@@ -182,10 +182,111 @@ const rowViews = computed<EfficiencyRankingRowView[]>(() =>
   })),
 );
 
+function progressionOrder(row: EfficiencyRankingRowView): number[] {
+  return [
+    row.progression,
+    ...(row.pairedOperators ?? []).map((item) => item.progression),
+  ].flatMap(({ elite, level }) => [elite, level]);
+}
+
+function compareRowProgression(
+  left: EfficiencyRankingRowView,
+  right: EfficiencyRankingRowView,
+): number {
+  const leftProgression = progressionOrder(left);
+  const rightProgression = progressionOrder(right);
+  const eliteDifference =
+    leftProgression
+      .filter((_, index) => index % 2 === 0)
+      .reduce((sum, value) => sum + value, 0) -
+    rightProgression
+      .filter((_, index) => index % 2 === 0)
+      .reduce((sum, value) => sum + value, 0);
+  if (eliteDifference !== 0) return eliteDifference;
+  const levelDifference =
+    leftProgression
+      .filter((_, index) => index % 2 === 1)
+      .reduce((sum, value) => sum + value, 0) -
+    rightProgression
+      .filter((_, index) => index % 2 === 1)
+      .reduce((sum, value) => sum + value, 0);
+  if (levelDifference !== 0) return levelDifference;
+  for (let index = 0; index < leftProgression.length; index += 1) {
+    const difference =
+      (leftProgression[index] ?? 0) - (rightProgression[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+function progressionGroupKey(row: EfficiencyRankingRowView): string {
+  return [
+    row.facility,
+    row.operator.id,
+    row.meetingCategory ?? "",
+    ...(row.pairedOperators ?? []).map((item) => item.operator.id),
+  ].join(":");
+}
+
+function deduplicateProgressionRows(
+  rows: EfficiencyRankingRowView[],
+): EfficiencyRankingRowView[] {
+  const representatives = new Map<string, EfficiencyRankingRowView>();
+  rows.forEach((row) => {
+    if (!row.result) {
+      representatives.set(`pending:${row.id}`, row);
+      return;
+    }
+    const metric =
+      row.facility === "dormitory"
+        ? dormitoryRecoveryText(row)
+        : efficiencyText(row);
+    const key = `${progressionGroupKey(row)}:${metric}`;
+    const existing = representatives.get(key);
+    if (!existing || compareRowProgression(row, existing) < 0) {
+      representatives.set(key, row);
+    }
+  });
+  const displayedIds = new Set(
+    [...representatives.values()].map((row) => row.id),
+  );
+  return rows.filter((row) => displayedIds.has(row.id));
+}
+
+function rowsForDormitoryCategory(
+  category: DormitoryCategory,
+): EfficiencyRankingRowView[] {
+  return deduplicateProgressionRows(
+    rowViews.value.filter(
+      (row) =>
+        row.facility === "dormitory" &&
+        row.dormitoryCategories?.includes(category),
+    ),
+  );
+}
+
+const displayedRowViews = computed<EfficiencyRankingRowView[]>(() => {
+  const nonDormitoryRows = deduplicateProgressionRows(
+    rowViews.value.filter((row) => row.facility !== "dormitory"),
+  );
+  const dormitoryRowIds = new Set(
+    (["self", "group", "single", "targeted"] as const)
+      .flatMap((category) => rowsForDormitoryCategory(category))
+      .map((row) => row.id),
+  );
+  const displayedIds = new Set([
+    ...nonDormitoryRows.map((row) => row.id),
+    ...dormitoryRowIds,
+  ]);
+  return rowViews.value.filter((row) => displayedIds.has(row.id));
+});
+
 const facilityTabs = computed(() =>
   EFFICIENCY_RANKING_FACILITIES.map((facility) => ({
     ...facility,
-    count: rowViews.value.filter((row) => row.facility === facility.key).length,
+    count: displayedRowViews.value.filter(
+      (row) => row.facility === facility.key,
+    ).length,
   })),
 );
 
@@ -193,14 +294,14 @@ const meetingCategoryTabs = computed(() => [
   {
     key: "normal" as const,
     label: "普通干员",
-    count: rowViews.value.filter(
+    count: displayedRowViews.value.filter(
       (row) => row.facility === "meeting" && row.meetingCategory === "normal",
     ).length,
   },
   {
     key: "independent" as const,
     label: "独立干员",
-    count: rowViews.value.filter(
+    count: displayedRowViews.value.filter(
       (row) =>
         row.facility === "meeting" && row.meetingCategory === "independent",
     ).length,
@@ -208,7 +309,7 @@ const meetingCategoryTabs = computed(() => [
   {
     key: "combo" as const,
     label: "干员组合",
-    count: rowViews.value.filter(
+    count: displayedRowViews.value.filter(
       (row) => row.facility === "meeting" && row.meetingCategory === "combo",
     ).length,
   },
@@ -222,25 +323,22 @@ const dormitoryCategoryTabs = computed(() =>
     { key: "targeted" as const, label: "定回" },
   ].map((category) => ({
     ...category,
-    count: rowViews.value.filter(
-      (row) =>
-        row.facility === "dormitory" &&
-        row.dormitoryCategories?.includes(category.key),
-    ).length,
+    count: rowsForDormitoryCategory(category.key).length,
   })),
 );
 
 const visibleRows = computed(() =>
-  rowViews.value
-    .filter((row) => row.facility === activeFacility.value)
-    .filter((row) =>
-      activeFacility.value === "meeting"
-        ? row.meetingCategory === activeMeetingCategory.value
-        : activeFacility.value === "dormitory"
-          ? row.dormitoryCategories?.includes(activeDormitoryCategory.value)
-          : true,
-    )
-    .sort(compareRankingRows),
+  deduplicateProgressionRows(
+    rowViews.value
+      .filter((row) => row.facility === activeFacility.value)
+      .filter((row) =>
+        activeFacility.value === "meeting"
+          ? row.meetingCategory === activeMeetingCategory.value
+          : activeFacility.value === "dormitory"
+            ? row.dormitoryCategories?.includes(activeDormitoryCategory.value)
+            : true,
+      ),
+  ).sort(compareRankingRows),
 );
 
 const rowDraftTitle = computed(() =>
@@ -317,7 +415,7 @@ function efficiencyText(row: EfficiencyRankingRowView): string {
   const value = row.result?.efficiency;
   if (value === undefined) return "—";
   if (row.facility === "dormitory") {
-    return `${formatNumber(value)}心情/小时`;
+    return dormitoryRecoveryText(row);
   }
   if (row.meetingCategory === "combo") {
     const total = `${formatEfficiencyNumber(value)}%`;
@@ -332,6 +430,26 @@ function efficiencyText(row: EfficiencyRankingRowView): string {
     return `合计 ${total} / 平均 ${average}`;
   }
   return `${formatEfficiencyNumber(value)}%`;
+}
+
+function dormitoryRecoveryText(row: EfficiencyRankingRowView): string {
+  const contributions =
+    row.result?.dormitoryRecoveryByOperator[row.operator.name] ?? [];
+  return (
+    contributions
+      .map((item) => {
+        const label =
+          item.scope === "self"
+            ? "自身"
+            : item.subjects === "single"
+              ? "单目标"
+              : item.scope === "op" || item.scopeGroup
+                ? "指定目标"
+                : "每目标";
+        return `${label} ${item.value > 0 ? "+" : ""}${formatNumber(item.value)}/小时`;
+      })
+      .join("；") || "—"
+  );
 }
 
 function isRowMemberAssigned(
@@ -614,23 +732,26 @@ function cluePreferenceLabel(preference: number | "unowned" | "owned"): string {
 
 function cluePreferencesText(row: EfficiencyRankingRowView): string {
   const values = row.result?.cluePreferencesByOperator;
-  if (!values) return "";
+  if (!values) return "—";
   const members = [
     row.operator,
     ...(row.pairedOperators ?? []).map((item) => item.operator),
   ];
-  return members
-    .flatMap((operator) => {
-      const preferences = values[operator.name] ?? [];
-      if (!preferences.length) return [];
-      const text = [...new Set(preferences)]
-        .map(cluePreferenceLabel)
-        .join("、");
-      return [
-        row.meetingCategory === "combo" ? `${operator.name}：${text}` : text,
-      ];
-    })
-    .join("；");
+  return (
+    members
+      .flatMap((operator) => {
+        const preferences = values[operator.name] ?? [];
+        const text = [...new Set(preferences)]
+          .map(cluePreferenceLabel)
+          .join("、");
+        return [
+          row.meetingCategory === "combo"
+            ? `${operator.name}：${text || "—"}`
+            : text || "—",
+        ];
+      })
+      .join("；") || "—"
+  );
 }
 
 function moodContributions(
