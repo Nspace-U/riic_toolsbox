@@ -2,6 +2,7 @@ import type {
   AutoRestWarning,
   BasePointDetail,
   CurveCalculationStep,
+  DormitoryRecoverySnapshot,
   EfficiencyEffect,
   EfficiencyFacility,
   EfficiencyOperator,
@@ -127,6 +128,7 @@ export interface PlanContext {
   statValues: Map<string, number>;
   moodWarnings: MoodWarning[];
   autoRestWarnings: AutoRestWarning[];
+  dormitoryRecoveries: DormitoryRecoverySnapshot[];
   fiammetta?: FiammettaPlanResult;
   fiammettaWarnings: string[];
   warnings: string[];

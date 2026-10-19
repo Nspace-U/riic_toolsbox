@@ -526,6 +526,7 @@ export interface EfficiencyPlanResult {
   durationHours: number;
   facilities: FacilityEfficiencyResult[];
   moodRecoveryContributions: MoodRecoveryContribution[];
+  dormitoryRecoveries: DormitoryRecoverySnapshot[];
   moods: MoodSnapshot[];
   moodWarnings: MoodWarning[];
   autoRestWarnings: AutoRestWarning[];
@@ -545,6 +546,33 @@ export interface MoodRecoveryContribution {
   scope?: string;
   subjects?: string;
   scopeGroup?: string;
+}
+
+export interface DormitoryRecoveryContribution {
+  operator: string;
+  skill?: string;
+  value: number;
+  distribution: "shared" | "self" | "single" | "spread";
+}
+
+export interface DormitoryOperatorRecovery {
+  operator: string;
+  slotIndex: number;
+  rate: number;
+  contributions: DormitoryRecoveryContribution[];
+  blocksOtherRecovery?: boolean;
+  startMood?: number;
+  expectedMood?: number;
+  recoveredMood?: number;
+  endMood?: number;
+}
+
+export interface DormitoryRecoverySnapshot {
+  facilityId: string;
+  facilityIndex: number;
+  baseRate: number;
+  contributions: MoodRecoveryContribution[];
+  operators: DormitoryOperatorRecovery[];
 }
 
 export type ScheduleLayoutSource = "document" | "inferred";

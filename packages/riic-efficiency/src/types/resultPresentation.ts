@@ -2,6 +2,7 @@ import type {
   BasePointDetail,
   DroneAccelerationCandidate,
   DroneAccelerationDetail,
+  DormitoryRecoverySnapshot,
   EfficiencyFacility,
   EfficiencyPlanResult,
   FacilityEfficiencyResult,
@@ -14,6 +15,8 @@ export interface EfficiencyCalculationStepView {
   plan: EfficiencyPlanResult;
   planIndex: number;
   facility?: FacilityEfficiencyResult;
+  dormitory?: EfficiencyFacility;
+  dormitoryRecovery?: DormitoryRecoverySnapshot;
   moods: MoodSnapshot[];
   droneAccelerations?: DroneAccelerationDetail[];
 }

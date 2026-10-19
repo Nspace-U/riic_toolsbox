@@ -3,6 +3,7 @@ import type {
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  MoodSnapshot,
   ProductionValue,
 } from "../types/efficiency";
 import type { EfficiencyTerm } from "../types/efficiency";
@@ -59,12 +60,25 @@ export function buildCalculationSteps(
   result: EfficiencyResult,
 ): EfficiencyCalculationStepView[] {
   return result.plans.flatMap((plan, planIndex) => {
+    const dormitorySteps = plan.dormitoryRecoveries.map((recovery) => {
+      const dormitory = plan.facilities.find(
+        (facility) => facility.facility.id === recovery.facilityId,
+      )?.facility;
+      return {
+        plan,
+        planIndex,
+        ...(dormitory ? { dormitory } : {}),
+        dormitoryRecovery: recovery,
+        moods: [] as MoodSnapshot[],
+      };
+    });
     const facilitySteps = plan.facilities
       .filter(
         (facility) =>
-          facility.production !== undefined ||
-          facility.capacity !== undefined ||
-          facility.details.length > 0,
+          facility.facility.type !== "dormitory" &&
+          (facility.production !== undefined ||
+            facility.capacity !== undefined ||
+            facility.details.length > 0),
       )
       .map((facility) => ({
         plan,
@@ -79,8 +93,12 @@ export function buildCalculationSteps(
       (mood) => mood.facility === "control" && mood.working,
     );
     return controlMoods.length > 0
-      ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
-      : facilitySteps;
+      ? [
+          { plan, planIndex, moods: controlMoods },
+          ...dormitorySteps,
+          ...facilitySteps,
+        ]
+      : [...dormitorySteps, ...facilitySteps];
   });
 }
 
@@ -91,11 +109,13 @@ export function buildCalculationStepGroups(
 ): EfficiencyCalculationStepGroup[] {
   const groups = new Map<string, EfficiencyCalculationStepGroup>();
   steps.forEach((step) => {
-    const key = step.facility?.facility.id ?? "control";
+    const key = step.facility?.facility.id ?? step.dormitory?.id ?? "control";
     const label = step.facility
       ? (callbacks.facilityLabel?.(step.facility) ??
         `${ROOM_LABELS[step.facility.facility.type]} ${step.facility.facility.index + 1}`)
-      : ROOM_LABELS.control;
+      : step.dormitory
+        ? `${ROOM_LABELS.dormitory} ${step.dormitory.index + 1}`
+        : ROOM_LABELS.control;
     let group = groups.get(key);
     if (!group) {
       group = {

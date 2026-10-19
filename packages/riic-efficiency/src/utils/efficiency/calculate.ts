@@ -21,6 +21,9 @@ import type {
   StatCalculationStep,
   DroneAccelerationCandidate,
   DroneAccelerationDetail,
+  DormitoryOperatorRecovery,
+  DormitoryRecoveryContribution,
+  DormitoryRecoverySnapshot,
   MoodRateDetail,
   MoodRecoveryContribution,
   MoodSnapshot,
@@ -295,6 +298,7 @@ function createContexts(
       statValues: new Map(),
       moodWarnings: [],
       autoRestWarnings: [],
+      dormitoryRecoveries: [],
       fiammettaWarnings: [],
       warnings,
     };
@@ -2378,6 +2382,77 @@ function moodRecoveryAppliesTo(
   return true;
 }
 
+function moodRecoveryEffectContributions(
+  items: ActiveEffect[],
+  target: EfficiencyFacility,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  distribution: DormitoryRecoveryContribution["distribution"],
+): DormitoryRecoveryContribution[] {
+  const contributions: DormitoryRecoveryContribution[] = [];
+  const groups = new Map<string, ActiveEffect[]>();
+  items.forEach((item) => {
+    if (item.effect.stack !== "max") {
+      contributions.push({
+        operator: item.owner.name,
+        skill: item.skill,
+        distribution,
+        value: effectValue(
+          item,
+          target,
+          context,
+          catalog,
+          emptyEvaluationData(),
+        ),
+      });
+      return;
+    }
+    const groupKey =
+      item.effect.maxGroup ??
+      `${item.effect.target}|${item.effect.stat}|${item.effect.recipe ?? ""}`;
+    const group = groups.get(groupKey) ?? [];
+    group.push(item);
+    groups.set(groupKey, group);
+  });
+  groups.forEach((group) => {
+    const owners = new Map<string, ActiveEffect[]>();
+    group.forEach((item) => {
+      const ownerItems = owners.get(item.owner.name) ?? [];
+      ownerItems.push(item);
+      owners.set(item.owner.name, ownerItems);
+    });
+    let winningItems: ActiveEffect[] = [];
+    let winningValue = -Infinity;
+    owners.forEach((ownerItems) => {
+      const value = ownerItems.reduce(
+        (sum, item) =>
+          sum +
+          effectValue(item, target, context, catalog, emptyEvaluationData()),
+        0,
+      );
+      if (value > winningValue) {
+        winningValue = value;
+        winningItems = ownerItems;
+      }
+    });
+    winningItems.forEach((item) => {
+      contributions.push({
+        operator: item.owner.name,
+        skill: item.skill,
+        distribution,
+        value: effectValue(
+          item,
+          target,
+          context,
+          catalog,
+          emptyEvaluationData(),
+        ),
+      });
+    });
+  });
+  return contributions;
+}
+
 function sumMoodRecoveryEffects(
   items: ActiveEffect[],
   target: EfficiencyFacility,
@@ -2409,6 +2484,110 @@ function sumMoodRecoveryEffects(
     total += Math.max(...owners.values());
   });
   return total;
+}
+
+function dormitoryRecoveryContributionsForSubject(
+  context: PlanContext,
+  dormitory: EfficiencyFacility,
+  subject: Placement,
+  members: Placement[],
+  expectedMoods: Map<string, number>,
+  catalog: EfficiencyCatalog,
+): DormitoryRecoveryContribution[] {
+  const items = context.active.filter(
+    (item) =>
+      item.target?.id === dormitory.id && item.effect.stat === "moodRecover",
+  );
+  const ownItems = items.filter((item) => item.owner.name === subject.name);
+  if (ownItems.some((item) => item.effect.blockOtherRecovery === true)) {
+    return moodRecoveryEffectContributions(
+      ownItems.filter((item) => item.effect.scope === "self"),
+      dormitory,
+      context,
+      catalog,
+      "self",
+    );
+  }
+  const applies = (item: ActiveEffect): boolean =>
+    moodRecoveryAppliesTo(item, subject, dormitory, catalog);
+  const shared = items.filter(
+    (item) =>
+      item.effect.subjects === undefined &&
+      (item.effect.scope === "room" ||
+        item.owner.facility.type !== "dormitory") &&
+      applies(item),
+  );
+  const self = ownItems.filter(
+    (item) => item.effect.scope === "self" && applies(item),
+  );
+  const underTarget = members.filter(
+    (member) =>
+      member.moodStart < (expectedMoods.get(member.name) ?? 24) - EPSILON,
+  );
+  const single = items.filter((item) => {
+    if (item.effect.subjects !== "single") return false;
+    const selected = underTarget
+      .slice()
+      .sort(
+        (left, right) =>
+          left.moodStart - right.moodStart || left.index - right.index,
+      )[0];
+    return selected?.name === subject.name && applies(item);
+  });
+  const spreadCount = underTarget.length;
+  const spread =
+    spreadCount > 0
+      ? items
+          .filter((item) => item.effect.subjects === "spread")
+          .filter(applies)
+          .map((item): ActiveEffect => ({
+            ...item,
+            effect: {
+              ...item.effect,
+              value:
+                effectValue(
+                  item,
+                  dormitory,
+                  context,
+                  catalog,
+                  emptyEvaluationData(),
+                ) / spreadCount,
+              baseValue: undefined,
+              per: undefined,
+              curve: undefined,
+            },
+          }))
+      : [];
+  return [
+    ...moodRecoveryEffectContributions(
+      shared,
+      dormitory,
+      context,
+      catalog,
+      "shared",
+    ),
+    ...moodRecoveryEffectContributions(
+      self,
+      dormitory,
+      context,
+      catalog,
+      "self",
+    ),
+    ...moodRecoveryEffectContributions(
+      single,
+      dormitory,
+      context,
+      catalog,
+      "single",
+    ),
+    ...moodRecoveryEffectContributions(
+      spread,
+      dormitory,
+      context,
+      catalog,
+      "spread",
+    ),
+  ];
 }
 
 function dormitoryRecoveryRate(
@@ -2492,6 +2671,96 @@ function dormitoryRecoveryRate(
   );
 }
 
+function dormitoryRecoverySnapshotsForContext(
+  contexts: PlanContext[],
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+  predictions: Map<
+    string,
+    { startMood: number; expectedMood: number; endMood: number }
+  > = new Map(),
+  sourcePlacements: Placement[] = context.placements,
+): DormitoryRecoverySnapshot[] {
+  const explicitMembers = sourcePlacements.filter(
+    (placement) => placement.facility.type === "dormitory",
+  );
+  const expectedMoods = new Map<string, number>();
+  context.placements
+    .filter((placement) => placement.facility.type === "dormitory")
+    .forEach((placement) =>
+      expectedMoods.set(
+        placement.name,
+        expectedMoodForNextWork(contexts, context.index, placement.name),
+      ),
+    );
+  const contributions = moodRecoveryContributionsForPlan(context, catalog);
+  return context.facilities
+    .filter((facility) => facility.type === "dormitory")
+    .map((dormitory): DormitoryRecoverySnapshot => {
+      const members = context.placements.filter(
+        (placement) => placement.facility.id === dormitory.id,
+      );
+      const operators: DormitoryOperatorRecovery[] = explicitMembers
+        .filter((placement) => placement.facility.id === dormitory.id)
+        .flatMap((explicitMember) => {
+          const subject = members.find(
+            (placement) => placement.name === explicitMember.name,
+          );
+          if (!subject) return [];
+          const actualContributions = dormitoryRecoveryContributionsForSubject(
+            context,
+            dormitory,
+            subject,
+            members,
+            expectedMoods,
+            catalog,
+          );
+          const blocksOtherRecovery = context.active.some(
+            (item) =>
+              item.target?.id === dormitory.id &&
+              item.owner.name === subject.name &&
+              item.effect.stat === "moodRecover" &&
+              item.effect.blockOtherRecovery === true,
+          );
+          const rate = dormitoryRecoveryRate(
+            context,
+            dormitory,
+            subject,
+            members,
+            expectedMoods,
+            catalog,
+          );
+          const prediction = predictions.get(`${dormitory.id}|${subject.name}`);
+          return [
+            {
+              operator: subject.name,
+              slotIndex: subject.index,
+              rate,
+              contributions: actualContributions,
+              ...(blocksOtherRecovery ? { blocksOtherRecovery: true } : {}),
+              ...(prediction
+                ? {
+                    startMood: prediction.startMood,
+                    expectedMood: prediction.expectedMood,
+                    recoveredMood: prediction.endMood - prediction.startMood,
+                    endMood: prediction.endMood,
+                  }
+                : {}),
+            },
+          ];
+        });
+      return {
+        facilityId: dormitory.id,
+        facilityIndex: dormitory.index,
+        baseRate: 1.5 + 0.5 * dormitory.level,
+        contributions: contributions.filter(
+          (contribution) => contribution.facilityId === dormitory.id,
+        ),
+        operators,
+      };
+    });
+}
+
 function createDormitoryRestPlacement(
   context: PlanContext,
   source: Placement,
@@ -2545,11 +2814,22 @@ function resolveAutomaticRest(
   contexts: PlanContext[],
   catalog: EfficiencyCatalog,
 ): void {
-  if (contexts.length <= 1) return;
   contexts.forEach((context, index) => {
+    context.dormitoryRecoveries = [];
+    if (contexts.length <= 1) {
+      context.dormitoryRecoveries = dormitoryRecoverySnapshotsForContext(
+        contexts,
+        context,
+        catalog,
+        new Map(),
+        context.placements,
+      );
+      return;
+    }
     const previous = contexts[(index - 1 + contexts.length) % contexts.length];
     if (!previous) return;
     context.autoRestWarnings = [];
+    context.dormitoryRecoveries = [];
     const candidates: Array<{
       source: Placement;
       current?: Placement;
@@ -2693,6 +2973,10 @@ function resolveAutomaticRest(
             expectedMoodForNextWork(contexts, index, placement.name),
           ),
         );
+      const predictions = new Map<
+        string,
+        { startMood: number; expectedMood: number; endMood: number }
+      >();
       candidates.forEach((candidate) => {
         if (!candidate.dormitory || candidate.slotIndex === undefined) return;
         const restPlacement =
@@ -2716,6 +3000,11 @@ function resolveAutomaticRest(
           candidate.expectedMood,
           clampMood(candidate.startMood + rate * context.durationHours),
         );
+        predictions.set(`${candidate.dormitory.id}|${candidate.source.name}`, {
+          startMood: candidate.startMood,
+          expectedMood: candidate.expectedMood,
+          endMood,
+        });
         if (endMood < candidate.expectedMood - EPSILON) {
           context.autoRestWarnings.push({
             operator: candidate.source.name,
@@ -2728,6 +3017,13 @@ function resolveAutomaticRest(
           });
         }
       });
+      context.dormitoryRecoveries = dormitoryRecoverySnapshotsForContext(
+        contexts,
+        context,
+        catalog,
+        predictions,
+        originalPlacements,
+      );
     } finally {
       changedMoods.forEach((mood, placement) => {
         placement.moodStart = mood.start;
@@ -4995,6 +5291,7 @@ function calculatePlan(
     name: context.plan.name ?? `队列${context.index + 1}`,
     durationHours: context.durationHours,
     facilities,
+    dormitoryRecoveries: context.dormitoryRecoveries,
     moodRecoveryContributions: moodRecoveryContributionsForPlan(
       context,
       catalog,
