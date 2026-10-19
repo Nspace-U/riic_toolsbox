@@ -16,7 +16,7 @@ export interface EfficiencyCalculationStepView {
   planIndex: number;
   facility?: FacilityEfficiencyResult;
   dormitory?: EfficiencyFacility;
-  dormitoryRecovery?: DormitoryRecoverySnapshot;
+  dormitoryRecoveries?: DormitoryRecoverySnapshot[];
   moods: MoodSnapshot[];
   droneAccelerations?: DroneAccelerationDetail[];
 }

@@ -35,6 +35,7 @@ function sectionLayout(): SectionLayout {
 
 const SECTION_CLASSES: Record<string, string> = {
   "queue-sanity": "simulator-daily-output-queue-sanity",
+  "dormitory-recovery": "simulator-dormitory-recovery",
 };
 
 function sectionClass(): (string | undefined)[] {

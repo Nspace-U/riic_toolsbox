@@ -544,6 +544,8 @@ export interface MoodRecoveryContribution {
   facilityId: string;
   value: number;
   scope?: string;
+  op?: string;
+  moodBelow?: number;
   subjects?: string;
   scopeGroup?: string;
 }
@@ -552,7 +554,7 @@ export interface DormitoryRecoveryContribution {
   operator: string;
   skill?: string;
   value: number;
-  distribution: "shared" | "self" | "single" | "spread";
+  distribution: "shared" | "self" | "single" | "spread" | "specific";
 }
 
 export interface DormitoryOperatorRecovery {

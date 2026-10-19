@@ -6,6 +6,7 @@ import type {
   EfficiencyPlanResult,
   EfficiencyResult,
   FacilityEfficiencyResult,
+  MoodRecoveryContribution,
   MoodSnapshot,
   OperatorEfficiencyDetail,
 } from "../types/efficiency";
@@ -1250,147 +1251,149 @@ function dormitoryContributionLabel(
   contribution: DormitoryRecoveryContribution,
   roomTotal = false,
 ): string {
-  const distribution =
-    contribution.distribution === "single"
-      ? roomTotal
-        ? "单人额外总量"
-        : "单人额外"
-      : contribution.distribution === "spread"
-        ? roomTotal
-          ? "均摊总量"
-          : "均摊"
-        : contribution.distribution === "self"
-          ? "自身额外"
-          : "共享";
+  const distribution = {
+    shared: "群体恢复",
+    self: "自身恢复",
+    single: roomTotal ? "单体恢复 · 单人额外总量" : "单体恢复",
+    spread: roomTotal ? "特定恢复 · 均摊总量" : "特定恢复 · 均摊",
+    specific: "特定恢复",
+  }[contribution.distribution];
   return `${distribution}${contribution.skill ? ` · ${contribution.skill}` : ""}`;
 }
 
+function dormitoryRoomContributionDistribution(
+  contribution: MoodRecoveryContribution,
+): DormitoryRecoveryContribution["distribution"] {
+  if (contribution.subjects === "single") return "single";
+  if (contribution.subjects === "spread") return "spread";
+  if (contribution.scope === "self") return "self";
+  if (
+    contribution.scope === "op" ||
+    contribution.op !== undefined ||
+    contribution.moodBelow !== undefined ||
+    contribution.scopeGroup !== undefined
+  ) {
+    return "specific";
+  }
+  return "shared";
+}
+
 function dormitoryRecoverySection(
-  recovery: DormitoryRecoverySnapshot,
+  recoveries: readonly DormitoryRecoverySnapshot[],
   plan: EfficiencyPlanResult,
 ): DisplaySection {
-  const rows: DisplayRow[] = [
-    displayRow(
-      "dormitory-base-recovery-rate",
-      displayText("宿舍基础恢复速度"),
-      displayUnit(recovery.baseRate, "number", " 心情/小时"),
-    ),
-  ];
-  recovery.contributions.forEach((contribution, index) => {
-    const detail: DormitoryRecoveryContribution = {
-      operator: contribution.operator,
-      ...(contribution.skill === undefined
-        ? {}
-        : { skill: contribution.skill }),
-      value: contribution.value,
-      distribution:
-        contribution.subjects === "single"
-          ? "single"
-          : contribution.subjects === "spread"
-            ? "spread"
-            : contribution.scope === "self"
-              ? "self"
-              : "shared",
-    };
+  const rows: DisplayRow[] = [];
+  const entries: DisplayEntry[] = [];
+  recoveries.forEach((recovery) => {
+    const roomLabel = `宿舍 ${recovery.facilityIndex + 1}`;
     rows.push(
       displayRow(
-        `dormitory-room-source-${index}`,
-        displayText(
-          `${contribution.operator} · ${dormitoryContributionLabel(detail, true)}`,
-        ),
-        displayUnit(contribution.value, "signed", " 心情/小时"),
+        `dormitory-${recovery.facilityId}-base-recovery-rate`,
+        displayText(`${roomLabel} · 基础恢复速度`),
+        displayUnit(recovery.baseRate, "number", " 心情/小时"),
       ),
     );
-  });
-  if (recovery.contributions.length === 0) {
-    rows.push(
-      displayRow(
-        "dormitory-room-sources-empty",
-        displayText("干员技能贡献"),
-        displayText("无"),
-      ),
-    );
-  }
-  const entries: DisplayEntry[] = recovery.operators.map((operator) => {
-    const operatorRows: DisplayRow[] = [];
-    if (operator.blocksOtherRecovery) {
-      operatorRows.push(
+    recovery.contributions.forEach((contribution, index) => {
+      const detail: DormitoryRecoveryContribution = {
+        operator: contribution.operator,
+        ...(contribution.skill === undefined
+          ? {}
+          : { skill: contribution.skill }),
+        value: contribution.value,
+        distribution: dormitoryRoomContributionDistribution(contribution),
+      };
+      rows.push(
         displayRow(
-          "dormitory-recovery-blocked",
-          displayText("恢复阻断"),
-          displayText("不计宿舍基础速度及其他来源，只计算自身恢复技能"),
-        ),
-      );
-    }
-    operator.contributions.forEach((contribution, index) => {
-      operatorRows.push(
-        displayRow(
-          `dormitory-operator-source-${index}`,
+          `dormitory-${recovery.facilityId}-room-source-${index}`,
           displayText(
-            `${contribution.operator} · ${dormitoryContributionLabel(contribution)}`,
+            `${roomLabel} · ${contribution.operator} · ${dormitoryContributionLabel(detail, true)}`,
           ),
           displayUnit(contribution.value, "signed", " 心情/小时"),
         ),
       );
     });
-    if (operator.contributions.length === 0) {
-      operatorRows.push(
+    if (recovery.contributions.length === 0) {
+      rows.push(
         displayRow(
-          "dormitory-operator-sources-empty",
-          displayText("干员技能贡献"),
+          `dormitory-${recovery.facilityId}-room-sources-empty`,
+          displayText(`${roomLabel} · 干员技能贡献`),
           displayText("无"),
         ),
       );
     }
-    operatorRows.push(
-      displayRow(
-        "dormitory-operator-final-rate",
-        displayText("最终恢复速度"),
-        displayUnit(operator.rate, "number", " 心情/小时"),
-      ),
-    );
-    if (
-      operator.startMood !== undefined &&
-      operator.expectedMood !== undefined &&
-      operator.recoveredMood !== undefined &&
-      operator.endMood !== undefined
-    ) {
+    recovery.operators.forEach((operator) => {
+      const operatorRows: DisplayRow[] = [];
+      if (operator.blocksOtherRecovery) {
+        operatorRows.push(
+          displayRow(
+            "dormitory-recovery-blocked",
+            undefined,
+            displayText("恢复阻断"),
+          ),
+        );
+      }
+      operator.contributions.forEach((contribution, index) => {
+        operatorRows.push(
+          displayRow(
+            `dormitory-operator-source-${index}`,
+            displayText(
+              `${contribution.operator} · ${dormitoryContributionLabel(contribution)}`,
+            ),
+            displayUnit(contribution.value, "signed", " 心情/小时"),
+          ),
+        );
+      });
+      if (operator.contributions.length === 0) {
+        operatorRows.push(
+          displayRow(
+            "dormitory-operator-sources-empty",
+            displayText("干员技能贡献"),
+            displayText("无"),
+          ),
+        );
+      }
       operatorRows.push(
         displayRow(
-          "dormitory-operator-start-mood",
-          displayText("恢复起点心情"),
-          displayNumber(operator.startMood),
-        ),
-        displayRow(
-          "dormitory-operator-recovery-calculation",
-          displayText("预测计算"),
-          displayValue(
-            `min(${formatNumber(operator.expectedMood)}, clampMood(${formatNumber(operator.startMood)} + ${formatNumber(operator.rate)} × ${formatNumber(plan.durationHours)}))`,
-          ),
-        ),
-        displayRow(
-          "dormitory-operator-recovery-amount",
-          displayText("队列内恢复量"),
-          displayUnit(operator.recoveredMood, "number", " 心情"),
-        ),
-        displayRow(
-          "dormitory-operator-end-mood",
-          displayText("预计末心情"),
-          displayValue(
-            `${formatNumber(operator.endMood)}（目标 ${formatNumber(operator.expectedMood)}，${formatNumber(plan.durationHours)} 小时）`,
-          ),
+          "dormitory-operator-final-rate",
+          displayText("实际恢复速度"),
+          displayUnit(operator.rate, "number", " 心情/小时"),
         ),
       );
-    }
-    return {
-      key: `dormitory-operator-${operator.slotIndex}-${operator.operator}`,
-      title: displayText(operator.operator),
-      rows: operatorRows,
-    };
+      if (
+        operator.startMood !== undefined &&
+        operator.expectedMood !== undefined &&
+        operator.recoveredMood !== undefined &&
+        operator.endMood !== undefined
+      ) {
+        operatorRows.push(
+          displayRow(
+            "dormitory-operator-start-mood",
+            displayText("队列开始时心情"),
+            displayNumber(operator.startMood),
+          ),
+          displayRow(
+            "dormitory-operator-recovery-amount",
+            displayText("队列内恢复量"),
+            displayUnit(operator.recoveredMood, "number", " 心情"),
+          ),
+          displayRow(
+            "dormitory-operator-end-mood",
+            displayText("队列结束时心情"),
+            displayValue(
+              `${formatNumber(operator.endMood)}（目标 ${formatNumber(operator.expectedMood)}，${formatNumber(plan.durationHours)} 小时）`,
+            ),
+          ),
+        );
+      }
+      entries.push({
+        key: `dormitory-${recovery.facilityId}-operator-${operator.slotIndex}-${operator.operator}`,
+        title: displayText(`${roomLabel} · ${operator.operator}`),
+        rows: operatorRows,
+      });
+    });
   });
   return {
     key: "dormitory-recovery",
-    label: "宿舍心情恢复步骤",
     rows,
     entries,
   };
@@ -1758,9 +1761,9 @@ function facilityStepSections(
   const sections: DisplaySection[] = [];
   const facility = step.facility;
   if (!facility) {
-    if (step.dormitoryRecovery) {
+    if (step.dormitoryRecoveries) {
       sections.push(
-        dormitoryRecoverySection(step.dormitoryRecovery, step.plan),
+        dormitoryRecoverySection(step.dormitoryRecoveries, step.plan),
       );
     }
     if (step.moods.length) {
@@ -1850,15 +1853,19 @@ function facilityStepView(
       ? "当前设施没有可展开的技能明细"
       : undefined;
   return {
-    key: `step-${step.planIndex}-${facility?.facility.id ?? "control"}`,
+    key: `step-${step.planIndex}-${
+      facility?.facility.id ?? step.dormitory?.id ?? "control"
+    }`,
     planIndex: step.planIndex,
     ...(facility ? { facilityId: facility.facility.id } : {}),
     facilityLabel: facility
       ? (options.facilityLabel?.(facility) ??
         formatFacilityResultLabel(facility, result.document.layout))
-      : step.dormitory
-        ? `${ROOM_LABELS.dormitory} ${step.dormitory.index + 1}`
-        : ROOM_LABELS.control,
+      : step.dormitoryRecoveries
+        ? ROOM_LABELS.dormitory
+        : step.dormitory
+          ? `${ROOM_LABELS.dormitory} ${step.dormitory.index + 1}`
+          : ROOM_LABELS.control,
     ...(step.dormitory ? { facilityId: step.dormitory.id } : {}),
     ...(inherited ? { inheritedLabel: inherited } : {}),
     ...(facility ? { efficiency: facility.efficiency } : {}),

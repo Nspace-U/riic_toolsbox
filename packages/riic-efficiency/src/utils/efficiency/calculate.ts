@@ -1746,6 +1746,10 @@ function moodRecoveryContributionsForPlan(
           emptyEvaluationData(),
         ),
         ...(effect.scope !== undefined ? { scope: effect.scope } : {}),
+        ...(effect.op !== undefined ? { op: effect.op } : {}),
+        ...(effect.moodBelow !== undefined
+          ? { moodBelow: effect.moodBelow }
+          : {}),
         ...(effect.subjects !== undefined ? { subjects: effect.subjects } : {}),
         ...(effect.scopeGroup !== undefined
           ? { scopeGroup: effect.scopeGroup }
@@ -2390,13 +2394,27 @@ function moodRecoveryEffectContributions(
   distribution: DormitoryRecoveryContribution["distribution"],
 ): DormitoryRecoveryContribution[] {
   const contributions: DormitoryRecoveryContribution[] = [];
+  function contributionDistribution(
+    item: ActiveEffect,
+  ): DormitoryRecoveryContribution["distribution"] {
+    if (
+      distribution === "shared" &&
+      (item.effect.scope === "op" ||
+        item.effect.op !== undefined ||
+        item.effect.moodBelow !== undefined ||
+        item.effect.scopeGroup !== undefined)
+    ) {
+      return "specific";
+    }
+    return distribution;
+  }
   const groups = new Map<string, ActiveEffect[]>();
   items.forEach((item) => {
     if (item.effect.stack !== "max") {
       contributions.push({
         operator: item.owner.name,
         skill: item.skill,
-        distribution,
+        distribution: contributionDistribution(item),
         value: effectValue(
           item,
           target,
@@ -2439,7 +2457,7 @@ function moodRecoveryEffectContributions(
       contributions.push({
         operator: item.owner.name,
         skill: item.skill,
-        distribution,
+        distribution: contributionDistribution(item),
         value: effectValue(
           item,
           target,

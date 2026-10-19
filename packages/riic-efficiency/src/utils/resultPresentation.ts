@@ -60,20 +60,23 @@ export function buildCalculationSteps(
   result: EfficiencyResult,
 ): EfficiencyCalculationStepView[] {
   return result.plans.flatMap((plan, planIndex) => {
-    const dormitorySteps = plan.dormitoryRecoveries.map((recovery) => {
-      return {
-        plan,
-        planIndex,
-        dormitory: {
-          id: recovery.facilityId,
-          type: "dormitory" as const,
-          level: 0,
-          index: recovery.facilityIndex,
-        },
-        dormitoryRecovery: recovery,
-        moods: [] as MoodSnapshot[],
-      };
-    });
+    const dormitorySteps =
+      plan.dormitoryRecoveries.length > 0
+        ? [
+            {
+              plan,
+              planIndex,
+              dormitory: {
+                id: "dormitory-recovery",
+                type: "dormitory" as const,
+                level: 0,
+                index: 0,
+              },
+              dormitoryRecoveries: plan.dormitoryRecoveries,
+              moods: [] as MoodSnapshot[],
+            },
+          ]
+        : [];
     const facilitySteps = plan.facilities
       .filter(
         (facility) =>
@@ -111,13 +114,17 @@ export function buildCalculationStepGroups(
 ): EfficiencyCalculationStepGroup[] {
   const groups = new Map<string, EfficiencyCalculationStepGroup>();
   steps.forEach((step) => {
-    const key = step.facility?.facility.id ?? step.dormitory?.id ?? "control";
+    const key = step.dormitoryRecoveries
+      ? "dormitory-recovery"
+      : (step.facility?.facility.id ?? step.dormitory?.id ?? "control");
     const label = step.facility
       ? (callbacks.facilityLabel?.(step.facility) ??
         `${ROOM_LABELS[step.facility.facility.type]} ${step.facility.facility.index + 1}`)
-      : step.dormitory
-        ? `${ROOM_LABELS.dormitory} ${step.dormitory.index + 1}`
-        : ROOM_LABELS.control;
+      : step.dormitoryRecoveries
+        ? ROOM_LABELS.dormitory
+        : step.dormitory
+          ? `${ROOM_LABELS.dormitory} ${step.dormitory.index + 1}`
+          : ROOM_LABELS.control;
     let group = groups.get(key);
     if (!group) {
       group = {

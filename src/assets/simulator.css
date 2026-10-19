@@ -1178,6 +1178,14 @@
   align-items: start;
 }
 
+:deep(.simulator-dormitory-recovery .simulator-step-detail-grid) {
+  grid-template-columns: minmax(0, 1fr) max-content;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 :deep(.simulator-mood-operator) {
   grid-column: 1 / -1;
 }
