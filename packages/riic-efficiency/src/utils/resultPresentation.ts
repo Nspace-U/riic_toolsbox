@@ -77,7 +77,7 @@ export function buildCalculationSteps(
             },
           ]
         : [];
-    const facilitySteps = plan.facilities
+    const facilitySteps: EfficiencyCalculationStepView[] = plan.facilities
       .filter(
         (facility) =>
           facility.facility.type !== "dormitory" &&
@@ -97,13 +97,17 @@ export function buildCalculationSteps(
     const controlMoods = plan.moods.filter(
       (mood) => mood.facility === "control" && mood.working,
     );
+    const recycleIndex = facilitySteps.findIndex(
+      ({ facility }) => facility?.facility.type === "recycle",
+    );
+    facilitySteps.splice(
+      recycleIndex >= 0 ? recycleIndex + 1 : facilitySteps.length,
+      0,
+      ...dormitorySteps,
+    );
     return controlMoods.length > 0
-      ? [
-          { plan, planIndex, moods: controlMoods },
-          ...dormitorySteps,
-          ...facilitySteps,
-        ]
-      : [...dormitorySteps, ...facilitySteps];
+      ? [{ plan, planIndex, moods: controlMoods }, ...facilitySteps]
+      : facilitySteps;
   });
 }
 
