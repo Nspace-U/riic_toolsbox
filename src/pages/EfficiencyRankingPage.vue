@@ -317,10 +317,10 @@ const meetingCategoryTabs = computed(() => [
 
 const dormitoryCategoryTabs = computed(() =>
   [
-    { key: "self" as const, label: "自回" },
-    { key: "group" as const, label: "群回" },
-    { key: "single" as const, label: "单回" },
-    { key: "targeted" as const, label: "定回" },
+    { key: "group" as const, label: "群体恢复" },
+    { key: "single" as const, label: "单体回复" },
+    { key: "targeted" as const, label: "定向恢复" },
+    { key: "self" as const, label: "自身恢复" },
   ].map((category) => ({
     ...category,
     count: rowsForDormitoryCategory(category.key).length,
