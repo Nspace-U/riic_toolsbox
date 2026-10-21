@@ -209,19 +209,10 @@ function extractListedOperatorNames(description: string | undefined): string[] {
 }
 
 function extractOperatorTerms(
-  skills: OperatorSkill[],
   terms: Record<string, TorappuTermDescription>,
   operatorName: string,
 ): SkillTermReference[] {
   const references = new Map<string, SkillTermReference>();
-  skills
-    .flatMap((skill) => skill.termReferences)
-    .forEach((reference) => {
-      references.set(reference.key, {
-        key: reference.key,
-        name: terms[reference.key]?.termName ?? reference.name,
-      });
-    });
   Object.entries(terms).forEach(([key, term]) => {
     if (!extractListedOperatorNames(term.description).includes(operatorName)) {
       return;
@@ -377,7 +368,7 @@ export function parseTorappuData(
       branch: character.branch ?? character.subProfessionId ?? "",
       rarity: rarityValue(character.rarity),
       avatars: buildAvatars(operatorId, character, missingAvatars),
-      termReferences: extractOperatorTerms(skills, terms, character.name),
+      termReferences: extractOperatorTerms(terms, character.name),
       skills,
     });
   }
