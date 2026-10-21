@@ -1322,15 +1322,6 @@ function dormitoryRecoverySection(
           ),
         );
       });
-      if (recovery.contributions.length === 0) {
-        rows.push(
-          displayRow(
-            `dormitory-${recovery.facilityId}-room-sources-empty`,
-            displayText("干员技能贡献"),
-            displayText("无"),
-          ),
-        );
-      }
       const entries = recovery.operators.map((operator): DisplayEntry => {
         const operatorRows: DisplayRow[] = [];
         operator.contributions.forEach((contribution, index) => {
@@ -1348,15 +1339,6 @@ function dormitoryRecoverySection(
             ),
           );
         });
-        if (operator.contributions.length === 0) {
-          operatorRows.push(
-            displayRow(
-              "dormitory-operator-sources-empty",
-              displayText("干员技能贡献"),
-              displayText("无"),
-            ),
-          );
-        }
         operatorRows.push(
           displayRow(
             "dormitory-operator-final-rate",
