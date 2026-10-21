@@ -2698,6 +2698,7 @@ function dormitoryRecoverySnapshotsForContext(
     { startMood: number; expectedMood: number; endMood: number }
   > = new Map(),
   sourcePlacements: Placement[] = context.placements,
+  hiddenOperators: ReadonlySet<string> = new Set(),
 ): DormitoryRecoverySnapshot[] {
   const explicitMembers = sourcePlacements.filter(
     (placement) => placement.facility.type === "dormitory",
@@ -2732,6 +2733,8 @@ function dormitoryRecoverySnapshotsForContext(
             members,
             expectedMoods,
             catalog,
+          ).filter(
+            (contribution) => !hiddenOperators.has(contribution.operator),
           );
           const blocksOtherRecovery = context.active.some(
             (item) =>
@@ -2772,7 +2775,9 @@ function dormitoryRecoverySnapshotsForContext(
         facilityIndex: dormitory.index,
         baseRate: 1.5 + 0.5 * dormitory.level,
         contributions: contributions.filter(
-          (contribution) => contribution.facilityId === dormitory.id,
+          (contribution) =>
+            contribution.facilityId === dormitory.id &&
+            !hiddenOperators.has(contribution.operator),
         ),
         operators,
       };
@@ -3041,6 +3046,7 @@ function resolveAutomaticRest(
         catalog,
         predictions,
         originalPlacements,
+        new Set(restPlacements.map((placement) => placement.name)),
       );
     } finally {
       changedMoods.forEach((mood, placement) => {
