@@ -1255,7 +1255,7 @@ function dormitoryContributionLabel(
   const distribution = {
     shared: "群体恢复",
     self: fixedRecovery ? "固定恢复" : "自身恢复",
-    single: roomTotal ? "单体恢复 · 单人额外总量" : "单体恢复",
+    single: "单体恢复",
     spread: roomTotal ? "特定恢复 · 均摊总量" : "特定恢复 · 均摊",
     specific: "特定恢复",
   }[contribution.distribution];
