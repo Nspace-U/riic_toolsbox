@@ -80,6 +80,7 @@ export interface EfficiencyRankingEntry {
   progressionLabel: string;
   sourceIndex: number;
   meetingCategory?: "normal" | "independent" | "combo";
+  basePointScenarios?: Record<string, string>;
   pairedOperators?: Array<{
     operator: Operator;
     progression: { elite: EliteLevel; level: number };
@@ -147,50 +148,86 @@ function catalogForEfficiencyRankingEntry(
   catalog: EfficiencyCatalog,
   entry: EfficiencyRankingEntry,
 ): EfficiencyCatalog {
-  if (
-    entry.facility !== "power" ||
-    !["char_4227_gallus", "char_4188_confes"].includes(entry.operator.id)
-  ) {
-    return catalog;
-  }
-  const operator = catalog.operators[entry.operator.name];
-  const skillFile = operator?.skillFile;
-  if (!operator || !skillFile) return catalog;
+  let nextOperators = catalog.operators;
+  let changed = false;
+  rankingOperators(entry).forEach(({ operator: entryOperator }) => {
+    const operator = nextOperators[entryOperator.name];
+    const skillFile = operator?.skillFile;
+    if (!operator || !skillFile) return;
+    const scenarioTerm = entry.basePointScenarios?.[entryOperator.id];
+    const correctPowerCondition =
+      entry.facility === "power" &&
+      ["char_4227_gallus", "char_4188_confes"].includes(entryOperator.id);
+    if (!scenarioTerm && !correctPowerCondition) return;
+    let operatorChanged = false;
+    const chains = skillFile.chains.map((chain) => {
+      if (
+        scenarioTerm &&
+        chain.room === entry.facility &&
+        chain.stages.some((stage) =>
+          stage.effects.some(
+            (effect) =>
+              effectAffectsRanking(effect, entry.facility) &&
+              effect.per?.source === "basePoint" &&
+              effect.per.term !== scenarioTerm,
+          ),
+        )
+      ) {
+        operatorChanged = true;
+        return {
+          ...chain,
+          stages: chain.stages.map((stage) => ({
+            ...stage,
+            effects: stage.effects.filter(
+              (effect) =>
+                !(
+                  effectAffectsRanking(effect, entry.facility) &&
+                  effect.per?.source === "basePoint" &&
+                  effect.per.term !== scenarioTerm
+                ),
+            ),
+          })),
+        };
+      }
+      if (!correctPowerCondition || chain.room !== "power") return chain;
+      const stages = chain.stages.map((stage) => {
+        let stageChanged = false;
+        const effects = stage.effects.map((effect) => {
+          const condition = effect.condition;
+          if (
+            condition?.type !== "opGroupInFacility" ||
+            condition.facility !== "same" ||
+            !condition.other
+          ) {
+            return effect;
+          }
+          stageChanged = true;
+          operatorChanged = true;
+          return {
+            ...effect,
+            condition: { ...condition, facility: "power" as const },
+          };
+        });
+        return stageChanged ? { ...stage, effects } : stage;
+      });
+      return stages.some((stage, index) => stage !== chain.stages[index])
+        ? { ...chain, stages }
+        : chain;
+    });
+    if (!operatorChanged) return;
+    changed = true;
+    nextOperators = {
+      ...nextOperators,
+      [entryOperator.name]: {
+        ...operator,
+        skillFile: { ...skillFile, chains },
+      },
+    };
+  });
+  if (!changed) return catalog;
   return {
     ...catalog,
-    operators: {
-      ...catalog.operators,
-      [entry.operator.name]: {
-        ...operator,
-        skillFile: {
-          ...skillFile,
-          chains: skillFile.chains.map((chain) =>
-            chain.room !== "power"
-              ? chain
-              : {
-                  ...chain,
-                  stages: chain.stages.map((stage) => ({
-                    ...stage,
-                    effects: stage.effects.map((effect) => {
-                      const condition = effect.condition;
-                      if (
-                        condition?.type !== "opGroupInFacility" ||
-                        condition.facility !== "same" ||
-                        !condition.other
-                      ) {
-                        return effect;
-                      }
-                      return {
-                        ...effect,
-                        condition: { ...condition, facility: "power" },
-                      };
-                    }),
-                  })),
-                },
-          ),
-        },
-      },
-    },
+    operators: nextOperators,
   };
 }
 
@@ -361,6 +398,69 @@ function dormitoryCategoriesForEntry(
   return [...categories];
 }
 
+function basePointTermsForOperator(
+  operator: Operator,
+  progression: { elite: EliteLevel; level: number },
+  facility: RoomKey,
+  catalog: EfficiencyCatalog,
+): string[] {
+  const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
+    .map((chain, chainIndex) => ({ chain, chainIndex }))
+    .filter(({ chain }) => chain.room === facility);
+  const terms = new Set<string>();
+  selectedStages(chains, progression).forEach(({ stage }) => {
+    stage.effects.forEach((effect) => {
+      if (
+        effectAffectsRanking(effect, facility) &&
+        effect.per?.source === "basePoint" &&
+        effect.per.term
+      ) {
+        terms.add(effect.per.term);
+      }
+    });
+  });
+  return [...terms].sort();
+}
+
+function expandBasePointScenarios(
+  entry: Omit<EfficiencyRankingEntry, "schedule">,
+  catalog: EfficiencyCatalog,
+): Omit<EfficiencyRankingEntry, "schedule">[] {
+  const dimensions = [
+    { operator: entry.operator, progression: entry.progression },
+    ...(entry.pairedOperators ?? []).map(({ operator, progression }) => ({
+      operator,
+      progression,
+    })),
+  ]
+    .map(({ operator, progression }) => ({
+      operator,
+      terms: basePointTermsForOperator(
+        operator,
+        progression,
+        entry.facility,
+        catalog,
+      ),
+    }))
+    .filter(({ terms }) => terms.length > 1);
+  if (!dimensions.length) return [entry];
+  const scenarios = dimensions.reduce<Record<string, string>[]>(
+    (current, { operator, terms }) =>
+      current.flatMap((scenario) =>
+        terms.map((term) => ({ ...scenario, [operator.id]: term })),
+      ),
+    [{}],
+  );
+  return scenarios.map((basePointScenarios) => ({
+    ...entry,
+    id: `${entry.id}:base-point:${Object.entries(basePointScenarios)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([id, term]) => `${id}=${term}`)
+      .join(",")}`,
+    basePointScenarios,
+  }));
+}
+
 export function buildEfficiencyRankingEntries(
   operators: Operator[],
   catalog: EfficiencyCatalog,
@@ -372,6 +472,7 @@ export function buildEfficiencyRankingEntries(
     operators.map((operator) => [operator.name, operator]),
   );
   const entries: Omit<EfficiencyRankingEntry, "schedule">[] = [];
+  const comboEntryIds = new Set<string>();
   EFFICIENCY_RANKING_FACILITIES.forEach(({ key: facility }) => {
     operators.forEach((operator, sourceIndex) => {
       const progressions = progressionsForOperator(operator, catalog, facility);
@@ -412,7 +513,8 @@ export function buildEfficiencyRankingEntries(
       "meeting",
     );
     leaderProgressions.forEach((leaderProgression) => {
-      const partnerNames = new Set<string>();
+      const explicitPartnerNames = new Set<string>();
+      const groupPartnerNames = new Set<string>();
       selectedStages(leaderChains, leaderProgression.progression).forEach(
         ({ stage }) => {
           stage.effects.forEach((effect) => {
@@ -429,7 +531,7 @@ export function buildEfficiencyRankingEntries(
                 condition.facility === "same") &&
               typeof condition.op === "string"
             ) {
-              partnerNames.add(condition.op);
+              explicitPartnerNames.add(condition.op);
             }
             if (
               condition?.type === "opGroupInFacility" &&
@@ -445,13 +547,22 @@ export function buildEfficiencyRankingEntries(
                     operator.name,
                   ),
                 )
-                .forEach((operator) => partnerNames.add(operator.name));
+                .forEach((operator) => groupPartnerNames.add(operator.name));
             }
           });
         },
       );
-      [...partnerNames]
-        .filter((name) => name !== leader.name)
+      [...new Set([...explicitPartnerNames, ...groupPartnerNames])]
+        .filter((name) => {
+          const candidate = operatorByName.get(name);
+          return (
+            name !== leader.name &&
+            Boolean(candidate) &&
+            (explicitPartnerNames.has(name) ||
+              progressionsForOperator(candidate!, catalog, "meeting").length >
+                0)
+          );
+        })
         .map((name) => operatorByName.get(name))
         .filter((operator): operator is Operator => Boolean(operator))
         .forEach((candidate) => {
@@ -462,19 +573,42 @@ export function buildEfficiencyRankingEntries(
             true,
           );
           partnerProgressions.forEach((partnerProgression) => {
+            const members: Array<{
+              operator: Operator;
+              progression: { elite: EliteLevel; level: number };
+              progressionLabel: string;
+            }> = [
+              {
+                operator: leader,
+                progression: leaderProgression.progression,
+                progressionLabel: leaderProgression.progressionLabel,
+              },
+              {
+                operator: candidate,
+                progression: partnerProgression.progression,
+                progressionLabel: partnerProgression.progressionLabel,
+              },
+            ].sort((left, right) =>
+              left.operator.id.localeCompare(right.operator.id),
+            );
+            const primary = members[0]!;
+            const paired = members[1]!;
+            const id = `meeting:combo:${primary.operator.id}:${progressionKey(primary.progression)}:${paired.operator.id}:${progressionKey(paired.progression)}`;
+            if (comboEntryIds.has(id)) return;
+            comboEntryIds.add(id);
             entries.push({
-              id: `meeting:combo:${leader.id}:${progressionKey(leaderProgression.progression)}:${candidate.id}:${progressionKey(partnerProgression.progression)}`,
+              id,
               facility: "meeting",
-              operator: leader,
-              progression: leaderProgression.progression,
-              progressionLabel: leaderProgression.progressionLabel,
-              sourceIndex: operatorIndexes.get(leader.name) ?? 0,
+              operator: primary.operator,
+              progression: primary.progression,
+              progressionLabel: primary.progressionLabel,
+              sourceIndex: operatorIndexes.get(primary.operator.name) ?? 0,
               meetingCategory: "combo",
               pairedOperators: [
                 {
-                  operator: candidate,
-                  progression: partnerProgression.progression,
-                  progressionLabel: partnerProgression.progressionLabel,
+                  operator: paired.operator,
+                  progression: paired.progression,
+                  progressionLabel: paired.progressionLabel,
                 },
               ],
             });
@@ -482,7 +616,7 @@ export function buildEfficiencyRankingEntries(
         });
     });
   });
-  return entries;
+  return entries.flatMap((entry) => expandBasePointScenarios(entry, catalog));
 }
 
 export function createDefaultEfficiencyRankingLayout(): LayoutEntry[] {
@@ -909,6 +1043,9 @@ export function selectEfficiencyRankingRows(
       row.operator.id,
       row.meetingCategory ?? "",
       ...(row.pairedOperators ?? []).map((item) => item.operator.id),
+      ...Object.entries(row.basePointScenarios ?? {})
+        .sort(([left], [right]) => left.localeCompare(right))
+        .flatMap(([operatorId, term]) => [operatorId, term]),
     ].join(":");
     const group = groups.get(key) ?? [];
     group.push(row);
@@ -951,6 +1088,20 @@ function effectAffectsRanking(
       "moodCost",
       "moodRecover",
     ].includes(effect.stat)
+  );
+}
+
+function effectIncludedInBasePointScenario(
+  entry: Pick<EfficiencyRankingEntry, "basePointScenarios">,
+  operator: Operator,
+  effect: EfficiencyEffect,
+): boolean {
+  const term = entry.basePointScenarios?.[operator.id];
+  return (
+    !term ||
+    effect.per?.source !== "basePoint" ||
+    !effect.per.term ||
+    effect.per.term === term
   );
 }
 
@@ -1002,7 +1153,12 @@ export function defaultEfficiencyRankingNote(
       .filter(({ chain }) => chain.room === entry.facility);
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
-        if (!effectAffectsRanking(effect, entry.facility)) return;
+        if (
+          !effectAffectsRanking(effect, entry.facility) ||
+          !effectIncludedInBasePointScenario(entry, operator, effect)
+        ) {
+          return;
+        }
         if (effect.condition) {
           if (
             conditionProvidedByMeetingCombo(
@@ -1239,7 +1395,11 @@ function unmetConditionNotes(
     const activeStages = selectedStages(chains, progression);
     activeStages.forEach(({ chainIndex, stageIndex, stage }) => {
       stage.effects.forEach((effect, effectIndex) => {
-        if (!effect.condition || !effectAffectsRanking(effect, entry.facility))
+        if (
+          !effect.condition ||
+          !effectAffectsRanking(effect, entry.facility) ||
+          !effectIncludedInBasePointScenario(entry, operator, effect)
+        )
           return;
         const nextCatalog = catalogWithoutEffectCondition(
           catalog,
@@ -1282,7 +1442,12 @@ function unmetGroupCountNotes(
       .filter(({ chain }) => chain.room === entry.facility);
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
-        if (!effectAffectsRanking(effect, entry.facility)) return;
+        if (
+          !effectAffectsRanking(effect, entry.facility) ||
+          !effectIncludedInBasePointScenario(entry, operator, effect)
+        ) {
+          return;
+        }
         const per = effect.per;
         if (per?.source === "basePoint" && per.term) {
           if ((resultPlan.basePoints[per.term] ?? 0) <= 0) {

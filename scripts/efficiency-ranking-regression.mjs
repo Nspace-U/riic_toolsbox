@@ -119,48 +119,318 @@ try {
 
   check("忍冬只在联动技能解锁后生成铃兰组合", () => {
     const rows = entries.filter(
-      (row) => row.operator.name === "忍冬" && row.meetingCategory === "combo",
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("忍冬") &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("铃兰"),
     );
     assert.ok(rows.length > 0);
-    assert.ok(rows.every((row) => row.progression.elite === 2));
+    assert.ok(
+      rows.every(
+        (row) =>
+          [row, ...row.pairedOperators].find(
+            ({ operator }) => operator.name === "忍冬",
+          ).progression.elite === 2,
+      ),
+    );
     assert.deepEqual(
-      [...new Set(rows.map((row) => row.pairedOperators[0].progression.elite))],
+      [
+        ...new Set(
+          rows.map(
+            (row) =>
+              [row, ...row.pairedOperators].find(
+                ({ operator }) => operator.name === "铃兰",
+              ).progression.elite,
+          ),
+        ),
+      ],
       [0, 1, 2],
     );
   });
 
-  check("没有会客室技能的搭档保留全部可达精英阶段和练度效率", () => {
-    const sample = entries.find(
+  check("凛视和提丰的双向条件只生成一次，且练度搭配仍分别保留", () => {
+    const rows = entries.filter(
       (row) =>
         row.meetingCategory === "combo" &&
-        row.pairedOperators.some(
+        new Set([
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ]).size === 2 &&
+        [row.operator.name, row.pairedOperators[0].operator.name].includes(
+          "凛视",
+        ) &&
+        [row.operator.name, row.pairedOperators[0].operator.name].includes(
+          "提丰",
+        ),
+    );
+    const identities = rows.map((row) =>
+      [row, ...row.pairedOperators]
+        .map(
+          ({ operator, progression }) =>
+            `${operator.id}:${progression.elite}:${progression.level}`,
+        )
+        .sort()
+        .join("+"),
+    );
+    assert.ok(rows.length > 0);
+    assert.equal(new Set(identities).size, rows.length);
+    assert.ok(
+      rows.every(
+        (row) =>
+          row.operator.id.localeCompare(row.pairedOperators[0].operator.id) < 0,
+      ),
+    );
+    assert.ok(
+      new Set(rows.map((row) => row.pairedOperators[0].progression.elite))
+        .size > 1,
+    );
+  });
+
+  check("阵营派生过滤无会客技能成员，明确点名搭档仍保留练度", () => {
+    assert.equal(
+      entries.some(
+        (row) =>
+          row.meetingCategory === "combo" &&
+          [
+            row.operator.name,
+            ...row.pairedOperators.map(({ operator }) => operator.name),
+          ].includes("提丰") &&
+          [
+            row.operator.name,
+            ...row.pairedOperators.map(({ operator }) => operator.name),
+          ].includes("柏喙"),
+      ),
+      false,
+    );
+    const explicitRows = entries.filter(
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("忍冬") &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("铃兰"),
+    );
+    assert.ok(
+      explicitRows.some((row) =>
+        [row, ...row.pairedOperators].some(
           ({ operator }) =>
-            operator.maxEliteLevel === 2 &&
             !catalog.operators[operator.name]?.skillFile?.chains.some(
               (chain) => chain.room === "meeting",
             ),
         ),
+      ),
     );
-    assert.ok(sample);
-    const partnerName = sample.pairedOperators[0].operator.name;
-    const rows = entries.filter(
+  });
+
+  check("没有会客室技能的搭档保留全部可达精英阶段和练度效率", () => {
+    const changed = structuredClone(catalog);
+    const changeLeader = "忍冬";
+    const partnerName = "柏喙";
+    const meetingEffect = changed.operators[changeLeader].skillFile.chains
+      .find((chain) => chain.room === "meeting")
+      .stages.flatMap((stage) => stage.effects)
+      .find((effect) => effect.target === "meeting");
+    meetingEffect.condition = {
+      type: "opAtFacility",
+      op: partnerName,
+      facility: "same",
+      other: true,
+    };
+    const changedEntries = ranking.buildEfficiencyRankingEntries(
+      operators,
+      changed,
+    );
+    const sample = changedEntries.find(
       (row) =>
         row.meetingCategory === "combo" &&
-        row.operator.name === sample.operator.name &&
-        row.progression.elite === sample.progression.elite &&
-        row.progression.level === sample.progression.level &&
-        row.pairedOperators[0].operator.name === partnerName,
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes(changeLeader) &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes(partnerName),
+    );
+    assert.ok(sample);
+    const leaderProgression = [sample, ...sample.pairedOperators].find(
+      ({ operator }) => operator.name === changeLeader,
+    ).progression;
+    const rows = changedEntries.filter(
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes(changeLeader) &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes(partnerName) &&
+        [row, ...row.pairedOperators].some(
+          ({ operator, progression }) =>
+            operator.name === changeLeader &&
+            progression.elite === leaderProgression.elite &&
+            progression.level === leaderProgression.level,
+        ),
     );
     assert.deepEqual(
-      [...new Set(rows.map((row) => row.pairedOperators[0].progression.elite))],
+      [
+        ...new Set(
+          rows.map(
+            (row) =>
+              [row, ...row.pairedOperators].find(
+                ({ operator }) => operator.name === partnerName,
+              ).progression.elite,
+          ),
+        ),
+      ],
       [0, 1, 2],
     );
-    const efficiencies = rows.map((row) => calculate(row));
+    const efficiencies = rows.map((row) => calculate(row, changed));
     assert.ok(efficiencies[0].efficiency < efficiencies.at(-1).efficiency);
     assert.ok(
       efficiencies.every(
         (result) => result.operatorSkillEfficiencies[partnerName] === 0,
       ),
+    );
+  });
+
+  check("闪击按基建点类型生成独立效率行并分别计算", () => {
+    const rows = entries.filter(
+      (row) =>
+        row.operator.name === "闪击" &&
+        row.facility === "hire" &&
+        row.progression.elite === 2 &&
+        row.basePointScenarios,
+    );
+    assert.equal(rows.length, 2);
+    assert.deepEqual(
+      rows.map((row) => Object.values(row.basePointScenarios)[0]).sort(),
+      ["cc.bd_ash", "cc.bd_tachanka"],
+    );
+    rows.forEach((row) => {
+      const scenarioTerm = Object.values(row.basePointScenarios)[0];
+      const otherTerm = ["cc.bd_ash", "cc.bd_tachanka"].find(
+        (term) => term !== scenarioTerm,
+      );
+      const note = ranking.defaultEfficiencyRankingNote(row, catalog);
+      assert.match(note, /增益取决于/);
+      assert.equal((note.match(/增益取决于/g) ?? []).length, 1);
+      assert.match(note, new RegExp(catalog.terms[scenarioTerm].name));
+      const unsupportedSchedule = ranking.createEfficiencyRankingSchedule(row, {
+        layout,
+        workHours: 24,
+        clueExchanging: true,
+        treatSkillsAsUnlocked: false,
+        dormitoryDefaultIncludesMoodRecovery: false,
+        catalog,
+      });
+      Object.values(unsupportedSchedule.plans[0].rooms).forEach(
+        (assignments) => {
+          if (!Array.isArray(assignments)) return;
+          assignments.forEach((assignment) => {
+            assignment.operators = (assignment.operators ?? []).filter(
+              (name) => !["灰烬", "战车"].includes(name),
+            );
+          });
+        },
+      );
+      const unmet = ranking.calculateEfficiencyRankingEntry(catalog, {
+        ...row,
+        schedule: unsupportedSchedule,
+      });
+      assert.ok(
+        unmet.notes.some((item) =>
+          item.includes(catalog.terms[scenarioTerm].name),
+        ),
+      );
+      assert.ok(
+        unmet.notes.every(
+          (item) => !item.includes(catalog.terms[otherTerm].name),
+        ),
+      );
+    });
+    const scenarioCatalog = structuredClone(catalog);
+    for (const [name, term, value] of [
+      ["芬", "cc.bd_ash", 2],
+      ["香草", "cc.bd_tachanka", 1],
+    ]) {
+      scenarioCatalog.operators[name].skillFile.chains.push({
+        slot: 99,
+        room: "control",
+        stages: [
+          {
+            unlock: { type: "elite", value: 0 },
+            name: "测试点数",
+            effects: [{ target: "any", stat: "basePointGain", term, value }],
+          },
+        ],
+      });
+    }
+    const results = rows.map((row) => {
+      const schedule = ranking.createEfficiencyRankingSchedule(row, {
+        layout,
+        workHours: 24,
+        clueExchanging: true,
+        treatSkillsAsUnlocked: false,
+        dormitoryDefaultIncludesMoodRecovery: false,
+        catalog: scenarioCatalog,
+      });
+      schedule.plans[0].rooms.control[0].operators = ["芬", "香草"];
+      return ranking.calculateEfficiencyRankingEntry(scenarioCatalog, {
+        ...row,
+        schedule,
+      });
+    });
+    assert.notEqual(results[0].efficiency, results[1].efficiency);
+    assert.deepEqual(
+      results.map((result) => result.efficiency),
+      [30, 25],
+    );
+  });
+
+  check("赤刃明霄陈的默认招募支援提供人间烟火点数", () => {
+    const entry = entries.find(
+      (row) =>
+        row.operator.name === "赤刃明霄陈" &&
+        row.facility === "meeting" &&
+        row.progression.elite === 2,
+    );
+    assert.ok(entry);
+    const schedule = ranking.createEfficiencyRankingSchedule(entry, {
+      layout,
+      workHours: 24,
+      clueExchanging: true,
+      treatSkillsAsUnlocked: false,
+      dormitoryDefaultIncludesMoodRecovery: false,
+      catalog,
+    });
+    assert.ok(schedule.plans[0].rooms.hire[0].operators.includes("桑葚"));
+    assert.ok(!schedule.plans[0].rooms.hire[0].operators.includes("絮雨"));
+  });
+
+  check("行医术语以可读名称和干员列表显示", () => {
+    assert.equal(catalog.terms["cc.c.clinician"].name, "行医");
+    assert.ok(catalog.terms["cc.c.clinician"].members.includes("纯烬艾雅法拉"));
+    const entry = entries.find(
+      (row) =>
+        row.operator.name === "纯烬艾雅法拉" && row.facility === "dormitory",
+    );
+    assert.match(ranking.defaultEfficiencyRankingNote(entry, catalog), /行医/);
+    assert.doesNotMatch(
+      ranking.defaultEfficiencyRankingNote(entry, catalog),
+      /cc\.c\.clinician/,
     );
   });
 
@@ -208,7 +478,21 @@ try {
         row.progression.elite === 2,
     );
     const single = rows.find((row) => row.meetingCategory !== "combo");
-    const combo = rows.find((row) => row.meetingCategory === "combo");
+    const combo = entries.find(
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("忍冬") &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("铃兰") &&
+        [row, ...row.pairedOperators].find(
+          ({ operator }) => operator.name === "忍冬",
+        ).progression.elite === 2,
+    );
     assert.match(ranking.defaultEfficiencyRankingNote(single, catalog), /铃兰/);
     assert.doesNotMatch(
       ranking.defaultEfficiencyRankingNote(combo, catalog),
@@ -318,7 +602,16 @@ try {
   check("会客室组合保留外部支援、线索交流、人数和暖机要求", () => {
     const changed = structuredClone(catalog);
     const combo = entries.find(
-      (row) => row.operator.name === "忍冬" && row.meetingCategory === "combo",
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("忍冬") &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("铃兰"),
     );
     const effects =
       changed.operators["忍冬"].skillFile.chains[1].stages[0].effects;
@@ -366,7 +659,16 @@ try {
 
   check("组合编辑后移除搭档仍提示未满足的联动条件", () => {
     const combo = entries.find(
-      (row) => row.operator.name === "忍冬" && row.meetingCategory === "combo",
+      (row) =>
+        row.meetingCategory === "combo" &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("忍冬") &&
+        [
+          row.operator.name,
+          ...row.pairedOperators.map(({ operator }) => operator.name),
+        ].includes("铃兰"),
     );
     const schedule = ranking.createEfficiencyRankingSchedule(combo, {
       layout,
@@ -383,6 +685,13 @@ try {
     });
     assert.ok(
       result.notes.some((note) => /条件未满足：需要铃兰进驻会客室/.test(note)),
+      JSON.stringify({
+        members: [
+          combo.operator.name,
+          ...combo.pairedOperators.map(({ operator }) => operator.name),
+        ],
+        notes: result.notes,
+      }),
     );
   });
 

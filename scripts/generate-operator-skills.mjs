@@ -137,7 +137,7 @@ function listedTermMembers(description, characterTable) {
 }
 
 function sharedTerms(termDescriptions, characterTable) {
-  return Object.fromEntries(
+  const terms = Object.fromEntries(
     Object.entries(termDescriptions).map(([key, term]) => {
       const members = listedTermMembers(term?.description, characterTable);
       return [
@@ -150,6 +150,14 @@ function sharedTerms(termDescriptions, characterTable) {
       ];
     }),
   );
+  Object.entries(TERM_ALIASES).forEach(([name, key]) => {
+    if (terms[key]) return;
+    const members = Object.values(characterTable)
+      .filter((character) => character?.name && character.branch === name)
+      .map((character) => character.name);
+    terms[key] = { name, ...(members.length ? { members } : {}) };
+  });
+  return terms;
 }
 
 function ruleset() {

@@ -58,7 +58,14 @@ assert.deepEqual(actualOperatorIds, expectedOperatorIds);
 assert.equal(termsData.schemaVersion, 2);
 assert.deepEqual(
   Object.keys(termsData.terms).sort(),
-  Object.keys(gamedataConst.termDescriptionDict).sort(),
+  [...Object.keys(gamedataConst.termDescriptionDict), "cc.c.clinician"].sort(),
+);
+assert.equal(termsData.terms["cc.c.clinician"].name, "行医");
+assert.deepEqual(
+  termsData.terms["cc.c.clinician"].members,
+  Object.values(characterTable)
+    .filter((character) => character?.name && character.branch === "行医")
+    .map((character) => character.name),
 );
 assert.deepEqual(
   termsData.terms["cc.g.sp"].members,
