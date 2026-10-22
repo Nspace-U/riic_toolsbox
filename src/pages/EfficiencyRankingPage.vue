@@ -6,6 +6,7 @@ import { computed, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import type { OperatorPickerCandidateView } from "@/components/OperatorPickerPanel.vue";
 import BasicCalculatorScheduleEditor from "@/components/BasicCalculatorScheduleEditor.vue";
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
+import OperatorSkillTooltip from "@/components/OperatorSkillTooltip.vue";
 import { useBaseData } from "@/composables/useBaseData";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import type { EliteLevel, Operator } from "@/types/baseData";
@@ -225,6 +226,9 @@ function progressionGroupKey(row: EfficiencyRankingRowView): string {
     row.operator.id,
     row.meetingCategory ?? "",
     ...(row.pairedOperators ?? []).map((item) => item.operator.id),
+    ...(row.facility === "meeting"
+      ? progressionOrder(row).filter((_, index) => index % 2 === 0)
+      : []),
   ].join(":");
 }
 
@@ -241,7 +245,11 @@ function deduplicateProgressionRows(
       row.facility === "dormitory"
         ? dormitoryRecoveryText(row)
         : efficiencyText(row);
-    const key = `${progressionGroupKey(row)}:${metric}`;
+    const preferences =
+      row.facility === "meeting"
+        ? JSON.stringify(row.result.cluePreferencesByOperator)
+        : "";
+    const key = `${progressionGroupKey(row)}:${metric}:${preferences}`;
     const existing = representatives.get(key);
     if (!existing || compareRowProgression(row, existing) < 0) {
       representatives.set(key, row);
@@ -690,20 +698,18 @@ function rowNameForEntry(
   ].join(" + ");
 }
 
-function rowName(row: EfficiencyRankingRowView): string {
-  return rowNameForEntry(row);
-}
-
 function rowOperators(row: EfficiencyRankingRowView): Array<{
   operator: Operator;
   progression: { elite: EliteLevel; level: number };
+  progressionLabel: string;
 }> {
   return [
-    { operator: row.operator, progression: row.progression },
-    ...(row.pairedOperators ?? []).map((item) => ({
-      operator: item.operator,
-      progression: item.progression,
-    })),
+    {
+      operator: row.operator,
+      progression: row.progression,
+      progressionLabel: row.progressionLabel,
+    },
+    ...(row.pairedOperators ?? []),
   ];
 }
 
@@ -730,28 +736,19 @@ function cluePreferenceLabel(preference: number | "unowned" | "owned"): string {
   return preference === "unowned" ? "尚未拥有" : "已经拥有";
 }
 
-function cluePreferencesText(row: EfficiencyRankingRowView): string {
-  const values = row.result?.cluePreferencesByOperator;
-  if (!values) return "—";
+function cluePreferenceLines(row: EfficiencyRankingRowView): string[] {
+  const values = row.result?.cluePreferencesByOperator ?? {};
   const members = [
     row.operator,
     ...(row.pairedOperators ?? []).map((item) => item.operator),
   ];
-  return (
-    members
-      .flatMap((operator) => {
-        const preferences = values[operator.name] ?? [];
-        const text = [...new Set(preferences)]
-          .map(cluePreferenceLabel)
-          .join("、");
-        return [
-          row.meetingCategory === "combo"
-            ? `${operator.name}：${text || "—"}`
-            : text || "—",
-        ];
-      })
-      .join("；") || "—"
-  );
+  return members.map((operator) => {
+    const preferences = values[operator.name] ?? [];
+    const text = [...new Set(preferences)].map(cluePreferenceLabel).join("、");
+    return row.meetingCategory === "combo"
+      ? `${operator.name}：${text || "—"}`
+      : text || "—";
+  });
 }
 
 function moodContributions(
@@ -773,7 +770,16 @@ function notesText(row: EfficiencyRankingRowView): string {
   const manualNote = Object.hasOwn(rowNotes.value, row.id)
     ? rowNotes.value[row.id]
     : defaultEfficiencyRankingNote(row, catalog.value!);
-  return [manualNote, ...(row.result?.notes ?? [])].filter(Boolean).join("\n");
+  const resultNotes = row.result?.notes ?? [];
+  const unmet = new Set(
+    resultNotes.map((note) => note.replace(/^条件未满足：/, "")),
+  );
+  return [
+    ...(manualNote ?? "").split("\n").filter((note) => !unmet.has(note)),
+    ...resultNotes,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function moodClass(value: number | undefined): string {
@@ -1067,7 +1073,7 @@ onBeforeUnmount(() => {
                     <th scope="col">技能效率</th>
                   </template>
                   <th class="basic-calculator-efficiency-column" scope="col">
-                    效率
+                    {{ activeFacility === "meeting" ? "实际效率" : "效率" }}
                   </th>
                   <th scope="col">心情</th>
                   <th scope="col">备注</th>
@@ -1090,29 +1096,58 @@ onBeforeUnmount(() => {
                     <div
                       class="basic-calculator-avatars efficiency-ranking-avatars"
                     >
-                      <OperatorAvatarDisplay
+                      <OperatorSkillTooltip
                         v-for="member in rowOperators(record)"
                         :key="member.operator.id"
-                        :display-name="member.operator.name"
-                        :elite-level="member.progression.elite"
                         :operator="member.operator"
-                        :operator-owned="isOperatorOwned(member.operator.name)"
-                        :plain="true"
-                        :proportional-layout="true"
-                        :show-elite-level="pageSettings.avatar.showEliteLevel"
-                        :show-profession="pageSettings.avatar.showProfession"
-                        :show-rarity="pageSettings.avatar.showRarity"
-                        :size="record.meetingCategory === 'combo' ? 44 : 54"
-                      />
+                      >
+                        <OperatorAvatarDisplay
+                          :display-name="member.operator.name"
+                          :elite-level="member.progression.elite"
+                          :operator="member.operator"
+                          :operator-owned="
+                            isOperatorOwned(member.operator.name)
+                          "
+                          :plain="true"
+                          :proportional-layout="true"
+                          :show-elite-level="pageSettings.avatar.showEliteLevel"
+                          :show-profession="pageSettings.avatar.showProfession"
+                          :show-rarity="pageSettings.avatar.showRarity"
+                          :size="record.meetingCategory === 'combo' ? 44 : 54"
+                        />
+                      </OperatorSkillTooltip>
                     </div>
                   </td>
                   <td
                     class="basic-calculator-name-cell efficiency-ranking-name"
                   >
-                    {{ rowName(record) }}
+                    <template
+                      v-for="(member, memberIndex) in rowOperators(record)"
+                      :key="member.operator.id"
+                    >
+                      <span v-if="memberIndex > 0"> + </span>
+                      <OperatorSkillTooltip :operator="member.operator">
+                        {{ member.operator.name
+                        }}{{
+                          pageSettings.showOperatorProgressionInNames
+                            ? member.progressionLabel
+                            : ""
+                        }}
+                      </OperatorSkillTooltip>
+                    </template>
                   </td>
                   <template v-if="activeFacility === 'meeting'">
-                    <td>{{ cluePreferencesText(record) }}</td>
+                    <td>
+                      <div class="efficiency-ranking-member-lines">
+                        <span
+                          v-for="(line, lineIndex) in cluePreferenceLines(
+                            record,
+                          )"
+                          :key="lineIndex"
+                          >{{ line }}</span
+                        >
+                      </div>
+                    </td>
                     <td class="basic-calculator-efficiency-value">
                       {{ skillEfficiencyText(record) }}
                     </td>

@@ -23,6 +23,7 @@
     "test:operator-progression": "npm run build:riic-efficiency && node scripts/operator-progression-regression.mjs",
     "test:operator-skill-generation": "node scripts/operator-skill-generation-regression.mjs",
     "test:efficiency": "npm run build:riic-efficiency && node scripts/efficiency-regression.mjs",
+    "test:efficiency-ranking": "node scripts/efficiency-ranking-regression.mjs",
     "test:sanity": "npm run build:riic-efficiency && node scripts/sanity-regression.mjs",
     "generate:operator-skills": "node scripts/generate-operator-skills.mjs",
     "build:riic-efficiency": "npm --prefix packages/riic-efficiency run build",

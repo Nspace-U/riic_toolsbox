@@ -3,6 +3,7 @@ import {
   type CluePreference,
   type EfficiencyCatalog,
   type EfficiencyCondition,
+  type EfficiencyPer,
   type EfficiencyResult,
   type EfficiencySkillChain,
   type EfficiencySkillStage,
@@ -245,6 +246,7 @@ function progressionsForOperator(
   catalog: EfficiencyCatalog,
   facility: RoomKey,
   treatSkillsAsUnlocked: boolean,
+  includeWithoutSkills: boolean = false,
 ): Array<{
   progression: { elite: EliteLevel; level: number };
   progressionLabel: string;
@@ -254,6 +256,7 @@ function progressionsForOperator(
     skillFile?.chains.filter((chain) => chain.room === facility) ?? [];
   if (
     facility === "meeting" &&
+    !includeWithoutSkills &&
     !chains.some((chain) =>
       chain.stages.some((stage) => stage.effects.length > 0),
     )
@@ -408,63 +411,63 @@ export function buildEfficiencyRankingEntries(
     )
       .map((chain, chainIndex) => ({ chain, chainIndex }))
       .filter(({ chain }) => chain.room === "meeting");
-    const partnerNames = new Set<string>();
-    leaderChains.forEach(({ chain }) => {
-      chain.stages.forEach((stage) => {
-        stage.effects.forEach((effect) => {
-          if (effect.stat !== "clueSpeed") return;
-          const condition = effect.condition;
-          if (
-            condition?.type === "opAtFacility" &&
-            condition.facility === "meeting" &&
-            typeof condition.op === "string"
-          ) {
-            partnerNames.add(condition.op);
-          }
-          if (
-            condition?.type === "opGroupInFacility" &&
-            (condition.facility === "meeting" ||
-              condition.facility === "same") &&
-            condition.group
-          ) {
-            (catalog.terms[condition.group]?.members ?? []).forEach((name) =>
-              partnerNames.add(name),
-            );
-          }
-        });
-      });
-    });
     const leaderProgressions = progressionsForOperator(
       leader,
       catalog,
       "meeting",
       treatSkillsAsUnlocked,
     );
-    [...partnerNames]
-      .filter((name) => name !== leader.name)
-      .map((name) => operatorByName.get(name))
-      .filter((operator): operator is Operator => Boolean(operator))
-      .forEach((candidate) => {
-        const partnerProgressions = progressionsForOperator(
-          candidate,
-          catalog,
-          "meeting",
-          treatSkillsAsUnlocked,
-        );
-        if (partnerProgressions.length === 0) {
-          const elite =
-            candidate.maxEliteLevel ??
-            (candidate.rarity >= 4 ? 2 : candidate.rarity === 3 ? 1 : 0);
-          const progression = {
-            elite,
-            level: maximumLevelForProgression(candidate.rarity, elite),
-          };
-          partnerProgressions.push({
-            progression,
-            progressionLabel: "",
+    leaderProgressions.forEach((leaderProgression) => {
+      const partnerNames = new Set<string>();
+      selectedStages(leaderChains, leaderProgression.progression).forEach(
+        ({ stage }) => {
+          stage.effects.forEach((effect) => {
+            if (
+              effect.target !== "meeting" ||
+              !["clueSpeed", "clueChance"].includes(effect.stat)
+            )
+              return;
+            const condition = effect.condition;
+            if (condition?.negate) return;
+            if (
+              condition?.type === "opAtFacility" &&
+              (condition.facility === "meeting" ||
+                condition.facility === "same") &&
+              typeof condition.op === "string"
+            ) {
+              partnerNames.add(condition.op);
+            }
+            if (
+              condition?.type === "opGroupInFacility" &&
+              (condition.facility === "meeting" ||
+                condition.facility === "same") &&
+              condition.group
+            ) {
+              operators
+                .filter((operator) =>
+                  groupIncludesOperator(
+                    catalog,
+                    condition.group,
+                    operator.name,
+                  ),
+                )
+                .forEach((operator) => partnerNames.add(operator.name));
+            }
           });
-        }
-        leaderProgressions.forEach((leaderProgression) => {
+        },
+      );
+      [...partnerNames]
+        .filter((name) => name !== leader.name)
+        .map((name) => operatorByName.get(name))
+        .filter((operator): operator is Operator => Boolean(operator))
+        .forEach((candidate) => {
+          const partnerProgressions = progressionsForOperator(
+            candidate,
+            catalog,
+            "meeting",
+            treatSkillsAsUnlocked,
+            true,
+          );
           partnerProgressions.forEach((partnerProgression) => {
             entries.push({
               id: `meeting:combo:${leader.id}:${progressionKey(leaderProgression.progression)}:${candidate.id}:${progressionKey(partnerProgression.progression)}`,
@@ -484,7 +487,7 @@ export function buildEfficiencyRankingEntries(
             });
           });
         });
-      });
+    });
   });
   return entries;
 }
@@ -840,6 +843,48 @@ export function defaultEfficiencyRankingNote(
       .filter(({ chain }) => chain.room === entry.facility);
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
+        if (effect.condition) {
+          notes.add(conditionDescription(effect.condition, catalog));
+        }
+        const per = effect.per;
+        if (per?.group) {
+          const group = catalog.terms[per.group]?.name ?? per.group;
+          const subject = `${per.other ? "除自身以外的" : ""}${group}干员`;
+          const count = groupRequirementCount(per);
+          if (per.source === "opGroupInBase") {
+            notes.add(
+              per.cap === undefined
+                ? `基建内每${per.per}名${subject}提供增益`
+                : `满额增益需要基建内有${count}名${subject}`,
+            );
+          }
+          if (per.source === "baseFacilityWithGroup") {
+            notes.add(
+              per.cap === undefined
+                ? `每${per.per}间有${subject}的设施提供增益`
+                : `满额增益需要${count}间设施有${subject}`,
+            );
+          }
+          if (per.source === "opGroupInFacility") {
+            const facility =
+              per.facility && per.facility !== "same"
+                ? ROOM_LABELS[per.facility]
+                : "同一设施";
+            notes.add(`${facility}内每${per.per}名${subject}提供增益`);
+          }
+          if (per.moodCheck) notes.add("计数干员心情需大于0");
+          if (per.fullMood) notes.add("计数干员需满心情");
+          if (per.exclude?.length) {
+            notes.add(
+              `不计入${per.exclude.map((room) => ROOM_LABELS[room]).join("、")}`,
+            );
+          }
+        }
+        if (per?.source === "basePoint" && per.term) {
+          notes.add(
+            `增益取决于${catalog.terms[per.term]?.name ?? per.term}基建点`,
+          );
+        }
         if (
           effect.curve?.type === "ramp" &&
           Number.isFinite(effect.curve.startValue) &&
@@ -855,23 +900,6 @@ export function defaultEfficiencyRankingNote(
       });
     });
   });
-  if (entry.facility === "meeting") {
-    operators.forEach(({ operator, progression }) => {
-      const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
-        .map((chain, chainIndex) => ({ chain, chainIndex }))
-        .filter(({ chain }) => chain.room === "meeting");
-      if (
-        selectedStages(chains, progression).some(({ stage }) =>
-          stage.effects.some(
-            (effect) => effect.condition?.type === "clueExchanging",
-          ),
-        )
-      ) {
-        notes.add("处于线索交流");
-      }
-    });
-    return [...notes].join("\n");
-  }
   if (entry.facility !== "dormitory") return [...notes].join("\n");
   const chains = (
     catalog.operators[entry.operator.name]?.skillFile?.chains ?? []
@@ -969,6 +997,14 @@ function conditionDescription(
     default:
       return `技能条件“${condition.type}”未满足`;
   }
+}
+
+function groupRequirementCount(per: EfficiencyPer): number {
+  const times =
+    per.capUnit === "value"
+      ? Number(per.cap ?? per.value) / Math.max(Number.EPSILON, per.value)
+      : Number(per.cap ?? 1);
+  return Math.ceil(times * per.per);
 }
 
 function catalogWithoutEffectCondition(
@@ -1105,7 +1141,7 @@ function unmetGroupCountNotes(
         ) {
           return;
         }
-        const required = Math.ceil(Number(per.cap ?? 1) * Number(per.per ?? 1));
+        const required = groupRequirementCount(per);
         const count = entry.schedule.layout.reduce(
           (total, layoutEntry, layoutIndex) => {
             if (per.exclude?.includes(layoutEntry.type)) return total;
