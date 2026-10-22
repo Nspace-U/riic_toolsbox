@@ -102,7 +102,6 @@ interface EfficiencyRankingSupport {
 
 interface EfficiencyRankingSpecialRow {
   unlock?: EfficiencySkillStage["unlock"];
-  note?: string;
   supports?: EfficiencyRankingSupport[];
   dormitoryCategories?: DormitoryCategory[];
 }
@@ -133,16 +132,6 @@ export interface EfficiencyRankingScheduleOptions {
   dormitoryDefaultIncludesMoodRecovery: boolean;
   catalog: EfficiencyCatalog;
 }
-
-const MEETING_COMBINATIONS: ReadonlyArray<{
-  leader: string;
-  partner?: string;
-  term?: string;
-}> = [
-  { leader: "忍冬", partner: "铃兰" },
-  { leader: "提丰", term: "cc.g.sm" },
-  { leader: "寻澜", term: "cc.g.bs" },
-];
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -413,31 +402,48 @@ export function buildEfficiencyRankingEntries(
       });
     });
   });
-  MEETING_COMBINATIONS.forEach(({ leader: leaderName, partner, term }) => {
-    const leader = operatorByName.get(leaderName);
-    if (!leader) return;
-    const partners = partner
-      ? [operatorByName.get(partner)].filter((operator): operator is Operator =>
-          Boolean(operator),
-        )
-      : (catalog.terms[term ?? ""]?.members ?? [])
-          .filter((name) => name !== leaderName)
-          .map((name) => operatorByName.get(name))
-          .filter((operator): operator is Operator => Boolean(operator));
+  operators.forEach((leader) => {
+    const leaderChains = (
+      catalog.operators[leader.name]?.skillFile?.chains ?? []
+    )
+      .map((chain, chainIndex) => ({ chain, chainIndex }))
+      .filter(({ chain }) => chain.room === "meeting");
+    const partnerNames = new Set<string>();
+    leaderChains.forEach(({ chain }) => {
+      chain.stages.forEach((stage) => {
+        stage.effects.forEach((effect) => {
+          if (effect.stat !== "clueSpeed") return;
+          const condition = effect.condition;
+          if (
+            condition?.type === "opAtFacility" &&
+            condition.facility === "meeting" &&
+            typeof condition.op === "string"
+          ) {
+            partnerNames.add(condition.op);
+          }
+          if (
+            condition?.type === "opGroupInFacility" &&
+            (condition.facility === "meeting" ||
+              condition.facility === "same") &&
+            condition.group
+          ) {
+            (catalog.terms[condition.group]?.members ?? []).forEach((name) =>
+              partnerNames.add(name),
+            );
+          }
+        });
+      });
+    });
     const leaderProgressions = progressionsForOperator(
       leader,
       catalog,
       "meeting",
       treatSkillsAsUnlocked,
     );
-    partners
-      .filter((candidate) =>
-        (catalog.operators[candidate.name]?.skillFile?.chains ?? []).some(
-          (chain) =>
-            chain.room === "meeting" &&
-            chain.stages.some((stage) => stage.effects.length > 0),
-        ),
-      )
+    [...partnerNames]
+      .filter((name) => name !== leader.name)
+      .map((name) => operatorByName.get(name))
+      .filter((operator): operator is Operator => Boolean(operator))
       .forEach((candidate) => {
         const partnerProgressions = progressionsForOperator(
           candidate,
@@ -445,6 +451,19 @@ export function buildEfficiencyRankingEntries(
           "meeting",
           treatSkillsAsUnlocked,
         );
+        if (partnerProgressions.length === 0) {
+          const elite =
+            candidate.maxEliteLevel ??
+            (candidate.rarity >= 4 ? 2 : candidate.rarity === 3 ? 1 : 0);
+          const progression = {
+            elite,
+            level: maximumLevelForProgression(candidate.rarity, elite),
+          };
+          partnerProgressions.push({
+            progression,
+            progressionLabel: "",
+          });
+        }
         leaderProgressions.forEach((leaderProgression) => {
           partnerProgressions.forEach((partnerProgression) => {
             entries.push({
@@ -807,17 +826,37 @@ export function defaultEfficiencyRankingNote(
   entry: Omit<EfficiencyRankingEntry, "schedule">,
   catalog: EfficiencyCatalog,
 ): string {
-  const configured = specialRowForProgression(entry)?.note;
   const notes = new Set<string>();
-  if (configured) notes.add(configured);
+  const operators = [
+    { operator: entry.operator, progression: entry.progression },
+    ...(entry.pairedOperators ?? []).map((item) => ({
+      operator: item.operator,
+      progression: item.progression,
+    })),
+  ];
+  operators.forEach(({ operator, progression }) => {
+    const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
+      .map((chain, chainIndex) => ({ chain, chainIndex }))
+      .filter(({ chain }) => chain.room === entry.facility);
+    selectedStages(chains, progression).forEach(({ stage }) => {
+      stage.effects.forEach((effect) => {
+        if (
+          effect.curve?.type === "ramp" &&
+          Number.isFinite(effect.curve.startValue) &&
+          Number.isFinite(effect.curve.cap) &&
+          Number.isFinite(effect.curve.step) &&
+          effect.curve.step > 0
+        ) {
+          const warmupHours = Math.ceil(
+            (effect.curve.cap - effect.curve.startValue) / effect.curve.step,
+          );
+          if (warmupHours > 0) notes.add(`${warmupHours}小时暖机`);
+        }
+      });
+    });
+  });
   if (entry.facility === "meeting") {
-    [
-      { operator: entry.operator, progression: entry.progression },
-      ...(entry.pairedOperators ?? []).map((item) => ({
-        operator: item.operator,
-        progression: item.progression,
-      })),
-    ].forEach(({ operator, progression }) => {
+    operators.forEach(({ operator, progression }) => {
       const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
         .map((chain, chainIndex) => ({ chain, chainIndex }))
         .filter(({ chain }) => chain.room === "meeting");
@@ -833,8 +872,7 @@ export function defaultEfficiencyRankingNote(
     });
     return [...notes].join("\n");
   }
-  if (configured || entry.facility !== "dormitory")
-    return [...notes].join("\n");
+  if (entry.facility !== "dormitory") return [...notes].join("\n");
   const chains = (
     catalog.operators[entry.operator.name]?.skillFile?.chains ?? []
   )
