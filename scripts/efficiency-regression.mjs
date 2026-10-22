@@ -469,9 +469,9 @@ function runTests(runtime) {
             control: [assignment([], {})],
             dormitory: [
               assignment(
-                ["摩根", "推进之王", "阿米娅"],
+                ["摩根", "推进之王", "因陀罗", "阿米娅"],
                 {},
-                { 摩根: 24, 推进之王: 10, 阿米娅: 5 },
+                { 摩根: 24, 推进之王: 10, 因陀罗: 8, 阿米娅: 5 },
               ),
             ],
           },
@@ -488,6 +488,16 @@ function runTests(runtime) {
   assert.equal(siegeRecovery?.rate, 4.5);
   assert.ok(
     siegeRecovery?.contributions.some(
+      ({ operator, skill, value }) =>
+        operator === "摩根" && skill === "头号陪练" && value === 0.3,
+    ),
+  );
+  const indraRecovery = morganDormitoryRecovery?.operators.find(
+    ({ operator }) => operator === "因陀罗",
+  );
+  assert.equal(indraRecovery?.rate, 4.5);
+  assert.ok(
+    indraRecovery?.contributions.some(
       ({ operator, skill, value }) =>
         operator === "摩根" && skill === "头号陪练" && value === 0.3,
     ),
