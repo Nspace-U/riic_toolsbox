@@ -40,6 +40,8 @@ import {
   emptyEfficiencyRankingSchedule,
   EFFICIENCY_RANKING_FACILITIES,
   operatorStateForSchedule,
+  selectEfficiencyRankingRows,
+  type EfficiencyRankingRowView,
   type EfficiencyRankingCalculationResult,
   type EfficiencyRankingEntry,
   type EfficiencyRankingSettings,
@@ -54,10 +56,6 @@ interface StoredEfficiencyRankingState {
   layout: LayoutEntry[];
   rowRooms: Record<string, Record<string, RoomAssignment[]>>;
   rowNotes: Record<string, string>;
-}
-
-interface EfficiencyRankingRowView extends EfficiencyRankingEntry {
-  result?: EfficiencyRankingCalculationResult;
 }
 
 interface EfficiencyRankingWorkerResponse {
@@ -158,7 +156,6 @@ const rankingEntries = computed<EfficiencyRankingEntry[]>(() => {
   const definitions = buildEfficiencyRankingEntries(
     operators.value,
     currentCatalog,
-    pageSettings.value.treatSkillsAsUnlocked,
   );
   return definitions.map((entry) => ({
     ...entry,
@@ -183,82 +180,13 @@ const rowViews = computed<EfficiencyRankingRowView[]>(() =>
   })),
 );
 
-function progressionOrder(row: EfficiencyRankingRowView): number[] {
-  return [
-    row.progression,
-    ...(row.pairedOperators ?? []).map((item) => item.progression),
-  ].flatMap(({ elite, level }) => [elite, level]);
-}
-
-function compareRowProgression(
-  left: EfficiencyRankingRowView,
-  right: EfficiencyRankingRowView,
-): number {
-  const leftProgression = progressionOrder(left);
-  const rightProgression = progressionOrder(right);
-  const eliteDifference =
-    leftProgression
-      .filter((_, index) => index % 2 === 0)
-      .reduce((sum, value) => sum + value, 0) -
-    rightProgression
-      .filter((_, index) => index % 2 === 0)
-      .reduce((sum, value) => sum + value, 0);
-  if (eliteDifference !== 0) return eliteDifference;
-  const levelDifference =
-    leftProgression
-      .filter((_, index) => index % 2 === 1)
-      .reduce((sum, value) => sum + value, 0) -
-    rightProgression
-      .filter((_, index) => index % 2 === 1)
-      .reduce((sum, value) => sum + value, 0);
-  if (levelDifference !== 0) return levelDifference;
-  for (let index = 0; index < leftProgression.length; index += 1) {
-    const difference =
-      (leftProgression[index] ?? 0) - (rightProgression[index] ?? 0);
-    if (difference !== 0) return difference;
-  }
-  return 0;
-}
-
-function progressionGroupKey(row: EfficiencyRankingRowView): string {
-  return [
-    row.facility,
-    row.operator.id,
-    row.meetingCategory ?? "",
-    ...(row.pairedOperators ?? []).map((item) => item.operator.id),
-    ...(row.facility === "meeting"
-      ? progressionOrder(row).filter((_, index) => index % 2 === 0)
-      : []),
-  ].join(":");
-}
-
 function deduplicateProgressionRows(
   rows: EfficiencyRankingRowView[],
 ): EfficiencyRankingRowView[] {
-  const representatives = new Map<string, EfficiencyRankingRowView>();
-  rows.forEach((row) => {
-    if (!row.result) {
-      representatives.set(`pending:${row.id}`, row);
-      return;
-    }
-    const metric =
-      row.facility === "dormitory"
-        ? dormitoryRecoveryText(row)
-        : efficiencyText(row);
-    const preferences =
-      row.facility === "meeting"
-        ? JSON.stringify(row.result.cluePreferencesByOperator)
-        : "";
-    const key = `${progressionGroupKey(row)}:${metric}:${preferences}`;
-    const existing = representatives.get(key);
-    if (!existing || compareRowProgression(row, existing) < 0) {
-      representatives.set(key, row);
-    }
-  });
-  const displayedIds = new Set(
-    [...representatives.values()].map((row) => row.id),
+  return selectEfficiencyRankingRows(
+    rows,
+    pageSettings.value.treatSkillsAsUnlocked,
   );
-  return rows.filter((row) => displayedIds.has(row.id));
 }
 
 function rowsForDormitoryCategory(
@@ -722,7 +650,7 @@ function skillEfficiencyText(row: EfficiencyRankingRowView): string {
   ];
   const formatted = members.flatMap((operator) => {
     const value = values[operator.name];
-    if (value === undefined) return [];
+    if (value === undefined || value === 0) return [];
     const text = `${formatEfficiencyNumber(value)}%`;
     return row.meetingCategory === "combo"
       ? [`${operator.name} ${text}`]
@@ -742,12 +670,13 @@ function cluePreferenceLines(row: EfficiencyRankingRowView): string[] {
     row.operator,
     ...(row.pairedOperators ?? []).map((item) => item.operator),
   ];
-  return members.map((operator) => {
+  return members.flatMap((operator) => {
     const preferences = values[operator.name] ?? [];
+    if (preferences.length === 0) return [];
     const text = [...new Set(preferences)].map(cluePreferenceLabel).join("、");
     return row.meetingCategory === "combo"
-      ? `${operator.name}：${text || "—"}`
-      : text || "—";
+      ? [`${operator.name}：${text}`]
+      : [text];
   });
 }
 

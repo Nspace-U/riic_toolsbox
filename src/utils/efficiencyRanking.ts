@@ -3,6 +3,7 @@ import {
   type CluePreference,
   type EfficiencyCatalog,
   type EfficiencyCondition,
+  type EfficiencyEffect,
   type EfficiencyPer,
   type EfficiencyResult,
   type EfficiencySkillChain,
@@ -121,6 +122,10 @@ export interface EfficiencyRankingCalculationResult {
   moodExtrasByOperator: Record<string, number>;
   cluePreferencesByOperator: Record<string, CluePreference[]>;
   notes: string[];
+}
+
+export interface EfficiencyRankingRowView extends EfficiencyRankingEntry {
+  result?: EfficiencyRankingCalculationResult;
 }
 
 export interface EfficiencyRankingScheduleOptions {
@@ -245,7 +250,6 @@ function progressionsForOperator(
   operator: Operator,
   catalog: EfficiencyCatalog,
   facility: RoomKey,
-  treatSkillsAsUnlocked: boolean,
   includeWithoutSkills: boolean = false,
 ): Array<{
   progression: { elite: EliteLevel; level: number };
@@ -295,13 +299,10 @@ function progressionsForOperator(
     }
   }
   const allProgressions = [...progressions.values()].sort(compareProgression);
-  const selectedProgressions = treatSkillsAsUnlocked
-    ? allProgressions.slice(-1)
-    : allProgressions;
   const hasLevelNode = chains.some((chain) =>
     chain.stages.some((stage) => stage.unlock.type === "level"),
   );
-  return selectedProgressions.map((progression) => ({
+  return allProgressions.map((progression) => ({
     progression,
     progressionLabel: progressionLabel(progression, hasLevelNode),
   }));
@@ -363,7 +364,6 @@ function dormitoryCategoriesForEntry(
 export function buildEfficiencyRankingEntries(
   operators: Operator[],
   catalog: EfficiencyCatalog,
-  treatSkillsAsUnlocked: boolean,
 ): Omit<EfficiencyRankingEntry, "schedule">[] {
   const operatorIndexes = new Map(
     operators.map((operator, index) => [operator.name, index]),
@@ -374,12 +374,7 @@ export function buildEfficiencyRankingEntries(
   const entries: Omit<EfficiencyRankingEntry, "schedule">[] = [];
   EFFICIENCY_RANKING_FACILITIES.forEach(({ key: facility }) => {
     operators.forEach((operator, sourceIndex) => {
-      const progressions = progressionsForOperator(
-        operator,
-        catalog,
-        facility,
-        treatSkillsAsUnlocked,
-      );
+      const progressions = progressionsForOperator(operator, catalog, facility);
       progressions.forEach(({ progression, progressionLabel: suffix }) => {
         const entry: Omit<EfficiencyRankingEntry, "schedule"> = {
           id: `${facility}:${operator.id}:${progressionKey(progression)}`,
@@ -415,7 +410,6 @@ export function buildEfficiencyRankingEntries(
       leader,
       catalog,
       "meeting",
-      treatSkillsAsUnlocked,
     );
     leaderProgressions.forEach((leaderProgression) => {
       const partnerNames = new Set<string>();
@@ -465,7 +459,6 @@ export function buildEfficiencyRankingEntries(
             candidate,
             catalog,
             "meeting",
-            treatSkillsAsUnlocked,
             true,
           );
           partnerProgressions.forEach((partnerProgression) => {
@@ -825,6 +818,172 @@ function cluePreferencesByOperator(
   );
 }
 
+function rankingResultValues(
+  result: EfficiencyResult,
+  entry: EfficiencyRankingEntry,
+): Omit<EfficiencyRankingCalculationResult, "id" | "notes" | "moodExtra"> {
+  return {
+    efficiency: targetEfficiency(result, entry),
+    dormitoryRecoveryByOperator: dormitoryRecoveryByOperator(result, entry),
+    operatorSkillEfficiencies: skillEfficiencyByOperator(result, entry),
+    moodExtrasByOperator: moodExtrasByOperator(result, entry),
+    cluePreferencesByOperator: cluePreferencesByOperator(entry, result),
+  };
+}
+
+function rankingResultSignature(
+  result: Omit<EfficiencyRankingCalculationResult, "id" | "notes">,
+): string {
+  return JSON.stringify([
+    result.efficiency,
+    Object.entries(result.operatorSkillEfficiencies)
+      .filter(([, value]) => value !== 0)
+      .sort(),
+    Object.entries(result.moodExtrasByOperator)
+      .filter(([, value]) => value !== 0)
+      .sort(),
+    Object.entries(result.cluePreferencesByOperator)
+      .filter(([, values]) => values.length > 0)
+      .map(([name, values]) => [name, [...new Set(values)].sort()])
+      .sort(),
+    Object.entries(result.dormitoryRecoveryByOperator)
+      .filter(([, values]) => values.length > 0)
+      .map(([name, values]) => [
+        name,
+        values
+          .map((item) =>
+            JSON.stringify([
+              item.scope,
+              item.subjects,
+              item.scopeGroup,
+              item.op,
+              item.moodBelow,
+              item.value,
+            ]),
+          )
+          .sort(),
+      ])
+      .sort(),
+  ]);
+}
+
+function progressionOrder(row: EfficiencyRankingRowView): number[] {
+  return rankingOperators(row).flatMap(({ progression }) => [
+    progression.elite,
+    progression.level,
+  ]);
+}
+
+function compareRowProgression(
+  left: EfficiencyRankingRowView,
+  right: EfficiencyRankingRowView,
+): number {
+  const leftProgression = progressionOrder(left);
+  const rightProgression = progressionOrder(right);
+  for (const offset of [0, 1]) {
+    const difference =
+      leftProgression
+        .filter((_, index) => index % 2 === offset)
+        .reduce((sum, value) => sum + value, 0) -
+      rightProgression
+        .filter((_, index) => index % 2 === offset)
+        .reduce((sum, value) => sum + value, 0);
+    if (difference !== 0) return difference;
+  }
+  for (let index = 0; index < leftProgression.length; index += 1) {
+    const difference =
+      (leftProgression[index] ?? 0) - (rightProgression[index] ?? 0);
+    if (difference !== 0) return difference;
+  }
+  return 0;
+}
+
+export function selectEfficiencyRankingRows(
+  rows: EfficiencyRankingRowView[],
+  treatSkillsAsUnlocked: boolean,
+): EfficiencyRankingRowView[] {
+  const groups = new Map<string, EfficiencyRankingRowView[]>();
+  rows.forEach((row) => {
+    const key = [
+      row.facility,
+      row.operator.id,
+      row.meetingCategory ?? "",
+      ...(row.pairedOperators ?? []).map((item) => item.operator.id),
+    ].join(":");
+    const group = groups.get(key) ?? [];
+    group.push(row);
+    groups.set(key, group);
+  });
+  const displayedIds = new Set<string>();
+  groups.forEach((group) => {
+    if (group.some((row) => !row.result)) {
+      group.forEach((row) => displayedIds.add(row.id));
+      return;
+    }
+    const ordered = [...group].sort(compareRowProgression);
+    const highestSignature = rankingResultSignature(ordered.at(-1)!.result!);
+    const signatures = new Set<string>();
+    ordered.forEach((row) => {
+      const signature = rankingResultSignature(row.result!);
+      if (treatSkillsAsUnlocked && signature !== highestSignature) return;
+      if (signatures.has(signature)) return;
+      signatures.add(signature);
+      displayedIds.add(row.id);
+    });
+  });
+  return rows.filter((row) => displayedIds.has(row.id));
+}
+
+function effectAffectsRanking(
+  effect: EfficiencyEffect,
+  facility: RoomKey,
+): boolean {
+  return (
+    (effect.target === facility ||
+      effect.target === "any" ||
+      Boolean(effect.facilities?.includes(facility))) &&
+    [
+      "droneCharge",
+      "clueSpeed",
+      "clueChance",
+      "hireSpd",
+      "recycleSpd",
+      "moodCost",
+      "moodRecover",
+    ].includes(effect.stat)
+  );
+}
+
+function conditionProvidedByMeetingCombo(
+  condition: EfficiencyCondition,
+  entry: Omit<EfficiencyRankingEntry, "schedule">,
+  ownerName: string,
+  catalog: EfficiencyCatalog,
+): boolean {
+  if (
+    entry.facility !== "meeting" ||
+    entry.meetingCategory !== "combo" ||
+    condition.negate ||
+    !["same", "meeting"].includes(String(condition.facility))
+  ) {
+    return false;
+  }
+  const members = [
+    entry.operator,
+    ...(entry.pairedOperators ?? []).map((item) => item.operator),
+  ];
+  return members.some((operator) => {
+    if (condition.other && operator.name === ownerName) return false;
+    if (condition.type === "opAtFacility")
+      return operator.name === condition.op;
+    return (
+      condition.type === "opGroupInFacility" &&
+      Boolean(condition.group) &&
+      groupIncludesOperator(catalog, condition.group!, operator.name)
+    );
+  });
+}
+
 export function defaultEfficiencyRankingNote(
   entry: Omit<EfficiencyRankingEntry, "schedule">,
   catalog: EfficiencyCatalog,
@@ -843,8 +1002,21 @@ export function defaultEfficiencyRankingNote(
       .filter(({ chain }) => chain.room === entry.facility);
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
+        if (!effectAffectsRanking(effect, entry.facility)) return;
         if (effect.condition) {
-          notes.add(conditionDescription(effect.condition, catalog));
+          if (
+            conditionProvidedByMeetingCombo(
+              effect.condition,
+              entry,
+              operator.name,
+              catalog,
+            )
+          ) {
+            if (effect.condition.moodCheck) notes.add("联动干员心情需大于0");
+            if (effect.condition.fullMood) notes.add("联动干员需满心情");
+          } else {
+            notes.add(conditionDescription(effect.condition, catalog));
+          }
         }
         const per = effect.per;
         if (per?.group) {
@@ -983,7 +1155,7 @@ function conditionDescription(
     case "opCountInFacility":
       return `需要${facility}达到指定干员数量`;
     case "onlySelf":
-      return "需要同一设施仅进驻该干员";
+      return "同设施不能有其他心情大于0的工作干员";
     case "workHours":
       return `需要工作时长达到${condition.value ?? 0}小时`;
     case "moodCmp":
@@ -1067,7 +1239,8 @@ function unmetConditionNotes(
     const activeStages = selectedStages(chains, progression);
     activeStages.forEach(({ chainIndex, stageIndex, stage }) => {
       stage.effects.forEach((effect, effectIndex) => {
-        if (!effect.condition) return;
+        if (!effect.condition || !effectAffectsRanking(effect, entry.facility))
+          return;
         const nextCatalog = catalogWithoutEffectCondition(
           catalog,
           operator.name,
@@ -1079,8 +1252,9 @@ function unmetConditionNotes(
           catalog: nextCatalog,
         });
         if (
-          efficiencyResultSignature(withoutCondition) ===
-          efficiencyResultSignature(result)
+          rankingResultSignature(
+            rankingResultValues(withoutCondition, entry),
+          ) === rankingResultSignature(rankingResultValues(result, entry))
         ) {
           return;
         }
@@ -1090,24 +1264,6 @@ function unmetConditionNotes(
     });
   });
   return [...notes];
-}
-
-function efficiencyResultSignature(result: EfficiencyResult): string {
-  const plan = result.plans[0];
-  return JSON.stringify({
-    facilities: plan?.facilities.map((facility) => ({
-      id: facility.facility.id,
-      efficiency: facility.efficiency,
-      skillEfficiency: facility.skillEfficiency,
-      cluePreferences: facility.cluePreferences,
-      details: facility.details,
-    })),
-    moods: plan?.moods.map((mood) => ({
-      operator: mood.operator,
-      facility: mood.facility,
-      rateDetails: mood.rateDetails,
-    })),
-  });
 }
 
 function unmetGroupCountNotes(
@@ -1126,6 +1282,7 @@ function unmetGroupCountNotes(
       .filter(({ chain }) => chain.room === entry.facility);
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
+        if (!effectAffectsRanking(effect, entry.facility)) return;
         const per = effect.per;
         if (per?.source === "basePoint" && per.term) {
           if ((resultPlan.basePoints[per.term] ?? 0) <= 0) {
@@ -1187,10 +1344,8 @@ export function calculateEfficiencyRankingEntry(
   const result = calculateEfficiency(entry.schedule, {
     catalog: calculationCatalog,
   });
-  const dormitoryRecovery = dormitoryRecoveryByOperator(result, entry);
-  const efficiency = targetEfficiency(result, entry);
-  const moodByOperator = moodExtrasByOperator(result, entry);
-  const moodValues = Object.values(moodByOperator);
+  const values = rankingResultValues(result, entry);
+  const moodValues = Object.values(values.moodExtrasByOperator);
   const notes = new Set(
     [
       ...unmetConditionNotes(calculationCatalog, entry, result),
@@ -1202,16 +1357,12 @@ export function calculateEfficiencyRankingEntry(
   }
   return {
     id: entry.id,
-    efficiency,
-    dormitoryRecoveryByOperator: dormitoryRecovery,
+    ...values,
     ...(moodValues.length > 0
       ? {
           moodExtra: moodValues.reduce((total, value) => total + value, 0),
         }
       : {}),
-    operatorSkillEfficiencies: skillEfficiencyByOperator(result, entry),
-    moodExtrasByOperator: moodByOperator,
-    cluePreferencesByOperator: cluePreferencesByOperator(entry, result),
     notes: [...notes],
   };
 }
