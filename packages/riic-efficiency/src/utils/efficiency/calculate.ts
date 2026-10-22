@@ -2545,6 +2545,9 @@ function dormitoryRecoveryContributionsForSubject(
   const single = items.filter((item) => {
     if (item.effect.subjects !== "single") return false;
     const selected = underTarget
+      .filter((member) =>
+        moodRecoveryAppliesTo(item, member, dormitory, catalog),
+      )
       .slice()
       .sort(
         (left, right) =>
@@ -2648,6 +2651,9 @@ function dormitoryRecoveryRate(
   const single = items.filter((item) => {
     if (item.effect.subjects !== "single") return false;
     const selected = underTarget
+      .filter((member) =>
+        moodRecoveryAppliesTo(item, member, dormitory, catalog),
+      )
       .slice()
       .sort(
         (left, right) =>

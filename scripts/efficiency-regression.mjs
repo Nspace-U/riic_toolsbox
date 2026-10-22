@@ -456,6 +456,43 @@ function runTests(runtime) {
     serializeMaaSchedule,
   } = runtime;
 
+  const morganDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [
+              assignment(
+                ["摩根", "推进之王", "阿米娅"],
+                {},
+                { 摩根: 24, 推进之王: 10, 阿米娅: 5 },
+              ),
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const morganDormitoryRecovery =
+    morganDormitory.plans[0]?.dormitoryRecoveries[0];
+  const siegeRecovery = morganDormitoryRecovery?.operators.find(
+    ({ operator }) => operator === "推进之王",
+  );
+  assert.equal(siegeRecovery?.rate, 4.5);
+  assert.ok(
+    siegeRecovery?.contributions.some(
+      ({ operator, skill, value }) =>
+        operator === "摩根" && skill === "头号陪练" && value === 0.3,
+    ),
+  );
+
   const maaDroneDocument = {
     layout: [
       { type: "power", level: 3 },
