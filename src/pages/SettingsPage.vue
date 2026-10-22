@@ -85,7 +85,9 @@ const {
 const {
   calculationStepDisplayMode,
   calculationStepDisplayModeOptions,
+  showAutomaticRestOperators,
   setCalculationStepDisplayMode,
+  setShowAutomaticRestOperators,
   resetCalculationStepDisplayMode,
 } = useCalculationStepDisplaySettings();
 const {
@@ -1598,6 +1600,19 @@ watch(
             <p class="settings-panel-hint">
               仅在页面数值因显示精度限制发生变化时显示，使用默认悬停延迟。
             </p>
+          </a-form-item>
+          <a-form-item label="宿舍自动休整干员">
+            <div class="settings-control-row settings-control-row--start">
+              <a-checkbox
+                :checked="showAutomaticRestOperators"
+                @change="
+                  (event: { target: { checked: boolean } }) =>
+                    setShowAutomaticRestOperators(event.target.checked)
+                "
+              >
+                在宿舍计算步骤中显示自动休整进驻干员的明细
+              </a-checkbox>
+            </div>
           </a-form-item>
         </a-form>
       </section>

@@ -26,6 +26,7 @@ export const CALCULATION_STEP_DISPLAY_MODE_OPTIONS: Record<
 
 const DEFAULT_CALCULATION_STEP_DISPLAY_MODE: CalculationStepDisplayMode =
   "facility";
+const DEFAULT_SHOW_AUTOMATIC_REST_OPERATORS = false;
 
 function isCalculationStepDisplayMode(
   value: unknown,
@@ -58,9 +59,33 @@ function readCalculationStepDisplayMode(): CalculationStepDisplayMode {
   }
 }
 
+function readShowAutomaticRestOperators(): boolean {
+  if (typeof window === "undefined") {
+    return DEFAULT_SHOW_AUTOMATIC_REST_OPERATORS;
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(
+      CALCULATION_STEP_DISPLAY_SETTINGS_STORAGE_KEY,
+    );
+    if (!storedValue) return DEFAULT_SHOW_AUTOMATIC_REST_OPERATORS;
+    const parsedValue: unknown = JSON.parse(storedValue);
+    return typeof parsedValue === "object" &&
+      parsedValue !== null &&
+      typeof (parsedValue as { showAutomaticRestOperators?: unknown })
+        .showAutomaticRestOperators === "boolean"
+      ? (parsedValue as { showAutomaticRestOperators: boolean })
+          .showAutomaticRestOperators
+      : DEFAULT_SHOW_AUTOMATIC_REST_OPERATORS;
+  } catch {
+    return DEFAULT_SHOW_AUTOMATIC_REST_OPERATORS;
+  }
+}
+
 const calculationStepDisplayMode = ref<CalculationStepDisplayMode>(
   readCalculationStepDisplayMode(),
 );
+const showAutomaticRestOperators = ref(readShowAutomaticRestOperators());
 
 function persistCalculationStepDisplayMode(): void {
   if (typeof window === "undefined") {
@@ -70,9 +95,17 @@ function persistCalculationStepDisplayMode(): void {
   try {
     window.localStorage.setItem(
       CALCULATION_STEP_DISPLAY_SETTINGS_STORAGE_KEY,
-      JSON.stringify({ mode: calculationStepDisplayMode.value }),
+      JSON.stringify({
+        mode: calculationStepDisplayMode.value,
+        showAutomaticRestOperators: showAutomaticRestOperators.value,
+      }),
     );
   } catch {}
+}
+
+function setShowAutomaticRestOperators(value: boolean): void {
+  showAutomaticRestOperators.value = value;
+  persistCalculationStepDisplayMode();
 }
 
 function setCalculationStepDisplayMode(value: unknown): void {
@@ -91,8 +124,10 @@ function resetCalculationStepDisplayMode(): void {
 export function useCalculationStepDisplaySettings() {
   return {
     calculationStepDisplayMode,
+    showAutomaticRestOperators,
     calculationStepDisplayModeOptions: CALCULATION_STEP_DISPLAY_MODE_OPTIONS,
     setCalculationStepDisplayMode,
+    setShowAutomaticRestOperators,
     resetCalculationStepDisplayMode,
   };
 }

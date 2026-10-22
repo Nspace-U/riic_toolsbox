@@ -172,6 +172,7 @@ export type ResourceAmountDisplayMode = "raw" | "points" | "both";
 
 export interface ResultDisplayOptions {
   sanityValues: SanityValues;
+  showAutomaticRestOperators?: boolean;
   resourceAmountDisplayMode?: ResourceAmountDisplayMode;
   dailyAmounts?: SanityResourceAmounts;
   droneAcceleration?: DroneAccelerationResult;

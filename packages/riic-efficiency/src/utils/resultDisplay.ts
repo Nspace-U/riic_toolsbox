@@ -1282,12 +1282,18 @@ function dormitoryRoomContributionDistribution(
 function dormitoryRecoverySection(
   recoveries: readonly DormitoryRecoverySnapshot[],
   plan: EfficiencyPlanResult,
+  showAutomaticRestOperators: boolean,
 ): DisplaySection {
   const sections = recoveries
     .slice()
     .sort((left, right) => left.facilityIndex - right.facilityIndex)
     .map((recovery): DisplaySection => {
       const roomLabel = `宿舍 ${recovery.facilityIndex + 1}`;
+      const automaticRestOperators = new Set(
+        recovery.operators
+          .filter((operator) => operator.automaticRest)
+          .map((operator) => operator.operator),
+      );
       const rows: DisplayRow[] = [
         displayRow(
           `dormitory-${recovery.facilityId}-base-recovery-rate`,
@@ -1295,7 +1301,13 @@ function dormitoryRecoverySection(
           displayUnit(recovery.baseRate, "number", " 心情/小时"),
         ),
       ];
-      recovery.contributions.forEach((contribution, index) => {
+      recovery.contributions
+        .filter(
+          (contribution) =>
+            showAutomaticRestOperators ||
+            !automaticRestOperators.has(contribution.operator),
+        )
+        .forEach((contribution, index) => {
         const detail: DormitoryRecoveryContribution = {
           operator: contribution.operator,
           ...(contribution.skill === undefined
@@ -1322,7 +1334,12 @@ function dormitoryRecoverySection(
           ),
         );
       });
-      const entries = recovery.operators.map((operator): DisplayEntry => {
+      const entries = recovery.operators
+        .filter(
+          (operator) =>
+            showAutomaticRestOperators || !operator.automaticRest,
+        )
+        .map((operator): DisplayEntry => {
         const operatorRows: DisplayRow[] = [];
         operator.contributions.forEach((contribution, index) => {
           operatorRows.push(
@@ -1377,7 +1394,7 @@ function dormitoryRecoverySection(
           title: displayText(operator.operator),
           rows: operatorRows,
         };
-      });
+        });
       return {
         key: `dormitory-${recovery.facilityId}`,
         label: roomLabel,
@@ -1756,7 +1773,11 @@ function facilityStepSections(
   if (!facility) {
     if (step.dormitoryRecoveries) {
       sections.push(
-        dormitoryRecoverySection(step.dormitoryRecoveries, step.plan),
+        dormitoryRecoverySection(
+          step.dormitoryRecoveries,
+          step.plan,
+          options.showAutomaticRestOperators ?? false,
+        ),
       );
     }
     if (step.moods.length) {

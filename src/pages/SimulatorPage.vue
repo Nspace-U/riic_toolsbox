@@ -381,7 +381,8 @@ const specialOperatorAvatarLabelResolver = computed(() =>
 );
 const { isBasePointVisible } = useBasePointDisplaySettings();
 const { isEfficiencyNoticeVisible } = useEfficiencyNoticeDisplaySettings();
-const { calculationStepDisplayMode } = useCalculationStepDisplaySettings();
+const { calculationStepDisplayMode, showAutomaticRestOperators } =
+  useCalculationStepDisplaySettings();
 const { resultResourceDisplayMode } = useResultResourceDisplaySettings();
 const { facilityCardSettings, facilityCardIconScale } =
   useFacilityCardSettings();
@@ -1221,6 +1222,7 @@ const resultDisplay = computed<ResultDisplay | undefined>(() => {
   );
   return buildResultDisplay(result, {
     sanityValues: sanityValues.value,
+    showAutomaticRestOperators: showAutomaticRestOperators.value,
     resourceAmountDisplayMode: resultResourceDisplayMode.value,
     dailyAmounts: dailySanityAmounts.value,
     droneAcceleration: droneAcceleration.value,

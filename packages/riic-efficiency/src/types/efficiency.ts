@@ -560,6 +560,7 @@ export interface DormitoryRecoveryContribution {
 export interface DormitoryOperatorRecovery {
   operator: string;
   slotIndex: number;
+  automaticRest?: boolean;
   rate: number;
   contributions: DormitoryRecoveryContribution[];
   blocksOtherRecovery?: boolean;

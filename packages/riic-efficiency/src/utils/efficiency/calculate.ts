@@ -2698,7 +2698,7 @@ function dormitoryRecoverySnapshotsForContext(
     { startMood: number; expectedMood: number; endMood: number }
   > = new Map(),
   sourcePlacements: Placement[] = context.placements,
-  hiddenOperators: ReadonlySet<string> = new Set(),
+  automaticRestOperators: ReadonlySet<string> = new Set(),
 ): DormitoryRecoverySnapshot[] {
   const explicitMembers = sourcePlacements.filter(
     (placement) => placement.facility.type === "dormitory",
@@ -2733,8 +2733,6 @@ function dormitoryRecoverySnapshotsForContext(
             members,
             expectedMoods,
             catalog,
-          ).filter(
-            (contribution) => !hiddenOperators.has(contribution.operator),
           );
           const blocksOtherRecovery = context.active.some(
             (item) =>
@@ -2756,6 +2754,9 @@ function dormitoryRecoverySnapshotsForContext(
             {
               operator: subject.name,
               slotIndex: subject.index,
+              ...(automaticRestOperators.has(subject.name)
+                ? { automaticRest: true }
+                : {}),
               rate,
               contributions: actualContributions,
               ...(blocksOtherRecovery ? { blocksOtherRecovery: true } : {}),
@@ -2775,9 +2776,7 @@ function dormitoryRecoverySnapshotsForContext(
         facilityIndex: dormitory.index,
         baseRate: 1.5 + 0.5 * dormitory.level,
         contributions: contributions.filter(
-          (contribution) =>
-            contribution.facilityId === dormitory.id &&
-            !hiddenOperators.has(contribution.operator),
+          (contribution) => contribution.facilityId === dormitory.id,
         ),
         operators,
       };
@@ -2949,6 +2948,7 @@ function resolveAutomaticRest(
     const replaced = new Set<Placement>();
     const changedMoods = new Map<Placement, { start: number; end: number }>();
     const restPlacements: Placement[] = [];
+    const automaticRestOperators = new Set<string>();
     candidates.forEach((candidate) => {
       if (!candidate.dormitory || candidate.slotIndex === undefined) {
         context.autoRestWarnings.push({
@@ -2961,6 +2961,7 @@ function resolveAutomaticRest(
         return;
       }
       if (candidate.restPlacement) {
+        automaticRestOperators.add(candidate.source.name);
         changedMoods.set(candidate.restPlacement, {
           start: candidate.restPlacement.moodStart,
           end: candidate.restPlacement.moodEnd,
@@ -2970,6 +2971,7 @@ function resolveAutomaticRest(
         return;
       }
       if (candidate.current) replaced.add(candidate.current);
+      automaticRestOperators.add(candidate.source.name);
       restPlacements.push(
         createDormitoryRestPlacement(
           context,
@@ -3045,8 +3047,8 @@ function resolveAutomaticRest(
         context,
         catalog,
         predictions,
-        originalPlacements,
-        new Set(restPlacements.map((placement) => placement.name)),
+        [...originalPlacements, ...restPlacements],
+        automaticRestOperators,
       );
     } finally {
       changedMoods.forEach((mood, placement) => {
