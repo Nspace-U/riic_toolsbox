@@ -146,6 +146,10 @@ export interface EfficiencyEffect {
   stack?: "max" | string;
   maxGroup?: string;
   baseValue?: number;
+  targetBonuses?: {
+    value: number;
+    targets: { op?: string; scopeGroup?: string }[];
+  }[];
   recipe?: string;
   term?: string;
   from?: string;

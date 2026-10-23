@@ -793,6 +793,7 @@ function parseOfficeEffects(text, target, groups, cond, warn) {
 //     无法表达的新增句式仍会在末尾警告。
 function parseDormEffects(text, target, groups, cond, warn) {
   const effects = [];
+  const targetBonuses = [];
   const push = (eff) => {
     if (cond) eff.condition = cond;
     effects.push(eff);
@@ -822,6 +823,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
       };
       if (roomBase != null) eff.baseValue = roomBase; // 固定 + 线性合并为单一效果
       if (roomOther) eff.other = true;
+      if (targetBonuses.length > 0) eff.targetBonuses = targetBonuses;
       push(eff);
     } else if (roomBase != null) {
       const eff = {
@@ -833,20 +835,17 @@ function parseDormEffects(text, target, groups, cond, warn) {
         maxGroup: "dormRec-room",
       };
       if (roomOther) eff.other = true;
+      if (targetBonuses.length > 0) eff.targetBonuses = targetBonuses;
       push(eff);
     }
   };
 
   // -1) 特殊规则：如果自身为满心情，则与当前宿舍前一位进驻的干员互换心情（菲亚梅塔·患难之交）
   //     → 新 stat 'moodSwap'：模拟器按排班表设置「菲亚梅塔绑定队列/固定回复」执行（见 计算规则 18）
-  if (
-    (m = text.match(/如果自身为满心情，则?与当前宿舍前一位进驻的干员互换心情/))
-  ) {
+  if (/如果自身为满心情，则?与当前宿舍前一位进驻的干员互换心情/.test(text)) {
     push({ target: "dormitory", stat: "moodSwap" });
     text = del(/如果自身为满心情，则?与当前宿舍前一位进驻的干员互换心情/, text);
   }
-  const targetBonusIsShared =
-    /该宿舍内(?:除自身以外)?所有干员(?:的)?心情每小时恢复/.test(text);
   while (
     (m = text.match(/如果目标是(.+?)，则恢复效果额外([+-]?\d+(?:\.\d+)?)/))
   ) {
@@ -854,21 +853,11 @@ function parseDormEffects(text, target, groups, cond, warn) {
       .split(/和/)
       .map((s) => s.replace(/成员$/, "").trim())
       .filter(Boolean);
-    goals.forEach((g) => {
-      const eff = {
-        target: "dormitory",
-        stat: "moodRecover",
-        value: Number(m[2]),
-        scope: "room",
-        ...(targetBonusIsShared ? {} : { subjects: "single" }),
-        stack: "max",
-        maxGroup: targetBonusIsShared ? "dormRec-target" : "dormRec-single",
-      };
+    const targets = goals.map((g) => {
       const key = termKeyOf(g, groups, null);
-      if (key) eff.scopeGroup = key;
-      else eff.op = g.replace(/干员$/, "");
-      push(eff);
+      return key ? { scopeGroup: key } : { op: g.replace(/干员$/, "") };
     });
+    targetBonuses.push({ value: Number(m[2]), targets });
     text = del(/如果目标是.+?，则恢复效果额外[+-]?\d+(?:\.\d+)?/, text);
   }
   // 0.5) 附段 B："如果该宿舍内有其他干员，则每人额外为自身心情每小时恢复+X"（协律·赋格融汇 / 芳汀·"独处"）
@@ -918,7 +907,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
   // 2) 自身型："自身心情每小时恢复±X"（含负值：安比尔/杜林·慵懒）
   //    菲亚梅塔·自律："无法获得其他来源提供的心情恢复效果" → blockOtherRecovery
   let blockOther = false;
-  if ((m = text.match(/无法获得其他来源提供的心?情恢复效果/))) {
+  if (/无法获得其他来源提供的心?情恢复效果/.test(text)) {
     blockOther = true;
     text = del(/无法获得其他来源提供的心?情恢复效果/, text);
   }
@@ -945,7 +934,7 @@ function parseDormEffects(text, target, groups, cond, warn) {
       /该宿舍内(?:除自身以外)?(?:心情未满的)?某个干员每小时恢复([+-]?\d+(?:\.\d+)?)/,
     ))
   ) {
-    push({
+    const effect = {
       target: "dormitory",
       stat: "moodRecover",
       value: Number(m[1]),
@@ -954,7 +943,9 @@ function parseDormEffects(text, target, groups, cond, warn) {
       subjects: "single",
       stack: "max",
       maxGroup: "dormRec-single",
-    });
+    };
+    if (targetBonuses.length > 0) effect.targetBonuses = targetBonuses;
+    push(effect);
     text = del(
       /该宿舍内(?:除自身以外)?(?:心情未满的)?某个干员每小时恢复[+-]?\d+(?:\.\d+)?/,
       text,

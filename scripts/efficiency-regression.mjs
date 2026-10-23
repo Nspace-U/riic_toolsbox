@@ -526,8 +526,7 @@ function runTests(runtime) {
       ],
     ),
     [
-      ["森西", "资深料理人", "shared", 0.15],
-      ["森西", "资深料理人", "shared", 0.15],
+      ["森西", "资深料理人", "shared", 0.3],
       ["断罪者", "天启", "single", 0.7],
     ],
   );
@@ -537,6 +536,81 @@ function runTests(runtime) {
       ({ operator }) => operator === "断罪者",
     );
   assert.equal(executorRecovery?.rate, 4.15);
+
+  const indigoDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [
+              assignment(
+                ["深靛", "蓝毒"],
+                { 深靛: 0, 蓝毒: 0 },
+                { 深靛: 24, 蓝毒: 0 },
+              ),
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const bluePoisonRecovery =
+    indigoDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "蓝毒",
+    );
+  assert.deepEqual(
+    bluePoisonRecovery?.contributions.map(
+      ({ operator, skill, distribution, value }) => [
+        operator,
+        skill,
+        distribution,
+        value,
+      ],
+    ),
+    [["深靛", "毒剂师之友", "single", 1]],
+  );
+  assert.equal(bluePoisonRecovery?.rate, 5);
+
+  const indigoOtherDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [
+              assignment(
+                ["深靛", "锡兰"],
+                { 深靛: 0, 锡兰: 0 },
+                { 深靛: 24, 锡兰: 0 },
+              ),
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const ceylonRecovery =
+    indigoOtherDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "锡兰",
+    );
+  assert.deepEqual(
+    ceylonRecovery?.contributions.map(({ value }) => value),
+    [0.55],
+  );
+  assert.equal(ceylonRecovery?.rate, 4.55);
 
   const morganDormitory = calculateEfficiency(
     {

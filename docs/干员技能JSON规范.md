@@ -312,6 +312,7 @@ npm run generate:operator-skills
 | `suppresses`         | 同一目标设施上被该技能压制的技能名列表，优先生效              |
 | `excludeFromStat`    | 不计入其他技能 `source: "stat"` 的效率基数                    |
 | `baseValue`          | 与 `per` 共存的固定基础值，最终值为基础值加线性值             |
+| `targetBonuses`      | 宿舍恢复的目标增量；命中目标时并入所属基础效果候选值          |
 | `recipe`             | 制造站配方类别，例如 `贵金属`                                 |
 
 `stack: "max"` 的含义是：先按每个目标设施、条件和 `per` 计算候选值，再在相同 `maxGroup` 中取满足条件的最大值；不能把标记为 `max` 的效果与普通效果混为一组。玛恩纳、重岳、维什戴尔针对 `部分设施/其他设施` 的心情恢复使用 `maxGroup: "otherFacRec"`，由每个设施分别取最高。
@@ -319,6 +320,8 @@ npm run generate:operator-skills
 `zeroOpMood` 的目标不是控制中枢时，只清除目标干员通过个人作用范围获得的自身技能心情修正，不区分正负值；房间共享效果不会因此被清除，即使共享效果的提供者也在目标房间。`target: control` 时，会清除目标中枢内所有命中对象收到的技能 `moodCost` 和 `moodRecover`；若设置 `group`，它只限定受影响的目标干员，不决定清除范围。`blockOtherRecovery` 表示目标干员不接受其他来源提供的 `moodRecover`，当前用于宿舍恢复结算。
 
 宿舍“该宿舍内心情 N 以下的干员恢复效果额外 +X”使用 `moodBelow: N` 和独立的 `maxGroup` 表示。计算时按每个目标干员的当前计算心情判断 `mood < N`，再与宿舍群体恢复效果分别取最高，最后叠加两类结果。
+
+宿舍技能中的“如果目标是……，则恢复效果额外 +X”使用 `targetBonuses` 附加在该技能基础恢复效果上。每条 bonus 的 `targets` 中 `op` 和 `scopeGroup` 条件按“或”匹配；命中时将 `value` 加到该干员的基础候选值，再保留基础效果的群体或单体类别参与原有选择与 `maxGroup` 取最高。单体恢复先按原规则选择目标，再计算其目标增量；目标增量不独立参与单体选人或跨来源叠加。
 
 控制中枢直接提供目标设施效率的效果，如果描述包含“同种效果取最高”，使用 `stack: "max"`。计算器据此将 `tradeSpd`、`manuProd`、`droneCharge`、`clueSpeed` 和 `hireSpd` 的效果归入设施效率，而不是干员个人贡献。琴柳“感染力”先按办公室完整效率判断是否低于 130%，触发后作为普通干员效率叠加，不使用 `stack: "max"`。
 

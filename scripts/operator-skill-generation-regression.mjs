@@ -138,17 +138,34 @@ assert.deepEqual(sensiStage?.effects, [
     stat: "moodRecover",
     value: 0.15,
     scope: "room",
-    maxGroup: "dormRec-target",
+    targetBonuses: [
+      {
+        value: 0.15,
+        targets: [{ scopeGroup: "cc.tag.dungeon" }],
+      },
+    ],
     stack: "max",
-    scopeGroup: "cc.tag.dungeon",
+    maxGroup: "dormRec-room",
   },
+]);
+
+const indigo = JSON.parse(
+  await readFile(path.join(skillRoot, "char_469_indigo.json"), "utf8"),
+);
+const indigoStage = indigo.chains
+  .find((chain) => chain.room === "dormitory")
+  ?.stages.find((stage) => stage.name === "毒剂师之友");
+assert.deepEqual(indigoStage?.effects, [
   {
     target: "dormitory",
     stat: "moodRecover",
-    value: 0.15,
+    value: 0.55,
     scope: "room",
+    other: true,
+    subjects: "single",
     stack: "max",
-    maxGroup: "dormRec-room",
+    maxGroup: "dormRec-single",
+    targetBonuses: [{ value: 0.45, targets: [{ op: "蓝毒" }] }],
   },
 ]);
 

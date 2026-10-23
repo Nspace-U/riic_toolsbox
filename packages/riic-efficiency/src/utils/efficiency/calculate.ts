@@ -2398,9 +2398,35 @@ function moodRecoveryAppliesTo(
   return true;
 }
 
+function moodRecoveryEffectValueForSubject(
+  item: ActiveEffect,
+  target: EfficiencyFacility,
+  subject: Placement,
+  context: PlanContext,
+  catalog: EfficiencyCatalog,
+): number {
+  return (
+    effectValue(item, target, context, catalog, emptyEvaluationData()) +
+    (item.effect.targetBonuses ?? []).reduce((total, bonus) => {
+      const matches = bonus.targets.some(
+        (bonusTarget) =>
+          bonusTarget.op === subject.name ||
+          (bonusTarget.scopeGroup !== undefined &&
+            groupIncludesOperator(
+              catalog,
+              bonusTarget.scopeGroup,
+              subject.name,
+            )),
+      );
+      return total + (matches ? bonus.value : 0);
+    }, 0)
+  );
+}
+
 function moodRecoveryEffectContributions(
   items: ActiveEffect[],
   target: EfficiencyFacility,
+  subject: Placement,
   context: PlanContext,
   catalog: EfficiencyCatalog,
   distribution: DormitoryRecoveryContribution["distribution"],
@@ -2412,7 +2438,6 @@ function moodRecoveryEffectContributions(
     if (
       distribution === "shared" &&
       item.effect.maxGroup !== "dormRec-overall" &&
-      item.effect.maxGroup !== "dormRec-target" &&
       (item.effect.scope === "op" ||
         item.effect.op !== undefined ||
         item.effect.moodBelow !== undefined ||
@@ -2429,12 +2454,12 @@ function moodRecoveryEffectContributions(
         operator: item.owner.name,
         skill: item.skill,
         distribution: contributionDistribution(item),
-        value: effectValue(
+        value: moodRecoveryEffectValueForSubject(
           item,
           target,
+          subject,
           context,
           catalog,
-          emptyEvaluationData(),
         ),
       });
       return;
@@ -2450,12 +2475,12 @@ function moodRecoveryEffectContributions(
     let winningItem: ActiveEffect | undefined;
     let winningValue = -Infinity;
     group.forEach((item) => {
-      const value = effectValue(
+      const value = moodRecoveryEffectValueForSubject(
         item,
         target,
+        subject,
         context,
         catalog,
-        emptyEvaluationData(),
       );
       if (value > winningValue) {
         winningValue = value;
@@ -2477,18 +2502,19 @@ function moodRecoveryEffectContributions(
 function sumMoodRecoveryEffects(
   items: ActiveEffect[],
   target: EfficiencyFacility,
+  subject: Placement,
   context: PlanContext,
   catalog: EfficiencyCatalog,
 ): number {
   let total = 0;
   const groups = new Map<string, number>();
   items.forEach((item) => {
-    const value = effectValue(
+    const value = moodRecoveryEffectValueForSubject(
       item,
       target,
+      subject,
       context,
       catalog,
-      emptyEvaluationData(),
     );
     if (item.effect.stack !== "max") {
       total += value;
@@ -2522,6 +2548,7 @@ function dormitoryRecoveryContributionsForSubject(
     return moodRecoveryEffectContributions(
       ownItems.filter((item) => item.effect.scope === "self"),
       dormitory,
+      subject,
       context,
       catalog,
       "self",
@@ -2584,6 +2611,7 @@ function dormitoryRecoveryContributionsForSubject(
     ...moodRecoveryEffectContributions(
       shared,
       dormitory,
+      subject,
       context,
       catalog,
       "shared",
@@ -2591,6 +2619,7 @@ function dormitoryRecoveryContributionsForSubject(
     ...moodRecoveryEffectContributions(
       self,
       dormitory,
+      subject,
       context,
       catalog,
       "self",
@@ -2598,6 +2627,7 @@ function dormitoryRecoveryContributionsForSubject(
     ...moodRecoveryEffectContributions(
       single,
       dormitory,
+      subject,
       context,
       catalog,
       "single",
@@ -2605,6 +2635,7 @@ function dormitoryRecoveryContributionsForSubject(
     ...moodRecoveryEffectContributions(
       spread,
       dormitory,
+      subject,
       context,
       catalog,
       "spread",
@@ -2629,6 +2660,7 @@ function dormitoryRecoveryRate(
     return sumMoodRecoveryEffects(
       ownItems.filter((item) => item.effect.scope === "self"),
       dormitory,
+      subject,
       context,
       catalog,
     );
@@ -2689,10 +2721,10 @@ function dormitoryRecoveryRate(
   return (
     1.5 +
     0.5 * dormitory.level +
-    sumMoodRecoveryEffects(shared, dormitory, context, catalog) +
-    sumMoodRecoveryEffects(self, dormitory, context, catalog) +
-    sumMoodRecoveryEffects(single, dormitory, context, catalog) +
-    sumMoodRecoveryEffects(spread, dormitory, context, catalog)
+    sumMoodRecoveryEffects(shared, dormitory, subject, context, catalog) +
+    sumMoodRecoveryEffects(self, dormitory, subject, context, catalog) +
+    sumMoodRecoveryEffects(single, dormitory, subject, context, catalog) +
+    sumMoodRecoveryEffects(spread, dormitory, subject, context, catalog)
   );
 }
 
