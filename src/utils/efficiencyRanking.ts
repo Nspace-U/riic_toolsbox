@@ -104,6 +104,7 @@ interface EfficiencyRankingSupport {
   facility: RoomKey;
   name?: string;
   term?: string;
+  scenarioTerm?: string;
   roomIndex?: number;
   count?: number;
   elite?: EliteLevel;
@@ -717,39 +718,45 @@ function placeDefaultSupports(
   catalog: EfficiencyCatalog,
 ): void {
   const defaults = specialRowForProgression(entry);
-  (defaults?.supports ?? []).forEach((support) => {
-    const name = support.name ?? catalog.terms[support.term ?? ""]?.name;
-    if (!name) return;
-    const count = Math.max(1, Math.floor(support.count ?? 1));
-    for (let index = 0; index < count; index += 1) {
-      const assignment = addOperatorToFacility(
-        rooms,
-        layout,
-        support.facility,
-        name,
-        {
-          allowDuplicate: Boolean(support.term),
-          roomIndex: support.roomIndex,
-        },
-      );
-      if (
-        !assignment ||
-        (support.elite === undefined &&
-          support.level === undefined &&
-          support.mood === undefined)
-      )
-        continue;
-      assignment.operatorStates = {
-        ...assignment.operatorStates,
-        [name]: {
-          ...assignment.operatorStates?.[name],
-          ...(support.elite !== undefined ? { elite: support.elite } : {}),
-          ...(support.level !== undefined ? { level: support.level } : {}),
-          ...(support.mood !== undefined ? { mood: support.mood } : {}),
-        },
-      };
-    }
-  });
+  (defaults?.supports ?? [])
+    .filter(
+      (support) =>
+        !support.scenarioTerm ||
+        support.scenarioTerm === entry.basePointScenarios?.[entry.operator.id],
+    )
+    .forEach((support) => {
+      const name = support.name ?? catalog.terms[support.term ?? ""]?.name;
+      if (!name) return;
+      const count = Math.max(1, Math.floor(support.count ?? 1));
+      for (let index = 0; index < count; index += 1) {
+        const assignment = addOperatorToFacility(
+          rooms,
+          layout,
+          support.facility,
+          name,
+          {
+            allowDuplicate: Boolean(support.term),
+            roomIndex: support.roomIndex,
+          },
+        );
+        if (
+          !assignment ||
+          (support.elite === undefined &&
+            support.level === undefined &&
+            support.mood === undefined)
+        )
+          continue;
+        assignment.operatorStates = {
+          ...assignment.operatorStates,
+          [name]: {
+            ...assignment.operatorStates?.[name],
+            ...(support.elite !== undefined ? { elite: support.elite } : {}),
+            ...(support.level !== undefined ? { level: support.level } : {}),
+            ...(support.mood !== undefined ? { mood: support.mood } : {}),
+          },
+        };
+      }
+    });
 }
 
 export function createEfficiencyRankingSchedule(

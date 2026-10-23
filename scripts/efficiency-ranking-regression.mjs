@@ -57,7 +57,7 @@ try {
     });
   }
 
-  check("宿舍按效率包分为群体、分摊、单体、特定和自身恢复", () => {
+  check("宿舍按效率包分类并保持指定展示顺序", () => {
     const entryFor = (name, elite) =>
       entries.find(
         (row) =>
@@ -76,10 +76,10 @@ try {
     assert.ok(senshi.dormitoryCategories.includes("shared"));
     assert.ok(perfumer.dormitoryCategories.includes("specific"));
     assert.deepEqual(
-      ["shared", "spread", "single", "specific", "self"].map((type) =>
+      ["shared", "single", "spread", "specific", "self"].map((type) =>
         ranking.dormitoryRecoveryLabel(type),
       ),
-      ["群体恢复", "分摊恢复", "单体恢复", "特定恢复", "自身恢复"],
+      ["群体恢复", "单体恢复", "分摊恢复", "特定恢复", "自身恢复"],
     );
   });
 
@@ -519,6 +519,85 @@ try {
       results.map((result) => result.efficiency),
       [30, 25],
     );
+  });
+
+  check("闪击两种基建点行分别放入对应控制中枢支援", () => {
+    const rows = entries.filter(
+      (row) =>
+        row.operator.name === "闪击" &&
+        row.facility === "hire" &&
+        row.progression.elite === 2 &&
+        row.basePointScenarios,
+    );
+    for (const row of rows) {
+      const scenarioTerm = row.basePointScenarios[row.operator.id];
+      const schedule = ranking.createEfficiencyRankingSchedule(row, {
+        layout,
+        workHours: 24,
+        clueExchanging: true,
+        treatSkillsAsUnlocked: false,
+        dormitoryDefaultIncludesMoodRecovery: false,
+        catalog,
+      });
+      const operators = schedule.plans[0].rooms.control[0].operators;
+      if (scenarioTerm === "cc.bd_ash") {
+        assert.ok(operators.includes("灰烬"));
+        assert.equal(operators.filter((name) => name === "彩虹小队").length, 4);
+        assert.ok(!operators.includes("战车"));
+        assert.ok(!operators.includes("乌萨斯学生自治团"));
+      } else {
+        assert.equal(scenarioTerm, "cc.bd_tachanka");
+        assert.ok(operators.includes("战车"));
+        assert.equal(
+          operators.filter((name) => name === "乌萨斯学生自治团").length,
+          4,
+        );
+        assert.ok(!operators.includes("灰烬"));
+        assert.ok(!operators.includes("彩虹小队"));
+      }
+    }
+  });
+
+  check("余和纯烬按解锁练度配置宿舍群体成员", () => {
+    const yu = entries.find(
+      (row) =>
+        row.operator.name === "余" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 0,
+    );
+    const yuSchedule = ranking.createEfficiencyRankingSchedule(yu, {
+      layout,
+      workHours: 24,
+      clueExchanging: true,
+      treatSkillsAsUnlocked: false,
+      dormitoryDefaultIncludesMoodRecovery: false,
+      catalog,
+    });
+    assert.equal(
+      yuSchedule.plans[0].rooms.dormitory[0].operators.filter(
+        (name) => name === "岁",
+      ).length,
+      3,
+    );
+
+    const goatRows = entries.filter(
+      (row) =>
+        row.operator.name === "纯烬艾雅法拉" && row.facility === "dormitory",
+    );
+    for (const row of goatRows) {
+      const schedule = ranking.createEfficiencyRankingSchedule(row, {
+        layout,
+        workHours: 24,
+        clueExchanging: true,
+        treatSkillsAsUnlocked: false,
+        dormitoryDefaultIncludesMoodRecovery: false,
+        catalog,
+      });
+      const count = schedule.plans[0].rooms.dormitory[0].operators.filter(
+        (name) => name === "行医",
+      ).length;
+      assert.equal(count, row.progression.elite === 2 ? 3 : 0);
+    }
   });
 
   check("赤刃明霄陈的默认招募支援提供人间烟火点数", () => {

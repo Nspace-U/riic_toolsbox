@@ -114,8 +114,47 @@
     "hire": {
       "unlock": { "type": "elite", "value": 2 },
       "supports": [
-        { "facility": "control", "name": "灰烬", "elite": 2 },
-        { "facility": "control", "term": "cc.g.R6", "count": 4 }
+        {
+          "facility": "control",
+          "name": "灰烬",
+          "elite": 2,
+          "scenarioTerm": "cc.bd_ash"
+        },
+        {
+          "facility": "control",
+          "term": "cc.g.R6",
+          "count": 4,
+          "scenarioTerm": "cc.bd_ash"
+        },
+        {
+          "facility": "control",
+          "name": "战车",
+          "elite": 2,
+          "scenarioTerm": "cc.bd_tachanka"
+        },
+        {
+          "facility": "control",
+          "term": "cc.g.ussg",
+          "count": 4,
+          "scenarioTerm": "cc.bd_tachanka"
+        }
+      ]
+    }
+  },
+  "char_2026_yu": {
+    "dormitory": {
+      "supports": [{ "facility": "dormitory", "term": "cc.g.sui", "count": 3 }]
+    }
+  },
+  "char_1016_agoat2": {
+    "dormitory": {
+      "unlock": { "type": "elite", "value": 2 },
+      "supports": [
+        {
+          "facility": "dormitory",
+          "term": "cc.c.clinician",
+          "count": 3
+        }
       ]
     }
   }

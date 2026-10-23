@@ -127,7 +127,7 @@ const rowRooms = ref(storedState.rowRooms);
 const rowNotes = ref(storedState.rowNotes);
 const activeFacility = ref<RoomKey>("power");
 const activeMeetingCategory = ref<"normal" | "independent" | "combo">("normal");
-const activeDormitoryCategory = ref<DormitoryCategory>("self");
+const activeDormitoryCategory = ref<DormitoryCategory>("shared");
 const layoutModalOpen = ref(false);
 const rowModalOpen = ref(false);
 const layoutDraftSchedule = ref<ScheduleDocument>();
@@ -256,11 +256,11 @@ const meetingCategoryTabs = computed(() => [
 
 const dormitoryCategoryTabs = computed(() =>
   [
-    { key: "self" as const, label: "自身恢复" },
     { key: "shared" as const, label: "群体恢复" },
-    { key: "spread" as const, label: "分摊恢复" },
     { key: "single" as const, label: "单体恢复" },
+    { key: "spread" as const, label: "分摊恢复" },
     { key: "specific" as const, label: "特定恢复" },
+    { key: "self" as const, label: "自身恢复" },
   ].map((category) => ({
     ...category,
     count: rowsForDormitoryCategory(category.key).length,
@@ -386,7 +386,7 @@ function dormitoryRecoveryText(row: EfficiencyRankingRowView): string {
   const value = rankingValue(row);
   return value === undefined
     ? "—"
-    : `${value > 0 ? "+" : ""}${formatNumber(value)}/小时`;
+    : `${value > 0 ? "+" : ""}${formatNumber(value)}`;
 }
 
 function dormitoryAdditionalRecoveryNotes(
@@ -401,7 +401,7 @@ function dormitoryAdditionalRecoveryNotes(
       return value === undefined
         ? []
         : [
-            `${dormitoryRecoveryLabel(category)} ${value > 0 ? "+" : ""}${formatNumber(value)}/小时`,
+            `${dormitoryRecoveryLabel(category)} ${value > 0 ? "+" : ""}${formatNumber(value)}`,
           ];
     });
 }
