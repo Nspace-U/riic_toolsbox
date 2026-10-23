@@ -2446,40 +2446,29 @@ function moodRecoveryEffectContributions(
     groups.set(groupKey, group);
   });
   groups.forEach((group) => {
-    const owners = new Map<string, ActiveEffect[]>();
-    group.forEach((item) => {
-      const ownerItems = owners.get(item.owner.name) ?? [];
-      ownerItems.push(item);
-      owners.set(item.owner.name, ownerItems);
-    });
-    let winningItems: ActiveEffect[] = [];
+    let winningItem: ActiveEffect | undefined;
     let winningValue = -Infinity;
-    owners.forEach((ownerItems) => {
-      const value = ownerItems.reduce(
-        (sum, item) =>
-          sum +
-          effectValue(item, target, context, catalog, emptyEvaluationData()),
-        0,
+    group.forEach((item) => {
+      const value = effectValue(
+        item,
+        target,
+        context,
+        catalog,
+        emptyEvaluationData(),
       );
       if (value > winningValue) {
         winningValue = value;
-        winningItems = ownerItems;
+        winningItem = item;
       }
     });
-    winningItems.forEach((item) => {
+    if (winningItem) {
       contributions.push({
-        operator: item.owner.name,
-        skill: item.skill,
-        distribution: contributionDistribution(item),
-        value: effectValue(
-          item,
-          target,
-          context,
-          catalog,
-          emptyEvaluationData(),
-        ),
+        operator: winningItem.owner.name,
+        skill: winningItem.skill,
+        distribution: contributionDistribution(winningItem),
+        value: winningValue,
       });
-    });
+    }
   });
   return contributions;
 }
@@ -2491,7 +2480,7 @@ function sumMoodRecoveryEffects(
   catalog: EfficiencyCatalog,
 ): number {
   let total = 0;
-  const groups = new Map<string, Map<string, number>>();
+  const groups = new Map<string, number>();
   items.forEach((item) => {
     const value = effectValue(
       item,
@@ -2507,12 +2496,10 @@ function sumMoodRecoveryEffects(
     const groupKey =
       item.effect.maxGroup ??
       `${item.effect.target}|${item.effect.stat}|${item.effect.recipe ?? ""}`;
-    const owners = groups.get(groupKey) ?? new Map<string, number>();
-    owners.set(item.owner.name, (owners.get(item.owner.name) ?? 0) + value);
-    groups.set(groupKey, owners);
+    groups.set(groupKey, Math.max(groups.get(groupKey) ?? -Infinity, value));
   });
-  groups.forEach((owners) => {
-    total += Math.max(...owners.values());
+  groups.forEach((value) => {
+    total += value;
   });
   return total;
 }

@@ -456,6 +456,38 @@ function runTests(runtime) {
     serializeMaaSchedule,
   } = runtime;
 
+  const bobbDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [assignment(["波卜"], { 波卜: 2 }, { 波卜: 23 })],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const bobbRecovery =
+    bobbDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "波卜",
+    );
+  const bobbContributions = bobbRecovery?.contributions.filter(
+    ({ operator }) => operator === "波卜",
+  );
+  assert.deepEqual(
+    bobbContributions?.map(({ skill }) => skill),
+    ["倾谈者"],
+  );
+  assert.ok(Math.abs((bobbContributions?.[0]?.value ?? 0) - 0.21) < 1e-9);
+  assert.equal(bobbRecovery?.rate, 4.21);
+
   const morganDormitory = calculateEfficiency(
     {
       layout: [
@@ -2690,9 +2722,7 @@ function runTests(runtime) {
     }),
     catalog,
   );
-  assert.deepEqual(delayedQueueFiammetta.fiammettaWarnings, [
-    "菲亚梅塔在2队列结束后无法恢复心情",
-  ]);
+  assert.deepEqual(delayedQueueFiammetta.fiammettaWarnings, []);
 
   const directFiammetta = calculateEfficiency(
     fiammettaDocument({
