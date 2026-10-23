@@ -1265,7 +1265,12 @@ function dormitoryContributionLabel(
 function dormitoryRoomContributionDistribution(
   contribution: MoodRecoveryContribution,
 ): DormitoryRecoveryContribution["distribution"] {
-  if (contribution.maxGroup === "dormRec-overall") return "shared";
+  if (
+    contribution.maxGroup === "dormRec-overall" ||
+    contribution.maxGroup === "dormRec-target"
+  ) {
+    return "shared";
+  }
   if (contribution.subjects === "single") return "single";
   if (contribution.subjects === "spread") return "spread";
   if (contribution.scope === "self") return "self";

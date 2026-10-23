@@ -488,6 +488,56 @@ function runTests(runtime) {
   assert.ok(Math.abs((bobbContributions?.[0]?.value ?? 0) - 0.21) < 1e-9);
   assert.equal(bobbRecovery?.rate, 4.21);
 
+  const senshiDungeonDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [
+              assignment(
+                ["森西", "断罪者", "莱欧斯", "玛露西尔"],
+                { 森西: 2, 断罪者: 0, 莱欧斯: 0, 玛露西尔: 0 },
+                { 莱欧斯: 0 },
+              ),
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const laiosRecovery =
+    senshiDungeonDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "莱欧斯",
+    );
+  assert.deepEqual(
+    laiosRecovery?.contributions.map(
+      ({ operator, skill, distribution, value }) => [
+        operator,
+        skill,
+        distribution,
+        value,
+      ],
+    ),
+    [
+      ["森西", "资深料理人", "shared", 0.15],
+      ["森西", "资深料理人", "shared", 0.15],
+      ["断罪者", "天启", "single", 0.7],
+    ],
+  );
+  assert.equal(laiosRecovery?.rate, 5.0);
+  const executorRecovery =
+    senshiDungeonDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "断罪者",
+    );
+  assert.equal(executorRecovery?.rate, 4.15);
+
   const morganDormitory = calculateEfficiency(
     {
       layout: [

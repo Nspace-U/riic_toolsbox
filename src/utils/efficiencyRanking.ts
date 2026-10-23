@@ -379,7 +379,12 @@ export function dormitoryRecoveryDistributionForEffect(
     "maxGroup" | "subjects" | "scope" | "op" | "moodBelow" | "scopeGroup"
   >,
 ): DormitoryCategory {
-  if (effect.maxGroup === "dormRec-overall") return "shared";
+  if (
+    effect.maxGroup === "dormRec-overall" ||
+    effect.maxGroup === "dormRec-target"
+  ) {
+    return "shared";
+  }
   if (effect.subjects === "single") return "single";
   if (effect.subjects === "spread") return "spread";
   if (effect.scope === "self") return "self";

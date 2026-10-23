@@ -2412,6 +2412,7 @@ function moodRecoveryEffectContributions(
     if (
       distribution === "shared" &&
       item.effect.maxGroup !== "dormRec-overall" &&
+      item.effect.maxGroup !== "dormRec-target" &&
       (item.effect.scope === "op" ||
         item.effect.op !== undefined ||
         item.effect.moodBelow !== undefined ||

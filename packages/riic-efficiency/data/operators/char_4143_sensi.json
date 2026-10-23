@@ -20,9 +20,8 @@
               "stat": "moodRecover",
               "value": 0.15,
               "scope": "room",
-              "subjects": "single",
               "stack": "max",
-              "maxGroup": "dormRec-single",
+              "maxGroup": "dormRec-target",
               "scopeGroup": "cc.tag.dungeon"
             },
             {

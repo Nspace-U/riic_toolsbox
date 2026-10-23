@@ -784,9 +784,7 @@ function parseOfficeEffects(text, target, groups, cond, warn) {
 // 记录字段口径（见 干员技能JSON规范.md §4.5/§4.7/§4.8）：
 //   - scope:'self' 自身型 / scope:'room' 该宿舍内 / subjects:'single' 单体型（某个干员）/
 //     subjects:'spread' 均摊型（平均分配）/"同种效果取最高" → stack:'max' + maxGroup
-//     （dormRec-room / dormRec-single / dormRec-spread；跨宿舍效果使用 dormRec-overall）
 //   - 固定 + 线性 → 单一效果 { baseValue, per }（"叠加后的最终值同种效果取最高"）
-//   - "如果目标是XX则恢复效果额外+Y" → 独立 single 效果（术语 → scopeGroup；单干员 → op）
 //   - 对象心情阈值（"心情N以下"）→ moodBelow；菲亚梅塔·自律 → blockOtherRecovery
 //   - per.source：ownLevel（当前宿舍每级）/ recruitSlots / facilityCount(power) /
 //     opGroupInBase（基建内每名XX，上限M名）/ dormNotFull（该宿舍每名心情未满干员）/
@@ -847,7 +845,8 @@ function parseDormEffects(text, target, groups, cond, warn) {
     push({ target: "dormitory", stat: "moodSwap" });
     text = del(/如果自身为满心情，则?与当前宿舍前一位进驻的干员互换心情/, text);
   }
-  // 0) 附段 A："如果目标是XX，则恢复效果额外+Y"（新约能天使/寒檀/黑/特米米/深靛/森西/罗德岛隐秘队）    //    目标是术语 → scopeGroup（原类别保留）；单干员（锡兰/蓝毒等无术语）→ op。先于主段提取。
+  const targetBonusIsShared =
+    /该宿舍内(?:除自身以外)?所有干员(?:的)?心情每小时恢复/.test(text);
   while (
     (m = text.match(/如果目标是(.+?)，则恢复效果额外([+-]?\d+(?:\.\d+)?)/))
   ) {
@@ -861,9 +860,9 @@ function parseDormEffects(text, target, groups, cond, warn) {
         stat: "moodRecover",
         value: Number(m[2]),
         scope: "room",
-        subjects: "single",
+        ...(targetBonusIsShared ? {} : { subjects: "single" }),
         stack: "max",
-        maxGroup: "dormRec-single",
+        maxGroup: targetBonusIsShared ? "dormRec-target" : "dormRec-single",
       };
       const key = termKeyOf(g, groups, null);
       if (key) eff.scopeGroup = key;

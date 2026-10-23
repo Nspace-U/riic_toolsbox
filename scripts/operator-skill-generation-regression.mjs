@@ -126,6 +126,41 @@ assert.deepEqual(morganStage?.effects[0], {
   condition: { type: "opAtFacility", op: "推进之王", facility: "same" },
 });
 
+const sensi = JSON.parse(
+  await readFile(path.join(skillRoot, "char_4143_sensi.json"), "utf8"),
+);
+const sensiStage = sensi.chains
+  .find((chain) => chain.room === "dormitory")
+  ?.stages.find((stage) => stage.name === "资深料理人");
+assert.deepEqual(sensiStage?.effects, [
+  {
+    target: "dormitory",
+    stat: "moodRecover",
+    value: 0.15,
+    scope: "room",
+    maxGroup: "dormRec-target",
+    stack: "max",
+    scopeGroup: "cc.tag.dungeon",
+  },
+  {
+    target: "dormitory",
+    stat: "moodRecover",
+    value: 0.15,
+    scope: "room",
+    stack: "max",
+    maxGroup: "dormRec-room",
+  },
+]);
+
+const black = JSON.parse(
+  await readFile(path.join(skillRoot, "char_340_shwaz.json"), "utf8"),
+);
+const blackStage = black.chains
+  .find((chain) => chain.room === "dormitory")
+  ?.stages.find((stage) => stage.name === "沏茶");
+assert.equal(blackStage?.effects[0]?.subjects, "single");
+assert.equal(blackStage?.effects[0]?.maxGroup, "dormRec-single");
+
 for (const [id, skillName, group] of cases) {
   const file = JSON.parse(
     await readFile(path.join(skillRoot, `${id}.json`), "utf8"),

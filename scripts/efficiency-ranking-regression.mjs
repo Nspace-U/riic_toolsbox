@@ -72,8 +72,8 @@ try {
     assert.ok(bordenko.dormitoryCategories.includes("shared"));
     assert.ok(bordenko.dormitoryCategories.includes("single"));
     assert.deepEqual(iceWine.dormitoryCategories, ["spread"]);
-    assert.ok(senshi.dormitoryCategories.includes("single"));
     assert.ok(senshi.dormitoryCategories.includes("shared"));
+    assert.ok(!senshi.dormitoryCategories.includes("single"));
     assert.ok(perfumer.dormitoryCategories.includes("specific"));
     assert.deepEqual(
       ["shared", "single", "spread", "specific", "self"].map((type) =>
