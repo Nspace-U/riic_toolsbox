@@ -39,7 +39,6 @@ import {
   defaultEfficiencyRankingNote,
   dormitoryRecoveryEffectValueForCategory,
   dormitoryRecoveryLabel,
-  dormitoryRecoveryValueForCategory,
   emptyEfficiencyRankingSchedule,
   EFFICIENCY_RANKING_FACILITIES,
   operatorStateForSchedule,
@@ -338,8 +337,8 @@ function compareRankingRows(
 
 function rankingValue(row: EfficiencyRankingRowView): number | undefined {
   if (row.facility === "dormitory") {
-    return dormitoryRecoveryValueForCategory(
-      row.result?.dormitoryRecoveryContributionsByOperator[row.operator.name],
+    return dormitoryRecoveryEffectValueForCategory(
+      row.result?.dormitoryRecoveryByOperator[row.operator.name],
       activeDormitoryCategory.value,
     );
   }

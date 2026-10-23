@@ -26,6 +26,10 @@ try {
       ),
     ),
   );
+  const rankingPage = await readFile(
+    "src/pages/EfficiencyRankingPage.vue",
+    "utf8",
+  );
   const operators = parseTorappuData(characters, building, {});
   const catalog = getRiicEfficiencyCatalog();
   const entries = ranking.buildEfficiencyRankingEntries(operators, catalog);
@@ -144,7 +148,7 @@ try {
     }
   });
 
-  check("宿舍恢复分组只取对应类型，其他技能值和特定条件保留在备注", () => {
+  check("宿舍恢复值使用完整效果，备注排除当前分组的重复数值", () => {
     const contributions = [
       { operator: "波登可", value: 0.15, distribution: "shared" },
       { operator: "波登可", value: 0.65, distribution: "single" },
@@ -236,6 +240,14 @@ try {
     assert.match(
       ranking.defaultEfficiencyRankingNote(perfumer, catalog),
       /特定恢复条件：目标心情需低于20，恢复效果额外\+0\.1\/小时/,
+    );
+    assert.match(
+      rankingPage,
+      /dormitoryRecoveryEffectValueForCategory\(\s*row\.result\?\.dormitoryRecoveryByOperator\[row\.operator\.name\]/s,
+    );
+    assert.match(
+      rankingPage,
+      /filter\(\(category\) => category !== activeDormitoryCategory\.value\)/,
     );
   });
 
