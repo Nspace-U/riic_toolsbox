@@ -192,7 +192,7 @@ export const OPERATOR_SKILL_OVERRIDES = {
       scope: "room",
       scopeGroup: "cc.g.glasgow",
       stack: "max",
-      maxGroup: "dormRec-glasgow",
+      maxGroup: "dormRec-mood-below",
       condition: { type: "opAtFacility", op: "推进之王", facility: "same" },
     },
   ],

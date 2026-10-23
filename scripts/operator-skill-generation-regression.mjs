@@ -109,6 +109,23 @@ assert.deepEqual(
   },
 );
 
+const morgan = JSON.parse(
+  await readFile(path.join(skillRoot, "char_154_morgan.json"), "utf8"),
+);
+const morganStage = morgan.chains
+  .find((chain) => chain.room === "dormitory")
+  ?.stages.find((stage) => stage.name === "头号陪练");
+assert.deepEqual(morganStage?.effects[0], {
+  target: "dormitory",
+  stat: "moodRecover",
+  value: 0.3,
+  scope: "room",
+  scopeGroup: "cc.g.glasgow",
+  stack: "max",
+  maxGroup: "dormRec-mood-below",
+  condition: { type: "opAtFacility", op: "推进之王", facility: "same" },
+});
+
 for (const [id, skillName, group] of cases) {
   const file = JSON.parse(
     await readFile(path.join(skillRoot, `${id}.json`), "utf8"),

@@ -503,6 +503,42 @@ function runTests(runtime) {
     ),
   );
 
+  const morganVendlaDormitory = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [
+              assignment(
+                ["摩根", "刺玫", "推进之王", "因陀罗"],
+                {},
+                { 摩根: 24, 刺玫: 24, 推进之王: 10, 因陀罗: 10 },
+              ),
+            ],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const lowMoodSiegeRecovery =
+    morganVendlaDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "推进之王",
+    );
+  assert.equal(lowMoodSiegeRecovery?.rate, 4.5);
+  assert.deepEqual(
+    lowMoodSiegeRecovery?.contributions
+      .filter(({ operator }) => operator === "摩根" || operator === "刺玫")
+      .map(({ operator, value }) => [operator, value]),
+    [["摩根", 0.3]],
+  );
+
   const crossDormitoryRecovery = calculateEfficiency(
     {
       layout: [
