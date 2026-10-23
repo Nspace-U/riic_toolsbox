@@ -784,7 +784,7 @@ function parseOfficeEffects(text, target, groups, cond, warn) {
 // 记录字段口径（见 干员技能JSON规范.md §4.5/§4.7/§4.8）：
 //   - scope:'self' 自身型 / scope:'room' 该宿舍内 / subjects:'single' 单体型（某个干员）/
 //     subjects:'spread' 均摊型（平均分配）/"同种效果取最高" → stack:'max' + maxGroup
-//     （dormRec-room / dormRec-single / dormRec-spread；与中枢的 dormRec-overall/-elite 分离）
+//     （dormRec-room / dormRec-single / dormRec-spread；跨宿舍效果使用 dormRec-overall）
 //   - 固定 + 线性 → 单一效果 { baseValue, per }（"叠加后的最终值同种效果取最高"）
 //   - "如果目标是XX则恢复效果额外+Y" → 独立 single 效果（术语 → scopeGroup；单干员 → op）
 //   - 对象心情阈值（"心情N以下"）→ moodBelow；菲亚梅塔·自律 → blockOtherRecovery
@@ -2722,7 +2722,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
         scope: "room",
         scopeGroup: controlTermKey(match[1], groups, warn),
         stack: "max",
-        maxGroup: "dormRec-elite",
+        maxGroup: "dormRec-overall",
       },
       condition,
     );
@@ -3003,7 +3003,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
         scope: "room",
         scopeGroup: controlTermKey(match[1], groups, warn),
         stack: "max",
-        maxGroup: "dormRec-elite",
+        maxGroup: "dormRec-overall",
       },
       condition,
     );

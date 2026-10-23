@@ -1754,6 +1754,7 @@ function moodRecoveryContributionsForPlan(
         ...(effect.scopeGroup !== undefined
           ? { scopeGroup: effect.scopeGroup }
           : {}),
+        ...(effect.maxGroup !== undefined ? { maxGroup: effect.maxGroup } : {}),
       },
     ];
   });
@@ -2399,6 +2400,7 @@ function moodRecoveryEffectContributions(
   ): DormitoryRecoveryContribution["distribution"] {
     if (
       distribution === "shared" &&
+      item.effect.maxGroup !== "dormRec-overall" &&
       (item.effect.scope === "op" ||
         item.effect.op !== undefined ||
         item.effect.moodBelow !== undefined ||

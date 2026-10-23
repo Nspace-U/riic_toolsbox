@@ -548,6 +548,7 @@ export interface MoodRecoveryContribution {
   moodBelow?: number;
   subjects?: string;
   scopeGroup?: string;
+  maxGroup?: string;
 }
 
 export interface DormitoryRecoveryContribution {

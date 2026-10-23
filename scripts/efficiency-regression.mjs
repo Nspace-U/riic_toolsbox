@@ -503,6 +503,40 @@ function runTests(runtime) {
     ),
   );
 
+  const crossDormitoryRecovery = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment(["红隼", "电弧"], {})],
+            dormitory: [assignment(["推进之王", "煌"], {})],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  const crossDormitoryOperator =
+    crossDormitoryRecovery.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "煌",
+    );
+  assert.equal(crossDormitoryOperator?.rate, 4.3);
+  assert.deepEqual(
+    crossDormitoryOperator?.contributions.map(({ operator, value }) => [
+      operator,
+      value,
+    ]),
+    [
+      ["电弧", 0.1],
+      ["推进之王", 0.2],
+    ],
+  );
+
   const maaDroneDocument = {
     layout: [
       { type: "power", level: 3 },
