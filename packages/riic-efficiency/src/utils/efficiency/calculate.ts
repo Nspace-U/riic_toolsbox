@@ -783,6 +783,10 @@ function moodDropAverage(placement: Placement, duration: number): number {
   );
 }
 
+function fixedEffectValue(effect: EfficiencyEffect): number {
+  return Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
+}
+
 function perCount(
   per: EfficiencyPer,
   owner: Placement,
@@ -1132,7 +1136,9 @@ function moodEffectValueAtTime(
   }
   let value: number;
   if (effect.per?.source === "moodDrop") {
-    value = moodDropPerValue(effect.per, moodDropAtTime(owner, time));
+    value =
+      fixedEffectValue(effect) +
+      moodDropPerValue(effect.per, moodDropAtTime(owner, time));
   } else if (effect.curve) {
     value = Math.min(
       effect.curve.startValue +
@@ -1141,17 +1147,19 @@ function moodEffectValueAtTime(
       effect.curve.cap,
     );
   } else if (effect.per) {
-    value = perCount(
-      effect.per,
-      owner,
-      target,
-      effect.target,
-      context,
-      catalog,
-      timeData,
-    ).value;
+    value =
+      fixedEffectValue(effect) +
+      perCount(
+        effect.per,
+        owner,
+        target,
+        effect.target,
+        context,
+        catalog,
+        timeData,
+      ).value;
   } else {
-    value = Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
+    value = fixedEffectValue(effect);
   }
   if (effect.condition?.type === "moodDrop") {
     if (!moodConditionValue(effect.condition, moodDropAtTime(owner, time))) {
@@ -1294,15 +1302,17 @@ function statEffectEvaluation(
   }
   if (!segments) {
     return {
-      value: perCount(
-        per,
-        item.owner,
-        target,
-        item.effect.target,
-        context,
-        catalog,
-        data,
-      ).value,
+      value:
+        fixedEffectValue(item.effect) +
+        perCount(
+          per,
+          item.owner,
+          target,
+          item.effect.target,
+          context,
+          catalog,
+          data,
+        ).value,
       steps: [],
     };
   }
@@ -1318,7 +1328,8 @@ function statEffectEvaluation(
           item.owner.workHoursBefore + time <
             Number(item.effect.condition.value ?? 0)
         ? 0
-        : perCount(
+        : fixedEffectValue(item.effect) +
+          perCount(
             per,
             item.owner,
             target,
@@ -1407,7 +1418,9 @@ function capacityEffectAverage(
         catalog,
         timeData,
       );
-      return total + perValue.value * segmentHours;
+      return (
+        total + (fixedEffectValue(item.effect) + perValue.value) * segmentHours
+      );
     }, 0) / duration
   );
 }
@@ -1459,17 +1472,12 @@ function effectValue(
       owner.workHoursBefore,
     ).value;
   } else if (effect.per) {
-    value = perCount(
-      effect.per,
-      owner,
-      target,
-      effect.target,
-      context,
-      catalog,
-      data,
-    ).value;
+    value =
+      fixedEffectValue(effect) +
+      perCount(effect.per, owner, target, effect.target, context, catalog, data)
+        .value;
   } else {
-    value = Number(effect.value ?? 0) + Number(effect.baseValue ?? 0);
+    value = fixedEffectValue(effect);
   }
   const workHours = workHoursCalculation(item, context);
   if (workHours) {
@@ -1509,17 +1517,20 @@ function effectValueAtTime(
     );
   }
   if (item.effect.per) {
-    return perCount(
-      item.effect.per,
-      item.owner,
-      target,
-      item.effect.target,
-      context,
-      catalog,
-      timeData,
-    ).value;
+    return (
+      fixedEffectValue(item.effect) +
+      perCount(
+        item.effect.per,
+        item.owner,
+        target,
+        item.effect.target,
+        context,
+        catalog,
+        timeData,
+      ).value
+    );
   }
-  return Number(item.effect.value ?? 0) + Number(item.effect.baseValue ?? 0);
+  return fixedEffectValue(item.effect);
 }
 
 function effectCalculation(

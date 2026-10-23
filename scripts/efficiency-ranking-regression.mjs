@@ -83,6 +83,67 @@ try {
     );
   });
 
+  check("宿舍固定恢复与线性增量正确叠加", () => {
+    for (const [name, value] of [
+      ["隐德来希", 0.3],
+      ["流明", 0.3],
+      ["响石", 0.25],
+    ]) {
+      const entry = entries.find(
+        (row) =>
+          row.operator.name === name &&
+          row.facility === "dormitory" &&
+          row.progression.elite === 2,
+      );
+      assert.ok(entry);
+      assert.ok(
+        Math.abs(
+          ranking.dormitoryRecoveryEffectValueForCategory(
+            calculate(entry).dormitoryRecoveryByOperator[name],
+            "shared",
+          ) - value,
+        ) < 1e-9,
+      );
+    }
+    for (const [name, operator] of Object.entries(catalog.operators)) {
+      operator.skillFile.chains
+        .filter((chain) => chain.room === "dormitory")
+        .forEach((chain) =>
+          chain.stages.forEach((stage, stageIndex) =>
+            stage.effects.forEach((effect, effectIndex) => {
+              if (effect.baseValue === undefined || !effect.per) return;
+              const entry = entries.find(
+                (row) =>
+                  row.operator.name === name &&
+                  row.facility === "dormitory" &&
+                  row.progression.elite === stage.unlock.value,
+              );
+              assert.ok(entry);
+              const changed = structuredClone(catalog);
+              const changedChain = changed.operators[name].skillFile.chains
+                .filter((item) => item.room === "dormitory")
+                .find((item) => item.slot === chain.slot);
+              delete changedChain.stages[stageIndex].effects[effectIndex]
+                .baseValue;
+              const withBase = ranking.dormitoryRecoveryEffectValueForCategory(
+                calculate(entry).dormitoryRecoveryByOperator[name],
+                "shared",
+              );
+              const withoutBase =
+                ranking.dormitoryRecoveryEffectValueForCategory(
+                  calculate(entry, changed).dormitoryRecoveryByOperator[name],
+                  "shared",
+                );
+              assert.ok(
+                Math.abs(withBase - withoutBase - effect.baseValue) < 1e-9,
+                `${name} ${stage.name}`,
+              );
+            }),
+          ),
+        );
+    }
+  });
+
   check("宿舍恢复分组只取对应类型，其他技能值和特定条件保留在备注", () => {
     const contributions = [
       { operator: "波登可", value: 0.15, distribution: "shared" },

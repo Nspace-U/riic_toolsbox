@@ -636,7 +636,7 @@ function runTests(runtime) {
     maaDroneResult.dailyOutputs.some(({ product }) => product === "无人机"),
     false,
   );
-  assert.ok(maaDroneResult.maaDroneAcceleration?.warnings.length);
+  assert.deepEqual(maaDroneResult.maaDroneAcceleration?.warnings, []);
   const maaCandidates = maaDroneResult.maaDroneAcceleration?.candidates ?? [];
   assert.equal(maaCandidates.length, 4);
   const firstPlanCandidates = maaCandidates.filter(
@@ -1662,6 +1662,7 @@ function runTests(runtime) {
     {
       target: "manufacture",
       stat: "manuProd",
+      baseValue: 2,
       per: { per: 4, value: -5, source: "moodDrop" },
     },
   ]);
@@ -1681,7 +1682,46 @@ function runTests(runtime) {
     Math.abs((recoveringTotter.plans[0].moods[0]?.end ?? 0) - 22) < 1e-9,
   );
   assert.ok(
-    Math.abs(recoveringTotterManufacture.skillEfficiency - 27.5) < 1e-9,
+    Math.abs(recoveringTotterManufacture.skillEfficiency - 29.5) < 1e-9,
+  );
+
+  const statCatalog = catalogWithManufactureSkill(
+    catalogWithManufactureSkill(catalog, "固定值统计测试员", [
+      {
+        target: "manufacture",
+        stat: "manuProd",
+        baseValue: 5,
+        per: { per: 10, value: 1, source: "stat", stat: "manuProd" },
+      },
+    ]),
+    "统计曲线测试员",
+    [
+      {
+        target: "manufacture",
+        stat: "manuProd",
+        curve: {
+          type: "ramp",
+          startValue: 10,
+          startHours: 0,
+          step: 1,
+          cap: 30,
+        },
+      },
+    ],
+  );
+  const segmentedStatResult = calculateEfficiency(
+    documentFor({
+      manufacture: ["固定值统计测试员", "统计曲线测试员"],
+      duration: 720,
+    }),
+    statCatalog,
+  );
+  const segmentedStatDetail = manufactureResult(
+    segmentedStatResult,
+  ).details.find(({ operator }) => operator === "固定值统计测试员");
+  assert.deepEqual(
+    segmentedStatDetail?.calculation?.steps?.map(({ value }) => value),
+    [6, 7],
   );
 
   const capacityCatalog = catalogWithManufactureSkill(
@@ -1714,6 +1754,61 @@ function runTests(runtime) {
   assert.equal(capacityRecoveryManufacture.capacity?.segments[0]?.total, 60);
   assert.equal(capacityRecoveryManufacture.production?.overflowed, true);
   assert.equal(capacityRecoveryManufacture.production?.breachTime, 20);
+
+  const capacityPerBaseName = "分段容量效率测试员";
+  const capacityPerBaseCatalog = catalogWithManufactureSkill(
+    catalog,
+    capacityPerBaseName,
+    [
+      {
+        target: "manufacture",
+        stat: "manuProd",
+        baseValue: 5,
+        per: { per: 1, value: 1, source: "facCap", stat: "storageCap" },
+      },
+    ],
+  );
+  const capacityPerNoBaseCatalog = catalogWithManufactureSkill(
+    catalog,
+    capacityPerBaseName,
+    [
+      {
+        target: "manufacture",
+        stat: "manuProd",
+        per: { per: 1, value: 1, source: "facCap", stat: "storageCap" },
+      },
+    ],
+  );
+  const capacityPerSchedule = documentFor({
+    manufacture: ["红云", "铅踝", capacityPerBaseName],
+    eliteLevels: { 红云: 1, 铅踝: 1 },
+    moods: { 铅踝: 13.2 },
+    duration: 720,
+  });
+  const segmentedCapacityWithBase = calculateEfficiency(
+    capacityPerSchedule,
+    capacityPerBaseCatalog,
+  );
+  const segmentedCapacityWithoutBase = calculateEfficiency(
+    capacityPerSchedule,
+    capacityPerNoBaseCatalog,
+  );
+  const capacityWithBaseFacility = manufactureResult(segmentedCapacityWithBase);
+  const capacityWithoutBaseFacility = manufactureResult(
+    segmentedCapacityWithoutBase,
+  );
+  const capacityWithBaseValue = capacityWithBaseFacility.details.find(
+    ({ operator }) => operator === capacityPerBaseName,
+  )?.value;
+  const capacityWithoutBaseValue = capacityWithoutBaseFacility.details.find(
+    ({ operator }) => operator === capacityPerBaseName,
+  )?.value;
+  assert.ok((capacityWithBaseFacility.capacity?.segments.length ?? 0) > 1);
+  assert.ok(
+    Math.abs(
+      (capacityWithBaseValue ?? 0) - (capacityWithoutBaseValue ?? 0) - 5,
+    ) < 1e-9,
+  );
 
   const redCloudCapacity = calculateEfficiency(
     documentFor({
