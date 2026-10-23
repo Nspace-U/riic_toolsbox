@@ -87,6 +87,31 @@ try {
     );
   });
 
+  check("摩根默认宿舍行放入推进之王", () => {
+    const morgan = entries.find(
+      (row) =>
+        row.operator.name === "摩根" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 0,
+    );
+    assert.ok(morgan);
+    const schedule = ranking.createEfficiencyRankingSchedule(morgan, {
+      layout,
+      workHours: 24,
+      clueExchanging: true,
+      treatSkillsAsUnlocked: false,
+      dormitoryDefaultIncludesMoodRecovery: false,
+      catalog,
+    });
+    assert.ok(
+      schedule.plans[0].rooms.dormitory[0].operators.includes("推进之王"),
+    );
+    assert.doesNotMatch(
+      calculate(morgan).notes.join("\n"),
+      /条件未满足：需要推进之王进驻同一设施/,
+    );
+  });
+
   check("宿舍固定恢复与线性增量正确叠加", () => {
     for (const [name, value] of [
       ["隐德来希", 0.3],

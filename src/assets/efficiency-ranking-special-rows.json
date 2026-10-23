@@ -33,6 +33,11 @@
       "supports": [{ "facility": "dormitory", "term": "cc.g.rh", "count": 5 }]
     }
   },
+  "char_154_morgan": {
+    "dormitory": {
+      "supports": [{ "facility": "dormitory", "name": "推进之王" }]
+    }
+  },
   "char_4194_rmixer": {
     "meeting": {
       "unlock": { "type": "elite", "value": 2 },
