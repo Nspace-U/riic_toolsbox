@@ -37,6 +37,9 @@ import {
   buildEfficiencyRankingEntries,
   DEFAULT_EFFICIENCY_RANKING_SETTINGS,
   defaultEfficiencyRankingNote,
+  dormitoryRecoveryEffectValueForCategory,
+  dormitoryRecoveryLabel,
+  dormitoryRecoveryValueForCategory,
   emptyEfficiencyRankingSchedule,
   EFFICIENCY_RANKING_FACILITIES,
   operatorStateForSchedule,
@@ -206,7 +209,7 @@ const displayedRowViews = computed<EfficiencyRankingRowView[]>(() => {
     rowViews.value.filter((row) => row.facility !== "dormitory"),
   );
   const dormitoryRowIds = new Set(
-    (["self", "group", "single", "targeted"] as const)
+    (["self", "shared", "spread", "single", "specific"] as const)
       .flatMap((category) => rowsForDormitoryCategory(category))
       .map((row) => row.id),
   );
@@ -253,10 +256,11 @@ const meetingCategoryTabs = computed(() => [
 
 const dormitoryCategoryTabs = computed(() =>
   [
-    { key: "group" as const, label: "群体恢复" },
-    { key: "single" as const, label: "单体回复" },
-    { key: "targeted" as const, label: "定向恢复" },
     { key: "self" as const, label: "自身恢复" },
+    { key: "shared" as const, label: "群体恢复" },
+    { key: "spread" as const, label: "分摊恢复" },
+    { key: "single" as const, label: "单体恢复" },
+    { key: "specific" as const, label: "特定恢复" },
   ].map((category) => ({
     ...category,
     count: rowsForDormitoryCategory(category.key).length,
@@ -319,8 +323,8 @@ function compareRankingRows(
   left: EfficiencyRankingRowView,
   right: EfficiencyRankingRowView,
 ): number {
-  const leftEfficiency = left.result?.efficiency;
-  const rightEfficiency = right.result?.efficiency;
+  const leftEfficiency = rankingValue(left);
+  const rightEfficiency = rankingValue(right);
   if (leftEfficiency === undefined || rightEfficiency === undefined) {
     if (leftEfficiency === undefined && rightEfficiency === undefined) {
       return compareImplementationOrder(left, right);
@@ -330,6 +334,16 @@ function compareRankingRows(
   return (
     rightEfficiency - leftEfficiency || compareImplementationOrder(left, right)
   );
+}
+
+function rankingValue(row: EfficiencyRankingRowView): number | undefined {
+  if (row.facility === "dormitory") {
+    return dormitoryRecoveryValueForCategory(
+      row.result?.dormitoryRecoveryContributionsByOperator[row.operator.name],
+      activeDormitoryCategory.value,
+    );
+  }
+  return row.result?.efficiency;
 }
 
 function compareImplementationOrder(
@@ -348,11 +362,11 @@ function compareImplementationOrder(
 }
 
 function efficiencyText(row: EfficiencyRankingRowView): string {
-  const value = row.result?.efficiency;
-  if (value === undefined) return "—";
   if (row.facility === "dormitory") {
     return dormitoryRecoveryText(row);
   }
+  const value = row.result?.efficiency;
+  if (value === undefined) return "—";
   if (row.meetingCategory === "combo") {
     const total = `${formatEfficiencyNumber(value)}%`;
     if (pageSettings.value.meetingEfficiencyDisplay === "sum") return total;
@@ -369,23 +383,27 @@ function efficiencyText(row: EfficiencyRankingRowView): string {
 }
 
 function dormitoryRecoveryText(row: EfficiencyRankingRowView): string {
-  const contributions =
-    row.result?.dormitoryRecoveryByOperator[row.operator.name] ?? [];
-  return (
-    contributions
-      .map((item) => {
-        const label =
-          item.scope === "self"
-            ? "自身"
-            : item.subjects === "single"
-              ? "单目标"
-              : item.scope === "op" || item.scopeGroup
-                ? "指定目标"
-                : "每目标";
-        return `${label} ${item.value > 0 ? "+" : ""}${formatNumber(item.value)}/小时`;
-      })
-      .join("；") || "—"
-  );
+  const value = rankingValue(row);
+  return value === undefined
+    ? "—"
+    : `${value > 0 ? "+" : ""}${formatNumber(value)}/小时`;
+}
+
+function dormitoryAdditionalRecoveryNotes(
+  row: EfficiencyRankingRowView,
+): string[] {
+  if (row.facility !== "dormitory") return [];
+  const effects = row.result?.dormitoryRecoveryByOperator[row.operator.name];
+  return (["shared", "spread", "single", "specific", "self"] as const)
+    .filter((category) => category !== activeDormitoryCategory.value)
+    .flatMap((category) => {
+      const value = dormitoryRecoveryEffectValueForCategory(effects, category);
+      return value === undefined
+        ? []
+        : [
+            `${dormitoryRecoveryLabel(category)} ${value > 0 ? "+" : ""}${formatNumber(value)}/小时`,
+          ];
+    });
 }
 
 function isRowMemberAssigned(
@@ -705,8 +723,10 @@ function notesText(row: EfficiencyRankingRowView): string {
   );
   return [
     ...(manualNote ?? "").split("\n").filter((note) => !unmet.has(note)),
+    ...dormitoryAdditionalRecoveryNotes(row),
     ...resultNotes,
   ]
+    .filter((note, index, notes) => notes.indexOf(note) === index)
     .filter(Boolean)
     .join("\n");
 }
@@ -1002,7 +1022,13 @@ onBeforeUnmount(() => {
                     <th scope="col">技能效率</th>
                   </template>
                   <th class="basic-calculator-efficiency-column" scope="col">
-                    {{ activeFacility === "meeting" ? "实际效率" : "效率" }}
+                    {{
+                      activeFacility === "meeting"
+                        ? "实际效率"
+                        : activeFacility === "dormitory"
+                          ? "恢复"
+                          : "效率"
+                    }}
                   </th>
                   <th scope="col">心情</th>
                   <th scope="col">备注</th>

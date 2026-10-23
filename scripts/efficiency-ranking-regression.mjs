@@ -57,6 +57,127 @@ try {
     });
   }
 
+  check("宿舍按效率包分为群体、分摊、单体、特定和自身恢复", () => {
+    const entryFor = (name, elite) =>
+      entries.find(
+        (row) =>
+          row.operator.name === name &&
+          row.facility === "dormitory" &&
+          row.progression.elite === elite,
+      );
+    const bordenko = entryFor("波登可", 1);
+    const iceWine = entryFor("冰酿", 2);
+    const senshi = entryFor("森西", 0);
+    const perfumer = entryFor("撷英调香师", 2);
+    assert.ok(bordenko.dormitoryCategories.includes("shared"));
+    assert.ok(bordenko.dormitoryCategories.includes("single"));
+    assert.deepEqual(iceWine.dormitoryCategories, ["spread"]);
+    assert.ok(senshi.dormitoryCategories.includes("single"));
+    assert.ok(senshi.dormitoryCategories.includes("shared"));
+    assert.ok(perfumer.dormitoryCategories.includes("specific"));
+    assert.deepEqual(
+      ["shared", "spread", "single", "specific", "self"].map((type) =>
+        ranking.dormitoryRecoveryLabel(type),
+      ),
+      ["群体恢复", "分摊恢复", "单体恢复", "特定恢复", "自身恢复"],
+    );
+  });
+
+  check("宿舍恢复分组只取对应类型，其他技能值和特定条件保留在备注", () => {
+    const contributions = [
+      { operator: "波登可", value: 0.15, distribution: "shared" },
+      { operator: "波登可", value: 0.65, distribution: "single" },
+    ];
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(contributions, "shared"),
+      0.15,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(contributions, "single"),
+      0.65,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(contributions, "spread"),
+      undefined,
+    );
+    const bordenko = entries.find(
+      (row) =>
+        row.operator.name === "波登可" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 1,
+    );
+    const bordenkoResult = calculate(bordenko);
+    const bordenkoContributions =
+      bordenkoResult.dormitoryRecoveryContributionsByOperator["波登可"];
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(
+        bordenkoContributions,
+        "shared",
+      ),
+      0.15,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(
+        bordenkoContributions,
+        "single",
+      ),
+      undefined,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryEffectValueForCategory(
+        bordenkoResult.dormitoryRecoveryByOperator["波登可"],
+        "single",
+      ),
+      0.65,
+    );
+    const iceWine = entries.find(
+      (row) =>
+        row.operator.name === "冰酿" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 2,
+    );
+    const iceWineResult = calculate(iceWine);
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(
+        iceWineResult.dormitoryRecoveryContributionsByOperator["冰酿"],
+        "spread",
+      ),
+      undefined,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryEffectValueForCategory(
+        iceWineResult.dormitoryRecoveryByOperator["冰酿"],
+        "spread",
+      ),
+      0.8,
+    );
+    const perfumer = entries.find(
+      (row) =>
+        row.operator.name === "撷英调香师" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 2,
+    );
+    const perfumerResult = calculate(perfumer);
+    assert.equal(
+      ranking.dormitoryRecoveryValueForCategory(
+        perfumerResult.dormitoryRecoveryContributionsByOperator["撷英调香师"],
+        "specific",
+      ),
+      undefined,
+    );
+    assert.equal(
+      ranking.dormitoryRecoveryEffectValueForCategory(
+        perfumerResult.dormitoryRecoveryByOperator["撷英调香师"],
+        "specific",
+      ),
+      0.1,
+    );
+    assert.match(
+      ranking.defaultEfficiencyRankingNote(perfumer, catalog),
+      /特定恢复条件：目标心情需低于20，恢复效果额外\+0\.1\/小时/,
+    );
+  });
+
   for (const [name, requirement] of [
     ["缪尔赛思", /5.*莱茵生命|莱茵生命.*5/],
     ["埃癸斯", /结城理.*制造站|制造站.*结城理/],

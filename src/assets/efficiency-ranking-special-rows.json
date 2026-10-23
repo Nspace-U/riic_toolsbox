@@ -118,10 +118,5 @@
         { "facility": "control", "term": "cc.g.R6", "count": 4 }
       ]
     }
-  },
-  "char_4104_coldst": {
-    "dormitory": {
-      "dormitoryCategories": ["group", "single"]
-    }
   }
 }

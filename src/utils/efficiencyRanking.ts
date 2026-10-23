@@ -90,7 +90,15 @@ export interface EfficiencyRankingEntry {
   schedule: ScheduleDocument;
 }
 
-export type DormitoryCategory = "self" | "group" | "single" | "targeted";
+export type DormitoryCategory =
+  "shared" | "self" | "single" | "spread" | "specific";
+
+interface EfficiencyRankingDormitoryRecoveryContribution {
+  operator: string;
+  skill?: string;
+  value: number;
+  distribution: DormitoryCategory;
+}
 
 interface EfficiencyRankingSupport {
   facility: RoomKey;
@@ -106,7 +114,6 @@ interface EfficiencyRankingSupport {
 interface EfficiencyRankingSpecialRow {
   unlock?: EfficiencySkillStage["unlock"];
   supports?: EfficiencyRankingSupport[];
-  dormitoryCategories?: DormitoryCategory[];
 }
 
 const specialRows = specialRowsJson as Record<
@@ -118,6 +125,10 @@ export interface EfficiencyRankingCalculationResult {
   id: string;
   efficiency?: number;
   dormitoryRecoveryByOperator: Record<string, MoodRecoveryContribution[]>;
+  dormitoryRecoveryContributionsByOperator: Record<
+    string,
+    EfficiencyRankingDormitoryRecoveryContribution[]
+  >;
   moodExtra?: number;
   operatorSkillEfficiencies: Record<string, number>;
   moodExtrasByOperator: Record<string, number>;
@@ -361,13 +372,59 @@ function meetingCategoryForOperator(
     : "normal";
 }
 
+export function dormitoryRecoveryDistributionForEffect(
+  effect: Pick<
+    MoodRecoveryContribution,
+    "maxGroup" | "subjects" | "scope" | "op" | "moodBelow" | "scopeGroup"
+  >,
+): DormitoryCategory {
+  if (effect.maxGroup === "dormRec-overall") return "shared";
+  if (effect.subjects === "single") return "single";
+  if (effect.subjects === "spread") return "spread";
+  if (effect.scope === "self") return "self";
+  if (
+    effect.scope === "op" ||
+    effect.op !== undefined ||
+    effect.moodBelow !== undefined ||
+    effect.scopeGroup !== undefined
+  ) {
+    return "specific";
+  }
+  return "shared";
+}
+
+export function dormitoryRecoveryValueForCategory(
+  contributions:
+    readonly EfficiencyRankingDormitoryRecoveryContribution[] | undefined,
+  category: DormitoryCategory,
+): number | undefined {
+  if (!contributions) return undefined;
+  const matching = contributions.filter(
+    (contribution) => contribution.distribution === category,
+  );
+  return matching.length > 0
+    ? matching.reduce((total, contribution) => total + contribution.value, 0)
+    : undefined;
+}
+
+export function dormitoryRecoveryEffectValueForCategory(
+  effects: readonly MoodRecoveryContribution[] | undefined,
+  category: DormitoryCategory,
+): number | undefined {
+  if (!effects) return undefined;
+  const matching = effects.filter(
+    (effect) => dormitoryRecoveryDistributionForEffect(effect) === category,
+  );
+  return matching.length > 0
+    ? matching.reduce((total, effect) => total + effect.value, 0)
+    : undefined;
+}
+
 function dormitoryCategoriesForEntry(
   operator: Operator,
   progression: { elite: EliteLevel; level: number },
   catalog: EfficiencyCatalog,
 ): DormitoryCategory[] {
-  const custom = specialRows[operator.id]?.dormitory?.dormitoryCategories;
-  if (custom) return [...custom];
   const skillFile = catalog.operators[operator.name]?.skillFile;
   const chains =
     skillFile?.chains.filter((chain) => chain.room === "dormitory") ?? [];
@@ -380,19 +437,7 @@ function dormitoryCategoriesForEntry(
       if (effect.stat !== "moodRecover") return;
       const value = Number(effect.value ?? effect.baseValue);
       if (Number.isFinite(value) && value <= 0) return;
-      if (effect.scope === "self") categories.add("self");
-      if (effect.scope === "room" || !effect.scope) {
-        categories.add(effect.subjects === "single" ? "single" : "group");
-      }
-      if (
-        effect.scopeGroup ||
-        effect.moodBelow !== undefined ||
-        ["moodCmp", "moodDrop", "opAtFacility", "opGroupInFacility"].includes(
-          String(effect.condition?.type),
-        )
-      ) {
-        categories.add("targeted");
-      }
+      categories.add(dormitoryRecoveryDistributionForEffect(effect));
     });
   });
   return [...categories];
@@ -862,6 +907,34 @@ function dormitoryRecoveryByOperator(
   );
 }
 
+function dormitoryRecoveryContributionsByOperator(
+  result: EfficiencyResult,
+  entry: EfficiencyRankingEntry,
+): Record<string, EfficiencyRankingDormitoryRecoveryContribution[]> {
+  if (entry.facility !== "dormitory") return {};
+  const recoveries = result.plans[0]?.dormitoryRecoveries ?? [];
+  return Object.fromEntries(
+    rankingOperators(entry).map(({ operator }) => {
+      const unique = new Map<
+        string,
+        EfficiencyRankingDormitoryRecoveryContribution
+      >();
+      recoveries
+        .flatMap((recovery) =>
+          recovery.operators.flatMap((item) => item.contributions),
+        )
+        .filter((item) => item.operator === operator.name && item.value > 0)
+        .forEach((item) => {
+          unique.set(
+            JSON.stringify([item.skill, item.distribution, item.value]),
+            item,
+          );
+        });
+      return [operator.name, [...unique.values()]];
+    }),
+  );
+}
+
 function targetEfficiency(
   result: EfficiencyResult,
   entry: EfficiencyRankingEntry,
@@ -870,7 +943,9 @@ function targetEfficiency(
   if (!plan) return undefined;
   if (entry.facility === "dormitory") {
     const contributions =
-      dormitoryRecoveryByOperator(result, entry)[entry.operator.name] ?? [];
+      dormitoryRecoveryContributionsByOperator(result, entry)[
+        entry.operator.name
+      ] ?? [];
     return contributions.length > 0
       ? contributions.reduce((total, item) => total + item.value, 0)
       : undefined;
@@ -959,6 +1034,8 @@ function rankingResultValues(
   return {
     efficiency: targetEfficiency(result, entry),
     dormitoryRecoveryByOperator: dormitoryRecoveryByOperator(result, entry),
+    dormitoryRecoveryContributionsByOperator:
+      dormitoryRecoveryContributionsByOperator(result, entry),
     operatorSkillEfficiencies: skillEfficiencyByOperator(result, entry),
     moodExtrasByOperator: moodExtrasByOperator(result, entry),
     cluePreferencesByOperator: cluePreferencesByOperator(entry, result),
@@ -994,6 +1071,17 @@ function rankingResultSignature(
               item.moodBelow,
               item.value,
             ]),
+          )
+          .sort(),
+      ])
+      .sort(),
+    Object.entries(result.dormitoryRecoveryContributionsByOperator)
+      .filter(([, contributions]) => contributions.length > 0)
+      .map(([name, contributions]) => [
+        name,
+        contributions
+          .map((item) =>
+            JSON.stringify([item.skill, item.distribution, item.value]),
           )
           .sort(),
       ])
@@ -1160,6 +1248,7 @@ export function defaultEfficiencyRankingNote(
           return;
         }
         if (effect.condition) {
+          const reason = conditionDescription(effect.condition, catalog);
           if (
             conditionProvidedByMeetingCombo(
               effect.condition,
@@ -1171,7 +1260,13 @@ export function defaultEfficiencyRankingNote(
             if (effect.condition.moodCheck) notes.add("联动干员心情需大于0");
             if (effect.condition.fullMood) notes.add("联动干员需满心情");
           } else {
-            notes.add(conditionDescription(effect.condition, catalog));
+            const recoveryType =
+              entry.facility === "dormitory" && effect.stat === "moodRecover"
+                ? `${dormitoryRecoveryLabel(
+                    dormitoryRecoveryDistributionForEffect(effect),
+                  )}条件：`
+                : "";
+            notes.add(`${recoveryType}${reason}`);
           }
         }
         const per = effect.per;
@@ -1238,17 +1333,34 @@ export function defaultEfficiencyRankingNote(
     stage.effects.forEach((effect) => {
       if (effect.stat !== "moodRecover") return;
       const value = Number(effect.value ?? effect.baseValue ?? 0);
-      if (effect.scopeGroup && value) {
+      const recoveryType = `${dormitoryRecoveryLabel(
+        dormitoryRecoveryDistributionForEffect(effect),
+      )}条件：`;
+      const bonus = value ? `，恢复效果额外+${value}/小时` : "";
+      if (effect.scopeGroup) {
         const group =
           catalog.terms[effect.scopeGroup]?.name ?? effect.scopeGroup;
-        notes.add(`如果目标是${group}干员，则恢复效果额外+${value}`);
+        notes.add(`${recoveryType}目标需为${group}干员${bonus}`);
       }
-      if (effect.moodBelow !== undefined && value) {
-        notes.add(`目标心情低于${effect.moodBelow}时，恢复效果额外+${value}`);
+      if (effect.moodBelow !== undefined) {
+        notes.add(`${recoveryType}目标心情需低于${effect.moodBelow}${bonus}`);
       }
     });
   });
   return [...notes].join("\n");
+}
+
+export function dormitoryRecoveryLabel(
+  distribution: DormitoryCategory,
+): string {
+  const labels: Record<DormitoryCategory, string> = {
+    shared: "群体恢复",
+    self: "自身恢复",
+    single: "单体恢复",
+    spread: "分摊恢复",
+    specific: "特定恢复",
+  };
+  return labels[distribution];
 }
 
 function selectedStages(
