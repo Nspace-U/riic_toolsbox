@@ -11,6 +11,9 @@ import {
   type MoodRecoveryContribution,
   type OperatorProgressionProfile,
   facilityId,
+  efficiencyStatValue,
+  efficiencyStatLabel,
+  formatNumber,
   groupIncludesOperator,
 } from "@arknights/riic-efficiency";
 import specialRowsJson from "@/assets/efficiency-ranking-special-rows.json";
@@ -1188,6 +1191,96 @@ function effectAffectsRanking(
   );
 }
 
+function effectTargetsRankingFacility(
+  effect: EfficiencyEffect,
+  facility: RoomKey,
+): boolean {
+  return (
+    effect.target === facility ||
+    effect.target === "any" ||
+    Boolean(effect.facilities?.includes(facility))
+  );
+}
+
+function rankingEffectAmount(effect: EfficiencyEffect, value: number): string {
+  if (effect.stat === "moodRecover") return `${formatNumber(value)}/小时`;
+  if (effect.stat === "basePointGain") return `${formatNumber(value)}点`;
+  return efficiencyStatValue(effect.stat, value);
+}
+
+function rankingPerSourceDescription(
+  per: EfficiencyPer,
+): { prefix: string; unit: string } | undefined {
+  const descriptions: Record<string, { prefix: string; unit: string }> = {
+    dormLevel: { prefix: "所有宿舍等级总和每", unit: "级" },
+    recruitSlots: { prefix: "每", unit: "个公开招募位" },
+    dormNotFull: { prefix: "同一宿舍每", unit: "名心情未满干员" },
+    dormOccupants: { prefix: "每", unit: "名宿舍干员" },
+    dormOccupantsOwn: { prefix: "同一宿舍每", unit: "名其他干员" },
+    facilityCount: { prefix: "每", unit: "间指定设施" },
+    facilityLevel: { prefix: "指定设施等级总和每", unit: "级" },
+    facilityLevelTotal: { prefix: "所有设施等级总和每", unit: "级" },
+    ownLevel: { prefix: "所在设施每", unit: "级" },
+  };
+  return descriptions[per.source];
+}
+
+function rankingEffectNotes(
+  effect: EfficiencyEffect,
+  catalog: EfficiencyCatalog,
+  includeCondition: boolean,
+): string[] {
+  const notes: string[] = [];
+  const per = effect.per;
+  const source = per && rankingPerSourceDescription(per);
+  if (per && source) {
+    const amount = rankingEffectAmount(effect, per.value);
+    const baseValue = Number(effect.baseValue ?? 0);
+    const base = baseValue
+      ? `基础${rankingEffectAmount(effect, baseValue)}，`
+      : "";
+    const effectLabel =
+      effect.stat === "basePointGain" && effect.term
+        ? `${catalog.terms[effect.term]?.name ?? effect.term}基建点`
+        : effect.stat === "moodRecover"
+          ? "心情恢复"
+          : effect.stat === "basePointGain"
+            ? "基建点"
+            : efficiencyStatLabel(effect.stat);
+    const unit = `${formatNumber(per.per)}${source.unit}`;
+    notes.push(
+      effect.stat === "basePointGain"
+        ? `${base}${source.prefix}${unit}额外提供${amount}${effectLabel}`
+        : `${base}${source.prefix}${unit}额外增加${amount}${effectLabel}`,
+    );
+  }
+  if (effect.stat === "basePointGain" && !per) {
+    const term = effect.term
+      ? (catalog.terms[effect.term]?.name ?? effect.term)
+      : "基建";
+    const value = Number(effect.value ?? effect.baseValue ?? 0);
+    notes.push(`提供${value ? `+${formatNumber(value)}点` : ""}${term}基建点`);
+  }
+  (effect.targetBonuses ?? []).forEach((bonus) => {
+    const targets = bonus.targets
+      .map((target) =>
+        target.op
+          ? (catalog.operators[target.op]?.name ?? target.op)
+          : target.scopeGroup
+            ? (catalog.terms[target.scopeGroup]?.name ?? target.scopeGroup)
+            : "指定干员",
+      )
+      .join("、");
+    notes.push(
+      `${targets}额外获得${rankingEffectAmount(effect, bonus.value)}${effect.stat === "moodRecover" ? "心情恢复" : effect.stat === "basePointGain" ? "基建点" : efficiencyStatLabel(effect.stat)}`,
+    );
+  });
+  if (includeCondition && notes.length > 0 && effect.condition) {
+    notes.push(conditionDescription(effect.condition, catalog));
+  }
+  return notes;
+}
+
 function effectIncludedInBasePointScenario(
   entry: Pick<EfficiencyRankingEntry, "basePointScenarios">,
   operator: Operator,
@@ -1251,12 +1344,12 @@ export function defaultEfficiencyRankingNote(
     selectedStages(chains, progression).forEach(({ stage }) => {
       stage.effects.forEach((effect) => {
         if (
-          !effectAffectsRanking(effect, entry.facility) ||
+          !effectTargetsRankingFacility(effect, entry.facility) ||
           !effectIncludedInBasePointScenario(entry, operator, effect)
         ) {
           return;
         }
-        if (effect.condition) {
+        if (effectAffectsRanking(effect, entry.facility) && effect.condition) {
           const reason = conditionDescription(effect.condition, catalog);
           if (
             conditionProvidedByMeetingCombo(
@@ -1278,8 +1371,13 @@ export function defaultEfficiencyRankingNote(
             notes.add(`${recoveryType}${reason}`);
           }
         }
+        rankingEffectNotes(
+          effect,
+          catalog,
+          !effectAffectsRanking(effect, entry.facility),
+        ).forEach((note) => notes.add(note));
         const per = effect.per;
-        if (per?.group) {
+        if (effectAffectsRanking(effect, entry.facility) && per?.group) {
           const group = catalog.terms[per.group]?.name ?? per.group;
           const subject = `${per.other ? "除自身以外的" : ""}${group}干员`;
           const count = groupRequirementCount(per);
@@ -1312,12 +1410,17 @@ export function defaultEfficiencyRankingNote(
             );
           }
         }
-        if (per?.source === "basePoint" && per.term) {
+        if (
+          effectAffectsRanking(effect, entry.facility) &&
+          per?.source === "basePoint" &&
+          per.term
+        ) {
           notes.add(
             `增益取决于${catalog.terms[per.term]?.name ?? per.term}基建点`,
           );
         }
         if (
+          effectAffectsRanking(effect, entry.facility) &&
           effect.curve?.type === "ramp" &&
           Number.isFinite(effect.curve.startValue) &&
           Number.isFinite(effect.curve.cap) &&

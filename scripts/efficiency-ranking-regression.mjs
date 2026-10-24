@@ -120,6 +120,27 @@ try {
     );
   });
 
+  check("效率排名备注列出布局计算规则与额外技能效果", () => {
+    const noteFor = (name, facility, elite) => {
+      const entry = entries.find(
+        (row) =>
+          row.operator.name === name &&
+          row.facility === facility &&
+          row.progression.elite === elite,
+      );
+      assert.ok(entry, `${name} ${facility} 精${elite}行存在`);
+      return ranking.defaultEfficiencyRankingNote(entry, catalog);
+    };
+    assert.match(noteFor("锡人", "hire", 2), /所有宿舍等级总和/);
+    assert.match(noteFor("隐德来希", "dormitory", 2), /公开招募位/);
+    assert.match(noteFor("波卜", "dormitory", 2), /心情未满干员/);
+    assert.match(
+      noteFor("森西", "dormitory", 0),
+      /额外获得0\.15\/小时心情恢复/,
+    );
+    assert.match(noteFor("森西", "dormitory", 2), /基建点/);
+  });
+
   check("摩根默认宿舍行放入推进之王", () => {
     const morgan = entries.find(
       (row) =>
