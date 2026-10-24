@@ -1734,7 +1734,7 @@ function moodRecoveryContributionsForPlan(
   context: PlanContext,
   catalog: EfficiencyCatalog,
 ): MoodRecoveryContribution[] {
-  return context.active.flatMap((item) => {
+  const candidates = context.active.flatMap((item) => {
     const target = item.target;
     if (
       !target ||
@@ -1746,29 +1746,59 @@ function moodRecoveryContributionsForPlan(
     const { effect } = item;
     return [
       {
-        operator: item.owner.name,
-        skill: item.skill,
-        facilityId: target.id,
-        value: effectValue(
-          item,
-          target,
-          context,
-          catalog,
-          emptyEvaluationData(),
-        ),
-        ...(effect.scope !== undefined ? { scope: effect.scope } : {}),
-        ...(effect.op !== undefined ? { op: effect.op } : {}),
-        ...(effect.moodBelow !== undefined
-          ? { moodBelow: effect.moodBelow }
-          : {}),
-        ...(effect.subjects !== undefined ? { subjects: effect.subjects } : {}),
-        ...(effect.scopeGroup !== undefined
-          ? { scopeGroup: effect.scopeGroup }
-          : {}),
-        ...(effect.maxGroup !== undefined ? { maxGroup: effect.maxGroup } : {}),
+        contribution: {
+          operator: item.owner.name,
+          skill: item.skill,
+          facilityId: target.id,
+          value: effectValue(
+            item,
+            target,
+            context,
+            catalog,
+            emptyEvaluationData(),
+          ),
+          ...(effect.scope !== undefined ? { scope: effect.scope } : {}),
+          ...(effect.op !== undefined ? { op: effect.op } : {}),
+          ...(effect.moodBelow !== undefined
+            ? { moodBelow: effect.moodBelow }
+            : {}),
+          ...(effect.subjects !== undefined
+            ? { subjects: effect.subjects }
+            : {}),
+          ...(effect.scopeGroup !== undefined
+            ? { scopeGroup: effect.scopeGroup }
+            : {}),
+          ...(effect.maxGroup !== undefined
+            ? { maxGroup: effect.maxGroup }
+            : {}),
+        },
+        stack: effect.stack,
+        groupKey:
+          effect.maxGroup ??
+          `${effect.target}|${effect.stat}|${effect.recipe ?? ""}`,
       },
     ];
   });
+  const selected = candidates
+    .filter((candidate) => candidate.stack !== "max")
+    .map((candidate) => candidate.contribution);
+  const groups = new Map<string, typeof candidates>();
+  candidates.forEach((candidate) => {
+    if (candidate.stack !== "max") return;
+    const groupKey = `${candidate.contribution.facilityId}|${candidate.contribution.operator}|${candidate.groupKey}`;
+    const group = groups.get(groupKey) ?? [];
+    group.push(candidate);
+    groups.set(groupKey, group);
+  });
+  groups.forEach((group) => {
+    const winner = group.reduce((current, candidate) =>
+      candidate.contribution.value > current.contribution.value
+        ? candidate
+        : current,
+    );
+    selected.push(winner.contribution);
+  });
+  return selected;
 }
 
 function appendBasePointSource(

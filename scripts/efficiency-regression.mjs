@@ -467,7 +467,9 @@ function runTests(runtime) {
           duration: 720,
           rooms: {
             control: [assignment([], {})],
-            dormitory: [assignment(["波卜"], { 波卜: 2 }, { 波卜: 23 })],
+            dormitory: [
+              assignment(["波卜", "空"], { 波卜: 2, 空: 0 }, { 波卜: 23 }),
+            ],
           },
         },
       ],
@@ -487,6 +489,40 @@ function runTests(runtime) {
   );
   assert.ok(Math.abs((bobbContributions?.[0]?.value ?? 0) - 0.21) < 1e-9);
   assert.equal(bobbRecovery?.rate, 4.21);
+  assert.deepEqual(
+    bobbDormitory.plans[0]?.moodRecoveryContributions
+      .filter(({ operator }) => ["波卜", "空"].includes(operator))
+      .map(({ operator, skill, value }) => [operator, skill, value]),
+    [
+      ["波卜", "倾谈者", 0.21000000000000002],
+      ["空", "偶像", 0.15],
+    ],
+  );
+
+  const bobbEliteZero = calculateEfficiency(
+    {
+      layout: [
+        { type: "control", level: 5 },
+        { type: "dormitory", level: 5 },
+      ],
+      plans: [
+        {
+          duration: 720,
+          rooms: {
+            control: [assignment([], {})],
+            dormitory: [assignment(["波卜"], { 波卜: 0 }, { 波卜: 23 })],
+          },
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.deepEqual(
+    bobbEliteZero.plans[0]?.moodRecoveryContributions
+      .filter(({ operator }) => operator === "波卜")
+      .map(({ skill, value }) => [skill, value]),
+    [["倾听者", 0.15]],
+  );
 
   const senshiDungeonDormitory = calculateEfficiency(
     {
@@ -501,8 +537,8 @@ function runTests(runtime) {
             control: [assignment([], {})],
             dormitory: [
               assignment(
-                ["森西", "断罪者", "莱欧斯", "玛露西尔"],
-                { 森西: 2, 断罪者: 0, 莱欧斯: 0, 玛露西尔: 0 },
+                ["森西", "波卜", "断罪者", "莱欧斯", "玛露西尔"],
+                { 森西: 2, 波卜: 2, 断罪者: 0, 莱欧斯: 0, 玛露西尔: 0 },
                 { 莱欧斯: 0 },
               ),
             ],
@@ -531,11 +567,35 @@ function runTests(runtime) {
     ],
   );
   assert.equal(laiosRecovery?.rate, 5.0);
+  const bobbInDungeonRecovery =
+    senshiDungeonDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
+      ({ operator }) => operator === "波卜",
+    );
+  assert.deepEqual(
+    bobbInDungeonRecovery?.contributions.map(
+      ({ operator, skill, distribution, value }) => [
+        operator,
+        skill,
+        distribution,
+        value,
+      ],
+    ),
+    [["波卜", "倾谈者", "shared", 0.21000000000000002]],
+  );
+  assert.deepEqual(
+    senshiDungeonDormitory.plans[0]?.moodRecoveryContributions
+      .filter(({ operator }) => ["森西", "波卜"].includes(operator))
+      .map(({ operator, skill, value }) => [operator, skill, value]),
+    [
+      ["森西", "资深料理人", 0.15],
+      ["波卜", "倾谈者", 0.21000000000000002],
+    ],
+  );
   const executorRecovery =
     senshiDungeonDormitory.plans[0]?.dormitoryRecoveries[0]?.operators.find(
       ({ operator }) => operator === "断罪者",
     );
-  assert.equal(executorRecovery?.rate, 4.15);
+  assert.equal(executorRecovery?.rate, 4.21);
 
   const indigoDormitory = calculateEfficiency(
     {

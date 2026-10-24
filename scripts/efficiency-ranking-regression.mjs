@@ -87,6 +87,39 @@ try {
     );
   });
 
+  check("波卜精0与精2技能分别保留，全部解锁时只显示较高技能", () => {
+    const bobbEliteZero = entries.find(
+      (row) =>
+        row.operator.name === "波卜" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 0,
+    );
+    const bobbEliteTwo = entries.find(
+      (row) =>
+        row.operator.name === "波卜" &&
+        row.facility === "dormitory" &&
+        row.progression.elite === 2,
+    );
+    assert.ok(bobbEliteZero);
+    assert.ok(bobbEliteTwo);
+    const rows = [bobbEliteZero, bobbEliteTwo].map((row) => ({
+      ...row,
+      result: calculate(row),
+    }));
+    assert.deepEqual(
+      ranking
+        .selectEfficiencyRankingRows(rows, false)
+        .map((row) => row.progression.elite),
+      [0, 2],
+    );
+    assert.deepEqual(
+      ranking
+        .selectEfficiencyRankingRows(rows, true)
+        .map((row) => row.progression.elite),
+      [2],
+    );
+  });
+
   check("摩根默认宿舍行放入推进之王", () => {
     const morgan = entries.find(
       (row) =>
@@ -163,6 +196,11 @@ try {
                   calculate(entry, changed).dormitoryRecoveryByOperator[name],
                   "shared",
                 );
+              if (name === "波卜" && stage.name === "倾谈者") {
+                assert.equal(withBase, 0.2);
+                assert.equal(withoutBase, 0.15);
+                return;
+              }
               assert.ok(
                 Math.abs(withBase - withoutBase - effect.baseValue) < 1e-9,
                 `${name} ${stage.name}`,
