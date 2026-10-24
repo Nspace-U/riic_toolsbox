@@ -390,6 +390,7 @@ function dormitoryRecoveryText(row: EfficiencyRankingRowView): string {
 
 function dormitoryAdditionalRecoveryNotes(
   row: EfficiencyRankingRowView,
+  existingNotes: readonly string[],
 ): string[] {
   if (row.facility !== "dormitory") return [];
   const effects = row.result?.dormitoryRecoveryByOperator[row.operator.name];
@@ -397,11 +398,18 @@ function dormitoryAdditionalRecoveryNotes(
     .filter((category) => category !== activeDormitoryCategory.value)
     .flatMap((category) => {
       const value = dormitoryRecoveryEffectValueForCategory(effects, category);
-      return value === undefined
-        ? []
-        : [
-            `${dormitoryRecoveryLabel(category)} ${value > 0 ? "+" : ""}${formatNumber(value)}`,
-          ];
+      if (value === undefined) return [];
+      const label = dormitoryRecoveryLabel(category);
+      if (
+        existingNotes.some(
+          (note) =>
+            note.includes(`${label}条件：`) &&
+            note.includes(`恢复效果额外+${value}/小时`),
+        )
+      ) {
+        return [];
+      }
+      return [`${label} ${value > 0 ? "+" : ""}${formatNumber(value)}`];
     });
 }
 
@@ -717,12 +725,13 @@ function notesText(row: EfficiencyRankingRowView): string {
     ? rowNotes.value[row.id]
     : defaultEfficiencyRankingNote(row, catalog.value!);
   const resultNotes = row.result?.notes ?? [];
+  const manualNotes = (manualNote ?? "").split("\n").filter(Boolean);
   const unmet = new Set(
     resultNotes.map((note) => note.replace(/^条件未满足：/, "")),
   );
   return [
-    ...(manualNote ?? "").split("\n").filter((note) => !unmet.has(note)),
-    ...dormitoryAdditionalRecoveryNotes(row),
+    ...manualNotes.filter((note) => !unmet.has(note)),
+    ...dormitoryAdditionalRecoveryNotes(row, [...manualNotes, ...resultNotes]),
     ...resultNotes,
   ]
     .filter((note, index, notes) => notes.indexOf(note) === index)
