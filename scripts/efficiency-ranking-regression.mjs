@@ -138,7 +138,15 @@ try {
       noteFor("森西", "dormitory", 0),
       /额外获得0\.15\/小时心情恢复/,
     );
-    assert.match(noteFor("森西", "dormitory", 2), /基建点/);
+    assert.doesNotMatch(noteFor("森西", "dormitory", 2), /基建点/);
+    assert.match(
+      noteFor("菲莱", "power", 2),
+      /基础\+10%，所有宿舍等级总和每1级额外增加\+0\.5%无人机充能/,
+    );
+    assert.match(
+      noteFor("锡人", "hire", 2),
+      /基础\+5%，所有宿舍等级总和每1级额外增加\+2%公开招募效率/,
+    );
   });
 
   check("摩根默认宿舍行放入推进之王", () => {

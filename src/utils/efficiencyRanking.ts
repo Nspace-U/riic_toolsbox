@@ -1228,9 +1228,13 @@ function rankingPerSourceDescription(
 function rankingEffectNotes(
   effect: EfficiencyEffect,
   catalog: EfficiencyCatalog,
+  facility: RoomKey,
   includeCondition: boolean,
 ): string[] {
   const notes: string[] = [];
+  if (effect.stat === "basePointGain" || effect.stat === "basePointConvert") {
+    return notes;
+  }
   const per = effect.per;
   const source = per && rankingPerSourceDescription(per);
   if (per && source) {
@@ -1254,12 +1258,17 @@ function rankingEffectNotes(
         : `${base}${source.prefix}${unit}额外增加${amount}${effectLabel}`,
     );
   }
-  if (effect.stat === "basePointGain" && !per) {
-    const term = effect.term
-      ? (catalog.terms[effect.term]?.name ?? effect.term)
-      : "基建";
-    const value = Number(effect.value ?? effect.baseValue ?? 0);
-    notes.push(`提供${value ? `+${formatNumber(value)}点` : ""}${term}基建点`);
+  if (
+    !per &&
+    effectAffectsRanking(effect, facility) &&
+    !(facility === "dormitory" && effect.stat === "moodRecover") &&
+    Number.isFinite(Number(effect.value ?? effect.baseValue)) &&
+    Number(effect.value ?? effect.baseValue) !== 0
+  ) {
+    const value = Number(effect.value ?? effect.baseValue);
+    notes.push(
+      `基础${rankingEffectAmount(effect, value)}${efficiencyStatLabel(effect.stat)}`,
+    );
   }
   (effect.targetBonuses ?? []).forEach((bonus) => {
     const targets = bonus.targets
@@ -1341,98 +1350,138 @@ export function defaultEfficiencyRankingNote(
     const chains = (catalog.operators[operator.name]?.skillFile?.chains ?? [])
       .map((chain, chainIndex) => ({ chain, chainIndex }))
       .filter(({ chain }) => chain.room === entry.facility);
-    selectedStages(chains, progression).forEach(({ stage }) => {
-      stage.effects.forEach((effect) => {
+    const effects = selectedStages(chains, progression)
+      .flatMap(({ stage }) => stage.effects)
+      .filter(
+        (effect) =>
+          effectTargetsRankingFacility(effect, entry.facility) &&
+          effectIncludedInBasePointScenario(entry, operator, effect),
+      );
+    const dynamicStats = new Set(
+      effects
+        .filter(
+          (effect) => effect.per && rankingPerSourceDescription(effect.per),
+        )
+        .map((effect) => effect.stat),
+    );
+    const fixedValues = new Map<string, number>();
+    effects.forEach((effect) => {
+      if (effect.per || !effectAffectsRanking(effect, entry.facility)) {
+        return;
+      }
+      const value = Number(effect.value ?? effect.baseValue);
+      if (Number.isFinite(value)) {
+        fixedValues.set(
+          effect.stat,
+          (fixedValues.get(effect.stat) ?? 0) + value,
+        );
+      }
+    });
+    const includedFixedValues = new Set<string>();
+    effects.forEach((effect) => {
+      if (
+        !effectTargetsRankingFacility(effect, entry.facility) ||
+        !effectIncludedInBasePointScenario(entry, operator, effect)
+      ) {
+        return;
+      }
+      let noteEffect = effect;
+      if (effect.per && !includedFixedValues.has(effect.stat)) {
+        const fixedValue = fixedValues.get(effect.stat);
+        if (fixedValue !== undefined) {
+          noteEffect = {
+            ...effect,
+            baseValue: Number(effect.baseValue ?? 0) + fixedValue,
+          };
+          includedFixedValues.add(effect.stat);
+        }
+      } else if (!effect.per && dynamicStats.has(effect.stat)) {
+        noteEffect = { ...effect, value: undefined, baseValue: undefined };
+      }
+      if (effectAffectsRanking(effect, entry.facility) && effect.condition) {
+        const reason = conditionDescription(effect.condition, catalog);
         if (
-          !effectTargetsRankingFacility(effect, entry.facility) ||
-          !effectIncludedInBasePointScenario(entry, operator, effect)
+          conditionProvidedByMeetingCombo(
+            effect.condition,
+            entry,
+            operator.name,
+            catalog,
+          )
         ) {
-          return;
+          if (effect.condition.moodCheck) notes.add("联动干员心情需大于0");
+          if (effect.condition.fullMood) notes.add("联动干员需满心情");
+        } else {
+          const recoveryType =
+            entry.facility === "dormitory" && effect.stat === "moodRecover"
+              ? `${dormitoryRecoveryLabel(
+                  dormitoryRecoveryDistributionForEffect(effect),
+                )}条件：`
+              : "";
+          notes.add(`${recoveryType}${reason}`);
         }
-        if (effectAffectsRanking(effect, entry.facility) && effect.condition) {
-          const reason = conditionDescription(effect.condition, catalog);
-          if (
-            conditionProvidedByMeetingCombo(
-              effect.condition,
-              entry,
-              operator.name,
-              catalog,
-            )
-          ) {
-            if (effect.condition.moodCheck) notes.add("联动干员心情需大于0");
-            if (effect.condition.fullMood) notes.add("联动干员需满心情");
-          } else {
-            const recoveryType =
-              entry.facility === "dormitory" && effect.stat === "moodRecover"
-                ? `${dormitoryRecoveryLabel(
-                    dormitoryRecoveryDistributionForEffect(effect),
-                  )}条件：`
-                : "";
-            notes.add(`${recoveryType}${reason}`);
-          }
-        }
-        rankingEffectNotes(
-          effect,
-          catalog,
-          !effectAffectsRanking(effect, entry.facility),
-        ).forEach((note) => notes.add(note));
-        const per = effect.per;
-        if (effectAffectsRanking(effect, entry.facility) && per?.group) {
-          const group = catalog.terms[per.group]?.name ?? per.group;
-          const subject = `${per.other ? "除自身以外的" : ""}${group}干员`;
-          const count = groupRequirementCount(per);
-          if (per.source === "opGroupInBase") {
-            notes.add(
-              per.cap === undefined
-                ? `基建内每${per.per}名${subject}提供增益`
-                : `满额增益需要基建内有${count}名${subject}`,
-            );
-          }
-          if (per.source === "baseFacilityWithGroup") {
-            notes.add(
-              per.cap === undefined
-                ? `每${per.per}间有${subject}的设施提供增益`
-                : `满额增益需要${count}间设施有${subject}`,
-            );
-          }
-          if (per.source === "opGroupInFacility") {
-            const facility =
-              per.facility && per.facility !== "same"
-                ? ROOM_LABELS[per.facility]
-                : "同一设施";
-            notes.add(`${facility}内每${per.per}名${subject}提供增益`);
-          }
-          if (per.moodCheck) notes.add("计数干员心情需大于0");
-          if (per.fullMood) notes.add("计数干员需满心情");
-          if (per.exclude?.length) {
-            notes.add(
-              `不计入${per.exclude.map((room) => ROOM_LABELS[room]).join("、")}`,
-            );
-          }
-        }
-        if (
-          effectAffectsRanking(effect, entry.facility) &&
-          per?.source === "basePoint" &&
-          per.term
-        ) {
+      }
+      rankingEffectNotes(
+        noteEffect,
+        catalog,
+        entry.facility,
+        !effectAffectsRanking(effect, entry.facility),
+      ).forEach((note) => notes.add(note));
+      const per = effect.per;
+      if (effectAffectsRanking(effect, entry.facility) && per?.group) {
+        const group = catalog.terms[per.group]?.name ?? per.group;
+        const subject = `${per.other ? "除自身以外的" : ""}${group}干员`;
+        const count = groupRequirementCount(per);
+        if (per.source === "opGroupInBase") {
           notes.add(
-            `增益取决于${catalog.terms[per.term]?.name ?? per.term}基建点`,
+            per.cap === undefined
+              ? `基建内每${per.per}名${subject}提供增益`
+              : `满额增益需要基建内有${count}名${subject}`,
           );
         }
-        if (
-          effectAffectsRanking(effect, entry.facility) &&
-          effect.curve?.type === "ramp" &&
-          Number.isFinite(effect.curve.startValue) &&
-          Number.isFinite(effect.curve.cap) &&
-          Number.isFinite(effect.curve.step) &&
-          effect.curve.step > 0
-        ) {
-          const warmupHours = Math.ceil(
-            (effect.curve.cap - effect.curve.startValue) / effect.curve.step,
+        if (per.source === "baseFacilityWithGroup") {
+          notes.add(
+            per.cap === undefined
+              ? `每${per.per}间有${subject}的设施提供增益`
+              : `满额增益需要${count}间设施有${subject}`,
           );
-          if (warmupHours > 0) notes.add(`${warmupHours}小时暖机`);
         }
-      });
+        if (per.source === "opGroupInFacility") {
+          const facility =
+            per.facility && per.facility !== "same"
+              ? ROOM_LABELS[per.facility]
+              : "同一设施";
+          notes.add(`${facility}内每${per.per}名${subject}提供增益`);
+        }
+        if (per.moodCheck) notes.add("计数干员心情需大于0");
+        if (per.fullMood) notes.add("计数干员需满心情");
+        if (per.exclude?.length) {
+          notes.add(
+            `不计入${per.exclude.map((room) => ROOM_LABELS[room]).join("、")}`,
+          );
+        }
+      }
+      if (
+        effectAffectsRanking(effect, entry.facility) &&
+        per?.source === "basePoint" &&
+        per.term
+      ) {
+        notes.add(
+          `增益取决于${catalog.terms[per.term]?.name ?? per.term}基建点`,
+        );
+      }
+      if (
+        effectAffectsRanking(effect, entry.facility) &&
+        effect.curve?.type === "ramp" &&
+        Number.isFinite(effect.curve.startValue) &&
+        Number.isFinite(effect.curve.cap) &&
+        Number.isFinite(effect.curve.step) &&
+        effect.curve.step > 0
+      ) {
+        const warmupHours = Math.ceil(
+          (effect.curve.cap - effect.curve.startValue) / effect.curve.step,
+        );
+        if (warmupHours > 0) notes.add(`${warmupHours}小时暖机`);
+      }
     });
   });
   if (entry.facility !== "dormitory") return [...notes].join("\n");
