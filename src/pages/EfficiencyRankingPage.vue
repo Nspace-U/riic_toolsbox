@@ -1038,7 +1038,9 @@ onBeforeUnmount(() => {
                           : "效率"
                     }}
                   </th>
-                  <th scope="col">心情</th>
+                  <th v-if="activeFacility !== 'dormitory'" scope="col">
+                    心情
+                  </th>
                   <th scope="col">备注</th>
                 </tr>
               </thead>
@@ -1124,7 +1126,7 @@ onBeforeUnmount(() => {
                       {{ efficiencyText(record) }}
                     </span>
                   </td>
-                  <td>
+                  <td v-if="activeFacility !== 'dormitory'">
                     <div class="efficiency-ranking-member-lines">
                       <template v-if="record.meetingCategory === 'combo'">
                         <span
