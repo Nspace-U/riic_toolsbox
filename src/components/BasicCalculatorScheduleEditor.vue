@@ -1714,8 +1714,7 @@ defineExpose({ clearInteractionState });
       :layout="modelValue.layout"
       :layout-preset-will-remove-operators="layoutPresetWillRemoveOperators"
       :show-layout-presets="showLayoutPresets"
-      :show-summary="false"
-      :layout-text-footer="layoutTextHint()"
+      :layout-text-help="layoutTextHint()"
       @add-layout="addLayoutEntry"
       @apply-layout-text="applyLayoutText"
       @remove-layout="removeLayoutEntry"
@@ -1988,12 +1987,6 @@ defineExpose({ clearInteractionState });
           </template>
         </a-menu-item-group>
       </a-menu>
-    </div>
-    <div class="simulator-layout-summary">
-      <span class="simulator-summary-label">设施布局</span>
-      <a-tag v-for="row in facilityRows" :key="row.key" color="green">{{
-        row.label
-      }}</a-tag>
     </div>
   </div>
 </template>

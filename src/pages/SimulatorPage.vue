@@ -558,7 +558,7 @@ let operatorDragHoveredSlotKey: string | undefined;
 const operatorClipboard = ref<OperatorClipboard>();
 const scheduleHistory = new Map<string, ScheduleHistory>();
 const layoutTextHint =
-  "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 5 位依次为会客室、加工站、办公室、训练室、回收站；旧四位格式表示未建回收站，宿舍与其用空格分隔，0 表示不建造";
+  "修改数字后自动应用；每位数字代表一间设施等级。第 1 行依次填写贸易站、制造站；推算发电站为 0 到 3 间时自动补建，超过 3 间时不建造，贸易站与制造站总数不能超过 9 间。第 2 行前 5 位依次为会客室、加工站、办公室、训练室、回收站；宿舍与其用空格分隔，0 表示不建造";
 let layoutApplyTimer: ReturnType<typeof setTimeout> | undefined;
 let pendingOperatorSelection:
   | {
@@ -6078,8 +6078,7 @@ defineExpose({ prepareScheduleReferenceImage });
             :delete-disabled-room-types="['control']"
             :facility-colors="facilityColors"
             :layout="importDraft.layout"
-            :layout-text-footer="layoutTextHint"
-            :show-summary="false"
+            :layout-text-help="layoutTextHint"
             @add-layout="addImportLayoutEntry"
             @apply-layout-text="applyImportLayoutText"
             @remove-layout="removeImportLayoutEntry"
@@ -6443,7 +6442,7 @@ defineExpose({ prepareScheduleReferenceImage });
             :layout-preset-will-remove-operators="
               layoutPresetWillRemoveOperators
             "
-            :layout-text-footer="layoutTextHint"
+            :layout-text-help="layoutTextHint"
             :show-layout-presets="true"
             @add-layout="addLayoutEntry"
             @apply-layout-text="applyLayoutText"

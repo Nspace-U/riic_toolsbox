@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DeleteOutlined } from "@ant-design/icons-vue";
+import { DeleteOutlined, QuestionCircleOutlined } from "@ant-design/icons-vue";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 import type { LayoutEntry, RoomKey } from "@/types/schedule";
@@ -30,10 +30,9 @@ const props = withDefaults(
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     facilityColors?: Partial<Record<RoomKey, string>>;
     error?: string;
-    showSummary?: boolean;
     showLayoutPresets?: boolean;
     layoutPresetWillRemoveOperators?: (preset: LayoutPreset) => boolean;
-    layoutTextFooter?: string;
+    layoutTextHelp?: string;
   }>(),
   {
     fixedRoomTypes: () => [],
@@ -41,10 +40,9 @@ const props = withDefaults(
     fixedRoomLevels: () => ({}),
     facilityColors: () => ({}),
     error: "",
-    showSummary: true,
     showLayoutPresets: false,
     layoutPresetWillRemoveOperators: () => true,
-    layoutTextFooter: "",
+    layoutTextHelp: "",
   },
 );
 
@@ -93,14 +91,6 @@ const layoutRows = computed(() => {
     ),
   }));
 });
-
-const layoutGroups = computed(() =>
-  ROOM_DISPLAY_ORDER.map((type) => ({
-    type,
-    label: ROOM_LABELS[type],
-    entries: props.layout.filter((entry) => entry.type === type),
-  })).filter((group) => group.entries.length > 0),
-);
 
 const layoutAddOptions = computed(() =>
   ROOM_DISPLAY_ORDER.map((type) => {
@@ -241,19 +231,6 @@ function handleLayoutPresetOpenChange(open: boolean): void {
 <template>
   <div class="schedule-layout-editor">
     <div class="simulator-layout-text-editor">
-      <div class="simulator-layout-add-heading">
-        <span class="simulator-summary-label">按数字批量设置</span>
-        <span class="simulator-layout-add-hint"
-          >每行按固定顺序填写设施等级</span
-        >
-      </div>
-      <a-textarea
-        v-model:value="layoutText"
-        :auto-size="{ minRows: 2, maxRows: 2 }"
-        class="simulator-layout-text-input"
-        :disabled="pendingLayoutPreset !== undefined"
-        placeholder="33 33222\n1313 2111"
-      />
       <div v-if="showLayoutPresets" class="simulator-layout-presets">
         <span class="simulator-summary-label">预设布局</span>
         <a-select
@@ -282,9 +259,31 @@ function handleLayoutPresetOpenChange(open: boolean): void {
           </a-button>
         </a-popconfirm>
       </div>
-      <div v-if="layoutTextFooter" class="simulator-layout-text-footer">
-        <span>{{ layoutTextFooter }}</span>
+      <div class="simulator-layout-add-heading">
+        <div class="simulator-layout-text-heading">
+          <span class="simulator-summary-label">按数字批量设置</span>
+          <a-tooltip v-if="layoutTextHelp" :title="layoutTextHelp">
+            <a-button
+              aria-label="数字批量设置使用说明"
+              class="simulator-layout-help"
+              size="small"
+              type="text"
+            >
+              <template #icon><QuestionCircleOutlined /></template>
+            </a-button>
+          </a-tooltip>
+        </div>
+        <span class="simulator-layout-add-hint"
+          >每行按固定顺序填写设施等级</span
+        >
       </div>
+      <a-textarea
+        v-model:value="layoutText"
+        :auto-size="{ minRows: 2, maxRows: 2 }"
+        class="simulator-layout-text-input"
+        :disabled="pendingLayoutPreset !== undefined"
+        placeholder="33 33222\n1313 2111"
+      />
       <a-alert v-if="error" :message="error" show-icon type="error" />
     </div>
 
@@ -380,11 +379,5 @@ function handleLayoutPresetOpenChange(open: boolean): void {
       </div>
     </div>
 
-    <div v-if="showSummary" class="simulator-layout-summary">
-      <span class="simulator-summary-label">设施布局</span>
-      <a-tag v-for="group in layoutGroups" :key="group.type" color="green">
-        {{ group.label }} × {{ group.entries.length }}
-      </a-tag>
-    </div>
   </div>
 </template>
