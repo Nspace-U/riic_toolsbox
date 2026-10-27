@@ -3064,14 +3064,7 @@ function toggleGroupColumn(
         v-if="rowDraft && rowDraftGroup && rowDraftSchedule && config"
         class="basic-calculator-row-editor"
       >
-        <a-space align="center">
-          <span>开启跑单</span>
-          <a-switch
-            v-model:checked="rowDraftRunOrderEnabled"
-            aria-label="开启跑单"
-            size="small"
-          />
-        </a-space>
+        <a-checkbox v-model:checked="rowDraftRunOrderEnabled">开启跑单</a-checkbox>
         <a-form v-if="props.mode === 'combination'" layout="vertical">
           <a-form-item
             :extra="`留空时使用全局首件进度 ${formatNumber(config.settings.firstItemProgress * 100)}%`"
