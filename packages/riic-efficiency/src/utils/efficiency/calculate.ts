@@ -3391,7 +3391,6 @@ function resolveMoods(
   });
   const fiammetta = resolveFiammetta(contexts, catalog);
   resolveAutomaticRest(contexts, catalog);
-  const mode = fiammettaMode(contexts[0]?.settings ?? {});
   const needsDormitory = contexts.some(
     (context, index) => fiammettaTargetForPlan(context, index) !== undefined,
   );
