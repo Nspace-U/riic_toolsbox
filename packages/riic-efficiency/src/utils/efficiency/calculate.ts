@@ -417,7 +417,7 @@ function addFiammettaPlacements(contexts: PlanContext[]): void {
   const firstTargetIndex = contexts.findIndex((context, index) =>
     fiammettaTargetForPlan(context, index),
   );
-  if (mode === "queue" && firstTargetIndex < 0) return;
+  if (firstTargetIndex < 0) return;
 
   let preferred: { facilityId: string; slotIndex: number } | undefined;
   const startIndex = mode === "queue" ? firstTargetIndex : 0;
@@ -3392,9 +3392,9 @@ function resolveMoods(
   const fiammetta = resolveFiammetta(contexts, catalog);
   resolveAutomaticRest(contexts, catalog);
   const mode = fiammettaMode(contexts[0]?.settings ?? {});
-  const needsDormitory =
-    mode === "direct" ||
-    contexts.some((context, index) => fiammettaTargetForPlan(context, index));
+  const needsDormitory = contexts.some(
+    (context, index) => fiammettaTargetForPlan(context, index) !== undefined,
+  );
   if (needsDormitory) {
     contexts.forEach((context) => {
       if (fiammettaDormPlacement(context)) return;
