@@ -13,7 +13,7 @@
 - 规范：`干员技能JSON规范.md`
 - 心情检查表：`public/skill-mood-check.json`
 
-生成器只使用当前项目 `public/assets/gamedata/latest/excel/` 下的游戏数据快照：`character_table.json`、`building_data.json` 和 `gamedata_const.json`。当前临时从 Kengxxiao `ArknightsGameData` 同步 Excel，干员头像、基建技能图标和物品图片继续取自 Torappu；旧项目 CSV 和旧控制中枢人工映射表不属于运行时输入。
+生成器使用当前项目 `public/assets/gamedata/latest/excel/` 下的游戏数据快照：`character_table.json`、`building_data.json` 和 `gamedata_const.json`。当前快照以 Torappu 为主，Torappu 缺少的常量字段由 Kengxxiao 快照补充；干员中文分支来自 Torappu `uniequip_table.json`。现有 `sync:torappu` 脚本仍读取 Kengxxiao Excel，重新运行会覆盖此数据来源；旧项目 CSV 和旧控制中枢人工映射表不属于运行时输入。
 
 当前设施 key 为 `control`、`trading`、`manufacture`、`power`、`meeting`、`hire`、`processing`、`training`、`recycle`、`dormitory`。加工站和训练室来源技能暂不生成，也不输出警告；回收站效率技能从 `building_data.json.chars`、`buffs` 中的标准干员技能描述解析。
 
@@ -176,7 +176,7 @@
 
 ## 风险与下一步
 
-- JSON 是效率计算模块消费的中间表示；生成器与计算器使用当前 Kengxxiao 游戏数据快照及当前项目目录，Torappu 仅提供图片资源；新增数据源时记录固定提交 SHA。
+- JSON 是效率计算模块消费的中间表示；当前本地快照按 Torappu 优先、Kengxxiao 补充缺失字段保存，来源记录在 `torappu-meta.json`。
 - 尚未实现完整库存过程和 `orderProgress` 动态订单状态；效率引擎仍支持精 0 孑逐单积分和固定订单回退。组合计算器精0孑计算方式可切换最高/平均，首件进度按全局默认和逐行覆盖参与计算；效率计算器仍固定最高效率和 0% 首件进度。爆仓设置仍由排班模拟器控制；当前仍按容量速率计算爆仓时间和 `overflowMode` 有效产出截断。
 - 新 Kengxxiao Excel 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。

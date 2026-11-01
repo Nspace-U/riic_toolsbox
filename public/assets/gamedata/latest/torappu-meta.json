@@ -1,16 +1,16 @@
 {
-  "source": "Torappu assets + Kengxxiao Excel",
+  "source": "Torappu",
   "sourceUrl": "https://torappu.prts.wiki/diff",
   "versionId": 366,
   "clientVersion": "2.7.91",
   "resVersion": "26-10-29-15-36-11-33649006",
-  "syncedAt": "2026-11-01T01:37:29.091Z",
+  "syncedAt": "2026-11-01T01:54:11.927Z",
   "excelSource": {
-    "repository": "Kengxxiao/ArknightsGameData",
-    "branch": "master",
-    "commit": "08ba2aea0e8dba88eff0ec0d2c87e24b4db626f8",
-    "path": "zh_CN/gamedata/excel",
-    "url": "https://github.com/Kengxxiao/ArknightsGameData/tree/08ba2aea0e8dba88eff0ec0d2c87e24b4db626f8/zh_CN/gamedata/excel"
+    "repository": "Torappu",
+    "branch": "latest",
+    "commit": "26-10-29-15-36-11-33649006",
+    "path": "gamedata/latest/excel",
+    "url": "https://torappu.prts.wiki/gamedata/latest/excel/"
   },
   "missingAvatars": [
     "char_003_kalts_1+.png",
@@ -458,5 +458,13 @@
         "localPath": "raw/profession_large_icon"
       }
     }
+  },
+  "excelFallback": {
+    "repository": "Kengxxiao/ArknightsGameData",
+    "commit": "08ba2aea0e8dba88eff0ec0d2c87e24b4db626f8",
+    "fields": [
+      "gamedata_const.termDescriptionDict.ba.dt.rampage2",
+      "gamedata_const.subProfessionDamageTypePairs.dispatcher"
+    ]
   }
 }
