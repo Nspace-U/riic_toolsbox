@@ -1102,3 +1102,11 @@
 - **影响范围**：模拟器设施列、导入提示、基础计算器排班行和共享布局编辑器。
 - **状态**：已实施。
 - **验证**：`npm run lint`、`npm run type-check` 和 `npm run build` 通过；全仓 `npm run format:check` 因 20 个其他文件未格式化而失败，本次源文件未出现在格式问题列表中；未运行测试套件。
+
+## 2026-11-01：暂用 Kengxxiao Excel 数据并保留 Torappu 图片
+
+- **决定**：`sync:torappu` 从 Kengxxiao `ArknightsGameData` 最新 `master` 提交读取 `zh_CN/gamedata/excel/` JSON，头像、基建技能图标、物品图标和徽标继续由 Torappu 提供；基建技能统一从 `building_data.chars` 与 `buffs` 解析，回收站使用标准 `RECYCLE` 技能类型，加工站/训练室仍不生成效率技能，本次不读取 PRTS 实装顺序。
+- **原因**：用户提供的 Torappu revision 已更新但 Excel 数据不完整，Kengxxiao 当前数据包含新干员及标准回收站设施技能。
+- **影响范围**：同步脚本、本地 Excel 快照、技能生成器及效率包数据、数据版本元信息、技能一览来源展示和同步说明。Excel 提交 SHA 固定写入元信息，便于识别本地数据版本。
+- **状态**：已实施。
+- **验证**：同步到 Kengxxiao 提交 `08ba2aea0e8dba88eff0ec0d2c87e24b4db626f8` 与 Torappu 图片 revision `26-10-29-15-36-11-33649006`；保留回收站设施规则字段；生成 438 名干员、678 条技能且无解析警告，六名新干员的基础头像与引用图标均已落地。`npm run lint`、`npm run type-check`、`npm run build` 通过；全仓 `npm run format:check` 因 21 个未修改文件格式问题失败，改动文件格式检查通过；未运行测试套件，未读取 PRTS 实装顺序。

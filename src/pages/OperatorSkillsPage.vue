@@ -334,8 +334,11 @@ onBeforeUnmount(() => {
           已读取 {{ operators.length }} 名干员 · {{ totalSkillCount }} 条技能 ·
           {{ totalTermCount }} 条术语
           <span v-if="metadata" class="operator-data-version"
-            >数据版本 {{ metadata.clientVersion }} ·
-            {{ metadata.resVersion }}</span
+            ><template v-if="metadata.excelSource"
+              >Excel {{ metadata.excelSource.repository }} @
+              {{ metadata.excelSource.commit.slice(0, 7) }} ·</template
+            ><template v-else>数据版本 {{ metadata.clientVersion }} ·</template>
+            图片 Torappu {{ metadata.resVersion }}</span
           >
           <span v-if="assetPreloadResult?.failed" class="operator-data-version">
             {{ assetPreloadResult.failed }} 张图片读取失败

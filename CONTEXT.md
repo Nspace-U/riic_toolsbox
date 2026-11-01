@@ -13,9 +13,9 @@
 - 规范：`干员技能JSON规范.md`
 - 心情检查表：`public/skill-mood-check.json`
 
-生成器只使用当前项目 `public/assets/gamedata/latest/excel/` 下的 Torappu 三份快照：`character_table.json`、`building_data.json` 和 `gamedata_const.json`。旧项目 CSV 和旧控制中枢人工映射表不属于运行时输入。
+生成器只使用当前项目 `public/assets/gamedata/latest/excel/` 下的游戏数据快照：`character_table.json`、`building_data.json` 和 `gamedata_const.json`。当前临时从 Kengxxiao `ArknightsGameData` 同步 Excel，干员头像、基建技能图标和物品图片继续取自 Torappu；旧项目 CSV 和旧控制中枢人工映射表不属于运行时输入。
 
-当前设施 key 为 `control`、`trading`、`manufacture`、`power`、`meeting`、`hire`、`processing`、`training`、`recycle`、`dormitory`。加工站和训练室来源技能暂不生成，也不输出警告；回收站技能来自 `building_data.json` 中的 `recycleOperators` / `recycleBuffs`。
+当前设施 key 为 `control`、`trading`、`manufacture`、`power`、`meeting`、`hire`、`processing`、`training`、`recycle`、`dormitory`。加工站和训练室来源技能暂不生成，也不输出警告；回收站效率技能从 `building_data.json.chars`、`buffs` 中的标准干员技能描述解析。
 
 控制中枢的 `部分设施`、`其他设施`、`工作场所` 从当前 `gamedata_const.json` 的术语描述动态展开。特殊比较技能使用 `stack: "max"` 与 `maxGroup` 表达逐设施取最高，而不是在生成阶段求值。
 
@@ -34,13 +34,13 @@
 - 已将无法稳定从描述推导的少量规则集中到人工覆盖表。
 - 已根据旧项目 Markdown 整理并确认效率计算基础规则：`docs/效率计算基础规则待核对.md`。
 - 效率计算数据和类型已迁移到 `packages/riic-efficiency`，宿主通过 `src/adapters/riicEfficiencyData.ts` 读取组件数据。
-- 干员技能 JSON 生成器按效率组件交接契约为当前 `character_table.json` 中 432 名干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity` 和 `chains`，共享术语由源数据生成到 `packages/riic-efficiency/data/terms.json`。回收站技能从 `building_data.json.recycleOperators` 和 `recycleBuffs` 生成；加工站/训练室来源技能仍暂不解析。
+- 干员技能 JSON 生成器按效率组件交接契约为当前 `character_table.json` 中的干员生成文件；每个文件包含 `schemaVersion`、`id`、`name`、`rarity` 和 `chains`，共享术语由源数据生成到 `packages/riic-efficiency/data/terms.json`。回收站技能从 `building_data.json.chars`、`buffs` 的标准技能数据生成；加工站/训练室来源技能仍暂不解析。
 - 效率计算已拆为 `packages/riic-efficiency` 独立 ESM 组件，公共入口为 `src/index.ts`，构建输出 ESM 与声明文件；组件不读取浏览器数据，排班设置中的 `progressionProfile`、`treatSkillsAsUnlocked` 和 `dormitoryDefaultIncludesMoodRecovery` 由调用方直接放入 `schedule.settings`。
 - 组件数据目录同时输出版本化 `ruleset.json` 与 `manifest.json`；规则集参与基础效率、制造配方、贸易订单、容量、线索、招募标签和无人机计算，订单数量使用 `schedule.settings.tradeOrderCount`。
 - 当前项目所有效率计算直接调用 `@arknights/riic-efficiency` 公共 API；组件规则数据使用 `packages/riic-efficiency/data/ruleset.json`，宿主不再维护第二套效率逻辑或重复干员技能数据。
 - 效率排名按当前设施的计算结果合并练度行，结果相同时显示达到该结果的最低练度，效率、心情或线索倾向不同时分别保留。会客室组合按成员 ID 与成员各自练度去重；阵营派生搭档需有会客室技能，明确点名搭档即使没有会客室技能仍保留各精英阶段，因为其练度会影响实际效率。闪击等同阶段依赖多种基建点的技能按基建点类型拆分效率行，每行只计算对应的基建点加成并保留共同固定加成。实际效率包含练度加成，技能效率不含练度加成；组合不显示成员的零技能效率或空线索倾向，有线索倾向的成员各占一行，名称与头像支持悬停后按 G 查看技能。宿舍效率列按当前恢复分组显示完整效果数值，不附加单位、不按房间人数累计；备注不重复列出当前分组数值或条件说明中已列出的特定恢复数值。恢复分组顺序固定为群体、单体、分摊、特定、自身恢复，默认选中群体恢复。效率排名的默认排班按特殊行配置放入支援干员或术语占位；闪击的两种办公室基建点场景分别配置对应支援，余与纯烬艾雅法拉的宿舍技能按群体计数需求配置术语占位。
 - 已实现队列时长、设施基础效率、固定产出、制造站产出、贸易站特殊订单、订单上限联动、技能条件/per/曲线、基地点数、属性层和心情链计算。
-- 回收站 key 为 `recycle`，最多建造 1 间，建造依赖训练室存在（不检查训练室等级），不耗电；1 级 1 槽、2/3 级 2 槽。`sync-torappu.mjs` 通过现有 `DATA_FILES` / `fetchJson` 流程读取 Torappu `recycle_data.json`，把 `recycle*` 字段按源名合并到 `building_data.json` 顶层且不落独立快照；应用仍通过既有 `building_data.json` 路径读取。设施等级、产速、储藏容量、加速时长、产出池和进度均使用这些字段，2/3 级容量按 10 件基础容量计算，不将等级增量归类为技能。空置时持续产出；加速道具 ID 保存在应用排班 `ScheduleSettings.recycleBoostItemId`，随单张 Maa JSON 和全量排班备份导入/导出。结果按池权重以“精英材料”汇总道具总产量；明细弹窗默认将 T2–T5 按日均数量降序汇总为四行，代表图标依次使用固源岩、扭转醇、白马醇、双极纳米片，可切换逐材料查看，统计天数和分组方式每次打开时重置为 1 天和稀有度，不写入排班设置。展示图标使用扭转醇物品图标，设施默认强调色 `#6CCBCB` 与旅骨回收技能图标背景色一致；纯游戏规则和数值见 [回收站游戏内规则与数值.md](docs/回收站游戏内规则与数值.md)。
+- 回收站 key 为 `recycle`，最多建造 1 间，建造依赖训练室存在（不检查训练室等级），不耗电；1 级 1 槽、2/3 级 2 槽。设施等级、产速、储藏容量、加速时长、产出池和进度读取 Kengxxiao `building_data.json` 顶层 `recycle*` 字段；2/3 级容量按 10 件基础容量计算，不将等级增量归类为技能。空置时持续产出；加速道具 ID 保存在应用排班 `ScheduleSettings.recycleBoostItemId`，随单张 Maa JSON 和全量排班备份导入/导出。结果按池权重以“精英材料”汇总道具总产量；明细弹窗默认将 T2–T5 按日均数量降序汇总为四行，代表图标依次使用固源岩、扭转醇、白马醇、双极纳米片，可切换逐材料查看，统计天数和分组方式每次打开时重置为 1 天和稀有度，不写入排班设置。展示图标使用扭转醇物品图标，设施默认强调色 `#6CCBCB` 与旅骨回收技能图标背景色一致；纯游戏规则和数值见 [回收站游戏内规则与数值.md](docs/回收站游戏内规则与数值.md)。
 - 已修复琴柳“感染力”判断：以不含自身效果的办公室完整效率与 130% 比较，完整效率包含设施基础效率、有效干员心情效率和其他干员技能效率；低于 130% 时追加 20% 干员效率，恰好 130% 不触发。琴柳效果可与八幡海铃的设施基础效率叠加，不使用 `stack: "max"`；0 心情干员不提供自身心情/技能效率，但所在设施仍保留基础效率。
 - 已修复效率计算中的 `source: "stat"` 折算链：这类效果重新参与最终设施效率聚合，属性折算基数限定为同一设施内干员的直接效率贡献，并排除按设施数量计算的来源；新增正义骑士号、野鬃、槐琥回归场景。
 - 雪雉的 `source: "stat"` 使用 `statScope: "targetFacility"`，读取所有作用于目标贸易站的普通干员效率和贸易站特殊效率，包括跨设施的灵知、八幡海铃和琳琅诗怀雅效果；设施级 `stack: "max"` 效率不计入该基数。目标设施范围保留负数且无负向下限，孑的“摊贩经济”和“市井之道”效果通过 `excludeFromStat` 排除；槐琥显式使用 `sameFacility`，只读取同一物理制造站。
@@ -176,11 +176,11 @@
 
 ## 风险与下一步
 
-- JSON 是效率计算模块消费的中间表示；生成器与计算器继续只使用当前 Torappu 三份快照及当前项目目录。
+- JSON 是效率计算模块消费的中间表示；生成器与计算器使用当前 Kengxxiao 游戏数据快照及当前项目目录，Torappu 仅提供图片资源；新增数据源时记录固定提交 SHA。
 - 尚未实现完整库存过程和 `orderProgress` 动态订单状态；效率引擎仍支持精 0 孑逐单积分和固定订单回退。组合计算器精0孑计算方式可切换最高/平均，首件进度按全局默认和逐行覆盖参与计算；效率计算器仍固定最高效率和 0% 首件进度。爆仓设置仍由排班模拟器控制；当前仍按容量速率计算爆仓时间和 `overflowMode` 有效产出截断。
-- 新 Torappu 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
+- 新 Kengxxiao Excel 快照增加术语或改变描述句式时，应先运行生成器检查警告，再更新解析规则或覆盖表。
 - 前端接入时应遵守 `docs/效率计算模块使用说明.md`，并遵守 `干员技能JSON规范.md` 的 `target`、`stat`、`condition`、`per` 与最高值组语义。
-- 网页运行时统一读取 `public/assets/gamedata/latest/` 下的本地 Torappu 快照和本地资源；头像徽标沿用 Torappu `raw/elite_icon`、`raw/rarity_icon` 和 `raw/profession_large_icon` 源目录下载到本地，网页不直接请求徽标外链；PRTS 实装顺序只由同步脚本写入快照，不提供数据源切换或旧 CSV 读取分支。计算结果直接区分干员效率与干员技能效率，小卡片首项单独使用不含心情的 `skillEfficiency`，每日产出按产物分别汇总。
+- 网页运行时统一读取 `public/assets/gamedata/latest/` 下的本地游戏数据快照和本地资源；头像徽标、干员头像和基建技能图标继续沿用 Torappu 资源下载到本地，网页不直接请求外链；PRTS 实装顺序只由单独同步脚本写入快照，本次 Excel 同步不读取。计算结果直接区分干员效率与干员技能效率，小卡片首项单独使用不含心情的 `skillEfficiency`，每日产出按产物分别汇总。
 - 提交前应运行 `npm run lint`、`npm run format:check`、`npm run type-check` 和 `npm run build`；规则升级或新增目录时同步检查忽略范围。Lint 结果按默认规则处理，不为既有代码增加例外。
 - 后续新增房间生成入口应继续调用 `createDefaultRoomAssignment`，避免默认产物规则分散。
 - 仓库仍没有专用模拟器或头像测试；效率计算已有 `npm run test:efficiency` 的 SSR 回归入口。涉及浏览器交互、布局和性能的变更仍需要结合静态检查与实际页面回放验证，未验证的结果不得记录为已完成。

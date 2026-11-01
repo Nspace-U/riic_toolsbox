@@ -15469,5 +15469,216 @@
     "implementationDate": "2026-10-04 12:00",
     "implementationOrder": 432,
     "branch": "炼金师"
+  },
+  "char_4247_oxi": {
+    "name": "塔露拉",
+    "rarity": "TIER_6",
+    "profession": "WARRIOR",
+    "subProfessionId": "primguard",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "train_spd_doubleProf[302]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "train_spd_branches[000]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "char_4244_tocka": {
+    "name": "冻河",
+    "rarity": "TIER_6",
+    "profession": "SUPPORT",
+    "subProfessionId": "supportiveranger",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "trade_ord_spd&share[100]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "trade_ord_spd&share[110]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "dorm_rec_all&unfull[100]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "char_4246_dminon": {
+    "name": "国度",
+    "rarity": "TIER_6",
+    "profession": "SPECIAL",
+    "subProfessionId": "stalker",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "recycle_spd&cost[100]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "recycle_spd&cost[110]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "power_rec_spd[018]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "char_4245_alga": {
+    "name": "奥尔佳",
+    "rarity": "TIER_5",
+    "profession": "WARRIOR",
+    "subProfessionId": "instructor",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "meet_spd&sami[200]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "meet_spd&sami[210]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": []
+      }
+    ]
+  },
+  "char_4169_caledo": {
+    "name": "镜匠",
+    "rarity": "TIER_5",
+    "profession": "TANK",
+    "subProfessionId": "primprotector",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "workshop_formula_probability[1111]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "workshop_formula_probability[1121]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": [
+          {
+            "buffId": "workshop_formula_drop[050]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "char_4170_hdbell": {
+    "name": "行铃",
+    "rarity": "TIER_4",
+    "profession": "SPECIAL",
+    "subProfessionId": "dispatcher",
+    "isSpChar": false,
+    "phaseCount": 3,
+    "buffChar": [
+      {
+        "buffData": [
+          {
+            "buffId": "recycle_spd&cost[001]",
+            "cond": {
+              "phase": "PHASE_0",
+              "level": 1
+            }
+          },
+          {
+            "buffId": "recycle_spd&cost[011]",
+            "cond": {
+              "phase": "PHASE_2",
+              "level": 1
+            }
+          }
+        ]
+      },
+      {
+        "buffData": []
+      }
+    ]
   }
 }

@@ -1,6 +1,6 @@
 // =====================================================================
 // 当前项目的干员效率 JSON 生成器。
-// 输入仅来自 public/assets/gamedata/latest/excel 下的 Torappu 三份快照，
+// 输入来自 public/assets/gamedata/latest/excel 下的游戏数据快照，
 // 输出为 packages/riic-efficiency/data/operators/{干员ID}.json 和 terms.json。
 // =====================================================================
 import fs from "node:fs";
@@ -25,6 +25,14 @@ const EXCEL_DIR = path.join(
 const CHARACTER_TABLE_PATH = path.join(EXCEL_DIR, "character_table.json");
 const BUILDING_DATA_PATH = path.join(EXCEL_DIR, "building_data.json");
 const GAMEDATA_CONST_PATH = path.join(EXCEL_DIR, "gamedata_const.json");
+const GAMEDATA_META_PATH = path.join(
+  ROOT,
+  "public",
+  "assets",
+  "gamedata",
+  "latest",
+  "torappu-meta.json",
+);
 const MOOD_CHECK_PATH = path.join(ROOT, "public", "skill-mood-check.json");
 const PACKAGE_DATA_DIR = path.join(ROOT, "packages", "riic-efficiency", "data");
 const PACKAGE_OPERATOR_DIR = path.join(PACKAGE_DATA_DIR, "operators");
@@ -404,6 +412,14 @@ function parseValueEffects(text, target, groups, cond, warn) {
     effects.push(eff);
   };
   let m;
+
+  if (
+    target === "recycle" &&
+    (m = text.match(/材料转化效率(?:额外)?([+-]?\d+(?:\.\d+)?)%/))
+  ) {
+    push({ target, stat: "recycleSpd", value: Number(m[1]) });
+    text = text.replace(/材料转化效率(?:额外)?[+-]?\d+(?:\.\d+)?%/, "");
+  }
 
   // 0) 线索概率类（clueChance，会客室）："更容易获得XX线索"等，只展示不参与效率计算；
   //    提取完整文本到 text 字段后从文本中移除，避免误报与误匹配
@@ -3773,6 +3789,7 @@ function main() {
   const gamedataConst = JSON.parse(
     fs.readFileSync(GAMEDATA_CONST_PATH, "utf8"),
   );
+  const gamedataMeta = JSON.parse(fs.readFileSync(GAMEDATA_META_PATH, "utf8"));
   const buffs = buildingData.buffs ?? {};
   const termDescriptions = gamedataConst.termDescriptionDict ?? {};
   configureFacilityTerms(termDescriptions);
@@ -3803,7 +3820,6 @@ function main() {
         }
         const room = ROOM_TYPE_MAP[buff.roomType ?? ""];
         if (!room) continue;
-        if (room === "recycle") continue;
         if (!OUTPUT_ROOMS.has(room)) {
           skippedFacilitySkillCount += 1;
           continue;
@@ -3825,36 +3841,6 @@ function main() {
       rarity: rarityValue(character.rarity),
       records,
     });
-  }
-
-  for (const [id, recycleOperator] of Object.entries(
-    buildingData.recycleOperators ?? {},
-  )) {
-    const character = characterTable[id];
-    const operator = byOperator.get(id) ?? {
-      name: character?.name ?? recycleOperator.name,
-      rarity: rarityValue(character?.rarity),
-      records: [],
-    };
-    for (const buffData of recycleOperator.buffData ?? []) {
-      const buff = buildingData.recycleBuffs?.[buffData.buffId ?? ""];
-      if (!buff) {
-        missingBuffCount += 1;
-        continue;
-      }
-      operator.records.push({
-        id,
-        name: character?.name ?? recycleOperator.name,
-        slot: 1,
-        room: "recycle",
-        roomLabel: ROOM_LABELS.recycle,
-        condition: buffData.cond,
-        skillName: buff.buffName ?? buffData.buffId ?? "未命名技能",
-        description: buff.description ?? "",
-        efficiency: buff.efficiency,
-      });
-    }
-    byOperator.set(id, operator);
   }
 
   if (!fs.existsSync(PACKAGE_OPERATOR_DIR)) {
@@ -3895,23 +3881,13 @@ function main() {
             type: "elite",
             value: 0,
           };
-          const effects =
-            record.room === "recycle" && Number.isFinite(record.efficiency)
-              ? [
-                  {
-                    target: "recycle",
-                    stat: "recycleSpd",
-                    value: record.efficiency,
-                    text: record.description,
-                  },
-                ]
-              : parseSkillDesc(
-                  record.description,
-                  record.roomLabel,
-                  (message) => warn(`[${id}] ${record.skillName}：${message}`),
-                  record.skillName,
-                  id,
-                );
+          const effects = parseSkillDesc(
+            record.description,
+            record.roomLabel,
+            (message) => warn(`[${id}] ${record.skillName}：${message}`),
+            record.skillName,
+            id,
+          );
           if (moodCheck?.[record.name]?.[record.skillName] === true) {
             effects.forEach((effect) => {
               if (effect.condition) effect.condition.moodCheck = true;
@@ -3971,7 +3947,7 @@ function main() {
       {
         schemaVersion: SCHEMA_VERSION,
         rulesetVersion: rulesetData.version,
-        gameDataVersion: "torappu-latest",
+        gameDataVersion: `kengxxiao:${gamedataMeta.excelSource?.commit ?? "master"}`,
         generatedAt: new Date().toISOString(),
         operators: "operators",
         terms: "terms.json",

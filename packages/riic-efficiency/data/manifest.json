@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "rulesetVersion": "arknights-riic-2026-09",
-  "gameDataVersion": "torappu-latest",
-  "generatedAt": "2026-10-23T09:34:47.146Z",
+  "gameDataVersion": "kengxxiao:08ba2aea0e8dba88eff0ec0d2c87e24b4db626f8",
+  "generatedAt": "2026-11-01T01:37:42.028Z",
   "operators": "operators",
   "terms": "terms.json",
   "ruleset": "ruleset.json"

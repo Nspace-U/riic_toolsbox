@@ -58,6 +58,13 @@ export interface BaseDataMetadata {
   clientVersion: string;
   resVersion: string;
   syncedAt: string;
+  excelSource?: {
+    repository: string;
+    branch: string;
+    commit: string;
+    path: string;
+    url: string;
+  };
   missingAvatars?: string[];
   missingItemIcons?: string[];
   paths?: {

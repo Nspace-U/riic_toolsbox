@@ -4,6 +4,16 @@ import { fileURLToPath } from "node:url";
 
 const TORAPPU_URL = "https://torappu.prts.wiki";
 const SOURCE_URL = `${TORAPPU_URL}/diff`;
+const GAMEDATA_REPO_URL =
+  "https://api.github.com/repos/Kengxxiao/ArknightsGameData";
+const GAMEDATA_EXCEL_PATH = "zh_CN/gamedata/excel";
+const GAMEDATA_FILES = [
+  "character_table",
+  "char_patch_table",
+  "building_data",
+  "gamedata_const",
+  "item_table",
+];
 const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const publicAssetsRoot = resolve(projectRoot, "public/assets");
 
@@ -27,11 +37,6 @@ const DATA_FILES = [
   {
     name: "item_table",
     path: "gamedata/latest/excel/item_table.json",
-  },
-  {
-    name: "recycle_data",
-    path: "gamedata/latest/excel/recycle_data.json",
-    sourceOnly: true,
   },
 ];
 
@@ -95,9 +100,9 @@ const AVATAR_METADATA_ICON_GROUPS = {
   },
 };
 
-async function fetchResponse(url, label) {
+async function fetchResponse(url, label, options = {}) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const response = await fetch(url);
+    const response = await fetch(url, options);
     if (response.ok || response.status === 404 || attempt === 3) {
       return response;
     }
@@ -109,12 +114,45 @@ async function fetchResponse(url, label) {
   throw new Error(`${label}读取失败`);
 }
 
-async function fetchJson(url, label) {
-  const response = await fetchResponse(url, label);
+async function fetchJson(url, label, options) {
+  const response = await fetchResponse(url, label, options);
   if (!response.ok) {
     throw new Error(`${label}读取失败（HTTP ${response.status}）`);
   }
   return response.json();
+}
+
+async function fetchGameData(commitSha) {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+    "User-Agent": "riic-tools-data-sync",
+  };
+  const files = await fetchJson(
+    `${GAMEDATA_REPO_URL}/contents/${GAMEDATA_EXCEL_PATH}?ref=${commitSha}`,
+    "Kengxxiao Excel 文件列表",
+    { headers },
+  );
+  const fileByName = new Map(files.map((file) => [file.name, file]));
+  const rawData = {};
+  for (const name of GAMEDATA_FILES) {
+    const file = fileByName.get(`${name}.json`);
+    if (!file?.sha) {
+      throw new Error(`Kengxxiao Excel 缺少 ${name}.json`);
+    }
+    const blob = await fetchJson(
+      `${GAMEDATA_REPO_URL}/git/blobs/${file.sha}`,
+      `Kengxxiao ${name}`,
+      { headers },
+    );
+    if (blob.encoding !== "base64" || !blob.content) {
+      throw new Error(`Kengxxiao ${name} 未返回 Base64 文件内容`);
+    }
+    rawData[name] = JSON.parse(
+      Buffer.from(blob.content, "base64").toString("utf8"),
+    );
+  }
+  return rawData;
 }
 
 async function writeJson(relativePath, value) {
@@ -273,13 +311,12 @@ function selectBuildingData(buildingData, operatorIds) {
     }),
   );
 
-  return { buffs };
-}
-
-function selectRecycleBuildingData(recycleData) {
-  return Object.fromEntries(
-    Object.entries(recycleData).filter(([key]) => key.startsWith("recycle")),
-  );
+  return {
+    ...Object.fromEntries(
+      Object.entries(buildingData).filter(([key]) => key.startsWith("recycle")),
+    ),
+    buffs,
+  };
 }
 
 function selectItemTable(itemTable) {
@@ -353,13 +390,18 @@ async function main() {
     throw new Error("Torappu 没有可用的已完成版本");
   }
 
-  const rawData = {};
-  for (const dataFile of DATA_FILES) {
-    rawData[dataFile.name] = await fetchJson(
-      `${TORAPPU_URL}/${dataFile.path}`,
-      `Torappu ${dataFile.name}`,
-    );
-  }
+  const gameDataCommit = await fetchJson(
+    `${GAMEDATA_REPO_URL}/commits/master`,
+    "Kengxxiao 最新提交",
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "riic-tools-data-sync",
+      },
+    },
+  );
+  const rawData = await fetchGameData(gameDataCommit.sha);
 
   const previousCharacterTable = await readExistingCharacterTable();
 
@@ -376,15 +418,11 @@ async function main() {
       previousCharacterTable,
     ),
     char_patch_table: selectAmiyaCharPatchTable(rawData.char_patch_table),
-    building_data: {
-      ...selectBuildingData(rawData.building_data, operatorIds),
-      ...selectRecycleBuildingData(rawData.recycle_data),
-    },
+    building_data: selectBuildingData(rawData.building_data, operatorIds),
     gamedata_const: rawData.gamedata_const,
     item_table: selectItemTable(rawData.item_table),
   };
   for (const dataFile of DATA_FILES) {
-    if (dataFile.sourceOnly) continue;
     await writeJson(dataFile.path, data[dataFile.name]);
   }
 
@@ -470,12 +508,19 @@ async function main() {
   }
 
   await writeJson("gamedata/latest/torappu-meta.json", {
-    source: "Torappu",
+    source: "Torappu assets + Kengxxiao Excel",
     sourceUrl: SOURCE_URL,
     versionId: latest.id,
     clientVersion: latest.clientVersion,
     resVersion: latest.resVersion,
     syncedAt: new Date().toISOString(),
+    excelSource: {
+      repository: "Kengxxiao/ArknightsGameData",
+      branch: "master",
+      commit: gameDataCommit.sha,
+      path: GAMEDATA_EXCEL_PATH,
+      url: `https://github.com/Kengxxiao/ArknightsGameData/tree/${gameDataCommit.sha}/${GAMEDATA_EXCEL_PATH}`,
+    },
     missingAvatars,
     missingItemIcons,
     paths: {
@@ -502,7 +547,7 @@ async function main() {
   });
 
   console.log(
-    `Torappu 同步完成：${latest.clientVersion} / ${latest.resVersion}`,
+    `数据同步完成：Kengxxiao ${gameDataCommit.sha.slice(0, 7)}；Torappu 图片 ${latest.clientVersion} / ${latest.resVersion}`,
   );
   console.log(
     `干员：${operatorIds.length}，基建图标：${skillIcons.size}，物品：${Object.keys(itemTable.items).length}，物品图标：${itemIcons.size}`,
