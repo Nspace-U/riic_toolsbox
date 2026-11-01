@@ -15382,7 +15382,7 @@
         ]
       }
     ],
-    "implementationDate": "2026-10-04 12:00",
+    "implementationDate": "2026-10-09 12:00",
     "implementationOrder": 434,
     "branch": "本源近卫"
   },
@@ -15424,7 +15424,7 @@
         ]
       }
     ],
-    "implementationDate": "2026-10-04 12:00",
+    "implementationDate": "2026-10-09 12:00",
     "implementationOrder": 433,
     "branch": "削弱者"
   },
@@ -15466,7 +15466,7 @@
         ]
       }
     ],
-    "implementationDate": "2026-10-04 12:00",
+    "implementationDate": "2026-10-09 12:00",
     "implementationOrder": 432,
     "branch": "炼金师"
   },
@@ -15501,6 +15501,8 @@
         ]
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 440,
     "branch": "本源近卫"
   },
   "char_4244_tocka": {
@@ -15541,6 +15543,8 @@
         ]
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 439,
     "branch": "游击手"
   },
   "char_4246_dminon": {
@@ -15581,6 +15585,8 @@
         ]
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 438,
     "branch": "伏击客"
   },
   "char_4245_alga": {
@@ -15613,6 +15619,8 @@
         "buffData": []
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 437,
     "branch": "教官"
   },
   "char_4169_caledo": {
@@ -15653,6 +15661,8 @@
         ]
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 436,
     "branch": "本源铁卫"
   },
   "char_4170_hdbell": {
@@ -15685,6 +15695,8 @@
         "buffData": []
       }
     ],
+    "implementationDate": "2026-11-01 12:00",
+    "implementationOrder": 435,
     "branch": "调度者"
   }
 }
