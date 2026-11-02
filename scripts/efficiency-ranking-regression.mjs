@@ -132,6 +132,9 @@ try {
       return ranking.defaultEfficiencyRankingNote(entry, catalog);
     };
     assert.match(noteFor("锡人", "hire", 2), /所有宿舍等级总和/);
+    assert.doesNotMatch(noteFor("Lancet-2", "power", 0), /基础\+10%无人机充能/);
+    assert.doesNotMatch(noteFor("跃跃", "meeting", 1), /基础\+\d+%线索速度/);
+    assert.match(noteFor("跃跃", "meeting", 1), /需要开启线索交流/);
     assert.match(noteFor("隐德来希", "dormitory", 2), /公开招募位/);
     assert.match(noteFor("波卜", "dormitory", 2), /心情未满干员/);
     assert.match(

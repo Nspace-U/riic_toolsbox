@@ -1228,7 +1228,6 @@ function rankingPerSourceDescription(
 function rankingEffectNotes(
   effect: EfficiencyEffect,
   catalog: EfficiencyCatalog,
-  facility: RoomKey,
   includeCondition: boolean,
 ): string[] {
   const notes: string[] = [];
@@ -1256,18 +1255,6 @@ function rankingEffectNotes(
       effect.stat === "basePointGain"
         ? `${base}${source.prefix}${unit}额外提供${amount}${effectLabel}`
         : `${base}${source.prefix}${unit}额外增加${amount}${effectLabel}`,
-    );
-  }
-  if (
-    !per &&
-    effectAffectsRanking(effect, facility) &&
-    !(facility === "dormitory" && effect.stat === "moodRecover") &&
-    Number.isFinite(Number(effect.value ?? effect.baseValue)) &&
-    Number(effect.value ?? effect.baseValue) !== 0
-  ) {
-    const value = Number(effect.value ?? effect.baseValue);
-    notes.push(
-      `基础${rankingEffectAmount(effect, value)}${efficiencyStatLabel(effect.stat)}`,
     );
   }
   (effect.targetBonuses ?? []).forEach((bonus) => {
@@ -1357,13 +1344,6 @@ export function defaultEfficiencyRankingNote(
           effectTargetsRankingFacility(effect, entry.facility) &&
           effectIncludedInBasePointScenario(entry, operator, effect),
       );
-    const dynamicStats = new Set(
-      effects
-        .filter(
-          (effect) => effect.per && rankingPerSourceDescription(effect.per),
-        )
-        .map((effect) => effect.stat),
-    );
     const fixedValues = new Map<string, number>();
     effects.forEach((effect) => {
       if (effect.per || !effectAffectsRanking(effect, entry.facility)) {
@@ -1395,8 +1375,6 @@ export function defaultEfficiencyRankingNote(
           };
           includedFixedValues.add(effect.stat);
         }
-      } else if (!effect.per && dynamicStats.has(effect.stat)) {
-        noteEffect = { ...effect, value: undefined, baseValue: undefined };
       }
       if (effectAffectsRanking(effect, entry.facility) && effect.condition) {
         const reason = conditionDescription(effect.condition, catalog);
@@ -1423,7 +1401,6 @@ export function defaultEfficiencyRankingNote(
       rankingEffectNotes(
         noteEffect,
         catalog,
-        entry.facility,
         !effectAffectsRanking(effect, entry.facility),
       ).forEach((note) => notes.add(note));
       const per = effect.per;
