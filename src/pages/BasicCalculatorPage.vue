@@ -111,6 +111,7 @@ interface BasicCalculatorRowView {
   overflowTimeAtZeroProgress?: number;
   overflowTimeAtFullProgress?: number;
   facilityLevel?: number;
+  product?: string;
   backgroundColor?: string;
 }
 
@@ -928,17 +929,26 @@ function compareOperatorImplementationOrder(
   return 0;
 }
 
-function productAccent(
+function rowProduct(
   group: BasicCalculatorGroup,
   row: BasicCalculatorRow,
 ): string | undefined {
   const facility = basicCalculatorTargetFacility(group, row);
   if (!facility) return undefined;
-  const product = basicCalculatorProductForRoom(
+  return basicCalculatorProductForRoom(
     group.defaultProducts,
     facility,
     basicCalculatorRoomAssignment(row.schedule, facility),
   );
+}
+
+function productAccent(
+  group: BasicCalculatorGroup,
+  row: BasicCalculatorRow,
+): string | undefined {
+  const facility = basicCalculatorTargetFacility(group, row);
+  const product = rowProduct(group, row);
+  if (!facility) return undefined;
   if (!product) return undefined;
   return (
     productColors.value[product as keyof typeof productColors.value] ??
@@ -1094,6 +1104,7 @@ function rowView(
     overflowTimeAtZeroProgress: calculation?.overflowTimeAtZeroProgress,
     overflowTimeAtFullProgress: calculation?.overflowTimeAtFullProgress,
     facilityLevel,
+    product: rowProduct(group, row),
     backgroundColor: productAccent(group, row),
   };
 }
@@ -1128,12 +1139,18 @@ const rowsByGroup = computed<Record<string, BasicCalculatorRowView[]>>(() => {
         operatorNameText(second.group, second.row),
       );
     });
-    result[group.id] =
+    const mixedProducts = views.some(
+      (view) => view.product !== views[0]?.product,
+    );
+    const displayedViews =
       (props.mode !== "combination" || group.coreOperator) &&
       config.value?.settings.mergeIdenticalRows &&
       calculationsReadyForMerge.value
         ? mergeRowViews(views)
         : views;
+    result[group.id] = mixedProducts
+      ? displayedViews
+      : displayedViews.map((view) => ({ ...view, backgroundColor: undefined }));
   });
   return result;
 });
