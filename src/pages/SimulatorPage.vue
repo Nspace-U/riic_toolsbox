@@ -4667,6 +4667,9 @@ function openOperatorContextMenu(
   position: number,
   slotIndex: number,
 ): void {
+  if (position === FIAMMETTA_POSITION) {
+    return;
+  }
   scheduleDocumentContextMenu.value = undefined;
   if (!commitPendingOperatorNameEdit()) {
     return;
@@ -4689,6 +4692,9 @@ function openFacilityContextMenu(
   type: RoomKey,
   positions: number[],
 ): void {
+  if (positions.includes(FIAMMETTA_POSITION)) {
+    return;
+  }
   scheduleDocumentContextMenu.value = undefined;
   if (!commitPendingOperatorNameEdit()) {
     return;
