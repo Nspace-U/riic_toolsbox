@@ -5916,14 +5916,36 @@ function isStoredDocument(document: StoredDocument): boolean {
 }
 
 function setScheduleTagFilter(tag: string, checked: boolean): void {
-  selectedScheduleTags.value = checked
-    ? [...selectedScheduleTags.value, tag]
-    : selectedScheduleTags.value.filter((selected) => selected !== tag);
+  const group = scheduleTagGroups.value.find(({ tags }) =>
+    tags.some((entry) => entry.label === tag),
+  );
+  selectedScheduleTags.value = selectedScheduleTags.value.filter(
+    (selected) =>
+      selected !== tag &&
+      (!checked ||
+        !group ||
+        group.group === "custom" ||
+        !group.tags.some((entry) => entry.label === selected)),
+  );
+  if (checked) {
+    selectedScheduleTags.value.push(tag);
+  }
 }
 
-watch(availableScheduleTags, (tags) => {
-  selectedScheduleTags.value = selectedScheduleTags.value.filter((tag) =>
-    tags.includes(tag),
+watch(scheduleTagGroups, (groups) => {
+  selectedScheduleTags.value = selectedScheduleTags.value.filter(
+    (tag, index, selected) => {
+      const group = groups.find(({ tags }) =>
+        tags.some((entry) => entry.label === tag),
+      );
+      return (
+        group &&
+        (group.group === "custom" ||
+          !selected
+            .slice(index + 1)
+            .some((later) => group.tags.some((entry) => entry.label === later)))
+      );
+    },
   );
 });
 

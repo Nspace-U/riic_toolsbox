@@ -107,6 +107,43 @@ try {
   await page.evaluate(() => {
     const key = "riic-tools:schedule-documents:v1";
     const docs = JSON.parse(localStorage.getItem(key));
+    docs[1].document.layout.push(
+      ...["meeting", "processing", "hire", "training", "recycle"].map(
+        (type) => ({ type, level: 3 }),
+      ),
+    );
+    docs[1].document.plans.push(docs[1].document.plans[0]);
+    localStorage.setItem(key, JSON.stringify(docs));
+  });
+  await page.reload();
+  const tag = (name) => page.getByRole("checkbox", { name, exact: true });
+  await tag("000").click();
+  await tag("100").click();
+  assert.equal(await tag("000").getAttribute("aria-checked"), "false");
+  assert.equal(await tag("100").getAttribute("aria-checked"), "true");
+  assert.equal(await page.locator(".simulator-document-item-title").count(), 2);
+  await tag("右不满").click();
+  await tag("右满").click();
+  assert.equal(await tag("右不满").getAttribute("aria-checked"), "false");
+  assert.equal(await tag("右满").getAttribute("aria-checked"), "true");
+  await tag("1队列").click();
+  await tag("2队列").click();
+  assert.equal(await tag("1队列").getAttribute("aria-checked"), "false");
+  assert.equal(await tag("2队列").getAttribute("aria-checked"), "true");
+  assert.deepEqual(
+    await page.locator(".simulator-document-item-title").allTextContents(),
+    ["第二份"],
+  );
+  await tag("备用").click();
+  await tag("自用").click();
+  assert.equal(await tag("备用").getAttribute("aria-checked"), "true");
+  assert.equal(await tag("自用").getAttribute("aria-checked"), "true");
+  await tag("2队列").click();
+  assert.equal(await tag("2队列").getAttribute("aria-checked"), "false");
+
+  await page.evaluate(() => {
+    const key = "riic-tools:schedule-documents:v1";
+    const docs = JSON.parse(localStorage.getItem(key));
     docs[0].tags.push(
       ...Array.from({ length: 100 }, (_, index) => `额外标签${index}`),
     );
@@ -133,7 +170,7 @@ try {
     };
   });
   assert.ok(Math.abs(mobile.width - mobile.parentWidth) < 1);
-  assert.equal(mobile.count, 107);
+  assert.equal(mobile.count, 109);
   assert.equal(mobile.position, "static");
   assert.ok(mobile.listHeight >= 120 && mobile.contained);
   console.log("simulator tag regression: passed");
