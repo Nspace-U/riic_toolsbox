@@ -72,8 +72,12 @@ try {
   const automatic = page.getByRole("checkbox", { name: "100", exact: true });
   const custom = page.getByRole("checkbox", { name: "自用", exact: true });
   assert.equal(await automatic.count(), 1);
-  assert.match(await automatic.getAttribute("class"), /ant-tag-blue/);
+  assert.doesNotMatch(await automatic.getAttribute("class"), /ant-tag-blue/);
   assert.doesNotMatch(await custom.getAttribute("class"), /ant-tag-blue/);
+  assert.equal(
+    await page.locator(".simulator-meta-field .ant-tag-blue").count(),
+    0,
+  );
   await automatic.click();
   assert.equal(await automatic.getAttribute("aria-checked"), "true");
   assert.deepEqual(
@@ -82,6 +86,16 @@ try {
   );
   await custom.focus();
   await custom.press("Space");
+  await page.waitForFunction(() => {
+    const selected = document.querySelectorAll(
+      ".simulator-tag-filter--selected",
+    );
+    return (
+      selected.length === 2 &&
+      getComputedStyle(selected[0]).backgroundColor ===
+        getComputedStyle(selected[1]).backgroundColor
+    );
+  });
   assert.deepEqual(
     await page.locator(".simulator-document-item-title").allTextContents(),
     ["第一份"],

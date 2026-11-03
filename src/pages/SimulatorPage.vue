@@ -6358,7 +6358,6 @@ defineExpose({ prepareScheduleReferenceImage });
                   'simulator-tag-filter--selected':
                     selectedScheduleTags.includes(tag.label),
                 }"
-                :color="tag.category === 'custom' ? undefined : 'blue'"
                 role="checkbox"
                 tabindex="0"
                 @click="
@@ -6500,12 +6499,6 @@ defineExpose({ prepareScheduleReferenceImage });
               >
                 <template #tagRender="{ value, closable, onClose }">
                   <a-tag
-                    :color="
-                      currentScheduleTags.find((tag) => tag.label === value)
-                        ?.automatic
-                        ? 'blue'
-                        : undefined
-                    "
                     :closable="closable"
                     @mousedown.prevent.stop
                     @close="onClose"

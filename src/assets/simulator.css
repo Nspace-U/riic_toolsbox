@@ -116,12 +116,6 @@
   border-color: #595959;
 }
 
-:deep(.simulator-tag-filters .ant-tag-blue.simulator-tag-filter--selected) {
-  color: #fff;
-  background: #1677ff;
-  border-color: #1677ff;
-}
-
 :deep(.simulator-document-list) {
   display: grid;
   flex: 1 1 auto;
