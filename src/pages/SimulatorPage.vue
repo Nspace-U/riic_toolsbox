@@ -1524,6 +1524,20 @@ function removeScheduleTag(label: string, automatic: boolean): void {
   });
 }
 
+function deselectScheduleTag(value: string) {
+  const tag = currentScheduleTags.value.find((entry) => entry.label === value);
+  if (tag) {
+    removeScheduleTag(tag.label, tag.automatic);
+  }
+}
+
+function handleScheduleTagKeydown(event: KeyboardEvent) {
+  if (event.key === "Enter" && !event.isComposing && event.keyCode !== 229) {
+    event.preventDefault();
+    addScheduleTag();
+  }
+}
+
 function beginDocumentDrag(event: PointerEvent, documentId: string): void {
   if (
     event.pointerType === "touch" ||
@@ -6367,29 +6381,34 @@ defineExpose({ prepareScheduleReferenceImage });
               <span id="simulator-meta-tags" class="simulator-meta-label"
                 >标签</span
               >
-              <div
+              <a-select
                 aria-labelledby="simulator-meta-tags"
-                class="simulator-tag-editor-content"
+                :open="false"
+                :search-value="scheduleTagInput"
+                :value="currentScheduleTags.map((tag) => tag.label)"
+                mode="tags"
+                placeholder="输入标签后按 Enter 添加"
+                show-search
+                @deselect="deselectScheduleTag"
+                @keydown="handleScheduleTagKeydown"
+                @search="(value: string) => (scheduleTagInput = value)"
               >
-                <div class="simulator-tag-list">
+                <template #tagRender="{ value, closable, onClose }">
                   <a-tag
-                    v-for="tag in currentScheduleTags"
-                    :key="tag.label"
-                    :color="tag.automatic ? 'blue' : undefined"
-                    closable
-                    @close="removeScheduleTag(tag.label, tag.automatic)"
+                    :color="
+                      currentScheduleTags.find((tag) => tag.label === value)
+                        ?.automatic
+                        ? 'blue'
+                        : undefined
+                    "
+                    :closable="closable"
+                    @mousedown.prevent.stop
+                    @close="onClose"
                   >
-                    {{ tag.label }}
+                    {{ value }}
                   </a-tag>
-                </div>
-                <a-input
-                  v-model:value="scheduleTagInput"
-                  aria-label="添加标签"
-                  class="simulator-meta-single-line-input simulator-tag-input"
-                  placeholder="输入标签后按 Enter 添加"
-                  @keydown.enter.prevent="addScheduleTag"
-                />
-              </div>
+                </template>
+              </a-select>
             </div>
           </div>
           <div aria-label="编辑选项" class="simulator-edit-settings">

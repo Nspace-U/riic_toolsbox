@@ -147,16 +147,6 @@
   white-space: nowrap;
 }
 
-:deep(.simulator-tag-list) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-:deep(.simulator-tag-list .ant-tag) {
-  margin-inline-end: 0;
-}
-
 :deep(.simulator-document-search) {
   min-width: 0;
 }
@@ -212,16 +202,6 @@
   color: #36484b;
   font-size: 14px;
   line-height: 1.5;
-}
-
-:deep(.simulator-tag-editor-content) {
-  display: grid;
-  min-width: 0;
-  gap: 8px;
-}
-
-:deep(.simulator-tag-input) {
-  width: 100%;
 }
 
 :deep(.simulator-meta-single-line-input) {
