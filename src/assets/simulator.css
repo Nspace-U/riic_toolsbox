@@ -42,7 +42,6 @@
   display: flex;
   flex-direction: column;
   width: max-content;
-  max-inline-size: min(320px, 100%);
   max-block-size: var(--simulator-document-sidebar-max-height);
   overflow: hidden;
   background: #ffffff;
@@ -88,10 +87,19 @@
 }
 
 :deep(.simulator-tag-filters) {
+  inline-size: 0;
+  min-inline-size: 100%;
+}
+
+:deep(.simulator-tag-filter-group) {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   min-width: 0;
+}
+
+:deep(.simulator-tag-filter-group + .simulator-tag-filter-group) {
+  margin-block-start: 4px;
 }
 
 :deep(.simulator-tag-filters .ant-tag) {
@@ -99,6 +107,19 @@
   margin-inline-end: 0;
   white-space: normal;
   overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+:deep(.simulator-tag-filters .simulator-tag-filter--selected) {
+  color: #fff;
+  background: #595959;
+  border-color: #595959;
+}
+
+:deep(.simulator-tag-filters .ant-tag-blue.simulator-tag-filter--selected) {
+  color: #fff;
+  background: #1677ff;
+  border-color: #1677ff;
 }
 
 :deep(.simulator-document-list) {
@@ -108,7 +129,6 @@
   max-block-size: none;
   width: max-content;
   min-width: 100%;
-  max-inline-size: 100%;
   overflow: auto;
   padding: 8px;
   gap: 4px;
@@ -1238,7 +1258,6 @@
   :deep(.simulator-document-sidebar) {
     position: static;
     width: 100%;
-    max-inline-size: 100%;
     --simulator-document-sidebar-max-height: calc(100vh - 140px);
   }
 

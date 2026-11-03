@@ -791,13 +791,40 @@ const currentScheduleTags = computed(() => {
 const documentTags = computed(() =>
   documents.value.map((stored) => ({
     stored,
-    tags: scheduleTags(stored.document, stored.tags, stored.hiddenAutoTags).map(
-      (tag) => tag.label,
-    ),
+    tags: scheduleTags(stored.document, stored.tags, stored.hiddenAutoTags),
   })),
 );
+const scheduleTagGroups = computed(() => {
+  const tags = new Map<string, "layout" | "right" | "queue" | "custom">();
+  for (const { stored, tags: documentTagList } of documentTags.value) {
+    for (const tag of documentTagList) {
+      const group = tag.automatic
+        ? tag.label === "右满" || tag.label === "右不满"
+          ? "right"
+          : tag.label === `${stored.document.plans.length}队列`
+            ? "queue"
+            : "layout"
+        : "custom";
+      if (
+        !tags.has(tag.label) ||
+        (tags.get(tag.label) === "custom" && tag.automatic)
+      ) {
+        tags.set(tag.label, group);
+      }
+    }
+  }
+  return (["layout", "right", "queue", "custom"] as const)
+    .map((group) => ({
+      group,
+      tags: Array.from(tags, ([label, category]) => ({
+        label,
+        category,
+      })).filter((tag) => tag.category === group),
+    }))
+    .filter(({ tags: groupTags }) => groupTags.length > 0);
+});
 const availableScheduleTags = computed(() =>
-  Array.from(new Set(documentTags.value.flatMap(({ tags }) => tags))),
+  scheduleTagGroups.value.flatMap(({ tags }) => tags.map((tag) => tag.label)),
 );
 const filteredDocuments = computed(() => {
   const query = scheduleSearchQuery.value.trim().toLowerCase();
@@ -806,8 +833,10 @@ const filteredDocuments = computed(() => {
       const title = stored.document.title?.trim().toLowerCase() ?? "";
       return (
         (title.includes(query) ||
-          tags.some((tag) => tag.toLowerCase().includes(query))) &&
-        selectedScheduleTags.value.every((tag) => tags.includes(tag))
+          tags.some((tag) => tag.label.toLowerCase().includes(query))) &&
+        selectedScheduleTags.value.every((selected) =>
+          tags.some((tag) => tag.label === selected),
+        )
       );
     })
     .map(({ stored }) => stored);
@@ -6316,23 +6345,44 @@ defineExpose({ prepareScheduleReferenceImage });
             v-if="availableScheduleTags.length"
             class="simulator-tag-filters"
           >
-            <a-checkable-tag
-              v-for="tag in availableScheduleTags"
-              :key="tag"
-              :aria-checked="selectedScheduleTags.includes(tag)"
-              :checked="selectedScheduleTags.includes(tag)"
-              role="checkbox"
-              tabindex="0"
-              @change="(checked: boolean) => setScheduleTagFilter(tag, checked)"
-              @keydown.enter.prevent="
-                setScheduleTagFilter(tag, !selectedScheduleTags.includes(tag))
-              "
-              @keydown.space.prevent="
-                setScheduleTagFilter(tag, !selectedScheduleTags.includes(tag))
-              "
+            <div
+              v-for="group in scheduleTagGroups"
+              :key="group.group"
+              class="simulator-tag-filter-group"
             >
-              {{ tag }}
-            </a-checkable-tag>
+              <a-tag
+                v-for="tag in group.tags"
+                :key="tag.label"
+                :aria-checked="selectedScheduleTags.includes(tag.label)"
+                :class="{
+                  'simulator-tag-filter--selected':
+                    selectedScheduleTags.includes(tag.label),
+                }"
+                :color="tag.category === 'custom' ? undefined : 'blue'"
+                role="checkbox"
+                tabindex="0"
+                @click="
+                  setScheduleTagFilter(
+                    tag.label,
+                    !selectedScheduleTags.includes(tag.label),
+                  )
+                "
+                @keydown.enter.prevent="
+                  setScheduleTagFilter(
+                    tag.label,
+                    !selectedScheduleTags.includes(tag.label),
+                  )
+                "
+                @keydown.space.prevent="
+                  setScheduleTagFilter(
+                    tag.label,
+                    !selectedScheduleTags.includes(tag.label),
+                  )
+                "
+              >
+                {{ tag.label }}
+              </a-tag>
+            </div>
           </div>
         </div>
         <div class="simulator-document-list">
