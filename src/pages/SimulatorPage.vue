@@ -541,6 +541,7 @@ const simulatorEditSettings = ref(readSimulatorEditSettings());
 const timedQueueDrafts = ref<Record<string, TimedQueueDraft>>({});
 const showScheduleSidebar = ref(true);
 const scheduleSearchQuery = ref("");
+const selectedScheduleTags = ref<string[]>([]);
 const scheduleTagInput = ref("");
 const draggedDocumentId = ref<string>();
 const pendingDocumentDrag = ref<{
@@ -787,23 +788,29 @@ const currentScheduleTags = computed(() => {
     ? scheduleTags(stored.document, stored.tags, stored.hiddenAutoTags)
     : [];
 });
+const documentTags = computed(() =>
+  documents.value.map((stored) => ({
+    stored,
+    tags: scheduleTags(stored.document, stored.tags, stored.hiddenAutoTags).map(
+      (tag) => tag.label,
+    ),
+  })),
+);
+const availableScheduleTags = computed(() =>
+  Array.from(new Set(documentTags.value.flatMap(({ tags }) => tags))),
+);
 const filteredDocuments = computed(() => {
   const query = scheduleSearchQuery.value.trim().toLowerCase();
-  if (!query) {
-    return documents.value;
-  }
-  return documents.value.filter((stored) => {
-    const title = stored.document.title?.trim().toLowerCase() ?? "";
-    const tags = scheduleTags(
-      stored.document,
-      stored.tags,
-      stored.hiddenAutoTags,
-    );
-    return (
-      title.includes(query) ||
-      tags.some((tag) => tag.label.toLowerCase().includes(query))
-    );
-  });
+  return documentTags.value
+    .filter(({ stored, tags }) => {
+      const title = stored.document.title?.trim().toLowerCase() ?? "";
+      return (
+        (title.includes(query) ||
+          tags.some((tag) => tag.toLowerCase().includes(query))) &&
+        selectedScheduleTags.value.every((tag) => tags.includes(tag))
+      );
+    })
+    .map(({ stored }) => stored);
 });
 const operatorAddressMap = computed(
   () =>
@@ -5142,12 +5149,15 @@ function updateDocumentSidebarHeight(): void {
   }
 
   const sidebarTop = Math.max(sidebar.getBoundingClientRect().top, 0);
-  const minimumHeight = Array.from(sidebar.children)
-    .slice(0, 2)
-    .reduce(
-      (height, child) => height + child.getBoundingClientRect().height,
-      0,
-    );
+  const minimumHeight =
+    Array.from(sidebar.children)
+      .slice(0, 2)
+      .reduce(
+        (height, child) => height + child.getBoundingClientRect().height,
+        0,
+      ) + 120;
+  sidebar.style.position =
+    minimumHeight > window.innerHeight - 108 ? "static" : "";
   const availableHeight = Math.max(
     minimumHeight,
     window.innerHeight - sidebarTop - 16,
@@ -5198,6 +5208,10 @@ function observeDocumentSidebar(): void {
     scheduleDocumentSidebarHeightUpdate();
   });
   documentSidebarResizeObserver.observe(sidebar);
+  const actions = sidebar.querySelector(".simulator-sidebar-actions");
+  if (actions) {
+    documentSidebarResizeObserver.observe(actions);
+  }
 }
 
 function handleWindowScroll() {
@@ -5872,6 +5886,18 @@ function isStoredDocument(document: StoredDocument): boolean {
   return document.id === activeDocumentId.value;
 }
 
+function setScheduleTagFilter(tag: string, checked: boolean): void {
+  selectedScheduleTags.value = checked
+    ? [...selectedScheduleTags.value, tag]
+    : selectedScheduleTags.value.filter((selected) => selected !== tag);
+}
+
+watch(availableScheduleTags, (tags) => {
+  selectedScheduleTags.value = selectedScheduleTags.value.filter((tag) =>
+    tags.includes(tag),
+  );
+});
+
 watch(activeDocumentId, () => {
   if (
     imageExportModalOpen.value &&
@@ -6286,6 +6312,28 @@ defineExpose({ prepareScheduleReferenceImage });
           >
             <template #prefix><SearchOutlined /></template>
           </a-input>
+          <div
+            v-if="availableScheduleTags.length"
+            class="simulator-tag-filters"
+          >
+            <a-checkable-tag
+              v-for="tag in availableScheduleTags"
+              :key="tag"
+              :aria-checked="selectedScheduleTags.includes(tag)"
+              :checked="selectedScheduleTags.includes(tag)"
+              role="checkbox"
+              tabindex="0"
+              @change="(checked: boolean) => setScheduleTagFilter(tag, checked)"
+              @keydown.enter.prevent="
+                setScheduleTagFilter(tag, !selectedScheduleTags.includes(tag))
+              "
+              @keydown.space.prevent="
+                setScheduleTagFilter(tag, !selectedScheduleTags.includes(tag))
+              "
+            >
+              {{ tag }}
+            </a-checkable-tag>
+          </div>
         </div>
         <div class="simulator-document-list">
           <div
@@ -6333,7 +6381,14 @@ defineExpose({ prepareScheduleReferenceImage });
           >
             <a-empty :image="undefined" description="没有匹配的排班表" />
             <a-space>
-              <a-button @click="scheduleSearchQuery = ''">清空搜索</a-button>
+              <a-button
+                @click="
+                  scheduleSearchQuery = '';
+                  selectedScheduleTags = [];
+                "
+              >
+                清空筛选
+              </a-button>
               <a-button type="primary" @click="openFilePicker">
                 导入排班表
               </a-button>

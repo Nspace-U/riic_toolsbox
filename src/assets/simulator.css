@@ -42,6 +42,7 @@
   display: flex;
   flex-direction: column;
   width: max-content;
+  max-inline-size: min(320px, 100%);
   max-block-size: var(--simulator-document-sidebar-max-height);
   overflow: hidden;
   background: #ffffff;
@@ -81,17 +82,33 @@
 :deep(.simulator-sidebar-actions) {
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 14px 16px;
   border-block-end: 1px solid #edf1f0;
+}
+
+:deep(.simulator-tag-filters) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+:deep(.simulator-tag-filters .ant-tag) {
+  max-inline-size: 100%;
+  margin-inline-end: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 :deep(.simulator-document-list) {
   display: grid;
   flex: 1 1 auto;
-  min-block-size: 0;
+  min-block-size: 120px;
   max-block-size: none;
   width: max-content;
   min-width: 100%;
+  max-inline-size: 100%;
   overflow: auto;
   padding: 8px;
   gap: 4px;
@@ -1221,6 +1238,7 @@
   :deep(.simulator-document-sidebar) {
     position: static;
     width: 100%;
+    max-inline-size: 100%;
     --simulator-document-sidebar-max-height: calc(100vh - 140px);
   }
 
