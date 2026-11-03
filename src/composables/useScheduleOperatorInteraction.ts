@@ -125,6 +125,15 @@ export function useScheduleOperatorInteraction<
   let pendingPointerMove:
     { pointerId: number; clientX: number; clientY: number } | undefined;
   let pointerMoveFrame: number | undefined;
+  let boxAnchor:
+    | {
+        x: number;
+        y: number;
+        scrollX: number;
+        scrollY: number;
+        elements: { element: Element; left: number; top: number }[];
+      }
+    | undefined;
 
   function selectedAddresses(): Address[] {
     return options
@@ -210,6 +219,7 @@ export function useScheduleOperatorInteraction<
 
   function reset(): void {
     cancelPointerMoveFrame();
+    clearBoxAnchor();
     clearSelection();
     hoveredAddress.value = undefined;
     pointerInteraction.value = undefined;
@@ -219,6 +229,40 @@ export function useScheduleOperatorInteraction<
     clearPasteHighlight();
     options.onDragTarget?.(undefined);
     options.onDragEnd?.(true, undefined);
+  }
+
+  function clearBoxAnchor(): void {
+    boxAnchor = undefined;
+    window.removeEventListener("scroll", handleBoxScroll, true);
+  }
+
+  function updateBoxAnchor(): void {
+    const interaction = pointerInteraction.value;
+    if (!boxAnchor || !interaction || interaction.mode === "move") return;
+    interaction.startX = boxAnchor.x - (window.scrollX - boxAnchor.scrollX);
+    interaction.startY = boxAnchor.y - (window.scrollY - boxAnchor.scrollY);
+    for (const { element, left, top } of boxAnchor.elements) {
+      interaction.startX -= element.scrollLeft - left;
+      interaction.startY -= element.scrollTop - top;
+    }
+  }
+
+  function updateSelectionMarquee(
+    interaction: ScheduleOperatorPointerInteraction<Address>,
+  ): void {
+    selectionMarquee.value = {
+      left: Math.min(interaction.startX, interaction.currentX),
+      top: Math.min(interaction.startY, interaction.currentY),
+      width: Math.abs(interaction.currentX - interaction.startX),
+      height: Math.abs(interaction.currentY - interaction.startY),
+    };
+  }
+
+  function handleBoxScroll(): void {
+    const interaction = pointerInteraction.value;
+    if (!interaction || interaction.mode === "move") return;
+    updateBoxAnchor();
+    if (interaction.mode === "box") updateSelectionMarquee(interaction);
   }
 
   function selectBox(
@@ -276,12 +320,7 @@ export function useScheduleOperatorInteraction<
     interaction.currentX = clientX;
     interaction.currentY = clientY;
     if (interaction.mode === "box") {
-      selectionMarquee.value = {
-        left: Math.min(interaction.startX, clientX),
-        top: Math.min(interaction.startY, clientY),
-        width: Math.abs(clientX - interaction.startX),
-        height: Math.abs(clientY - interaction.startY),
-      };
+      updateSelectionMarquee(interaction);
       return;
     }
     if (interaction.mode === "move") {
@@ -319,6 +358,7 @@ export function useScheduleOperatorInteraction<
     const target = event.target instanceof Element ? event.target : undefined;
     if (target?.closest("input, textarea, select, button")) return;
     if (options.beforePointerDown?.(event) === false) return;
+    clearBoxAnchor();
     const address = options.getAddressFromTarget(event.target);
     const hasName = address ? Boolean(options.getName(address)) : false;
     const sources =
@@ -338,6 +378,30 @@ export function useScheduleOperatorInteraction<
       sourceAddresses: sources,
       additive: event.ctrlKey || event.metaKey,
     };
+    if (!sources.length) {
+      const elements: { element: Element; left: number; top: number }[] = [];
+      for (
+        let element = target;
+        element;
+        element = element.parentElement ?? undefined
+      ) {
+        if (element !== document.scrollingElement) {
+          elements.push({
+            element,
+            left: element.scrollLeft,
+            top: element.scrollTop,
+          });
+        }
+      }
+      boxAnchor = {
+        x: event.clientX,
+        y: event.clientY,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        elements,
+      };
+      window.addEventListener("scroll", handleBoxScroll, true);
+    }
     suppressNextClick.value = false;
     if (!address) event.preventDefault();
   }
@@ -369,6 +433,7 @@ export function useScheduleOperatorInteraction<
     const interaction = pointerInteraction.value;
     if (!interaction || interaction.pointerId !== event.pointerId) return;
     flushPointerMove();
+    updateBoxAnchor();
     interaction.currentX = event.clientX;
     interaction.currentY = event.clientY;
     let finalDragTarget: Address | undefined;
@@ -384,6 +449,7 @@ export function useScheduleOperatorInteraction<
       suppressNextClick.value = true;
     }
     pointerInteraction.value = undefined;
+    clearBoxAnchor();
     dragTargetKey.value = "";
     options.onDragTarget?.(undefined);
     if (interaction.mode === "move")
@@ -396,6 +462,7 @@ export function useScheduleOperatorInteraction<
     const finalDragTarget = options.getAddressByKey(dragTargetKey.value);
     cancelPointerMoveFrame();
     pointerInteraction.value = undefined;
+    clearBoxAnchor();
     dragTargetKey.value = "";
     selectionMarquee.value = { left: 0, top: 0, width: 0, height: 0 };
     options.onDragTarget?.(undefined);
@@ -580,6 +647,7 @@ export function useScheduleOperatorInteraction<
   onBeforeUnmount(() => {
     clearPasteHighlight();
     cancelPointerMoveFrame();
+    clearBoxAnchor();
   });
 
   return {
