@@ -61,12 +61,10 @@ export function buildRecycleRules(
   const recycleData = buildingData?.recycleData;
   const constants = buildingData?.recycleRoomConsts;
   const phaseData = recycleData?.phases;
-  const roomPhases = buildingData?.recycleRoom?.phases;
   if (
     recycleData?.basicSpeedBuff === undefined ||
     !constants ||
     !phaseData?.length ||
-    !roomPhases?.length ||
     constants.recycleTimeRequirement === undefined ||
     constants.recycleBaseCapacity === undefined ||
     constants.recycleBoostSpeed === undefined ||
@@ -78,6 +76,7 @@ export function buildRecycleRules(
     return undefined;
   }
 
+  const twoPersonUnlockLevel = constants.recycleTwoPersonUnlockLevel;
   const now = Date.now() / 1000;
   const poolDefinition = Object.values(
     buildingData?.recycleRoomOutputPoolDatas ?? {},
@@ -142,18 +141,16 @@ export function buildRecycleRules(
   return {
     basicSpeedBuff: recycleData.basicSpeedBuff,
     phases: phaseData.map((phase, index) => {
-      const maxStationedNum = roomPhases[index]?.maxStationedNum;
       if (
         phase.recycleCapacity === undefined ||
-        phase.recycleSpeed === undefined ||
-        maxStationedNum === undefined
+        phase.recycleSpeed === undefined
       ) {
         throw new Error(`Torappu 回收站第 ${index + 1} 级数据不完整`);
       }
       return {
         recycleCapacity: phase.recycleCapacity,
         recycleSpeed: phase.recycleSpeed,
-        maxStationedNum,
+        maxStationedNum: index + 1 >= twoPersonUnlockLevel ? 2 : 1,
       };
     }),
     timeRequirement: constants.recycleTimeRequirement,
@@ -162,7 +159,7 @@ export function buildRecycleRules(
     boostLimit: constants.recycleBoostLimit,
     boostLimitProtect: constants.recycleBoostLimitProtect,
     speedUpUnlockLevel: constants.recycleSpeedUpUnlockLevel,
-    twoPersonUnlockLevel: constants.recycleTwoPersonUnlockLevel,
+    twoPersonUnlockLevel,
     inputItems,
     ...(outputPool ? { outputPool } : {}),
   };

@@ -19,6 +19,7 @@
     "test:simulator-layout": "node scripts/simulator-layout-regression.mjs",
     "test:simulator-result": "node scripts/simulator-result-regression.mjs",
     "test:result-display": "npm run build:riic-efficiency && node scripts/result-display-regression.mjs",
+    "test:recycle": "node scripts/recycle-regression.mjs",
     "test:simulator-clipboard": "node scripts/simulator-clipboard-regression.mjs",
     "test:operator-avatar": "node scripts/operator-avatar-regression.mjs",
     "test:operator-progression": "npm run build:riic-efficiency && node scripts/operator-progression-regression.mjs",

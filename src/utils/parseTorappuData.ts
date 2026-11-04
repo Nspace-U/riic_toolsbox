@@ -76,11 +76,6 @@ export interface TorappuRecycleData {
     string,
     { itemId: string; addedTime: number }
   >;
-  recycleRoom?: {
-    id: string;
-    maxCount: number;
-    phases: Array<{ electricity: number; maxStationedNum: number }>;
-  };
   recycleRoomUnlockConds?: Record<string, unknown>;
   recycleRoomPrefab?: Record<string, unknown>;
   recycleBuffs?: Record<string, TorappuBuff & { efficiency?: number }>;
