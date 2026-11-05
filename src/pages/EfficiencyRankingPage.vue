@@ -49,6 +49,11 @@ import {
   type EfficiencyRankingSettings,
   type DormitoryCategory,
 } from "@/utils/efficiencyRanking";
+import {
+  applyPresetProducts,
+  LAYOUT_PRESETS,
+  roomsForLayout,
+} from "@/utils/simulator/layout";
 
 const STORAGE_KEY = "riic-tools:efficiency-ranking:v2";
 
@@ -56,6 +61,7 @@ interface StoredEfficiencyRankingState {
   version: 2;
   settings: EfficiencyRankingSettings;
   layout: LayoutEntry[];
+  sharedProductRooms: Record<string, RoomAssignment[]>;
   rowRooms: Record<string, Record<string, RoomAssignment[]>>;
   rowNotes: Record<string, string>;
 }
@@ -75,10 +81,15 @@ function clone<T>(value: T): T {
 }
 
 function readStoredState(): StoredEfficiencyRankingState {
+  const layout = createDefaultEfficiencyRankingLayout();
+  const rooms = roomsForLayout(layout);
+  const preset = LAYOUT_PRESETS.find((item) => item.id === "243");
+  if (preset) applyPresetProducts([{ rooms }], preset);
   const defaults: StoredEfficiencyRankingState = {
     version: 2,
     settings: clone(DEFAULT_EFFICIENCY_RANKING_SETTINGS),
-    layout: createDefaultEfficiencyRankingLayout(),
+    layout,
+    sharedProductRooms: rooms,
     rowRooms: {},
     rowNotes: {},
   };
@@ -107,6 +118,9 @@ function readStoredState(): StoredEfficiencyRankingState {
       layout: Array.isArray(value.layout)
         ? (value.layout as LayoutEntry[])
         : defaults.layout,
+      sharedProductRooms: isRecord(value.sharedProductRooms)
+        ? (value.sharedProductRooms as Record<string, RoomAssignment[]>)
+        : defaults.sharedProductRooms,
       rowRooms: isRecord(value.rowRooms)
         ? (value.rowRooms as Record<string, Record<string, RoomAssignment[]>>)
         : {},
@@ -122,6 +136,7 @@ function readStoredState(): StoredEfficiencyRankingState {
 const storedState = readStoredState();
 const pageSettings = ref<EfficiencyRankingSettings>(storedState.settings);
 const sharedLayout = ref<LayoutEntry[]>(storedState.layout);
+const sharedProductRooms = ref(storedState.sharedProductRooms);
 const rowRooms = ref(storedState.rowRooms);
 const rowNotes = ref(storedState.rowNotes);
 const activeFacility = ref<RoomKey>("power");
@@ -159,9 +174,8 @@ const rankingEntries = computed<EfficiencyRankingEntry[]>(() => {
     operators.value,
     currentCatalog,
   );
-  return definitions.map((entry) => ({
-    ...entry,
-    schedule: createEfficiencyRankingSchedule(entry, {
+  return definitions.map((entry) => {
+    const schedule = createEfficiencyRankingSchedule(entry, {
       layout: sharedLayout.value,
       savedRooms: rowRooms.value[entry.id],
       workHours: pageSettings.value.workHours,
@@ -171,8 +185,16 @@ const rankingEntries = computed<EfficiencyRankingEntry[]>(() => {
       dormitoryDefaultIncludesMoodRecovery:
         dormitoryDefaultIncludesMoodRecovery.value,
       catalog: currentCatalog,
-    }),
-  }));
+    });
+    if (!rowRooms.value[entry.id]) {
+      (["trading", "manufacture"] as const).forEach((type) => {
+        const rooms = schedule.plans[0]?.rooms[type];
+        if (Array.isArray(rooms))
+          (rooms as RoomAssignment[]).forEach((room) => delete room.product);
+      });
+    }
+    return { ...entry, schedule };
+  });
 });
 
 const rowViews = computed<EfficiencyRankingRowView[]>(() =>
@@ -456,6 +478,7 @@ function persistState(): void {
     version: 2,
     settings: clone(pageSettings.value),
     layout: clone(sharedLayout.value),
+    sharedProductRooms: clone(sharedProductRooms.value),
     rowRooms: clone(rowRooms.value),
     rowNotes: clone(rowNotes.value),
   };
@@ -464,10 +487,15 @@ function persistState(): void {
 
 function normalizeSavedRooms(layout: LayoutEntry[]): void {
   rowRooms.value = Object.fromEntries(
-    Object.entries(rowRooms.value).map(([id, rooms]) => [
-      id,
-      cloneRoomsForLayout(rooms, layout),
-    ]),
+    Object.entries(rowRooms.value).map(([id, rooms]) => {
+      const resized = cloneRoomsForLayout(rooms, layout);
+      (["trading", "manufacture"] as const).forEach((type) => {
+        resized[type]
+          ?.slice(rooms[type]?.length ?? 0)
+          .forEach((room) => delete room.product);
+      });
+      return [id, resized];
+    }),
   );
 }
 
@@ -478,6 +506,13 @@ function openLayoutEditor(): void {
     pageSettings.value.clueExchanging,
     pageSettings.value.treatSkillsAsUnlocked,
   );
+  const rooms = layoutDraftSchedule.value.plans[0]?.rooms;
+  if (rooms) {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const defaults = sharedProductRooms.value[type];
+      if (defaults) rooms[type] = clone(defaults);
+    });
+  }
   layoutModalOpen.value = true;
 }
 
@@ -490,7 +525,7 @@ function saveLayoutEditor(): void {
   if (!schedule) return;
   const losses = layoutLosses(schedule.layout);
   if (!losses.length) {
-    applySharedLayout(schedule.layout);
+    applySharedLayout(schedule);
     return;
   }
   Modal.confirm({
@@ -506,7 +541,7 @@ function saveLayoutEditor(): void {
     ]),
     okText: "继续应用",
     cancelText: "保留当前布局",
-    onOk: () => applySharedLayout(schedule.layout),
+    onOk: () => applySharedLayout(schedule),
     onCancel: () => {
       layoutModalOpen.value = false;
     },
@@ -538,8 +573,16 @@ function layoutLosses(
   });
 }
 
-function applySharedLayout(layout: LayoutEntry[]): void {
+function applySharedLayout(schedule: ScheduleDocument): void {
+  const layout = schedule.layout;
   sharedLayout.value = clone(layout);
+  const rooms = schedule.plans[0]?.rooms;
+  sharedProductRooms.value = Object.fromEntries(
+    (["trading", "manufacture"] as const).map((type) => [
+      type,
+      clone(Array.isArray(rooms?.[type]) ? rooms[type] : []),
+    ]),
+  );
   normalizeSavedRooms(sharedLayout.value);
   layoutModalOpen.value = false;
 }
@@ -547,6 +590,10 @@ function applySharedLayout(layout: LayoutEntry[]): void {
 function restorePageDefaults(): void {
   pageSettings.value = clone(DEFAULT_EFFICIENCY_RANKING_SETTINGS);
   sharedLayout.value = createDefaultEfficiencyRankingLayout();
+  const rooms = roomsForLayout(sharedLayout.value);
+  const preset = LAYOUT_PRESETS.find((item) => item.id === "243");
+  if (preset) applyPresetProducts([{ rooms }], preset);
+  sharedProductRooms.value = rooms;
   rowRooms.value = {};
   rowNotes.value = {};
 }
@@ -584,6 +631,11 @@ function restoreRowDefault(): void {
     dormitoryDefaultIncludesMoodRecovery:
       dormitoryDefaultIncludesMoodRecovery.value,
     catalog: currentCatalog,
+  });
+  (["trading", "manufacture"] as const).forEach((type) => {
+    const rooms = rowDraftSchedule.value?.plans[0]?.rooms[type];
+    if (Array.isArray(rooms))
+      (rooms as RoomAssignment[]).forEach((room) => delete room.product);
   });
   rowDraftNote.value = defaultEfficiencyRankingNote(entry, currentCatalog);
 }
@@ -812,14 +864,34 @@ function requestCalculations(): void {
     type: "calculate",
     requestId,
     catalog: clone(currentCatalog),
-    entries: clone(rankingEntries.value),
+    entries: calculationEntries(),
   });
+}
+
+function calculationEntries(): EfficiencyRankingEntry[] {
+  const entries = clone(rankingEntries.value);
+  entries.forEach((entry) => {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const rooms = entry.schedule.plans[0]?.rooms[type];
+      if (!Array.isArray(rooms)) return;
+      (rooms as RoomAssignment[]).forEach((room, index) => {
+        if (!room.product && !room.productOverride) {
+          const fallback = sharedProductRooms.value[type]?.[index];
+          if (fallback?.product) room.product = fallback.product;
+          if (!room.sourceMaterial && fallback?.sourceMaterial)
+            room.sourceMaterial = fallback.sourceMaterial;
+        }
+      });
+    });
+  });
+  return entries;
 }
 
 const calculationFingerprint = computed(() =>
   JSON.stringify({
     ready: ready.value,
     catalog: Boolean(catalog.value),
+    sharedProductRooms: sharedProductRooms.value,
     entries: rankingEntries.value.map((entry) => ({
       id: entry.id,
       schedule: entry.schedule,
@@ -828,9 +900,13 @@ const calculationFingerprint = computed(() =>
 );
 
 watch(calculationFingerprint, () => requestCalculations(), { immediate: true });
-watch([pageSettings, sharedLayout, rowRooms, rowNotes], persistState, {
-  deep: true,
-});
+watch(
+  [pageSettings, sharedLayout, sharedProductRooms, rowRooms, rowNotes],
+  persistState,
+  {
+    deep: true,
+  },
+);
 
 onMounted(() => {
   worker = new Worker(
@@ -1170,6 +1246,7 @@ onBeforeUnmount(() => {
         v-model:model-value="layoutDraftSchedule"
         :layout-preset-will-remove-operators="layoutPresetNeedsConfirmation"
         :show-layout-presets="true"
+        :inherit-products="false"
         session-key="efficiency-ranking:shared-layout"
         :operator-candidates="operatorCandidates"
         :operator-elite-level="operatorEliteLevel"
@@ -1190,7 +1267,8 @@ onBeforeUnmount(() => {
       <BasicCalculatorScheduleEditor
         v-if="rowDraftSchedule && rowDraftEntry"
         v-model:model-value="rowDraftSchedule"
-        :hide-layout-editor="true"
+        :read-only-layout="true"
+        :shared-product-rooms="sharedProductRooms"
         :session-key="`efficiency-ranking:${rowDraftEntry.id}`"
         :fixed-operator="rowDraftFixedOperator"
         :operator-candidates="operatorCandidates"

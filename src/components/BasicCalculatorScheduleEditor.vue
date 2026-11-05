@@ -53,6 +53,9 @@ import {
   layoutTextFor,
   layoutWithBuildChain,
   resizeRoomsForLayout,
+  applyPresetProducts,
+  roomsAt,
+  setRoomProduct,
   type LayoutPreset,
   validateAddedLayout,
 } from "@/utils/simulator/layout";
@@ -130,6 +133,9 @@ const props = withDefaults(
     fixedRoomTypes?: RoomKey[];
     fixedRoomLevels?: Partial<Record<RoomKey, number>>;
     hideLayoutEditor?: boolean;
+    readOnlyLayout?: boolean;
+    inheritProducts?: boolean;
+    sharedProductRooms?: Partial<Record<RoomKey, RoomAssignment[]>>;
     showLayoutPresets?: boolean;
     layoutPresetWillRemoveOperators?: (preset: LayoutPreset) => boolean;
     facilityColors?: Partial<Record<RoomKey, string>>;
@@ -150,6 +156,9 @@ const props = withDefaults(
     fixedRoomTypes: () => [],
     fixedRoomLevels: () => ({}),
     hideLayoutEditor: false,
+    readOnlyLayout: false,
+    inheritProducts: true,
+    sharedProductRooms: undefined,
     showLayoutPresets: false,
     layoutPresetWillRemoveOperators: undefined,
     facilityColors: () => ({}),
@@ -565,10 +574,11 @@ function canDeleteOperators(): boolean {
   return operatorDeletionTargets().length > 0;
 }
 function facilityStyle(row: FacilityRow): Record<string, string> {
-  const product = basicCalculatorProductForRoom(
-    props.defaultProducts,
+  const position = row.entries[0]?.position ?? 0;
+  const product = resolvedProduct(
     row.type,
-    roomAt(props.modelValue, row.type, row.entries[0]?.position ?? 0, false),
+    position,
+    roomAt(props.modelValue, row.type, position, false),
   );
   return {
     "--simulator-facility-accent":
@@ -630,6 +640,67 @@ function applyLayoutText(text: string = layoutText.value): void {
   } catch (error: unknown) {
     layoutError.value = error instanceof Error ? error.message : "布局输入无效";
   }
+}
+
+function applyLayoutPreset(preset: LayoutPreset): void {
+  try {
+    const layout = ensureFixedLayout(
+      validateAddedLayout(
+        layoutWithBuildChain(parseLayoutText(preset.layoutText)),
+      ),
+    );
+    updateDocument((document) => {
+      document.layout = layout;
+      document.plans.forEach((plan) => resizeRoomsForLayout(plan, layout));
+      applyPresetProducts(document.plans, preset);
+    });
+    layoutError.value = "";
+  } catch (error: unknown) {
+    layoutError.value = error instanceof Error ? error.message : "布局输入无效";
+  }
+}
+
+function layoutProductRooms(type: RoomKey, position: number): RoomAssignment[] {
+  return roomsAt(props.modelValue.plans, type, position);
+}
+
+function defaultProductRoom(
+  type: RoomKey,
+  position: number,
+): RoomAssignment | undefined {
+  if (props.sharedProductRooms)
+    return props.sharedProductRooms[type]?.[position];
+  if (type !== "trading" && type !== "manufacture") return undefined;
+  return { product: props.defaultProducts[type] };
+}
+
+function updateLayoutProduct(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  updateDocument((document) => {
+    roomsAt(document.plans, type, position).forEach((room) =>
+      setRoomProduct(room, value, props.inheritProducts),
+    );
+  });
+}
+
+function updateLayoutSource(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  updateDocument((document) => {
+    roomsAt(document.plans, type, position).forEach((room) => {
+      const product =
+        room.product ??
+        (!room.productOverride && props.inheritProducts
+          ? defaultProductRoom(type, position)?.product
+          : undefined);
+      if (product === "源石碎片") room.sourceMaterial = value;
+    });
+  });
 }
 function scheduleLayoutTextApply(text: string): void {
   if (layoutApplyTimer !== undefined) clearTimeout(layoutApplyTimer);
@@ -1462,11 +1533,26 @@ function openRoomContextMenu(event: MouseEvent, row: FacilityRow): void {
   };
   void clampContextMenuPosition();
 }
-function sourceValue(room: RoomAssignment | undefined, type: RoomKey): string {
+function resolvedProduct(
+  type: RoomKey,
+  position: number,
+  room: RoomAssignment | undefined,
+): string | undefined {
+  if (props.sharedProductRooms && !room?.product && !room?.productOverride)
+    return defaultProductRoom(type, position)?.product;
+  return basicCalculatorProductForRoom(props.defaultProducts, type, room);
+}
+function sourceValue(
+  room: RoomAssignment | undefined,
+  type: RoomKey,
+  position: number,
+): string {
   return (
     room?.sourceMaterial ??
-    (basicCalculatorProductForRoom(props.defaultProducts, type, room) ===
-    "源石碎片"
+    (!room?.product && !room?.productOverride
+      ? defaultProductRoom(type, position)?.sourceMaterial
+      : undefined) ??
+    (resolvedProduct(type, position, room) === "源石碎片"
       ? DEFAULT_SOURCE_MATERIAL
       : "")
   );
@@ -1522,8 +1608,8 @@ function roomContextMenuItems(
   const rooms = positions.map((position) =>
     roomAt(props.modelValue, type, position, false),
   );
-  const currentProducts = rooms.map((room) =>
-    basicCalculatorProductForRoom(props.defaultProducts, type, room),
+  const currentProducts = rooms.map((room, index) =>
+    resolvedProduct(type, positions[index] ?? 0, room),
   );
   const currentProduct = currentProducts.every(
     (product) => product === currentProducts[0],
@@ -1533,7 +1619,7 @@ function roomContextMenuItems(
   const items: ContextMenuItem[] = [];
   items.push({
     key: "product-default-" + type,
-    label: "使用组默认产物",
+    label: props.sharedProductRooms ? "使用共享默认产物" : "使用组默认产物",
     check: rooms.every((room) => !room?.product && !room?.productOverride),
     action: () => {
       updateRooms(type, positions, (room) => {
@@ -1560,7 +1646,7 @@ function roomContextMenuItems(
             room.productOverride = true;
           } else {
             room.product = option.value;
-            room.productOverride = true;
+            delete room.productOverride;
             if (option.value === "源石碎片")
               room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
             else delete room.sourceMaterial;
@@ -1573,9 +1659,8 @@ function roomContextMenuItems(
   if (
     rooms.length &&
     rooms.every(
-      (room) =>
-        basicCalculatorProductForRoom(props.defaultProducts, type, room) ===
-        "源石碎片",
+      (room, index) =>
+        resolvedProduct(type, positions[index] ?? 0, room) === "源石碎片",
     )
   ) {
     items.push({ key: "source-divider-" + type, label: "", divider: true });
@@ -1583,7 +1668,10 @@ function roomContextMenuItems(
       items.push({
         key: "source-" + type + "-" + option.value,
         label: option.label,
-        check: rooms.every((room) => sourceValue(room, type) === option.value),
+        check: rooms.every(
+          (room, index) =>
+            sourceValue(room, type, positions[index] ?? 0) === option.value,
+        ),
         action: () => {
           updateRooms(type, positions, (room) => {
             room.sourceMaterial = option.value;
@@ -1712,11 +1800,21 @@ defineExpose({ clearInteractionState });
       :fixed-room-levels="fixedRoomLevels"
       :fixed-room-types="fixedRoomTypes"
       :layout="modelValue.layout"
+      :read-only-layout="readOnlyLayout"
+      :inherit-products="inheritProducts"
+      :inherit-label="
+        sharedProductRooms ? '使用共享默认产物' : '使用组默认产物'
+      "
+      :product-rooms="layoutProductRooms"
+      :default-room="defaultProductRoom"
       :layout-preset-will-remove-operators="layoutPresetWillRemoveOperators"
       :show-layout-presets="showLayoutPresets"
       :layout-text-help="layoutTextHint()"
       @add-layout="addLayoutEntry"
       @apply-layout-text="applyLayoutText"
+      @apply-preset="applyLayoutPreset"
+      @update-product="updateLayoutProduct"
+      @update-source="updateLayoutSource"
       @remove-layout="removeLayoutEntry"
       @update-layout-level="updateLayoutLevel"
     />

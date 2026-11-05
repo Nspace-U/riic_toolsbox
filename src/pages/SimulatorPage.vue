@@ -159,6 +159,9 @@ import {
   layoutWouldRemoveOperators,
   layoutWithBuildChain,
   resizeRoomsForLayout,
+  applyPresetProducts,
+  roomsAt,
+  setRoomProduct,
   roomsForLayout,
   validateAddedLayout,
   type LayoutPreset,
@@ -2038,6 +2041,83 @@ function applyLayoutText(text: string = layoutText.value): void {
   } catch (error: unknown) {
     setError(error);
   }
+}
+
+function applyLayoutPreset(preset: LayoutPreset): void {
+  try {
+    const layout = layoutFromText(preset.layoutText);
+    updateCurrent(
+      (document) => {
+        document.layout = layout;
+        document.plans.forEach((plan) => resizeRoomsForLayout(plan, layout));
+        applyPresetProducts(document.plans, preset);
+      },
+      { markLayoutExplicit: true },
+    );
+  } catch (error: unknown) {
+    setError(error);
+  }
+}
+
+function layoutProductRooms(type: RoomKey, position: number): RoomAssignment[] {
+  return roomsAt(currentDocument.value?.plans ?? [], type, position);
+}
+
+function importProductRooms(type: RoomKey, position: number): RoomAssignment[] {
+  return (importDraft.value?.parsed.document.plans ?? []).map((plan) => {
+    const rooms = plan.rooms[type];
+    return Array.isArray(rooms) && rooms[position]
+      ? (rooms[position] as RoomAssignment)
+      : createDefaultRoomAssignment(type);
+  });
+}
+
+function updateLayoutProduct(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  updateAllPlanRooms(type, position, (room) =>
+    setRoomProduct(room, value, false),
+  );
+}
+
+function updateLayoutSource(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  updateAllPlanRooms(type, position, (room) => {
+    if (room.product === "源石碎片") room.sourceMaterial = value;
+  });
+}
+
+function updateImportProduct(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  const draft = importDraft.value;
+  if (!draft) return;
+  draft.parsed.document.plans.forEach((plan) => {
+    const rooms = Array.isArray(plan.rooms[type])
+      ? (plan.rooms[type] as RoomAssignment[])
+      : [];
+    while (rooms.length <= position)
+      rooms.push(createDefaultRoomAssignment(type));
+    setRoomProduct(rooms[position]!, value, false);
+    plan.rooms[type] = rooms;
+  });
+}
+
+function updateImportSource(
+  type: RoomKey,
+  position: number,
+  value: string,
+): void {
+  importProductRooms(type, position).forEach((room) => {
+    if (room.product === "源石碎片") room.sourceMaterial = value;
+  });
 }
 
 function scheduleLayoutTextApply(text: string): void {
@@ -6175,9 +6255,12 @@ defineExpose({ prepareScheduleReferenceImage });
             :delete-disabled-room-types="['control']"
             :facility-colors="facilityColors"
             :layout="importDraft.layout"
+            :product-rooms="importProductRooms"
             :layout-text-help="layoutTextHint"
             @add-layout="addImportLayoutEntry"
             @apply-layout-text="applyImportLayoutText"
+            @update-product="updateImportProduct"
+            @update-source="updateImportSource"
             @remove-layout="removeImportLayoutEntry"
             @update-layout-level="updateImportFacilityLevel"
           />
@@ -6584,6 +6667,7 @@ defineExpose({ prepareScheduleReferenceImage });
             :facility-colors="facilityColors"
             :delete-disabled-room-types="['control']"
             :layout="currentDocument.layout"
+            :product-rooms="layoutProductRooms"
             :layout-preset-will-remove-operators="
               layoutPresetWillRemoveOperators
             "
@@ -6591,6 +6675,9 @@ defineExpose({ prepareScheduleReferenceImage });
             :show-layout-presets="true"
             @add-layout="addLayoutEntry"
             @apply-layout-text="applyLayoutText"
+            @apply-preset="applyLayoutPreset"
+            @update-product="updateLayoutProduct"
+            @update-source="updateLayoutSource"
             @remove-layout="removeLayoutEntry"
             @update-layout-level="updateLayoutLevel"
           />

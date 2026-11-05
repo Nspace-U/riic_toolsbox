@@ -7,6 +7,7 @@ import {
 } from "@/types/schedule";
 import {
   BUILD_CHAIN_REQUIRED,
+  DEFAULT_SOURCE_MATERIAL,
   LAYOUT_INPUT_ROWS,
   ROOM_ORDER,
   canAddLayoutEntry,
@@ -24,37 +25,97 @@ export interface LayoutPreset {
   id: string;
   name: string;
   layoutText: string;
+  goldCount: number;
 }
 
 export const LAYOUT_PRESETS: LayoutPreset[] = [
-  { id: "243", name: "243", layoutText: "33 3333\n33333 5555" },
-  { id: "153", name: "153", layoutText: "3 33333\n33333 5555" },
+  { id: "243", name: "243", layoutText: "33 3333\n33333 5555", goldCount: 2 },
+  { id: "153", name: "153", layoutText: "3 33333\n33333 5555", goldCount: 1 },
   {
     id: "full-252",
     name: "满血252",
     layoutText: "32 33333\n13133 3111",
+    goldCount: 2,
   },
   {
     id: "right-full-252-32-trading",
     name: "右满252 32贸",
     layoutText: "32 33222\n33333 2111",
+    goldCount: 2,
   },
   {
     id: "full-342",
     name: "满血342",
     layoutText: "332 3333\n13133 3111",
+    goldCount: 4,
   },
   {
     id: "right-full-342-331-trading",
     name: "右满342 331贸",
     layoutText: "331 3322\n33333 1111",
+    goldCount: 4,
   },
   {
     id: "right-full-342-322-trading",
     name: "右满342 322贸",
     layoutText: "322 3322\n33333 2111",
+    goldCount: 4,
   },
 ];
+
+export function applyPresetProducts(plans: Plan[], preset: LayoutPreset): void {
+  plans.forEach((plan) => {
+    (["trading", "manufacture"] as const).forEach((type) => {
+      const rooms = plan.rooms[type];
+      if (!Array.isArray(rooms)) return;
+      (rooms as RoomAssignment[]).forEach((room, index) => {
+        room.product =
+          type === "trading"
+            ? "龙门币"
+            : index < preset.goldCount
+              ? "赤金"
+              : "中级作战记录";
+        delete room.productOverride;
+        delete room.sourceMaterial;
+      });
+    });
+  });
+}
+
+export function setRoomProduct(
+  room: RoomAssignment,
+  value: string,
+  inherit: boolean,
+): void {
+  if (value === "__inherit__") {
+    delete room.product;
+    delete room.productOverride;
+    delete room.sourceMaterial;
+    return;
+  }
+  if (value) room.product = value;
+  else delete room.product;
+  if (inherit) {
+    if (value) delete room.productOverride;
+    else room.productOverride = true;
+  }
+  if (value === "源石碎片") room.sourceMaterial ||= DEFAULT_SOURCE_MATERIAL;
+  else delete room.sourceMaterial;
+}
+
+export function roomsAt(
+  plans: Plan[],
+  type: RoomKey,
+  position: number,
+): RoomAssignment[] {
+  return plans.flatMap((plan) => {
+    const rooms = plan.rooms[type];
+    const room = Array.isArray(rooms)
+      ? (rooms[position] as RoomAssignment | undefined)
+      : undefined;
+    return room ? [room] : [];
+  });
+}
 
 export function roomsForLayout(
   layout: LayoutEntry[],

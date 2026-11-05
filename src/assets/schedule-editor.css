@@ -33,6 +33,12 @@
   overflow-wrap: anywhere;
 }
 
+:deep(.simulator-layout-product) {
+  width: 100%;
+  min-width: 0;
+  margin-block-start: 6px;
+}
+
 :deep(.simulator-layout-card-actions) {
   display: flex;
   align-items: center;

@@ -2,9 +2,12 @@
 import { DeleteOutlined, QuestionCircleOutlined } from "@ant-design/icons-vue";
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 
-import type { LayoutEntry, RoomKey } from "@/types/schedule";
+import type { LayoutEntry, RoomAssignment, RoomKey } from "@/types/schedule";
 import {
+  DEFAULT_SOURCE_MATERIAL,
   LAYOUT_TEXT_ROWS,
+  PRODUCT_OPTIONS,
+  SOURCE_MATERIAL_OPTIONS,
   ROOM_LABELS,
   ROOM_DISPLAY_ORDER,
   ROOM_REPRESENTATIVE_COLORS,
@@ -33,6 +36,14 @@ const props = withDefaults(
     showLayoutPresets?: boolean;
     layoutPresetWillRemoveOperators?: (preset: LayoutPreset) => boolean;
     layoutTextHelp?: string;
+    readOnlyLayout?: boolean;
+    inheritProducts?: boolean;
+    inheritLabel?: string;
+    productRooms?: (type: RoomKey, position: number) => RoomAssignment[];
+    defaultRoom?: (
+      type: RoomKey,
+      position: number,
+    ) => RoomAssignment | undefined;
   }>(),
   {
     fixedRoomTypes: () => [],
@@ -43,12 +54,20 @@ const props = withDefaults(
     showLayoutPresets: false,
     layoutPresetWillRemoveOperators: () => true,
     layoutTextHelp: "",
+    readOnlyLayout: false,
+    inheritProducts: false,
+    inheritLabel: "使用组默认产物",
+    productRooms: undefined,
+    defaultRoom: undefined,
   },
 );
 
 const emit = defineEmits<{
   "add-layout": [type: RoomKey];
   "apply-layout-text": [text: string];
+  "apply-preset": [preset: LayoutPreset];
+  "update-product": [type: RoomKey, position: number, value: string];
+  "update-source": [type: RoomKey, position: number, value: string];
   "update-layout-level": [index: number, value: number | null];
   "remove-layout": [index: number];
 }>();
@@ -210,14 +229,14 @@ function applySelectedLayoutPreset(): void {
     pendingLayoutPreset.value = preset;
     return;
   }
-  emit("apply-layout-text", preset.layoutText);
+  emit("apply-preset", preset);
 }
 
 function confirmLayoutPreset(): void {
   const preset = pendingLayoutPreset.value;
   pendingLayoutPreset.value = undefined;
   if (preset) {
-    emit("apply-layout-text", preset.layoutText);
+    emit("apply-preset", preset);
   }
 }
 
@@ -226,11 +245,74 @@ function handleLayoutPresetOpenChange(open: boolean): void {
     pendingLayoutPreset.value = undefined;
   }
 }
+
+function roomProduct(
+  room: RoomAssignment,
+  type: RoomKey,
+  position: number,
+): string {
+  if (room.product) return room.product;
+  if (room.productOverride) return "";
+  return props.inheritProducts
+    ? (props.defaultRoom?.(type, position)?.product ?? "")
+    : "";
+}
+
+function productValue(type: RoomKey, position: number): string | undefined {
+  const rooms = props.productRooms?.(type, position) ?? [];
+  if (!rooms.length) return undefined;
+  const values = rooms.map((room) =>
+    props.inheritProducts && !room.product && !room.productOverride
+      ? "__inherit__"
+      : (room.product ?? ""),
+  );
+  return values.every((value) => value === values[0]) ? values[0] : undefined;
+}
+
+function productChoices(
+  type: RoomKey,
+  position: number,
+): Array<{ value: string; label: string; disabled?: boolean }> {
+  const choices: Array<{ value: string; label: string; disabled?: boolean }> = [
+    ...(props.inheritProducts
+      ? [{ value: "__inherit__", label: props.inheritLabel }]
+      : []),
+    { value: "", label: "未指定产物" },
+    ...PRODUCT_OPTIONS.filter((option) =>
+      type === "trading"
+        ? ["龙门币", "合成玉"].includes(option.value)
+        : !["龙门币", "合成玉"].includes(option.value),
+    ),
+  ];
+  const value = productValue(type, position);
+  if (value && !choices.some((item) => item.value === value))
+    choices.push({ value, label: `${value}（仅保留）`, disabled: true });
+  return choices;
+}
+
+function sourceRooms(type: RoomKey, position: number): RoomAssignment[] {
+  return (props.productRooms?.(type, position) ?? []).filter(
+    (room) => roomProduct(room, type, position) === "源石碎片",
+  );
+}
+
+function sourceValue(type: RoomKey, position: number): string | undefined {
+  const rooms = sourceRooms(type, position);
+  const values = rooms.map(
+    (room) =>
+      room.sourceMaterial ??
+      (props.inheritProducts && !room.product
+        ? props.defaultRoom?.(type, position)?.sourceMaterial
+        : undefined) ??
+      DEFAULT_SOURCE_MATERIAL,
+  );
+  return values.every((value) => value === values[0]) ? values[0] : undefined;
+}
 </script>
 
 <template>
   <div class="schedule-layout-editor">
-    <div class="simulator-layout-text-editor">
+    <div v-if="!readOnlyLayout" class="simulator-layout-text-editor">
       <div v-if="showLayoutPresets" class="simulator-layout-presets">
         <span class="simulator-summary-label">预设布局</span>
         <a-select
@@ -287,7 +369,7 @@ function handleLayoutPresetOpenChange(open: boolean): void {
       <a-alert v-if="error" :message="error" show-icon type="error" />
     </div>
 
-    <div class="simulator-layout-add">
+    <div v-if="!readOnlyLayout" class="simulator-layout-add">
       <div class="simulator-layout-add-heading">
         <span class="simulator-summary-label">添加设施</span>
         <span class="simulator-layout-add-hint">点击设施卡片直接添加</span>
@@ -329,7 +411,8 @@ function handleLayoutPresetOpenChange(open: boolean): void {
             <span
               v-if="
                 isFixedLevelRoom(item.entry.type) ||
-                layoutEntryIsFixed(item.entry)
+                layoutEntryIsFixed(item.entry) ||
+                readOnlyLayout
               "
               class="simulator-layout-card-level-text"
               >{{ fixedLevelText(item.entry) }}</span
@@ -347,7 +430,7 @@ function handleLayoutPresetOpenChange(open: boolean): void {
               "
             />
             <a-popconfirm
-              v-if="deleteConfirmationTitle(item.entry)"
+              v-if="!readOnlyLayout && deleteConfirmationTitle(item.entry)"
               :title="deleteConfirmationTitle(item.entry)"
               cancel-text="取消"
               ok-text="删除"
@@ -364,7 +447,7 @@ function handleLayoutPresetOpenChange(open: boolean): void {
               </a-button>
             </a-popconfirm>
             <a-button
-              v-else
+              v-else-if="!readOnlyLayout"
               :disabled="layoutEntryIsDeleteDisabled(item.entry)"
               aria-label="删除设施"
               danger
@@ -375,9 +458,36 @@ function handleLayoutPresetOpenChange(open: boolean): void {
               <template #icon><DeleteOutlined /></template>
             </a-button>
           </div>
+          <a-select
+            v-if="
+              productRooms &&
+              (item.entry.type === 'trading' ||
+                item.entry.type === 'manufacture')
+            "
+            :value="productValue(item.entry.type, item.position)"
+            :options="productChoices(item.entry.type, item.position)"
+            :aria-label="`${ROOM_LABELS[item.entry.type]} ${item.position + 1} 产物`"
+            placeholder="多个产物"
+            class="simulator-layout-product"
+            @select="
+              (value: string) =>
+                emit('update-product', item.entry.type, item.position, value)
+            "
+          />
+          <a-select
+            v-if="sourceRooms(item.entry.type, item.position).length"
+            :value="sourceValue(item.entry.type, item.position)"
+            :options="SOURCE_MATERIAL_OPTIONS"
+            :aria-label="`${ROOM_LABELS[item.entry.type]} ${item.position + 1} 材料`"
+            placeholder="多个材料"
+            class="simulator-layout-product"
+            @select="
+              (value: string) =>
+                emit('update-source', item.entry.type, item.position, value)
+            "
+          />
         </div>
       </div>
     </div>
-
   </div>
 </template>
