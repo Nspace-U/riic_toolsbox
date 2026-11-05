@@ -26,10 +26,18 @@ export interface LayoutPreset {
   name: string;
   layoutText: string;
   goldCount: number;
+  originium?: boolean;
 }
 
 export const LAYOUT_PRESETS: LayoutPreset[] = [
   { id: "243", name: "243", layoutText: "33 3333\n33333 5555", goldCount: 2 },
+  {
+    id: "243-originium",
+    name: "243 搓玉",
+    layoutText: "33 3333\n33333 5555",
+    goldCount: 2,
+    originium: true,
+  },
   { id: "153", name: "153", layoutText: "3 33333\n33333 5555", goldCount: 1 },
   {
     id: "full-252",
@@ -56,6 +64,13 @@ export const LAYOUT_PRESETS: LayoutPreset[] = [
     goldCount: 4,
   },
   {
+    id: "right-full-342-originium",
+    name: "右满342 搓玉",
+    layoutText: "313 3322\n33333 1111",
+    goldCount: 4,
+    originium: true,
+  },
+  {
     id: "right-full-342-322-trading",
     name: "右满342 322贸",
     layoutText: "322 3322\n33333 2111",
@@ -78,6 +93,16 @@ export function applyPresetProducts(plans: Plan[], preset: LayoutPreset): void {
         delete room.productOverride;
         delete room.sourceMaterial;
       });
+      if (preset.originium) {
+        const lastRoom = (rooms as RoomAssignment[]).at(-1);
+        if (lastRoom) {
+          setRoomProduct(
+            lastRoom,
+            type === "trading" ? "合成玉" : "源石碎片",
+            false,
+          );
+        }
+      }
     });
   });
 }

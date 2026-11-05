@@ -14,9 +14,46 @@ try {
   const { parseLayoutText } = await vite.ssrLoadModule(
     "/src/utils/schedule.ts",
   );
-  const expected = [2, 1, 2, 2, 4, 4, 4];
-  for (const [index, preset] of LAYOUT_PRESETS.entries()) {
+  const expected = {
+    243: ["赤金", "赤金", "中级作战记录", "中级作战记录"],
+    "243-originium": ["赤金", "赤金", "中级作战记录", "源石碎片"],
+    153: [
+      "赤金",
+      "中级作战记录",
+      "中级作战记录",
+      "中级作战记录",
+      "中级作战记录",
+    ],
+    "full-252": [
+      "赤金",
+      "赤金",
+      "中级作战记录",
+      "中级作战记录",
+      "中级作战记录",
+    ],
+    "right-full-252-32-trading": [
+      "赤金",
+      "赤金",
+      "中级作战记录",
+      "中级作战记录",
+      "中级作战记录",
+    ],
+    "full-342": ["赤金", "赤金", "赤金", "赤金"],
+    "right-full-342-331-trading": ["赤金", "赤金", "赤金", "赤金"],
+    "right-full-342-originium": ["赤金", "赤金", "赤金", "源石碎片"],
+    "right-full-342-322-trading": ["赤金", "赤金", "赤金", "赤金"],
+  };
+  assert.equal(LAYOUT_PRESETS.length, Object.keys(expected).length);
+  for (const preset of LAYOUT_PRESETS) {
     const layout = parseLayoutText(preset.layoutText);
+    if (preset.id === "right-full-342-originium") {
+      assert.deepEqual(
+        layout
+          .filter((entry) => entry.type === "trading")
+          .map((entry) => entry.level),
+        [3, 1, 3],
+      );
+    }
     const createRooms = (type) =>
       layout
         .filter((entry) => entry.type === type)
@@ -33,16 +70,22 @@ try {
     }));
     applyPresetProducts(plans, preset);
     for (const plan of plans) {
-      assert.ok(plan.rooms.trading.every((room) => room.product === "龙门币"));
+      assert.deepEqual(
+        plan.rooms.trading.map((room) => room.product),
+        plan.rooms.trading.map((_, index, rooms) =>
+          preset.originium && index === rooms.length - 1 ? "合成玉" : "龙门币",
+        ),
+      );
       assert.deepEqual(
         plan.rooms.manufacture.map((room) => room.product),
-        plan.rooms.manufacture.map((_, position) =>
-          position < expected[index] ? "赤金" : "中级作战记录",
-        ),
+        expected[preset.id],
       );
       assert.ok(
         plan.rooms.manufacture.every(
-          (room) => !room.sourceMaterial && room.operators[0] === "阿米娅",
+          (room) =>
+            (room.product === "源石碎片"
+              ? room.sourceMaterial === "固源岩"
+              : !room.sourceMaterial) && room.operators[0] === "阿米娅",
         ),
       );
     }

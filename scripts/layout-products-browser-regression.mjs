@@ -25,6 +25,38 @@ try {
     cards.slice(3, 7).map((text) => text.split("\n").at(-1)),
     ["赤金", "赤金", "中级作战记录", "中级作战记录"],
   );
+  for (const [name, tradingIndex] of [
+    ["243 搓玉", 2],
+    ["右满342 搓玉", 3],
+  ]) {
+    await page.getByLabel("选择预设布局").click();
+    await page.locator(`.ant-select-item-option[title="${name}"]`).click();
+    await page.getByRole("button", { name: /应\s*用/ }).click();
+    assert.match(
+      await page.getByLabel(`贸易站 ${tradingIndex} 产物`).innerText(),
+      /合成玉/,
+    );
+    assert.match(
+      await page.getByLabel("制造站 4 产物").innerText(),
+      /源石碎片/,
+    );
+    assert.match(await page.getByLabel("制造站 4 材料").innerText(), /固源岩/);
+    if (tradingIndex === 3) {
+      const levels = await Promise.all(
+        [1, 2, 3].map((index) =>
+          page
+            .getByLabel(`贸易站 ${index} 产物`)
+            .locator("..")
+            .locator(".ant-input-number-input")
+            .inputValue(),
+        ),
+      );
+      assert.deepEqual(levels, ["3", "1", "3"]);
+    }
+  }
+  await page.getByLabel("选择预设布局").click();
+  await page.locator('.ant-select-item-option[title="243"]').click();
+  await page.getByRole("button", { name: /应\s*用/ }).click();
   await page.getByLabel("制造站 1 产物").click();
   await page.locator('.ant-select-item-option[title="源石碎片"]').click();
   assert.match(await page.getByLabel("制造站 1 材料").innerText(), /固源岩/);
