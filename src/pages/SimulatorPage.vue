@@ -5850,7 +5850,7 @@ async function createPreparedScheduleImage(
     throw new Error("当前没有可导出的排班内容");
   }
 
-  const { showMood, mapSpecialOperators } = imageSettings;
+  const { showMood, mapSpecialOperators, showResourceDetails } = imageSettings;
   const normalizedSchedule = mapSpecialOperators
     ? (JSON.parse(
         serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
@@ -5859,6 +5859,7 @@ async function createPreparedScheduleImage(
   return prepareScheduleImage({
     showMood,
     mapSpecialOperators,
+    showResourceDetails,
     normalizedSchedule,
     resolveEliteLevel: (name, context) => {
       const plan = schedule.plans[context.planIndex];
@@ -5924,7 +5925,11 @@ async function handleExportImage(documentId?: string): Promise<void> {
 }
 
 watch(
-  () => [imageSettings.showMood, imageSettings.mapSpecialOperators],
+  () => [
+    imageSettings.showMood,
+    imageSettings.mapSpecialOperators,
+    imageSettings.showResourceDetails,
+  ],
   () => {
     if (imageExportModalOpen.value) {
       void prepareImageExport();
@@ -6312,6 +6317,9 @@ defineExpose({ prepareScheduleReferenceImage });
         >
         <a-checkbox v-model:checked="imageSettings.mapSpecialOperators">
           映射特殊干员
+        </a-checkbox>
+        <a-checkbox v-model:checked="imageSettings.showResourceDetails">
+          显示资源详情
         </a-checkbox>
         <a-radio-group
           :value="imageExportPreviewWidthMode"
@@ -7785,7 +7793,7 @@ defineExpose({ prepareScheduleReferenceImage });
                 />
                 <div
                   v-if="resultDisplay.dailyOutput.totalTile"
-                  class="simulator-daily-output-item"
+                  class="simulator-daily-output-item simulator-daily-output-total"
                 >
                   <img
                     :alt="'理智'"

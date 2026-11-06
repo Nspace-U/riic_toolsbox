@@ -2,7 +2,11 @@ import { reactive, watch } from "vue";
 
 const STORAGE_KEY = "riic-tools:schedule-image-settings:v1";
 
-function readSettings(): { showMood: boolean; mapSpecialOperators: boolean } {
+function readSettings(): {
+  showMood: boolean;
+  mapSpecialOperators: boolean;
+  showResourceDetails: boolean;
+} {
   try {
     const stored: unknown = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "{}",
@@ -12,10 +16,15 @@ function readSettings(): { showMood: boolean; mapSpecialOperators: boolean } {
       return {
         showMood: settings.showMood === true,
         mapSpecialOperators: settings.mapSpecialOperators !== false,
+        showResourceDetails: settings.showResourceDetails === true,
       };
     }
   } catch {}
-  return { showMood: false, mapSpecialOperators: true };
+  return {
+    showMood: false,
+    mapSpecialOperators: true,
+    showResourceDetails: false,
+  };
 }
 
 const settings = reactive(readSettings());

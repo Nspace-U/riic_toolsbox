@@ -74,6 +74,7 @@ function previewVersion(stored: StoredDocument): string {
     stored.updatedAt,
     imageSettings.showMood,
     imageSettings.mapSpecialOperators,
+    imageSettings.showResourceDetails,
   ]);
 }
 
@@ -383,7 +384,11 @@ watch(
 );
 
 watch(
-  () => [imageSettings.showMood, imageSettings.mapSpecialOperators],
+  () => [
+    imageSettings.showMood,
+    imageSettings.mapSpecialOperators,
+    imageSettings.showResourceDetails,
+  ],
   () => {
     documents.value.forEach((stored) => {
       const state = previewStates[stored.id];
@@ -440,6 +445,9 @@ onBeforeUnmount(() => {
       >
       <a-checkbox v-model:checked="imageSettings.mapSpecialOperators">
         映射特殊干员
+      </a-checkbox>
+      <a-checkbox v-model:checked="imageSettings.showResourceDetails">
+        显示资源详情
       </a-checkbox>
     </a-space>
 

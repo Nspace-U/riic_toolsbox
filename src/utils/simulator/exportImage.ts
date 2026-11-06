@@ -41,6 +41,7 @@ export interface ScheduleImagePreparationOptions {
   normalizedSchedule: ScheduleDocument;
   showMood: boolean;
   mapSpecialOperators: boolean;
+  showResourceDetails: boolean;
   resolveOperator: (name: string) => Operator | undefined;
   resolveEliteLevel: (
     name: string,
@@ -207,14 +208,16 @@ function createExportRoot(
     heading.append(dailyOutputClone);
   }
 
-  root.append(heading);
+  const headingFrame = window.document.createElement("div");
+  headingFrame.append(heading);
+  root.append(headingFrame);
 
   const facilityContent = window.document.createElement("div");
   facilityContent.className = "simulator-image-export-facility-content";
   const grid = source.cloneNode(true) as HTMLElement;
   facilityContent.append(grid);
   root.append(facilityContent);
-  return { root, heading, facilityContent, grid };
+  return { root, heading: headingFrame, facilityContent, grid };
 }
 
 function removeExportControls(root: HTMLElement): void {
@@ -784,6 +787,99 @@ export function partitionFacilityRanges(
   return ranges;
 }
 
+function reflowImageHeading(frame: HTMLElement): void {
+  const heading = frame.querySelector<HTMLElement>(
+    ".simulator-image-export-heading",
+  );
+  if (!heading) {
+    return;
+  }
+  const availableWidth = EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING;
+  const dailyOutput = heading.querySelector<HTMLElement>(
+    ".simulator-image-export-daily-output",
+  );
+  const outputGrid = dailyOutput?.querySelector<HTMLElement>(
+    ".simulator-daily-output-grid",
+  );
+  const cards = outputGrid
+    ? directChildrenWithClass(outputGrid, "simulator-daily-output-item")
+    : [];
+  if (dailyOutput && cards.length === 0) {
+    dailyOutput.remove();
+  }
+
+  const gap = Number.parseFloat(getComputedStyle(heading).columnGap) || 0;
+  const fixedChildren = Array.from(heading.children).filter(
+    (element) => element !== dailyOutput,
+  );
+  const fixedWidth =
+    fixedChildren.reduce(
+      (total, element) => total + element.getBoundingClientRect().width,
+      0,
+    ) +
+    Math.max(0, heading.children.length - 1) * gap;
+  const title = heading.querySelector<HTMLElement>(
+    ".simulator-image-export-title",
+  );
+  if (title) {
+    title.style.width = `${title.getBoundingClientRect().width}px`;
+    title.style.maxWidth = "none";
+  }
+  let cardWidth = 0;
+  if (dailyOutput && outputGrid && cards.length > 0) {
+    dailyOutput.style.flex = "0 0 auto";
+    outputGrid.style.width = "max-content";
+    cards.forEach((card) => {
+      card.style.flex = "0 0 auto";
+    });
+    const widths = cards.map((card) => card.getBoundingClientRect().width);
+    const cardGap =
+      Number.parseFloat(getComputedStyle(outputGrid).columnGap) || 0;
+    const availableCardWidth = Math.max(1, availableWidth - fixedWidth);
+    const ranges = partitionFacilityRanges(
+      widths,
+      availableCardWidth,
+      cardGap,
+      2,
+    );
+    const maxRowWidth = Math.max(
+      ...ranges.map(({ start, end }) => rowWidth(widths, start, end, cardGap)),
+    );
+    const rows = ranges.map(({ start, end }) => {
+      const row = window.document.createElement("div");
+      row.className = "simulator-image-export-resource-row";
+      row.style.display = "flex";
+      row.style.gap = `${cardGap}px`;
+      row.append(...cards.slice(start, end));
+      return row;
+    });
+    outputGrid.replaceChildren(...rows);
+    outputGrid.style.display = "grid";
+    outputGrid.style.gridTemplateColumns = "minmax(0, 1fr)";
+    outputGrid.style.width = `${maxRowWidth}px`;
+    outputGrid.style.flex = "none";
+    const cardScale =
+      fixedWidth >= availableWidth
+        ? 1
+        : Math.min(1, availableCardWidth / maxRowWidth);
+    cardWidth = maxRowWidth * cardScale;
+    const height = outputGrid.getBoundingClientRect().height;
+    outputGrid.style.transform = `scale(${cardScale})`;
+    outputGrid.style.transformOrigin = "top left";
+    dailyOutput.style.alignItems = "flex-start";
+    dailyOutput.style.width = `${cardWidth}px`;
+    dailyOutput.style.height = `${height * cardScale}px`;
+  }
+
+  const headingWidth = Math.max(availableWidth, fixedWidth + cardWidth);
+  heading.style.width = `${headingWidth}px`;
+  const scale = Math.min(1, availableWidth / headingWidth);
+  const height = heading.getBoundingClientRect().height;
+  heading.style.transform = `scale(${scale})`;
+  heading.style.transformOrigin = "top left";
+  frame.style.height = `${height * scale}px`;
+}
+
 function partitionFacilities(
   columns: HTMLElement[],
   maxWidth: number,
@@ -1008,6 +1104,14 @@ export async function prepareScheduleImage(
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
     removeExportControls(parts.root);
+    if (!options.showResourceDetails) {
+      parts.root
+        .querySelectorAll(
+          ".simulator-image-export-daily-output .simulator-daily-output-card-copy, .simulator-image-export-daily-output .simulator-daily-output-total",
+        )
+        .forEach((element) => element.remove());
+    }
+    reflowImageHeading(parts.heading);
     const maxRowWidth = reflowFacilities(parts.grid);
     fitFacilityTitles(parts.grid);
     await waitForImages(parts.root);

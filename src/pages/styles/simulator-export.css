@@ -41,7 +41,7 @@
   min-width: 120px;
   max-width: none;
   color: #647275;
-  font-size: 13px;
+  font-size: 18px;
   line-height: 1.5;
   white-space: pre;
 }
@@ -84,7 +84,7 @@
 }
 
 .simulator-image-export-daily-output .simulator-daily-output-main-value {
-  font-size: 13px;
+  font-size: 18px;
 }
 
 .simulator-image-export-root .simulator-facility-grid {
