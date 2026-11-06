@@ -9,10 +9,7 @@ import {
   formatDurationHours,
   planDurationHoursValue,
 } from "@/utils/simulator/presentation";
-import {
-  FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
-  facilityTitleStyle,
-} from "@/utils/simulator/facilityTitle";
+import { facilityTitleStyle } from "@/utils/simulator/facilityTitle";
 
 export const SCHEDULE_IMAGE_RESOLUTIONS = [
   { key: "1080p", label: "1920 × 1080", width: 1920, height: 1080 },
@@ -625,10 +622,19 @@ function pruneEmptyFacilities(grid: HTMLElement): void {
             (total, segment) => total + segment.getBoundingClientRect().width,
             0,
           );
-          column.style.setProperty(
-            "--simulator-column-width",
-            `${Math.round(width + gap * Math.max(0, remaining.length - 1))}px`,
+          const columnStyle = getComputedStyle(column);
+          const card = column.querySelector<HTMLElement>(
+            ":scope > .simulator-facility-card",
           );
+          const cardStyle = card ? getComputedStyle(card) : undefined;
+          const overhead =
+            (Number.parseFloat(columnStyle.paddingInlineStart) || 0) +
+            (Number.parseFloat(columnStyle.paddingInlineEnd) || 0) +
+            (Number.parseFloat(cardStyle?.borderInlineStartWidth ?? "") || 0) +
+            (Number.parseFloat(cardStyle?.borderInlineEndWidth ?? "") || 0);
+          const columnWidth = `${Math.ceil(width + gap * Math.max(0, remaining.length - 1) + overhead)}px`;
+          column.style.setProperty("--simulator-column-width", columnWidth);
+          column.style.width = columnWidth;
         }
         return;
       }
@@ -640,8 +646,9 @@ function pruneEmptyFacilities(grid: HTMLElement): void {
 }
 
 function fitFacilityTitles(grid: HTMLElement): void {
-  directChildrenWithClass(grid, "simulator-facility-column").forEach(
-    (column) => {
+  grid
+    .querySelectorAll<HTMLElement>(".simulator-facility-column")
+    .forEach((column) => {
       const title = column.querySelector<HTMLElement>(
         ".simulator-facility-title",
       );
@@ -652,24 +659,14 @@ function fitFacilityTitles(grid: HTMLElement): void {
         return;
       }
 
-      const contentWidth = Math.max(
-        0,
-        ...Array.from(
-          column.querySelectorAll<HTMLElement>(".simulator-slot-grid"),
-        ).map((slotGrid) => slotGrid.getBoundingClientRect().width),
-      );
+      const contentWidth = title.getBoundingClientRect().width;
       const tagCount = title.querySelectorAll(".ant-tag").length;
       Object.entries(
-        facilityTitleStyle(
-          label.textContent ?? "",
-          contentWidth - FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
-          tagCount,
-        ),
+        facilityTitleStyle(label.textContent ?? "", contentWidth, tagCount),
       ).forEach(([property, value]) =>
         title.style.setProperty(property, value),
       );
-    },
-  );
+    });
 }
 
 function facilityColumnWidth(column: HTMLElement): number {
@@ -986,9 +983,9 @@ export async function prepareScheduleImage(
     await replaceMappedSpecialOperators(parts.grid, options);
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
-    fitFacilityTitles(parts.grid);
     removeExportControls(parts.root);
     const maxRowWidth = reflowFacilities(parts.grid);
+    fitFacilityTitles(parts.grid);
     await waitForImages(parts.root);
     scaleFacilityContent(
       parts.root,
