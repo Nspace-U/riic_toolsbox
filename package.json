@@ -18,6 +18,7 @@
     "test:simulator-tags": "node scripts/simulator-tags-regression.mjs",
     "test:simulator-layout": "node scripts/simulator-layout-regression.mjs",
     "test:simulator-result": "node scripts/simulator-result-regression.mjs",
+    "test:simulator-special-mapping": "node scripts/simulator-special-mapping-regression.mjs",
     "test:result-display": "npm run build:riic-efficiency && node scripts/result-display-regression.mjs",
     "test:recycle": "node scripts/recycle-regression.mjs",
     "test:simulator-clipboard": "node scripts/simulator-clipboard-regression.mjs",

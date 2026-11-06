@@ -1,6 +1,6 @@
 import { toSvg } from "html-to-image";
 import { Avatar as AntdAvatar } from "ant-design-vue";
-import { createApp, nextTick } from "vue";
+import { createApp, nextTick, type App } from "vue";
 
 import OperatorAvatarDisplay from "@/components/OperatorAvatarDisplay.vue";
 import type { EliteLevel, Operator } from "@/types/baseData";
@@ -42,6 +42,8 @@ export interface ScheduleImagePreparationOptions {
   showMood: boolean;
   mapSpecialOperators: boolean;
   showResourceDetails: boolean;
+  sourceMapped?: boolean;
+  resolveSpecialLabel?: (name: string) => string | undefined;
   resolveOperator: (name: string) => Operator | undefined;
   resolveEliteLevel: (
     name: string,
@@ -69,6 +71,10 @@ interface FacilityColumnMeasurement {
   width: number;
   slotWidth: number;
   slotGridWidth: number;
+}
+
+function createOperatorAvatarApp(props: Record<string, unknown>): App {
+  return createApp(OperatorAvatarDisplay, props);
 }
 
 function directChildrenWithClass(
@@ -389,7 +395,7 @@ async function replaceMappedSpecialAvatar(
   avatarHost.style.insetInlineStart = "-10000px";
   avatarHost.style.visibility = "hidden";
   window.document.body.append(avatarHost);
-  const avatarApp = createApp(OperatorAvatarDisplay, {
+  const avatarApp = createOperatorAvatarApp({
     displayName: mappedName,
     eliteLevel: options.resolveEliteLevel(mappedName, context),
     operator,
@@ -468,6 +474,63 @@ async function replaceMappedSpecialOperators(
     const mappedName = normalizedOperatorName(options, sourceName, context);
     if (mappedName !== sourceName) {
       await replaceMappedSpecialAvatar(slot, mappedName, context, options);
+    }
+  }
+}
+
+async function restoreSpecialOperators(
+  grid: HTMLElement,
+  options: ScheduleImagePreparationOptions,
+): Promise<void> {
+  for (const slot of grid.querySelectorAll<HTMLElement>(".simulator-slot")) {
+    const position = Number(slot.dataset.exportPosition ?? -1);
+    const type = (slot.dataset.exportRoomType ?? "") as RoomKey;
+    const plan =
+      options.schedule.plans[Number(slot.dataset.exportPlanIndex ?? -1)];
+    const rooms = plan?.rooms[type];
+    const room =
+      position >= 0 && Array.isArray(rooms) ? rooms[position] : undefined;
+    const name =
+      room &&
+      typeof room === "object" &&
+      "operators" in room &&
+      Array.isArray(room.operators)
+        ? room.operators[Number(slot.dataset.exportSlotIndex ?? -1)]
+        : undefined;
+    const label =
+      typeof name === "string"
+        ? options.resolveSpecialLabel?.(name)
+        : undefined;
+    const display = slot.querySelector<HTMLElement>(".operator-avatar-display");
+    const frame = display?.querySelector<HTMLElement>(".operator-avatar-frame");
+    if (!name || !label || !display || !frame) continue;
+    const host = window.document.createElement("div");
+    host.style.position = "fixed";
+    host.style.insetInlineStart = "-10000px";
+    window.document.body.append(host);
+    const app = createOperatorAvatarApp({
+      displayName: name,
+      eliteLevel: 0,
+      specialLabel: label,
+      plain: true,
+      proportionalLayout: true,
+      showName: true,
+      skipped: Boolean(frame.querySelector(".operator-avatar-skipped-overlay")),
+      size:
+        Number.parseFloat(frame.style.width) ||
+        frame.getBoundingClientRect().width,
+    });
+    app.component("AAvatar", AntdAvatar);
+    try {
+      app.mount(host);
+      await nextTick();
+      const replacement = host.querySelector<HTMLElement>(
+        ".operator-avatar-display",
+      );
+      if (replacement) display.replaceWith(replacement.cloneNode(true));
+    } finally {
+      app.unmount();
+      host.remove();
     }
   }
 }
@@ -1089,6 +1152,8 @@ export async function prepareScheduleImage(
     prepareFiammettaColumn(parts.grid, options.schedule);
     if (options.mapSpecialOperators) {
       await replaceMappedSpecialOperators(parts.grid, options);
+    } else if (options.sourceMapped) {
+      await restoreSpecialOperators(parts.grid, options);
     }
     if (!options.showMood) {
       parts.grid

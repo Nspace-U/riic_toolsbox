@@ -103,6 +103,9 @@ import {
   RECYCLE_OUTPUT_PRODUCT,
   facilityId,
   importPowerSummary,
+  isPercentageOperator,
+  isTermOperator,
+  mapSpecialOperators,
   nodesForOperator,
   progressionNodesForFacility,
   resolveOperatorProgression,
@@ -523,6 +526,7 @@ const imageExportPreviewContentSize = ref({ width: 1920, height: 1080 });
 const imageExportPreviewContentScale = ref(1);
 const importedScheduleNotice = ref<EfficiencyNotice>();
 const efficiencyCatalog = shallowRef<EfficiencyCatalog>();
+const mappedSchedule = shallowRef<{ id: string; document: ScheduleDocument }>();
 const efficiencyLoading = ref(false);
 const efficiencyError = ref("");
 const draftOperatorNames = ref<Record<string, string>>({});
@@ -630,7 +634,10 @@ const operatorInteraction = useScheduleOperatorInteraction<OperatorSlotAddress>(
     boxSelectionUsesDocument: true,
     commitEdit: commitPendingOperatorNameEdit,
     shouldStartPointer(event) {
-      return Boolean(operatorGridPointerTarget(event.target));
+      return (
+        !mappedSchedule.value &&
+        Boolean(operatorGridPointerTarget(event.target))
+      );
     },
     beforePointerDown() {
       return commitPendingOperatorNameEdit();
@@ -723,7 +730,11 @@ const handleOperatorGridPointerMove = operatorInteraction.handlePointerMove;
 const handleOperatorGridPointerUp = operatorInteraction.handlePointerUp;
 const handleOperatorGridPointerCancel = operatorInteraction.handlePointerCancel;
 const handleWindowSelectStart = operatorInteraction.handleSelectStart;
-const handleWindowKeydown = operatorInteraction.handleKeydown;
+function handleWindowKeydown(event: KeyboardEvent) {
+  if (!mappedSchedule.value) {
+    operatorInteraction.handleKeydown(event);
+  }
+}
 
 const operatorSelectionMarqueeStyle = computed<Record<string, string>>(() => {
   const interaction = operatorPointerInteraction.value;
@@ -787,7 +798,16 @@ function operatorDragPreviewData():
 const operatorDragPreview = computed(operatorDragPreviewData);
 
 const activeDocument = computed(() => getActiveDocument());
-const currentDocument = computed(() => activeDocument.value?.document);
+const currentDocument = computed(() =>
+  mappedSchedule.value && mappedSchedule.value.id === activeDocumentId.value
+    ? mappedSchedule.value.document
+    : activeDocument.value?.document,
+);
+const mappingEnabled = computed(
+  () =>
+    Boolean(mappedSchedule.value) &&
+    mappedSchedule.value?.id === activeDocumentId.value,
+);
 const currentScheduleTags = computed(() => {
   const stored = activeDocument.value;
   return stored
@@ -1697,6 +1717,75 @@ function setError(error: unknown): void {
   message.error(error instanceof Error ? error.message : "操作失败");
 }
 
+function updateSpecialOperatorMapping(enabled: boolean) {
+  if (!enabled) {
+    mappedSchedule.value = undefined;
+    return;
+  }
+  if (!commitPendingOperatorNameEdit()) return;
+  const stored = activeDocument.value;
+  const catalog = efficiencyCatalog.value;
+  if (!stored || !catalog) {
+    setError(new Error("干员数据尚未加载完成"));
+    return;
+  }
+  const targets = [
+    ...(stored.document.fiammetta?.direct?.operators ?? []),
+    ...(stored.document.fiammetta?.queue ?? []).flatMap(
+      (room) => room.operators ?? [],
+    ),
+  ];
+  if (
+    targets.some(
+      (name) => isPercentageOperator(name) || isTermOperator(name, catalog),
+    )
+  ) {
+    setError(new Error("菲亚梅塔互换目标包含特殊干员，请先改为具体干员"));
+    return;
+  }
+  const mapping = mapSpecialOperators(stored.document, catalog);
+  if (mapping.issues[0]) {
+    setError(new Error(mapping.issues[0].errorMessage));
+    return;
+  }
+  for (const [planIndex, plan] of stored.document.plans.entries()) {
+    for (const [type, rooms] of Object.entries(plan.rooms)) {
+      if (!Array.isArray(rooms)) continue;
+      const mappedRooms =
+        mapping.document.plans[planIndex]?.rooms[type as RoomKey];
+      if (!Array.isArray(mappedRooms)) continue;
+      for (const [roomIndex, room] of rooms.entries()) {
+        if (!isRecord(room) || !Array.isArray(room.operators)) continue;
+        const mappedRoom = mappedRooms[roomIndex];
+        if (!isRecord(mappedRoom) || !Array.isArray(mappedRoom.operators))
+          continue;
+        for (const [slotIndex, name] of room.operators.entries()) {
+          const mappedName = mappedRoom.operators[slotIndex];
+          if (
+            typeof name === "string" &&
+            (isPercentageOperator(name) || isTermOperator(name, catalog)) &&
+            typeof mappedName === "string" &&
+            !operatorByName(mappedName)
+          ) {
+            setError(new Error(`特殊干员映射失败：找不到“${mappedName}”`));
+            return;
+          }
+        }
+      }
+    }
+  }
+  if (layoutApplyTimer !== undefined) {
+    clearTimeout(layoutApplyTimer);
+    layoutApplyTimer = undefined;
+  }
+  closeOperatorPicker();
+  clearOperatorSelection();
+  clearOperatorPasteHighlight();
+  closeContextMenu();
+  efficiencySettingsModalOpen.value = false;
+  mappedSchedule.value = { id: stored.id, document: mapping.document };
+}
+
 function updateSimulatorEditSetting(
   setting: SimulatorEditSetting,
   enabled: boolean,
@@ -1745,6 +1834,7 @@ function updateCurrent(
   mutator: (document: ScheduleDocument) => void,
   options: UpdateCurrentOptions = {},
 ): boolean {
+  if (mappingEnabled.value) return false;
   const document = currentDocument.value;
   const stored = activeDocument.value;
   if (!document || !stored) {
@@ -2777,6 +2867,7 @@ function beginOperatorNameEdit(
   initialValue?: string,
   openPicker = false,
 ): boolean {
+  if (mappingEnabled.value) return false;
   const nextSlot = operatorSlotAddress(planIndex, type, position, slotIndex);
   if (editingOperatorSlot.value?.key === nextSlot.key) {
     contextMenu.value = undefined;
@@ -3574,6 +3665,7 @@ function selectOperatorSlot(
   position: number,
   slotIndex: number,
 ): void {
+  if (mappingEnabled.value) return;
   const address = operatorSlotAddress(planIndex, type, position, slotIndex);
   pendingOperatorSelection = {
     key: address.key,
@@ -4234,6 +4326,7 @@ function pruneOperatorSelection(): void {
 }
 
 function restoreScheduleHistory(action: "undo" | "redo"): void {
+  if (mappingEnabled.value) return;
   const documentId = activeDocumentId.value;
   const stored = activeDocument.value;
   if (!documentId || !stored) {
@@ -4803,7 +4896,7 @@ function openOperatorContextMenu(
   position: number,
   slotIndex: number,
 ): void {
-  if (position === FIAMMETTA_POSITION) {
+  if (mappingEnabled.value || position === FIAMMETTA_POSITION) {
     return;
   }
   scheduleDocumentContextMenu.value = undefined;
@@ -4828,7 +4921,7 @@ function openFacilityContextMenu(
   type: RoomKey,
   positions: number[],
 ): void {
-  if (positions.includes(FIAMMETTA_POSITION)) {
+  if (mappingEnabled.value || positions.includes(FIAMMETTA_POSITION)) {
     return;
   }
   scheduleDocumentContextMenu.value = undefined;
@@ -4845,6 +4938,7 @@ function openFacilityContextMenu(
 }
 
 function openFacilityCardContextMenu(event: MouseEvent, row: FacilityRow) {
+  if (mappingEnabled.value) return;
   scheduleDocumentContextMenu.value = undefined;
   if (
     event.target instanceof Element &&
@@ -5862,6 +5956,9 @@ async function createPreparedScheduleImage(
     showMood,
     mapSpecialOperators,
     showResourceDetails,
+    sourceMapped: mappingEnabled.value && documentId === activeDocumentId.value,
+    resolveSpecialLabel: (name) =>
+      specialOperatorAvatarLabelResolver.value(name),
     normalizedSchedule,
     resolveEliteLevel: (name, context) => {
       const plan = schedule.plans[context.planIndex];
@@ -6054,27 +6151,32 @@ watch(scheduleTagGroups, (groups) => {
   );
 });
 
-watch(activeDocumentId, () => {
-  if (
-    imageExportModalOpen.value &&
-    imageExportDocumentId.value !== activeDocumentId.value
-  ) {
-    closeImageExport();
-  }
-  draftOperatorNames.value = {};
-  editingOperatorSlot.value = undefined;
-  closeOperatorPicker();
-  clearOperatorSelection();
-  setOperatorDragTarget(undefined);
-  setOperatorDragHoveredSlot(undefined);
-  hoveredOperatorSlot.value = undefined;
-  clearOperatorPasteHighlight();
-  contextMenu.value = undefined;
-  if (layoutApplyTimer !== undefined) {
-    clearTimeout(layoutApplyTimer);
-    layoutApplyTimer = undefined;
-  }
-});
+watch(
+  activeDocumentId,
+  () => {
+    mappedSchedule.value = undefined;
+    if (
+      imageExportModalOpen.value &&
+      imageExportDocumentId.value !== activeDocumentId.value
+    ) {
+      closeImageExport();
+    }
+    draftOperatorNames.value = {};
+    editingOperatorSlot.value = undefined;
+    closeOperatorPicker();
+    clearOperatorSelection();
+    setOperatorDragTarget(undefined);
+    setOperatorDragHoveredSlot(undefined);
+    hoveredOperatorSlot.value = undefined;
+    clearOperatorPasteHighlight();
+    contextMenu.value = undefined;
+    if (layoutApplyTimer !== undefined) {
+      clearTimeout(layoutApplyTimer);
+      layoutApplyTimer = undefined;
+    }
+  },
+  { flush: "sync" },
+);
 
 watch(
   [activeDocumentId, () => currentDocument.value?.settings?.lmdDroneStrategy],
@@ -6600,6 +6702,7 @@ defineExpose({ prepareScheduleReferenceImage });
               >
               <a-input
                 id="simulator-meta-title"
+                :disabled="mappingEnabled"
                 class="simulator-meta-single-line-input"
                 :value="currentDocument.title ?? ''"
                 @update:value="(value: string) => updateMeta('title', value)"
@@ -6614,6 +6717,7 @@ defineExpose({ prepareScheduleReferenceImage });
               <a-textarea
                 id="simulator-meta-description"
                 :auto-size="{ minRows: 1 }"
+                :disabled="mappingEnabled"
                 :value="currentDocument.description ?? ''"
                 @update:value="
                   (value: string) => updateMeta('description', value)
@@ -6626,6 +6730,7 @@ defineExpose({ prepareScheduleReferenceImage });
               >
               <a-select
                 aria-labelledby="simulator-meta-tags"
+                :disabled="mappingEnabled"
                 :open="false"
                 :search-value="scheduleTagInput"
                 :value="currentScheduleTags.map((tag) => tag.label)"
@@ -6651,6 +6756,7 @@ defineExpose({ prepareScheduleReferenceImage });
           <div aria-label="编辑选项" class="simulator-edit-settings">
             <a-checkbox
               :checked="currentSimulatorEditSettings.layout"
+              :disabled="mappingEnabled"
               @change="
                 (event: { target: { checked: boolean } }) =>
                   updateSimulatorEditSetting('layout', event.target.checked)
@@ -6660,6 +6766,7 @@ defineExpose({ prepareScheduleReferenceImage });
             </a-checkbox>
             <a-checkbox
               :checked="currentSimulatorEditSettings.queue"
+              :disabled="mappingEnabled"
               @change="
                 (event: { target: { checked: boolean } }) =>
                   updateSimulatorEditSetting('queue', event.target.checked)
@@ -6669,7 +6776,7 @@ defineExpose({ prepareScheduleReferenceImage });
             </a-checkbox>
             <a-checkbox
               :checked="currentTimedQueueEnabled"
-              :disabled="!currentSimulatorEditSettings.queue"
+              :disabled="mappingEnabled || !currentSimulatorEditSettings.queue"
               @change="
                 (event: { target: { checked: boolean } }) =>
                   updateTimedQueueSetting(event.target.checked)
@@ -6677,13 +6784,26 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               定时换班
             </a-checkbox>
+            <a-checkbox
+              :checked="mappingEnabled"
+              @change="
+                (event: { target: { checked: boolean } }) =>
+                  updateSpecialOperatorMapping(event.target.checked)
+              "
+            >
+              映射特殊干员
+            </a-checkbox>
             <a-popconfirm
               cancel-text="取消"
               ok-text="确认恢复"
               title="确认将该排班表中所有干员恢复到默认练度？"
               @confirm="resetAllOperatorProgression"
             >
-              <a-button size="small" title="恢复该排班表中所有干员的默认练度">
+              <a-button
+                :disabled="mappingEnabled"
+                size="small"
+                title="恢复该排班表中所有干员的默认练度"
+              >
                 <template #icon><ReloadOutlined /></template>
                 恢复默认练度
               </a-button>
@@ -6694,6 +6814,7 @@ defineExpose({ prepareScheduleReferenceImage });
         <a-card
           v-if="currentSimulatorEditSettings.layout"
           :bordered="false"
+          :inert="mappingEnabled || undefined"
           class="simulator-layout-panel"
           title="设施布局"
         >
@@ -6738,7 +6859,7 @@ defineExpose({ prepareScheduleReferenceImage });
               'simulator-queue-column',
               {
                 'simulator-queue-column-readonly':
-                  !currentSimulatorEditSettings.queue,
+                  mappingEnabled || !currentSimulatorEditSettings.queue,
               },
             ]"
           >
@@ -6749,7 +6870,7 @@ defineExpose({ prepareScheduleReferenceImage });
             >
               <template #extra>
                 <a-button
-                  v-if="currentSimulatorEditSettings.queue"
+                  v-if="currentSimulatorEditSettings.queue && !mappingEnabled"
                   size="small"
                   @click="addPlan"
                 >
@@ -6765,12 +6886,16 @@ defineExpose({ prepareScheduleReferenceImage });
                     'simulator-queue-info',
                     {
                       'simulator-queue-info-readonly':
-                        !currentSimulatorEditSettings.queue,
+                        mappingEnabled || !currentSimulatorEditSettings.queue,
                     },
                   ]"
                 >
                   <div class="simulator-queue-info-main">
-                    <template v-if="currentSimulatorEditSettings.queue">
+                    <template
+                      v-if="
+                        currentSimulatorEditSettings.queue && !mappingEnabled
+                      "
+                    >
                       <a-input
                         :value="plan.name ?? ''"
                         class="simulator-queue-entry-title"
@@ -6853,7 +6978,7 @@ defineExpose({ prepareScheduleReferenceImage });
                     </template>
                   </div>
                   <div
-                    v-if="currentSimulatorEditSettings.queue"
+                    v-if="currentSimulatorEditSettings.queue && !mappingEnabled"
                     class="simulator-queue-info-actions"
                   >
                     <a-button size="small" @click="duplicatePlan(planIndex)">
@@ -7742,6 +7867,7 @@ defineExpose({ prepareScheduleReferenceImage });
               <a-tooltip title="计算设置">
                 <a-button
                   aria-label="计算设置"
+                  :disabled="mappingEnabled"
                   size="small"
                   type="text"
                   @click="efficiencySettingsModalOpen = true"
