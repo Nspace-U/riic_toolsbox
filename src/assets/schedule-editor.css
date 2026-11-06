@@ -635,7 +635,6 @@
 
 :deep(.simulator-empty-slot-frame) {
   position: relative;
-  background: #edf2f0;
   border-radius: 0;
   overflow: hidden;
 }
