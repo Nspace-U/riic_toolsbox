@@ -731,9 +731,26 @@ const handleOperatorGridPointerUp = operatorInteraction.handlePointerUp;
 const handleOperatorGridPointerCancel = operatorInteraction.handlePointerCancel;
 const handleWindowSelectStart = operatorInteraction.handleSelectStart;
 function handleWindowKeydown(event: KeyboardEvent) {
-  if (!mappedSchedule.value) {
-    operatorInteraction.handleKeydown(event);
+  if (mappedSchedule.value) return;
+  const shortcut =
+    event.code === "KeyZ"
+      ? "z"
+      : event.code === "KeyY"
+        ? "y"
+        : event.key.toLowerCase();
+  if (
+    event.target instanceof Element &&
+    event.target.closest("[data-simulator-mapping-toggle]") &&
+    (event.ctrlKey || event.metaKey) &&
+    !event.altKey &&
+    !event.shiftKey &&
+    (shortcut === "z" || shortcut === "y")
+  ) {
+    event.preventDefault();
+    restoreScheduleHistory(shortcut === "z" ? "undo" : "redo");
+    return;
   }
+  operatorInteraction.handleKeydown(event);
 }
 
 const operatorSelectionMarqueeStyle = computed<Record<string, string>>(() => {
@@ -6786,6 +6803,7 @@ defineExpose({ prepareScheduleReferenceImage });
             </a-checkbox>
             <a-checkbox
               :checked="mappingEnabled"
+              data-simulator-mapping-toggle="true"
               @change="
                 (event: { target: { checked: boolean } }) =>
                   updateSpecialOperatorMapping(event.target.checked)

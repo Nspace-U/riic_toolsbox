@@ -158,6 +158,20 @@ try {
   await page.getByText(/菲亚梅塔互换目标包含特殊干员/).waitFor();
   assert.equal(await toggle.isChecked(), false);
   await page.locator('[data-schedule-document-id="valid"]').click();
+  const queueName = editor.locator(".simulator-queue-entry-title").first();
+  await queueName.fill("修改后的队列");
+  await toggle.check();
+  await page.keyboard.press("Control+z");
+  await toggle.uncheck();
+  assert.equal(await queueName.inputValue(), "修改后的队列");
+  assert.equal(
+    await toggle.evaluate((input) => input === document.activeElement),
+    true,
+  );
+  await page.keyboard.press("Control+z");
+  assert.equal(await queueName.inputValue(), "队列1");
+  await page.keyboard.press("Control+y");
+  assert.equal(await queueName.inputValue(), "修改后的队列");
   await toggle.check();
   await page.reload();
   await editor.getByText("35%", { exact: true }).first().waitFor();
