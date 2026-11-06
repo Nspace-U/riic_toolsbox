@@ -42,8 +42,7 @@
 .operator-avatar-frame--special {
   display: grid;
   place-items: center;
-  color: #ffffff;
-  background: #526864;
+  color: #000000;
 }
 
 .operator-avatar-special-label {
