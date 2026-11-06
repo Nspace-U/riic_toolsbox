@@ -13,6 +13,7 @@ import type { ComponentPublicInstance } from "vue";
 import { useRouter } from "vue-router";
 
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
+import { useScheduleImageSettings } from "@/composables/useScheduleImageSettings";
 import SimulatorPage from "@/pages/SimulatorPage.vue";
 import type { StoredDocument } from "@/types/schedule";
 import {
@@ -53,6 +54,7 @@ const PREVIEW_HEIGHT = SCHEDULE_IMAGE_RESOLUTIONS[0].height;
 
 const router = useRouter();
 const { documents } = useScheduleDocuments();
+const imageSettings = useScheduleImageSettings();
 const simulatorRenderer = ref<PreviewRenderer>();
 const previewStates = reactive<Record<string, PreviewState>>({});
 const previewViewports = new Map<string, HTMLElement>();
@@ -66,6 +68,14 @@ let previewQueueRunning = false;
 let previewUnmounted = false;
 
 const hasDocuments = computed(() => documents.value.length > 0);
+
+function previewVersion(stored: StoredDocument): string {
+  return JSON.stringify([
+    stored.updatedAt,
+    imageSettings.showMood,
+    imageSettings.mapSpecialOperators,
+  ]);
+}
 
 function createPreviewState(documentId: string, version: string): PreviewState {
   const cache = getScheduleReferencePreview(documentId, version);
@@ -98,13 +108,14 @@ function clearPreviewState(documentId: string, state: PreviewState): void {
 
 function ensurePreviewState(stored: StoredDocument): PreviewState {
   const existing = previewStates[stored.id];
-  if (existing && existing.version === stored.updatedAt) {
+  const version = previewVersion(stored);
+  if (existing && existing.version === version) {
     return existing;
   }
   if (existing) {
     clearPreviewState(stored.id, existing);
   }
-  const state = createPreviewState(stored.id, stored.updatedAt);
+  const state = createPreviewState(stored.id, version);
   previewStates[stored.id] = state;
   return state;
 }
@@ -239,7 +250,7 @@ async function processPreviewQueue(): Promise<void> {
       state.status = "loading";
       state.error = "";
       const requestVersion = state.requestVersion;
-      const documentVersion = stored.updatedAt;
+      const documentVersion = previewVersion(stored);
       try {
         const prepared =
           await simulatorRenderer.value?.prepareScheduleReferenceImage(
@@ -250,7 +261,8 @@ async function processPreviewQueue(): Promise<void> {
           !prepared ||
           previewUnmounted ||
           state.requestVersion !== requestVersion ||
-          current?.updatedAt !== documentVersion
+          !current ||
+          previewVersion(current) !== documentVersion
         ) {
           prepared?.cleanup();
           continue;
@@ -358,13 +370,30 @@ watch(
     });
     documents.value.forEach((stored) => {
       const state = previewStates[stored.id];
-      if (state && state.version !== stored.updatedAt) {
+      if (state && state.version !== previewVersion(stored)) {
         clearPreviewState(stored.id, state);
-        state.version = stored.updatedAt;
+        state.version = previewVersion(stored);
         state.error = "";
         if (isNearViewport(stored.id)) {
           enqueuePreview(stored.id);
         }
+      }
+    });
+  },
+);
+
+watch(
+  () => [imageSettings.showMood, imageSettings.mapSpecialOperators],
+  () => {
+    documents.value.forEach((stored) => {
+      const state = previewStates[stored.id];
+      if (state) {
+        clearPreviewState(stored.id, state);
+        state.version = previewVersion(stored);
+        state.error = "";
+      }
+      if (!previewObserver || isNearViewport(stored.id)) {
+        enqueuePreview(stored.id);
       }
     });
   },
@@ -404,6 +433,15 @@ onBeforeUnmount(() => {
         <span class="page-heading-description">查看已保存排班表的图片预览</span>
       </div>
     </div>
+
+    <a-space wrap>
+      <a-checkbox v-model:checked="imageSettings.showMood"
+        >显示剩余心情</a-checkbox
+      >
+      <a-checkbox v-model:checked="imageSettings.mapSpecialOperators">
+        映射特殊干员
+      </a-checkbox>
+    </a-space>
 
     <a-empty v-if="!hasDocuments" :image="undefined" description="暂无排班表" />
     <div v-else class="schedule-reference-grid">

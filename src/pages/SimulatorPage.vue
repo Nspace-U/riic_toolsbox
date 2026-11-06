@@ -38,6 +38,7 @@ import {
   useFacilityColors,
 } from "@/composables/useFacilityColors";
 import { useScheduleDocuments } from "@/composables/useScheduleDocuments";
+import { useScheduleImageSettings } from "@/composables/useScheduleImageSettings";
 import { useOperatorProgression } from "@/composables/useOperatorProgression";
 import { useOperatorPickerSettings } from "@/composables/useOperatorPickerSettings";
 import { useResultResourceDisplaySettings } from "@/composables/useResultResourceDisplaySettings";
@@ -507,6 +508,7 @@ const recycleOutputDays = ref(1);
 const recycleOutputGrouping = ref<"rarity" | "material">("rarity");
 const pendingDeleteSchedule = ref<{ id: string; title: string }>();
 const imageExportModalOpen = ref(false);
+const imageSettings = useScheduleImageSettings();
 const imageExportResolution = ref<ScheduleImageResolutionKey>("1080p");
 const imageExportError = ref("");
 const imageExportLoading = ref(false);
@@ -5848,10 +5850,15 @@ async function createPreparedScheduleImage(
     throw new Error("当前没有可导出的排班内容");
   }
 
-  const normalizedSchedule = JSON.parse(
-    serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
-  ) as ScheduleDocument;
+  const { showMood, mapSpecialOperators } = imageSettings;
+  const normalizedSchedule = mapSpecialOperators
+    ? (JSON.parse(
+        serializeMaaSchedule(schedule, { catalog: efficiencyCatalog.value }),
+      ) as ScheduleDocument)
+    : schedule;
   return prepareScheduleImage({
+    showMood,
+    mapSpecialOperators,
     normalizedSchedule,
     resolveEliteLevel: (name, context) => {
       const plan = schedule.plans[context.planIndex];
@@ -5915,6 +5922,15 @@ async function handleExportImage(documentId?: string): Promise<void> {
   imageExportModalOpen.value = true;
   await prepareImageExport();
 }
+
+watch(
+  () => [imageSettings.showMood, imageSettings.mapSpecialOperators],
+  () => {
+    if (imageExportModalOpen.value) {
+      void prepareImageExport();
+    }
+  },
+);
 
 function updateImageExportResolution(event: {
   target: { value: string | number };
@@ -6291,6 +6307,12 @@ defineExpose({ prepareScheduleReferenceImage });
       @cancel="closeImageExport"
     >
       <div class="simulator-image-export-toolbar">
+        <a-checkbox v-model:checked="imageSettings.showMood"
+          >显示剩余心情</a-checkbox
+        >
+        <a-checkbox v-model:checked="imageSettings.mapSpecialOperators">
+          映射特殊干员
+        </a-checkbox>
         <a-radio-group
           :value="imageExportPreviewWidthMode"
           button-style="solid"

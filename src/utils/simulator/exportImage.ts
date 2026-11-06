@@ -39,6 +39,8 @@ export interface ScheduleImagePreparationOptions {
   source: HTMLElement;
   schedule: ScheduleDocument;
   normalizedSchedule: ScheduleDocument;
+  showMood: boolean;
+  mapSpecialOperators: boolean;
   resolveOperator: (name: string) => Operator | undefined;
   resolveEliteLevel: (
     name: string,
@@ -995,7 +997,14 @@ export async function prepareScheduleImage(
 
     prepareQueueColumn(parts.grid, options.schedule);
     prepareFiammettaColumn(parts.grid, options.schedule);
-    await replaceMappedSpecialOperators(parts.grid, options);
+    if (options.mapSpecialOperators) {
+      await replaceMappedSpecialOperators(parts.grid, options);
+    }
+    if (!options.showMood) {
+      parts.grid
+        .querySelectorAll(".operator-avatar-mood-remaining")
+        .forEach((element) => element.remove());
+    }
     mergeDormitories(parts.grid);
     pruneEmptyFacilities(parts.grid);
     removeExportControls(parts.root);
