@@ -1810,18 +1810,20 @@ watch(
               <div>
                 <a-radio-group
                   :value="facilityCardSettings.iconStyle"
+                  button-style="solid"
+                  option-type="button"
                   @change="
                     (event: { target: { value: unknown } }) =>
                       setFacilityCardIconStyle(event.target.value)
                   "
                 >
-                  <a-radio
+                  <a-radio-button
                     v-for="key in facilityCardIconStyleKeys"
                     :key="key"
                     :value="key"
                   >
                     {{ facilityCardIconStyleOptions[key].label }}
-                  </a-radio>
+                  </a-radio-button>
                 </a-radio-group>
                 <p class="settings-panel-hint">
                   {{

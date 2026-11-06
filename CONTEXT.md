@@ -62,6 +62,7 @@
 - 模拟器与计算器排班编辑器的设施卡片均按槽位网格内容和卡片自身边框、内边距自然撑开；模拟器槽位保持 90px、计算器槽位保
   持 76px，列间距由外层布局控制。
 - 模拟器设施大卡片与队列小卡片的右键菜单使用一致的产物和无人机加速文案；大卡片仍对当前设施的全部队列执行批量修改，但菜单不额外显示“所有队列”。
+- 模拟器设施卡片背景产物图标可选右下角小图标、居中水印或关闭；默认使用右下角小图标，设置保存在浏览器本地。
 - 模拟器页面的布局编辑规则与结果展示格式化已拆到 `src/utils/simulator/`；效率计算模型、规则、结果聚合、练度、特殊干员和排班表布局推测（`inferScheduleLayout`、`completeInferredRooms`、`resizeImportedRooms`、`importPowerSummary`、`dormitoryLevels`）均由 `packages/riic-efficiency` 公共 API 提供，宿主不再持有布局推测实现。
 - `calculateEfficiency` 在传入文档缺少布局时按 `plans` 自动推测布局，推测结果只用于本次计算：不修改入参文档、不写回排班表，返回结果以 `layoutSource: "inferred"` 标记，并由 `buildEfficiencyNotices` 输出「本次计算使用了推测布局」的 Info 提示；传入文档包含布局时严格使用传入布局并标记 `layoutSource: "document"`。
 - 结果区结构与文案由 `buildResultDisplay(result, options)` 统一产出：`dailyOutput` 给出每日产出格子与总理智，`droneStrategy` 与 `droneScenarios` 给出无人机策略文案和场景格子，`calculationSteps` 给出 MAA 无人机、队列计算明细、基地点数和设施步骤四种分区，基地点数保留独立列结构。返回值里不含任何显示指令：文本以 `{ template, raws }` 给出（`template` 含 `{n}` 占位，`raws[n].signed` 表示有符号增量），单位与符号都在模板文本里。

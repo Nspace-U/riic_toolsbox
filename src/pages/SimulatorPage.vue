@@ -6925,7 +6925,10 @@ defineExpose({ prepareScheduleReferenceImage });
                   @contextmenu.stop.prevent
                 >
                   <img
-                    v-if="facilityCardIconUrl(row, plan)"
+                    v-if="
+                      facilityCardSettings.iconStyle !== 'off' &&
+                      facilityCardIconUrl(row, plan)
+                    "
                     :alt="`${row.label}产物图标`"
                     :class="facilityIconClasses()"
                     :src="facilityCardIconUrl(row, plan) ?? ''"

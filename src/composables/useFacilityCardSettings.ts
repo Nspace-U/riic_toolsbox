@@ -1,6 +1,6 @@
 import { ref } from "vue";
 
-export type FacilityCardIconStyleKey = "corner" | "watermark";
+export type FacilityCardIconStyleKey = "corner" | "watermark" | "off";
 
 export interface FacilityCardIconStyleOption {
   label: string;
@@ -22,11 +22,17 @@ export const FACILITY_CARD_ICON_STYLE_OPTIONS: Record<
     description: "居中显示产物图标水印，尺寸为槽位的 2 倍，透明度 8%",
     scale: 2,
   },
+  off: {
+    label: "关闭",
+    description: "不显示设施卡片背景产物图标",
+    scale: 0,
+  },
 };
 
 export const FACILITY_CARD_ICON_STYLE_KEYS: FacilityCardIconStyleKey[] = [
   "corner",
   "watermark",
+  "off",
 ];
 
 export interface FacilityCardSettings {
