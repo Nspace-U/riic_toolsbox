@@ -302,6 +302,117 @@ try {
     await page.getByRole("checkbox", { name: "显示资源详情" }).isChecked(),
     false,
   );
+  const layoutPage = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+  });
+  await layoutPage.addInitScript(() => {
+    const control = { type: "control", level: 5 };
+    const trading = Array.from({ length: 3 }, () => ({
+      type: "trading",
+      level: 3,
+    }));
+    const manufacture = Array.from({ length: 5 }, () => ({
+      type: "manufacture",
+      level: 3,
+    }));
+    const power = Array.from({ length: 3 }, () => ({
+      type: "power",
+      level: 3,
+    }));
+    const assignments = (count, slots) =>
+      Array.from({ length: count }, () => ({
+        operators: Array(slots).fill("阿米娅"),
+      }));
+    const document = {
+      title: "间距测试",
+      layout: [control, ...trading, ...manufacture, ...power],
+      plans: [
+        {
+          name: "队列1",
+          duration: 720,
+          rooms: {
+            control: assignments(1, 5),
+            trading: assignments(3, 3),
+            manufacture: assignments(5, 3),
+            power: assignments(3, 1),
+          },
+        },
+      ],
+    };
+    localStorage.setItem(
+      "riic-tools:schedule-documents:v1",
+      JSON.stringify([
+        {
+          id: "spacing",
+          document,
+          inferredLayout: false,
+          sourceFileName: "",
+          createdAt: "2026-01-01",
+          updatedAt: "2026-01-01",
+        },
+      ]),
+    );
+    localStorage.setItem("riic-tools:schedule-active-document:v1", "spacing");
+    localStorage.setItem(
+      "riic-tools:schedule-image-settings:v1",
+      JSON.stringify({
+        mapSpecialOperators: false,
+      }),
+    );
+  });
+  await layoutPage.goto(`http://127.0.0.1:${address.port}/simulator`);
+  await layoutPage
+    .locator(".simulator-editor .operator-avatar-display")
+    .first()
+    .waitFor();
+  await layoutPage.getByText("排班表参考", { exact: true }).first().click();
+  try {
+    await layoutPage.waitForFunction(
+      () =>
+        document.querySelectorAll(
+          ".schedule-reference-card .simulator-export-facility-row",
+        ).length === 2,
+      undefined,
+      { timeout: 10000 },
+    );
+  } catch (error) {
+    console.error(await layoutPage.locator("body").innerText());
+    throw error;
+  }
+  const spacing = await layoutPage
+    .locator(".schedule-reference-card")
+    .evaluate((card) => {
+      const rows = Array.from(
+        card.querySelectorAll(".simulator-export-facility-row"),
+      );
+      const first = rows[0].querySelectorAll(".simulator-facility-card");
+      const second = rows[1].querySelector(".simulator-facility-card");
+      const a = first[0].getBoundingClientRect();
+      const b = first[1].getBoundingClientRect();
+      const c = second.getBoundingClientRect();
+      const entries = rows[0].querySelector(".simulator-queue-entries");
+      const style = getComputedStyle(entries);
+      const grid = card.querySelector(".simulator-export-facility-grid");
+      return {
+        horizontal: b.left - a.right,
+        vertical: c.top - a.bottom,
+        paddingStart: style.paddingInlineStart,
+        paddingEnd: style.paddingInlineEnd,
+        expected: (10 * grid.getBoundingClientRect().width) / grid.offsetWidth,
+      };
+    });
+  assert.equal(spacing.paddingStart, "4px");
+  assert.equal(spacing.paddingEnd, "4px");
+  assert.ok(spacing.horizontal > 0);
+  assert.ok(
+    Math.abs(spacing.horizontal - spacing.expected) < 1,
+    JSON.stringify(spacing),
+  );
+  assert.ok(
+    Math.abs(spacing.horizontal - spacing.vertical) < 1,
+    JSON.stringify(spacing),
+  );
+  await layoutPage.close();
   console.log("Export preview, PNG download and persisted settings passed");
 } finally {
   await browser.close();

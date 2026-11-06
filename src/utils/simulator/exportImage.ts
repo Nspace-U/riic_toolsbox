@@ -919,20 +919,16 @@ function reflowFacilities(grid: HTMLElement): number {
     grid,
     "simulator-facility-column",
   );
-  const gap = Number.parseFloat(getComputedStyle(grid).columnGap) || 10;
+  const rowGap = Number.parseFloat(getComputedStyle(grid).rowGap) || 10;
   const availableWidth = Math.max(
     1,
     EXPORT_CANVAS_WIDTH - EXPORT_ROOT_HORIZONTAL_PADDING,
   );
   const queueWidth = queueColumn ? facilityColumnWidth(queueColumn) : 0;
-  const queueGap = queueColumn && facilityColumns.length > 0 ? gap : 0;
-  const availableFacilityWidth = Math.max(
-    1,
-    availableWidth - queueWidth - queueGap,
-  );
+  const availableFacilityWidth = Math.max(1, availableWidth - queueWidth);
   let groups: HTMLElement[][];
   if (facilityColumns.length > 0) {
-    groups = partitionFacilities(facilityColumns, availableFacilityWidth, gap);
+    groups = partitionFacilities(facilityColumns, availableFacilityWidth, 0);
   } else if (queueColumn) {
     groups = [[]];
   } else {
@@ -940,16 +936,14 @@ function reflowFacilities(grid: HTMLElement): number {
   }
   const rowWidths = groups.map(
     (group) =>
-      rowWidth(group.map(facilityColumnWidth), 0, group.length, gap) +
-      queueWidth +
-      (queueColumn && group.length > 0 ? gap : 0),
+      rowWidth(group.map(facilityColumnWidth), 0, group.length, 0) + queueWidth,
   );
   const maxRowWidth = Math.max(1, ...rowWidths);
   const rows: HTMLElement[] = [];
   groups.forEach((group, index) => {
     const row = window.document.createElement("div");
     row.className = "simulator-export-facility-row";
-    row.style.gap = `${gap}px`;
+    row.style.gap = "0px";
     row.style.width = `${maxRowWidth}px`;
     row.style.minWidth = `${maxRowWidth}px`;
     row.style.justifyContent = "flex-start";
@@ -966,7 +960,7 @@ function reflowFacilities(grid: HTMLElement): number {
 
   grid.classList.add("simulator-export-facility-grid");
   grid.style.display = "grid";
-  grid.style.rowGap = `${gap}px`;
+  grid.style.rowGap = `${rowGap}px`;
   grid.style.marginInline = "0";
   grid.style.paddingInline = "0";
   grid.style.width = `${maxRowWidth}px`;

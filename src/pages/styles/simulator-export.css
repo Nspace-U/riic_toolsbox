@@ -124,6 +124,12 @@
   overflow: visible;
 }
 
+.simulator-image-export-root
+  .simulator-export-queue-card
+  .simulator-queue-entries {
+  padding-inline: 4px;
+}
+
 .simulator-image-export-root .simulator-export-queue-head-spacer {
   visibility: hidden;
   min-height: 46px;
