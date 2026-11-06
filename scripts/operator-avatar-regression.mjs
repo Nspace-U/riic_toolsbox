@@ -46,7 +46,10 @@ try {
   });
   specialAvatar.use(Antd);
   const specialHtml = await renderToString(specialAvatar);
-  assert.match(specialHtml, /operator-avatar-special-label/);
+  assert.match(
+    specialHtml,
+    /class="operator-avatar-special-label"[^>]*>\s*\?\s*<\/span>/,
+  );
   assert.doesNotMatch(specialHtml, /operator-avatar-base/);
 
   const operatorAvatarStyles = compileStyle({

@@ -121,7 +121,7 @@ const renderedName = computed(
 );
 
 const specialLabelStyle = computed(() => ({
-  fontSize: `${Math.max(10, Math.round(props.size / 4))}px`,
+  fontSize: `${Math.max(10, Math.round(props.size / 2))}px`,
 }));
 
 function updateNameFontSize(): void {
@@ -285,7 +285,7 @@ onMounted(updateNameFontSize);
         :style="specialLabelStyle"
         class="operator-avatar-special-label"
       >
-        {{ specialLabel }}
+        ?
       </span>
       <template v-else>
         <img
