@@ -172,6 +172,10 @@
   border-radius: 0;
 }
 
+:deep(.simulator-column-card > .ant-card-head) {
+  border-block-end: 0;
+}
+
 :deep(.simulator-facility-card) {
   width: 100%;
   overflow: hidden;
@@ -184,11 +188,6 @@
   min-height: 46px;
   padding-inline: 12px;
   background: color-mix(in srgb, var(--simulator-facility-accent) 26%, #ffffff);
-  border-block-end-color: color-mix(
-    in srgb,
-    var(--simulator-facility-accent) 48%,
-    #e0e8e5
-  );
 }
 
 :deep(.simulator-facility-card .ant-card-body) {
