@@ -306,7 +306,6 @@
   padding: 8px;
   gap: 5px;
   background: #f8fbfa;
-  border: 1px solid #e0e8e5;
 }
 
 :deep(.simulator-queue-info-main) {

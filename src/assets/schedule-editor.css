@@ -161,7 +161,7 @@
 }
 
 :deep(.simulator-column-card) {
-  border: 1px solid #e0e8e5;
+  border: 0;
   border-radius: 0;
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
 }
@@ -176,11 +176,6 @@
   width: 100%;
   overflow: hidden;
   background: color-mix(in srgb, var(--simulator-facility-accent) 16%, #ffffff);
-  border-color: color-mix(
-    in srgb,
-    var(--simulator-facility-accent) 58%,
-    #e0e8e5
-  );
 }
 
 :deep(.simulator-facility-card .ant-card-head) {
@@ -256,12 +251,8 @@
   margin: 0;
   overflow: hidden;
   background: color-mix(in srgb, var(--simulator-facility-accent) 9%, #ffffff);
+  border: 0;
   border-radius: 0;
-  border-color: color-mix(
-    in srgb,
-    var(--simulator-facility-accent) 42%,
-    #e0e8e5
-  );
 }
 
 :deep(.simulator-facility-queue .ant-card-body) {
