@@ -6868,7 +6868,6 @@ defineExpose({ prepareScheduleReferenceImage });
                   <a-space
                     v-if="!row.isFiammetta && showsFacilityLevelTags(row.type)"
                     :size="4"
-                    wrap
                   >
                     <a-tag
                       v-for="entry in row.entries"

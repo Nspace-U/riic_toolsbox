@@ -1838,7 +1838,7 @@ defineExpose({ clearInteractionState });
               class="simulator-facility-title"
             >
               <span>{{ row.label }}</span>
-              <a-space v-if="row.type !== 'power'" :size="4" wrap>
+              <a-space v-if="row.type !== 'power'" :size="4">
                 <a-tag
                   v-for="entry in row.entries"
                   :key="entry.index"
