@@ -217,6 +217,21 @@ function createExportRoot(
 
 function removeExportControls(root: HTMLElement): void {
   root
+    .querySelectorAll<HTMLButtonElement>(
+      ".simulator-image-export-daily-output button.simulator-daily-output-item",
+    )
+    .forEach((button) => {
+      const display = window.document.createElement("div");
+      Array.from(button.attributes).forEach((attribute) => {
+        if (!/^(type|title|tabindex|aria-)/.test(attribute.name)) {
+          display.setAttribute(attribute.name, attribute.value);
+        }
+      });
+      display.classList.remove("simulator-daily-output-item--interactive");
+      display.append(...Array.from(button.childNodes));
+      button.replaceWith(display);
+    });
+  root
     .querySelectorAll(
       "button, input, textarea, select, .simulator-edit-settings, .simulator-toolbar, .simulator-efficiency-settings-entry, .simulator-operator-picker, .simulator-context-menu, .ant-card-extra",
     )
