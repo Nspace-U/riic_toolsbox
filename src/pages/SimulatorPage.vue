@@ -1104,12 +1104,14 @@ const RECYCLE_OUTPUT_RARITIES = [
 
 const recycleOutputDisplayRows = computed<RecycleOutputDisplayRow[]>(() => {
   if (recycleOutputGrouping.value === "material") {
-    return recycleOutputItems.value.map((item) => ({
-      key: item.itemId,
-      label: item.name,
-      amountPerDay: item.amountPerDay,
-      iconName: item.name,
-    }));
+    return recycleOutputItems.value
+      .map((item) => ({
+        key: item.itemId,
+        label: item.name,
+        amountPerDay: item.amountPerDay,
+        iconName: item.name,
+      }))
+      .sort((left, right) => right.amountPerDay - left.amountPerDay);
   }
 
   return RECYCLE_OUTPUT_RARITIES.map(({ key, label, iconName }) => ({
