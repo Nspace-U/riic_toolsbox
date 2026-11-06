@@ -45,7 +45,10 @@ import {
   parseLayoutText,
   roomSlotCount,
 } from "@/utils/schedule";
-import { facilityTitleStyle as computeFacilityTitleStyle } from "@/utils/simulator/facilityTitle";
+import {
+  FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
+  facilityTitleStyle as computeFacilityTitleStyle,
+} from "@/utils/simulator/facilityTitle";
 import {
   cascadeLayoutTypes,
   layoutAdditionPlan,
@@ -63,7 +66,6 @@ import { operatorPasteAssignments } from "@/utils/simulator/operatorClipboard";
 
 const CALCULATOR_SLOT_SIZE = 76;
 const RUN_ORDER_DIVIDER_WIDTH = 17;
-const FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE = 8;
 
 interface FacilityEntry {
   entry: LayoutEntry;

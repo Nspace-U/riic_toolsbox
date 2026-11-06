@@ -3,6 +3,8 @@ interface FacilityTitleTagPreset {
   padding: number;
 }
 
+export const FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE = 8;
+
 const FACILITY_TITLE_TAG_TEXT = "Lv 9";
 const FACILITY_TITLE_TAG_GAP = 4;
 const FACILITY_TITLE_MAX_FONT_SIZE = 14;

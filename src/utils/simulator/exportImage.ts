@@ -9,7 +9,10 @@ import {
   formatDurationHours,
   planDurationHoursValue,
 } from "@/utils/simulator/presentation";
-import { facilityTitleStyle } from "@/utils/simulator/facilityTitle";
+import {
+  FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
+  facilityTitleStyle,
+} from "@/utils/simulator/facilityTitle";
 
 export const SCHEDULE_IMAGE_RESOLUTIONS = [
   { key: "1080p", label: "1920 × 1080", width: 1920, height: 1080 },
@@ -657,7 +660,11 @@ function fitFacilityTitles(grid: HTMLElement): void {
       );
       const tagCount = title.querySelectorAll(".ant-tag").length;
       Object.entries(
-        facilityTitleStyle(label.textContent ?? "", contentWidth, tagCount),
+        facilityTitleStyle(
+          label.textContent ?? "",
+          contentWidth - FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
+          tagCount,
+        ),
       ).forEach(([property, value]) =>
         title.style.setProperty(property, value),
       );
@@ -823,12 +830,7 @@ function reflowFacilities(grid: HTMLElement): number {
   }
   const rowWidths = groups.map(
     (group) =>
-      rowWidth(
-        group.map(facilityColumnWidth),
-        0,
-        group.length,
-        gap,
-      ) +
+      rowWidth(group.map(facilityColumnWidth), 0, group.length, gap) +
       queueWidth +
       (queueColumn && group.length > 0 ? gap : 0),
   );

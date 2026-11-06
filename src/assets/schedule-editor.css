@@ -178,6 +178,8 @@
 }
 
 :deep(.simulator-facility-card .ant-card-head) {
+  inline-size: 0;
+  min-inline-size: 100%;
   min-height: 46px;
   padding-inline: 12px;
   background: color-mix(in srgb, var(--simulator-facility-accent) 26%, #ffffff);

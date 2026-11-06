@@ -168,6 +168,7 @@ import {
 } from "@/utils/simulator/layout";
 import {
   estimateTextEm,
+  FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
   facilityTitleStyle as facilityTitleStyleForWidth,
 } from "@/utils/simulator/facilityTitle";
 import {
@@ -3013,7 +3014,8 @@ function facilityTitleStyle(row: FacilityRow): Record<string, string> {
       : 0;
   return facilityTitleStyleForWidth(
     row.label,
-    slotRefCount(row) * simulatorSlotSize,
+    slotRefCount(row) * simulatorSlotSize -
+      FACILITY_TITLE_WIDTH_PADDING_DIFFERENCE,
     tagCount,
   );
 }
