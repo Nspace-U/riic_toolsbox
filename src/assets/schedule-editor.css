@@ -17,7 +17,7 @@
   gap: 4px;
   min-width: 140px;
   padding: 7px 8px 8px 10px;
-  background: color-mix(in srgb, var(--simulator-facility-accent) 8%, #ffffff);
+  background: color-mix(in srgb, var(--simulator-facility-accent) 16%, #ffffff);
   border: 1px solid
     color-mix(in srgb, var(--simulator-facility-accent) 40%, #e0e8e5);
   border-inline-start: 4px solid var(--simulator-facility-accent);
@@ -179,7 +179,7 @@
 :deep(.simulator-facility-card) {
   width: 100%;
   overflow: hidden;
-  background: color-mix(in srgb, var(--simulator-facility-accent) 16%, #ffffff);
+  background: color-mix(in srgb, var(--simulator-facility-accent) 24%, #ffffff);
 }
 
 :deep(.simulator-facility-card .ant-card-head) {
@@ -187,7 +187,7 @@
   min-inline-size: 100%;
   min-height: 46px;
   padding-inline: 12px;
-  background: color-mix(in srgb, var(--simulator-facility-accent) 26%, #ffffff);
+  background: color-mix(in srgb, var(--simulator-facility-accent) 36%, #ffffff);
 }
 
 :deep(.simulator-facility-card .ant-card-body) {
@@ -249,7 +249,7 @@
   min-height: var(--simulator-queue-min-height, 135px);
   margin: 0;
   overflow: hidden;
-  background: color-mix(in srgb, var(--simulator-facility-accent) 9%, #ffffff);
+  background: color-mix(in srgb, var(--simulator-facility-accent) 16%, #ffffff);
   border: 0;
   border-radius: 0;
 }

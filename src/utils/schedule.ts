@@ -26,16 +26,16 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
 };
 
 export const ROOM_REPRESENTATIVE_COLORS: Record<RoomKey, string> = {
-  control: "#216A66",
-  trading: "#2486B3",
-  manufacture: "#E2C60C",
-  power: "#9DCB3B",
-  meeting: "#E27B5A",
-  hire: "#C2C2C2",
-  processing: "#D0D60D",
-  training: "#8A1F39",
+  control: "#005752",
+  trading: "#0075A9",
+  manufacture: "#FFD800",
+  power: "#8DC11F",
+  meeting: "#DD653F",
+  hire: "#565656",
+  processing: "#E3EB00",
+  training: "#7C0022",
   recycle: "#6CCBCB",
-  dormitory: "#37CBBF",
+  dormitory: "#21CBC9",
 };
 
 export const PRODUCT_REPRESENTATIVE_COLORS: Record<string, string> = {
