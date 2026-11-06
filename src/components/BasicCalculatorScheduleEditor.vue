@@ -1844,7 +1844,7 @@ defineExpose({ clearInteractionState });
                   :key="entry.index"
                   color="gold"
                 >
-                  Lv {{ entry.entry.level }}
+                  {{ entry.entry.level }}
                 </a-tag>
               </a-space>
             </div>

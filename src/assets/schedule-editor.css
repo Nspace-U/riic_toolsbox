@@ -162,8 +162,14 @@
 
 :deep(.simulator-column-card) {
   border: 1px solid #e0e8e5;
-  border-radius: 6px;
+  border-radius: 0;
   box-shadow: 0 8px 24px rgba(36, 52, 57, 0.04);
+}
+
+:deep(.simulator-column-card > .ant-card-head),
+:deep(.simulator-column-card > .ant-card-body),
+:deep(.simulator-facility-queue > .ant-card-body) {
+  border-radius: 0;
 }
 
 :deep(.simulator-facility-card) {
@@ -225,7 +231,7 @@
 :deep(.simulator-facility-title > span:first-child) {
   overflow: hidden;
   color: #2e4043;
-  font-size: var(--simulator-facility-title-size, 14px);
+  font-size: var(--simulator-facility-title-size, 16px);
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -234,6 +240,7 @@
 :deep(.simulator-facility-title .ant-tag) {
   padding-inline: var(--simulator-facility-tag-padding, 7px);
   margin-inline-end: 0;
+  border-radius: 0;
   font-size: var(--simulator-facility-tag-font-size, 12px);
 }
 
@@ -249,6 +256,7 @@
   margin: 0;
   overflow: hidden;
   background: color-mix(in srgb, var(--simulator-facility-accent) 9%, #ffffff);
+  border-radius: 0;
   border-color: color-mix(
     in srgb,
     var(--simulator-facility-accent) 42%,

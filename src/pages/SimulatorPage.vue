@@ -6903,7 +6903,7 @@ defineExpose({ prepareScheduleReferenceImage });
                       v-for="entry in row.entries"
                       :key="entry.index"
                       color="gold"
-                      >Lv {{ entry.entry.level }}</a-tag
+                      >{{ entry.entry.level }}</a-tag
                     >
                   </a-space>
                 </div>
