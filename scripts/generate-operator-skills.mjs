@@ -2370,6 +2370,13 @@ function controlTermKey(label, groups, warn) {
   return groups[label] || termKeyOf(label, groups, warn);
 }
 
+function controlFacilityScope(text) {
+  if (/其他设施内处于工作状态的干员/.test(text)) return CONTROL_ROOM2;
+  if (/部分设施内处于工作状态的干员/.test(text)) return CONTROL_ROOM1;
+  if (/工作场所内处于工作状态的干员/.test(text)) return WORKSPACE_FACS;
+  return null;
+}
+
 function controlCondition(text, groups, warn) {
   let match = text.match(/当自身心情(?:处于)?([+-]?\d+)以下时?/);
   if (match) return { type: "moodCmp", value: Number(match[1]), op: "le" };
@@ -2410,9 +2417,17 @@ function controlCondition(text, groups, warn) {
   return null;
 }
 
-function parseControlPart(text, groups, effects, warn, condition = null) {
+function parseControlPart(
+  text,
+  groups,
+  effects,
+  warn,
+  condition = null,
+  inheritedFacilities = null,
+) {
   let rest = text.trim().replace(/^同时/, "").trim();
   let match;
+  const facilities = controlFacilityScope(text) ?? inheritedFacilities;
 
   // 线索倾向/未拥有线索属于可展示的概率效果。必须在“某干员心情”通用规则前提取，
   // 否则“提升会客室内干员所属派系……”会被误识别成干员名。
@@ -2471,12 +2486,19 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
       /^如果有(\d+)台以上(.+?)进驻在(发电站|制造站|贸易站|会客室|办公室|宿舍)，则(.+)$/,
     ))
   ) {
-    parseControlPart(match[4], groups, effects, warn, {
-      type: "opGroupCountInFacility",
-      group: controlTermKey(match[2], groups, warn),
-      facility: ROOM_MAP[match[3]],
-      min: Number(match[1]),
-    });
+    parseControlPart(
+      match[4],
+      groups,
+      effects,
+      warn,
+      {
+        type: "opGroupCountInFacility",
+        group: controlTermKey(match[2], groups, warn),
+        facility: ROOM_MAP[match[3]],
+        min: Number(match[1]),
+      },
+      facilities,
+    );
     return;
   }
   if (
@@ -2484,11 +2506,18 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
       /^如果(.+?)进驻在(发电站|制造站|贸易站|会客室|办公室|宿舍)，(?:则)?(.+)$/,
     ))
   ) {
-    parseControlPart(match[3], groups, effects, warn, {
-      type: "opAtFacility",
-      op: match[1],
-      facility: ROOM_MAP[match[2]],
-    });
+    parseControlPart(
+      match[3],
+      groups,
+      effects,
+      warn,
+      {
+        type: "opAtFacility",
+        op: match[1],
+        facility: ROOM_MAP[match[2]],
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^当(.+?)进驻中枢时(.+)$/))) {
@@ -2514,11 +2543,18 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
       /^当(.+?)(?:进驻|入驻)(会客室|贸易站|制造站|发电站|办公室|宿舍)时，(.+)$/,
     ))
   ) {
-    parseControlPart(match[3], groups, effects, warn, {
-      type: "opAtFacility",
-      op: match[1],
-      facility: ROOM_MAP[match[2]],
-    });
+    parseControlPart(
+      match[3],
+      groups,
+      effects,
+      warn,
+      {
+        type: "opAtFacility",
+        op: match[1],
+        facility: ROOM_MAP[match[2]],
+      },
+      facilities,
+    );
     return;
   }
   if (
@@ -2526,51 +2562,86 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
       /^当(.+?)(?:进驻|入驻)(会客室|贸易站|制造站|发电站|办公室|宿舍)时(.+)$/,
     ))
   ) {
-    parseControlPart(match[3], groups, effects, warn, {
-      type: "opAtFacility",
-      op: match[1],
-      facility: ROOM_MAP[match[2]],
-    });
+    parseControlPart(
+      match[3],
+      groups,
+      effects,
+      warn,
+      {
+        type: "opAtFacility",
+        op: match[1],
+        facility: ROOM_MAP[match[2]],
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^当自身心情(?:处于)?([+-]?\d+)以下时，(.+)$/))) {
-    parseControlPart(match[2], groups, effects, warn, {
-      type: "moodCmp",
-      value: Number(match[1]),
-      op: "le",
-    });
+    parseControlPart(
+      match[2],
+      groups,
+      effects,
+      warn,
+      {
+        type: "moodCmp",
+        value: Number(match[1]),
+        op: "le",
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^热情值处于([+-]?\d+)点及以上时，(.+)$/))) {
-    parseControlPart(match[2], groups, effects, warn, {
-      type: "termCmp",
-      a: "cc.bd_mujica",
-      b: Number(match[1]),
-      op: "ge",
-    });
+    parseControlPart(
+      match[2],
+      groups,
+      effects,
+      warn,
+      {
+        type: "termCmp",
+        a: "cc.bd_mujica",
+        b: Number(match[1]),
+        op: "ge",
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^当自身心情大于([+-]?\d+)时，(.+)$/))) {
-    parseControlPart(match[2], groups, effects, warn, {
-      type: "moodCmp",
-      value: Number(match[1]),
-      op: "gt",
-    });
+    parseControlPart(
+      match[2],
+      groups,
+      effects,
+      warn,
+      {
+        type: "moodCmp",
+        value: Number(match[1]),
+        op: "gt",
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^当热情值处于([+-]?\d+)点及以上时，(.+)$/))) {
-    parseControlPart(match[2], groups, effects, warn, {
-      type: "termCmp",
-      a: "cc.bd_mujica",
-      b: Number(match[1]),
-      op: "ge",
-    });
+    parseControlPart(
+      match[2],
+      groups,
+      effects,
+      warn,
+      {
+        type: "termCmp",
+        a: "cc.bd_mujica",
+        b: Number(match[1]),
+        op: "ge",
+      },
+      facilities,
+    );
     return;
   }
   if ((match = rest.match(/^若(.+?)[，,](.+)$/))) {
     const cond = controlCondition(match[1] + "，", groups, warn);
     if (cond) {
-      parseControlPart(match[2], groups, effects, warn, cond);
+      parseControlPart(match[2], groups, effects, warn, cond, facilities);
       return;
     }
   }
@@ -3355,6 +3426,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
     const effect = {
       target: "any",
       stat: "moodRecover",
+      ...(facilities?.length ? { facilities } : {}),
       per: {
         per: Number(match[1]),
         value: Number(match[3]),
@@ -3504,7 +3576,7 @@ function parseControlPart(text, groups, effects, warn, condition = null) {
 
   const tail = rest.replace(/^[，,、\s]+/, "").trim();
   if (tail && tail !== rest && /^(?:当|如果|若)/.test(tail)) {
-    parseControlPart(tail, groups, effects, warn, condition);
+    parseControlPart(tail, groups, effects, warn, condition, facilities);
     return;
   }
 
@@ -3518,11 +3590,16 @@ function parseCtrlEffects(id, name, description, warn) {
   const { text, groups } = cleanDesc(description);
   const effects = [];
   const normalized = text.replace(/^进驻控制中枢时，?/, "").trim();
+  let previousFacilities = null;
   normalized
     .split(/；/)
     .map((part) => part.trim())
     .filter(Boolean)
     .forEach((part) => {
+      const facilities =
+        controlFacilityScope(part) ??
+        (part.startsWith("同时") ? previousFacilities : null);
+      previousFacilities = facilities;
       let match = part.match(/^当与(.+?)一起进驻控制中枢时，(.+)$/);
       if (match) {
         const condition = {
@@ -3531,7 +3608,14 @@ function parseCtrlEffects(id, name, description, warn) {
             ? { group: groups[match[1]], facility: "same" }
             : { op: match[1], facility: "same" }),
         };
-        parseControlPart(match[2], groups, effects, warn, condition);
+        parseControlPart(
+          match[2],
+          groups,
+          effects,
+          warn,
+          condition,
+          facilities,
+        );
         return;
       }
       match = part.match(/^当与(.+?)进驻控制中枢一起工作时，(.+)$/);
@@ -3545,29 +3629,50 @@ function parseCtrlEffects(id, name, description, warn) {
               other: true,
             }
           : { type: "opAtFacility", op: subject, facility: "same" };
-        parseControlPart(match[2], groups, effects, warn, condition);
+        parseControlPart(
+          match[2],
+          groups,
+          effects,
+          warn,
+          condition,
+          facilities,
+        );
         return;
       }
       match = part.match(/^当与(.+?)干员进驻控制中枢一起工作时，(.+)$/);
       if (match) {
-        parseControlPart(match[2], groups, effects, warn, {
-          type: "opGroupInFacility",
-          group: controlTermKey(match[1], groups, warn),
-          facility: "same",
-          other: true,
-        });
+        parseControlPart(
+          match[2],
+          groups,
+          effects,
+          warn,
+          {
+            type: "opGroupInFacility",
+            group: controlTermKey(match[1], groups, warn),
+            facility: "same",
+            other: true,
+          },
+          facilities,
+        );
         return;
       }
       match = part.match(/^当与(.+?)一起进驻控制中枢时，(.+)$/);
       if (match) {
-        parseControlPart(match[2], groups, effects, warn, {
-          type: "opAtFacility",
-          op: match[1],
-          facility: "same",
-        });
+        parseControlPart(
+          match[2],
+          groups,
+          effects,
+          warn,
+          {
+            type: "opAtFacility",
+            op: match[1],
+            facility: "same",
+          },
+          facilities,
+        );
         return;
       }
-      parseControlPart(part, groups, effects, warn);
+      parseControlPart(part, groups, effects, warn, null, facilities);
     });
   return effects;
 }

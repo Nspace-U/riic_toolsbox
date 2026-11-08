@@ -211,4 +211,35 @@ for (const [id, skillName, group] of cases) {
   });
 }
 
+const chongyue = JSON.parse(
+  await readFile(path.join(skillRoot, "char_2024_chyue.json"), "utf8"),
+);
+const chongyueStage = chongyue.chains
+  .filter((chain) => chain.room === "control")
+  .flatMap((chain) => chain.stages)
+  .find((stage) => stage.name === "孤光共照");
+assert.deepEqual(chongyueStage?.effects, [
+  {
+    target: "any",
+    stat: "moodRecover",
+    value: 0.05,
+    facilities: ["power", "manufacture", "trading", "hire", "meeting"],
+    stack: "max",
+    maxGroup: "otherFacRec",
+  },
+  {
+    target: "any",
+    stat: "moodRecover",
+    facilities: ["power", "manufacture", "trading", "hire", "meeting"],
+    per: {
+      per: 20,
+      value: 0.05,
+      source: "basePoint",
+      term: "cc.bd_b1",
+    },
+    stack: "max",
+    maxGroup: "otherFacRec",
+  },
+]);
+
 console.log("operator skill generation regression: passed");
